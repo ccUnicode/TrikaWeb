@@ -1,0 +1,39 @@
+---
+/* 1. Definimos las "props" (las variables) que la tarjeta va a recibir */
+export interface Props {
+  ciclo: string;
+  profesor: string;
+  tieneSolucion: boolean;
+}
+const { ciclo, profesor, tieneSolucion } = Astro.props;
+
+
+/* 2. Definimos los íconos (los metemos aquí) */
+const checkIcon = `
+<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#22C55E]">
+  <span class="block h-1.5 w-2.5 rounded-sm border-b-[3px] border-l-[3px] border-white/90" style="transform: rotate(-45deg) translate(-1px, -1px);"></span>
+</span>
+`;
+const noCheckIcon = `
+<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-600">
+  <span class="block h-0.5 w-2.5 rounded-full bg-white/50"></span>
+</span>
+`;
+---
+
+<a href="#" class="flex w-60 h-[243px] flex-col gap-2 rounded-lg bg-[#1E2430] p-4 shadow-lg transition-transform hover:scale-105">
+  
+  <div class="flex-1 w-full rounded bg-[#101010] mb-4"></div>
+  
+  <div class="flex items-center justify-between -mt-2">
+    <span class="text-sm font-medium text-gray-300">{ciclo}</span>
+    
+    {tieneSolucion ? (
+      <Fragment set:html={checkIcon} />
+    ) : (
+      <Fragment set:html={noCheckIcon} />
+    )}
+
+  </div>
+  <span class="text-sm text-gray-400">{profesor}</span>
+</a>
