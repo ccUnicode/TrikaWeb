@@ -1,22 +1,37 @@
+---
+import "../styles/global.css";
+
+export interface Props {
+	title?: string;
+	lang?: string;
+	favicon?: string;
+}
+
+const {
+	title = "TrikaWeb",
+	lang = "es",
+	favicon = "/img/icono.png",
+} = Astro.props as Props;
+---
+
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<link rel="icon" href={favicon} />
+		<title>{title}</title>
 	</head>
-	<body>
+	<body class="bg-global-bg text-global-text antialiased">
 		<slot />
 	</body>
+	<style>
+		html,
+		body {
+			margin: 0;
+			width: 100%;
+			height: 100%;
+		}
+	</style>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>

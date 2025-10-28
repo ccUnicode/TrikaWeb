@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+/* Fallback utilities for palette tokens (works without @theme) */
+@layer utilities {
+	/* Backgrounds */
+	.bg-global-bg { background-color: #101010; }
+	.bg-global-surface { background-color: #171A1F; }
+	.bg-global-card { background-color: #1E2430; }
+
+	/* Text colors */
+	.text-global-text { color: #E6E9EF; }
+	.text-global-primary { color: #22C55E; }
+	.text-global-primary-hover { color: #51A624; }
+	.text-global-text-muted { color: #9AA4B2; }
+
+	/* Borders */
+	.border-global-border { border-color: #2A3240; }
+
+	/* Hover variants */
+	.hover\:bg-global-surface:hover { background-color: #171A1F; }
+	.hover\:text-global-primary-hover:hover { color: #51A624; }
+}
