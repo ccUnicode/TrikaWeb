@@ -1,5 +1,28 @@
 ---
 import "../styles/global.css";
+// 1. IMPORTAR EL COMPONENTE DEL MODAL
+import FichaProfesor from '../components/IntroductionOfTeachers.astro';
+
+// 2. DEFINIR LOS DATOS DEL PROFESOR
+const alexisGarayData = {
+    id: "alexis", // ID que conecta el botón con el modal
+    nombre: "Alexis Garay",
+    puntuacion: 4.5,
+    imagenSrc: "/img/teacher.png", // Usando la imagen placeholder existente
+    descripcion: "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Pellentesque laoreet molestie gravida nisl. Integer senectus. Pellentesque laoreet molestie gravida nisl. Integer senectus.",
+    cursos: ["Álgebra Lineal", "Cálculo Diferencial", "Física II"],
+    estadisticas: {
+        Didáctica: 4.0,
+        Dificultad: 4.4,
+        Material: 3.7,
+        'Justo al evaluar': 3.1,
+        Responsabilidad: 3.4
+    },
+    comentarios: [
+        { anonimo: "Anónimo 1", texto: "Lorem ipsum dolor sit amet, consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." },
+        { anonimo: "Anónimo 2", texto: "consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." }
+    ]
+};
 ---
 
 <html lang="es">
@@ -10,10 +33,8 @@ import "../styles/global.css";
     <link rel="icon" href="/img/icono.png" />
   </head>
   <body class="bg-[#101010] text-neutral-100 antialiased">
-    <!-- WRAPPER -->
     <div class="flex min-h-screen w-full flex-col items-center gap-12">
 
-      <!-- NAV -->
       <header class="w-full bg-[#171A1F]">
         <div class="mx-auto flex max-w-[1200px] items-center justify-between px-16 py-6">
           <div class="flex w-[188px] items-center justify-between">
@@ -24,18 +45,17 @@ import "../styles/global.css";
             <a class="text-[20px] leading-7 font-medium hover:text-emerald-400" href="/planchas">Planchas</a>
             <a class="text-[20px] leading-7 font-medium hover:text-emerald-400" href="/profesores">Profesores</a>
             <button class="rounded-xl p-2 hover:bg-neutral-800/60" aria-label="Inicio">
-              <!-- placeholder del icono -->
               <span class="block h-[19px] w-[18px] border-2 border-[#E6E9EF]"></span>
             </button>
           </nav>
         </div>
       </header>
 
-      <!-- HERO -->
       <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-[140px] rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-40 py-20 md:grid-cols-2">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
           <h1 class="max-w-[383px] text-[40px] leading-[48px] font-bold text-[#E6E9EF]">
-            ¿Planchas y reseñas de profes? Todo en un solo lugar.
+            ¿Planchas y reseñas de profes?
+            Todo en un solo lugar.
           </h1>
           <p class="max-w-[383px] text-[16px] leading-6 text-[#9AA4B2]">
             La experiencia de generaciones, organizada para que estudies mejor y evites la trika.
@@ -47,9 +67,7 @@ import "../styles/global.css";
         </div>
       </section>
 
-      <!-- PLANCHAS -->
       <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-10 py-16">
-        <!-- Título + buscador -->
         <div class="flex w-full items-center justify-between px-12">
           <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
           <div class="flex w-[400px] items-center gap-2 rounded-2xl bg-[#2A3240] px-8 py-4">
@@ -61,7 +79,6 @@ import "../styles/global.css";
           </div>
         </div>
 
-        <!-- Carrusel simple de cards (3) -->
         <div class="flex items-center gap-8">
           <button class="h-7 w-5 rounded bg-[#9AA4B2]/60" aria-label="Anterior"></button>
 
@@ -89,7 +106,6 @@ import "../styles/global.css";
           <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
         </div>
 
-        <!-- Segundo carrusel: “más populares” (estructura similar) -->
         <div class="flex items-center gap-8">
           <div class="w-[118px] text-center">
             <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
@@ -120,7 +136,6 @@ import "../styles/global.css";
         </div>
       </section>
 
-      <!-- PROFESORES -->
       <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-12 py-16">
         <div class="flex h-[50px] w-full items-center justify-between">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
@@ -132,20 +147,45 @@ import "../styles/global.css";
           <button class="h-7 w-5 rounded bg-[#9AA4B2]/60" aria-label="Anterior"></button>
 
           <div class="flex items-center gap-14">
+            {/* 3. Lógica: El primer card abre el modal (i === 0) */}
             {Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex w-[280px] flex-col items-center gap-6 rounded-2xl bg-[#1E2430] px-4 py-9">
-                <div class="flex justify-center">
-                  <img src="/img/teacher.png" alt="Profesor" class="h-[200px] w-[200px] rounded-full border-2 border-[#1E2430] p-2 shadow" />
-                </div>
-                <div class="flex w-full flex-col items-center gap-4">
-                  <h3 class="text-center text-[24px] leading-8 font-medium">Carlos Arámbulo</h3>
-                  <div class="flex items-center gap-4">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <span class={j < 4 ? "block h-5 w-5 rounded-sm bg-[#22C55E]" : "block h-5 w-5 rounded-sm border-2 border-[#22C55E]"} />
-                    ))}
+              i === 0 ? (
+                // Card de Alexis Garay (Botón de Apertura)
+                <button 
+                  id={`open-${alexisGarayData.id}`} 
+                  type="button" 
+                  class="inline-flex w-[280px] flex-col items-center gap-6 rounded-2xl bg-[#1E2430] px-4 py-9 transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-green-500/50"
+                  aria-label={`Abrir ficha de ${alexisGarayData.nombre}`}
+                >
+                  <div class="flex justify-center">
+                    <img src={alexisGarayData.imagenSrc} alt={`Profesor ${alexisGarayData.nombre}`} class="h-[200px] w-[200px] rounded-full border-2 border-[#1E2430] p-2 shadow" />
                   </div>
-                </div>
-              </article>
+                  <div class="flex w-full flex-col items-center gap-4">
+                    <h3 class="text-center text-[24px] leading-8 font-medium">{alexisGarayData.nombre}</h3>
+                    {/* Simular las estrellas de rating basadas en la puntuación */}
+                    <div class="flex items-center gap-4">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <span class={j < Math.floor(alexisGarayData.puntuacion) ? "block h-5 w-5 rounded-sm bg-[#22C55E]" : "block h-5 w-5 rounded-sm border-2 border-[#22C55E]"} />
+                      ))}
+                    </div>
+                  </div>
+                </button>
+              ) : (
+                // Resto de Cards (Genéricos/Estáticos)
+                <article class="inline-flex w-[280px] flex-col items-center gap-6 rounded-2xl bg-[#1E2430] px-4 py-9">
+                  <div class="flex justify-center">
+                    <img src="/img/teacher.png" alt="Profesor" class="h-[200px] w-[200px] rounded-full border-2 border-[#1E2430] p-2 shadow" />
+                  </div>
+                  <div class="flex w-full flex-col items-center gap-4">
+                    <h3 class="text-center text-[24px] leading-8 font-medium">Profesor Genérico {i}</h3>
+                    <div class="flex items-center gap-4">
+                      {Array.from({ length: 5 }).map((_, j) => (
+                        <span class={j < 4 ? "block h-5 w-5 rounded-sm bg-[#9AA4B2]" : "block h-5 w-5 rounded-sm border-2 border-[#9AA4B2]"} />
+                      ))}
+                    </div>
+                  </div>
+                </article>
+              )
             ))}
           </div>
 
@@ -153,10 +193,14 @@ import "../styles/global.css";
         </div>
       </section>
 
-      <!-- FOOTER -->
       <footer class="w-full bg-black py-3 text-center text-[16px] leading-6">
-        © {new Date().getFullYear()} TrikaWeb. Todos los derechos reservados.
+        © {new Date().getFullYear()} TrikaWeb.
+        Todos los derechos reservados.
       </footer>
     </div>
+    
+    {/* 4. INCLUIR EL COMPONENTE DEL MODAL (Preferiblemente al final del body) */}
+    <FichaProfesor {...alexisGarayData} />
+
   </body>
 </html>
