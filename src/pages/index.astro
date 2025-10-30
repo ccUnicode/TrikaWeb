@@ -1,14 +1,12 @@
 ---
 import "../styles/global.css";
-// 1. IMPORTAR EL COMPONENTE DEL MODAL
-import FichaProfesor from '../components/IntroductionOfTeachers.astro';
+import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
 
-// 2. DEFINIR LOS DATOS DEL PROFESOR
 const alexisGarayData = {
-    id: "alexis", // ID que conecta el botón con el modal
+    id: "alexis",
     nombre: "Alexis Garay",
     puntuacion: 4.5,
-    imagenSrc: "/img/teacher.png", // Usando la imagen placeholder existente
+    imagenSrc: "/img/teacher.png",
     descripcion: "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Pellentesque laoreet molestie gravida nisl. Integer senectus. Pellentesque laoreet molestie gravida nisl. Integer senectus.",
     cursos: ["Álgebra Lineal", "Cálculo Diferencial", "Física II"],
     estadisticas: {
@@ -36,14 +34,14 @@ const alexisGarayData = {
     <div class="flex min-h-screen w-full flex-col items-center gap-12">
 
       <header class="w-full bg-[#171A1F]">
-        <div class="mx-auto flex max-w-[1200px] items-center justify-between px-16 py-6">
+        <div class="mx-auto flex max-w-[1200px] items-center justify-between px-4 sm:px-16 py-6">
           <div class="flex w-[188px] items-center justify-between">
             <img src="/img/logo2.png" alt="TrikaWeb" class="h-auto w-auto" />
           </div>
 
           <nav class="flex items-center gap-10">
-            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400" href="/planchas">Planchas</a>
-            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400" href="/profesores">Profesores</a>
+            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400 hidden sm:block" href="/planchas">Planchas</a>
+            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400 hidden sm:block" href="/profesores">Profesores</a>
             <button class="rounded-xl p-2 hover:bg-neutral-800/60" aria-label="Inicio">
               <span class="block h-[19px] w-[18px] border-2 border-[#E6E9EF]"></span>
             </button>
@@ -51,26 +49,26 @@ const alexisGarayData = {
         </div>
       </header>
 
-      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-[140px] rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-40 py-20 md:grid-cols-2">
+      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
-          <h1 class="max-w-[383px] text-[40px] leading-[48px] font-bold text-[#E6E9EF]">
+          <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-[#E6E9EF] text-center md:text-left">
             ¿Planchas y reseñas de profes?
             Todo en un solo lugar.
           </h1>
-          <p class="max-w-[383px] text-[16px] leading-6 text-[#9AA4B2]">
+          <p class="max-w-[383px] text-base leading-6 text-[#9AA4B2] text-center md:text-left">
             La experiencia de generaciones, organizada para que estudies mejor y evites la trika.
           </p>
         </div>
 
-        <div class="flex items-center">
-          <img src="/img/mascota.png" alt="Mascota Trika" class="h-[292px] w-[257px]" />
+        <div class="flex items-center justify-center">
+          <img src="/img/mascota.png" alt="Mascota Trika" class="h-[200px] w-auto md:h-[292px] md:w-[257px]" />
         </div>
       </section>
 
-      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-10 py-16">
-        <div class="flex w-full items-center justify-between px-12">
+      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-4 sm:px-10 py-16">
+        <div class="flex w-full items-center justify-between px-2 sm:px-12 flex-wrap gap-4">
           <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
-          <div class="flex w-[400px] items-center gap-2 rounded-2xl bg-[#2A3240] px-8 py-4">
+          <div class="flex w-full sm:w-[400px] items-center gap-2 rounded-2xl bg-[#2A3240] px-4 sm:px-8 py-4">
             <span class="h-6 w-6 rounded bg-[#171A1F]/80"></span>
             <input
               class="w-full bg-transparent text-[16px] leading-6 text-[#9AA4B2] outline-none"
@@ -79,13 +77,11 @@ const alexisGarayData = {
           </div>
         </div>
 
-        <div class="flex items-center gap-8">
-          <button class="h-7 w-5 rounded bg-[#9AA4B2]/60" aria-label="Anterior"></button>
-
-          <div class="flex items-center gap-8">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex w-[240px] flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md">
-                <div class="flex h-[139px] w-[208px] items-start justify-end rounded-lg bg-[#101010] p-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full px-2 sm:px-0">
+          {
+            Array.from({ length: 3 }).map((_, i) => (
+              <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full">
+                <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
                   <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
                     <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
                   </span>
@@ -100,96 +96,67 @@ const alexisGarayData = {
                   </div>
                 </div>
               </article>
-            ))}
-          </div>
-
-          <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
+            ))
+          }
         </div>
 
-        <div class="flex items-center gap-8">
-          <div class="w-[118px] text-center">
+        <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
+          <div class="w-full md:w-[118px] text-center">
             <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
           </div>
 
-          <div class="flex items-center gap-8">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex w-[240px] flex-col items-center gap-2 rounded-2xl border border-[#2A3240] bg-[#1E2430] p-4 shadow-md">
-                <div class="flex h-[139px] w-[208px] items-start justify-end rounded-lg bg-[#101010] p-2">
-                  <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
-                    <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
-                  </span>
-                </div>
-                <div class="flex w-full flex-col items-start gap-2">
-                  <div class="flex w-full items-center justify-between">
-                    <h4 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
+            {
+              Array.from({ length: 3 }).map((_, i) => (
+                <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240] bg-[#1E2430] p-4 shadow-md w-full">
+                  <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
+                    <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
+                      <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
+                    </span>
                   </div>
-                  <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                    <span>PC1</span>
-                    <span>2024-II</span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
-        </div>
-      </section>
-
-      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-12 py-16">
-        <div class="flex h-[50px] w-full items-center justify-between">
-          <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
-          <p class="text-[24px] leading-8 font-medium">¿Deseas buscar tu profesor?</p>
-          <a href="/profesores" class="rounded-2xl bg-[#22C55E] px-6 py-[7px] text-[16px] font-semibold text-[#E6E9EF]">Filtros</a>
-        </div>
-
-        <div class="flex h-96 items-center gap-12">
-          <button class="h-7 w-5 rounded bg-[#9AA4B2]/60" aria-label="Anterior"></button>
-
-          <div class="flex items-center gap-14">
-            {/* 3. Lógica: El primer card abre el modal (i === 0) */}
-            {Array.from({ length: 3 }).map((_, i) => (
-              i === 0 ? (
-                // Card de Alexis Garay (Botón de Apertura)
-                <button 
-                  id={`open-${alexisGarayData.id}`} 
-                  type="button" 
-                  class="inline-flex w-[280px] flex-col items-center gap-6 rounded-2xl bg-[#1E2430] px-4 py-9 transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-green-500/50"
-                  aria-label={`Abrir ficha de ${alexisGarayData.nombre}`}
-                >
-                  <div class="flex justify-center">
-                    <img src={alexisGarayData.imagenSrc} alt={`Profesor ${alexisGarayData.nombre}`} class="h-[200px] w-[200px] rounded-full border-2 border-[#1E2430] p-2 shadow" />
-                  </div>
-                  <div class="flex w-full flex-col items-center gap-4">
-                    <h3 class="text-center text-[24px] leading-8 font-medium">{alexisGarayData.nombre}</h3>
-                    {/* Simular las estrellas de rating basadas en la puntuación */}
-                    <div class="flex items-center gap-4">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <span class={j < Math.floor(alexisGarayData.puntuacion) ? "block h-5 w-5 rounded-sm bg-[#22C55E]" : "block h-5 w-5 rounded-sm border-2 border-[#22C55E]"} />
-                      ))}
+                  <div class="flex w-full flex-col items-start gap-2">
+                    <div class="flex w-full items-center justify-between">
+                      <h4 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h4>
                     </div>
-                  </div>
-                </button>
-              ) : (
-                // Resto de Cards (Genéricos/Estáticos)
-                <article class="inline-flex w-[280px] flex-col items-center gap-6 rounded-2xl bg-[#1E2430] px-4 py-9">
-                  <div class="flex justify-center">
-                    <img src="/img/teacher.png" alt="Profesor" class="h-[200px] w-[200px] rounded-full border-2 border-[#1E2430] p-2 shadow" />
-                  </div>
-                  <div class="flex w-full flex-col items-center gap-4">
-                    <h3 class="text-center text-[24px] leading-8 font-medium">Profesor Genérico {i}</h3>
-                    <div class="flex items-center gap-4">
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <span class={j < 4 ? "block h-5 w-5 rounded-sm bg-[#9AA4B2]" : "block h-5 w-5 rounded-sm border-2 border-[#9AA4B2]"} />
-                      ))}
+                    <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
+                      <span>PC1</span>
+                      <span>2024-II</span>
                     </div>
                   </div>
                 </article>
-              )
-            ))}
+              ))
+            }
           </div>
+        </div>
+      </section>
 
-          <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
+      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-6 sm:px-12 md:px-16 py-16">
+        <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
+          <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
+          <p class="text-[24px] leading-8 font-medium hidden sm:block">¿Deseas buscar tu profesor?</p>
+          <a href="/profesores" class="rounded-2xl bg-[#22C55E] px-6 py-[7px] text-[16px] font-semibold text-[#E6E9EF]">Filtros</a>
+        </div>
+
+        <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mt-6 px-4 sm:px-0">
+          {
+            Array.from({ length: 3 }).map((_, i) => (
+              <div class="flex flex-col items-center gap-4 rounded-lg bg-[#1e293b] px-6 py-8 hover:scale-105 transition-transform duration-200">
+                <div class="h-[200px] w-[200px] overflow-hidden rounded-lg">
+                  <img src="/img/teacher.png" alt="Profesor" class="h-full w-full object-cover" />
+                </div>
+                <h3 class="text-[24px] font-bold">{i === 0 ? 'Alexis Garay' : `Profesor Genérico ${i + 1}`}</h3>
+                <div class="flex gap-2">
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <div class={`h-4 w-4 rounded ${j < (i === 0 ? 4 : 0) ? 'bg-green-500' : 'bg-gray-600'}`}></div>
+                  ))}
+                </div>
+                <button id={`open-${i === 0 ? 'alexis' : `profesor${i}`}`} class="mt-4 rounded-lg bg-green-500 px-8 py-2 font-semibold hover:bg-green-600 transition duration-200">
+                  Ver perfil
+                </button>
+              </div>
+            ))
+          }
         </div>
       </section>
 
@@ -199,7 +166,7 @@ const alexisGarayData = {
       </footer>
     </div>
     
-    {/* 4. INCLUIR EL COMPONENTE DEL MODAL (Preferiblemente al final del body) */}
+    <!-- INCLUIR EL COMPONENTE DEL MODAL -->
     <FichaProfesor {...alexisGarayData} />
 
   </body>
