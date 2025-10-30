@@ -3,6 +3,7 @@ import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
 import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
 import TeacherCard from "../components/TeacherCard.astro";
+import SearchInput from "../components/SearchInput.astro";
 
 const alexisGarayData = {
     id: "alexis",
@@ -46,22 +47,29 @@ const alexisGarayData = {
         </div>
       </section>
 
+<!--SECCIÓN DE PLANCHAS -->
+
       <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-4 sm:px-10 py-16">
-        <div class="flex w-full items-center justify-between px-2 sm:px-12 flex-wrap gap-4">
-          <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
-          <div class="flex w-full sm:w-[400px] items-center gap-2 rounded-2xl bg-[#2A3240] px-4 sm:px-8 py-4">
-            <span class="h-6 w-6 rounded bg-[#171A1F]/80"></span>
-            <input
-              class="w-full bg-transparent text-[16px] leading-6 text-[#9AA4B2] outline-none"
-              placeholder="Ingresa el curso..."
-            />
+
+        <div class="flex w-full flex-col md:flex-row items-center gap-8">
+          
+          <div class="w-full md:w-[118px] text-center md:text-left">
+            <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
+          </div>
+          
+          <div class="flex w-full flex-1 justify-center md:justify-end">
+            
+            <SearchInput placeholder="Ingresa el curso..." className="w-full max-w-[400px]" />
           </div>
         </div>
-        <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
-            <div class="w-full md:w-[118px] text-center">
-              <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
-            </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full px-2 sm:px-0">
+
+        <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
+          
+          <div class="w-full md:w-[118px] text-center">
+            <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
+          </div>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1">
             {
               Array.from({ length: 3 }).map((_, i) => (
                 <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full">
@@ -85,7 +93,8 @@ const alexisGarayData = {
           </div>
         </div>
 
-        <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
+        <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
+          
           <div class="w-full md:w-[118px] text-center">
             <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
           </div>
@@ -113,13 +122,15 @@ const alexisGarayData = {
             }
           </div>
         </div>
+        
       </section>
+
+<!--Sección de profesores -->
 
       <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-6 sm:px-12 md:px-16 py-16">
         <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
-          <p class="text-[24px] leading-8 font-medium hidden sm:block">¿Deseas buscar tu profesor?</p>
-          <a href="/profesores" class="rounded-2xl bg-[#22C55E] px-6 py-[7px] text-[16px] font-semibold text-[#E6E9EF]">Filtros</a>
+        <SearchInput placeholder="Busca a tu profesor..." className="flex-1 max-w-[400px]" />
         </div>
 
         <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
