@@ -6,6 +6,9 @@
 	.bg-global-bg { background-color: #101010; }
 	.bg-global-surface { background-color: #171A1F; }
 	.bg-global-card { background-color: #1E2430; }
+	/* Primary brand background (used for buttons) */
+	.bg-global-primary { background-color: #22C55E; }
+	.hover\:bg-global-primary-hover:hover { background-color: #51A624; }
 
 	/* Text colors */
 	.text-global-text { color: #E6E9EF; }
@@ -15,6 +18,8 @@
 
 	/* Borders */
 	.border-global-border { border-color: #2A3240; }
+	.border-global-surface { border-color: #171A1F; }
+	.border-global-card { border-color: #1E2430; }
 
 	/* Hover variants */
 	.hover\:bg-global-surface:hover { background-color: #171A1F; }

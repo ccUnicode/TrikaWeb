@@ -7,13 +7,37 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
   <script src="js/pdfViewer.js"></script>
 </head>
+
+
 <body>
+  <!-- NAVBAR TRIKAWEB -->
+  <header class="app-navbar" role="navigation" aria-label="Barra principal">
+    <div class="nav-inner">
+      <a class="brand" href="/index.html">
+        <img src="public/img/logo.png" alt="TrikaWeb" />
+      </a>
+
+      <nav class="nav-links">
+        <a href="/planchas.html" class="nav-link">Planchas</a>
+        <a href="/profesores.html" class="nav-link">Profesores</a>
+        <a href="/index.html" class="nav-icon" aria-label="Inicio">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 10.5 12 3l9 7.5"></path>
+            <path d="M5 10v10h14V10"></path>
+            <path d="M9 20v-6h6v6"></path>
+          </svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+
   <div id="header-container">
     <div id="title-container">
       <h3>PC N°1 - 2024 II</h3>
     </div>
     <div id="pdf-buttons">
-      <button id="dowload-btn">⬇️</button>
+      <button id="dowload-btn">Descargar PDF</button>
       <button id="solution-btn">Solucionario</button>
       <button id="exit-btn">X</button>
     </div>
@@ -29,7 +53,94 @@
 
 </body>
 <style>
+  /* ===== NAVBAR GLOBAL ===== */
+  .app-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 2000;
+    background-color: #171A1F;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 14px 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .nav-inner {
+    width: 100%;
+    max-width: 1400px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* LOGO Y TEXTO */
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+    color: #fff;
+    font-size: 28px;
+    font-weight: 800;
+  }
+  .brand img {
+    height: 40px; /* logo más grande */
+    width: auto;
+  }
+  .brand-accent {
+    font-weight: 600;
+    font-style: italic;
+    color: #bfbfbf;
+  }
+
+  /* ENLACES DERECHA */
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: white;
+    font-weight: 600;
+    font-size: 18px;
+    transition: color 0.2s;
+  }
+
+  .nav-link:hover {
+    color: #7dd87d;
+  }
+
+  /* ÍCONO DE INICIO */
+  .nav-icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 38px;
+    height: 38px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  .nav-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: #fff;
+  }
+  .nav-icon:hover {
+    background-color: rgba(125, 216, 125, 0.15);
+  }
+  .nav-icon:hover svg {
+    stroke: #7dd87d;
+  }
+
   body{
+    padding-top: 85px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;

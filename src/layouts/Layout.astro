@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import SiteHeader from "../components/SiteHeader.astro";
 
 export interface Props {
 	title?: string;
@@ -23,8 +24,9 @@ const {
 		<link rel="icon" href={favicon} />
 		<title>{title}</title>
 	</head>
-	<body class="bg-global-bg text-global-text antialiased">
-		<slot />
+		<body class="bg-global-bg text-global-text antialiased">
+			<SiteHeader />
+			<slot />
 	</body>
 	<style>
 		html,

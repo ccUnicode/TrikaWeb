@@ -1,58 +1,55 @@
 ---
 import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
+import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
+import TeacherCard from "../components/TeacherCard.astro";
+
+const alexisGarayData = {
+    id: "alexis",
+    nombre: "Alexis Garay",
+    puntuacion: 4.5,
+    imagenSrc: "/img/teacher.png",
+    descripcion: "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Pellentesque laoreet molestie gravida nisl. Integer senectus. Pellentesque laoreet molestie gravida nisl. Integer senectus.",
+    cursos: ["Álgebra Lineal", "Cálculo Diferencial", "Física II"],
+    estadisticas: {
+        Didáctica: 4.0,
+        Dificultad: 4.4,
+        Material: 3.7,
+        'Justo al evaluar': 3.1,
+        Responsabilidad: 3.4
+    },
+    comentarios: [
+        { anonimo: "Anónimo 1", texto: "Lorem ipsum dolor sit amet, consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." },
+        { anonimo: "Anónimo 2", texto: "consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." }
+    ]
+};
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TrikaWeb</title>
-    <link rel="icon" href="/img/icono.png" />
-  </head>
-  <body class="bg-[#101010] text-neutral-100 antialiased">
-    <!-- WRAPPER -->
-    <div class="flex min-h-screen w-full flex-col items-center gap-12">
+<Layout title="TrikaWeb">
+  <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-8 sm:mt-10">
 
-      <!-- NAV -->
-      <header class="w-full bg-[#171A1F]">
-        <div class="mx-auto flex max-w-[1200px] items-center justify-between px-16 py-6">
-          <div class="flex w-[188px] items-center justify-between">
-            <img src="/img/logo2.png" alt="TrikaWeb" class="h-auto w-auto" />
-          </div>
+      <!-- Header now comes from Layout via <SiteHeader /> -->
 
-          <nav class="flex items-center gap-10">
-            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400" href="/planchas">Planchas</a>
-            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400" href="/profesores">Profesores</a>
-            <button class="rounded-xl p-2 hover:bg-neutral-800/60" aria-label="Inicio">
-              <!-- placeholder del icono -->
-              <span class="block h-[19px] w-[18px] border-2 border-[#E6E9EF]"></span>
-            </button>
-          </nav>
-        </div>
-      </header>
-
-      <!-- HERO -->
-      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-[140px] rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-40 py-20 md:grid-cols-2">
+      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
-          <h1 class="max-w-[383px] text-[40px] leading-[48px] font-bold text-[#E6E9EF]">
-            ¿Planchas y reseñas de profes? Todo en un solo lugar.
+          <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-[#E6E9EF] text-center md:text-left">
+            ¿Planchas y reseñas de profes?
+            Todo en un solo lugar.
           </h1>
-          <p class="max-w-[383px] text-[16px] leading-6 text-[#9AA4B2]">
+          <p class="max-w-[383px] text-base leading-6 text-[#9AA4B2] text-center md:text-left">
             La experiencia de generaciones, organizada para que estudies mejor y evites la trika.
           </p>
         </div>
 
-        <div class="flex items-center">
-          <img src="/img/mascota.png" alt="Mascota Trika" class="h-[292px] w-[257px]" />
+        <div class="flex items-center justify-center">
+          <img src="/img/mascota.png" alt="Mascota Trika" class="h-[200px] w-auto md:h-[292px] md:w-[257px]" />
         </div>
       </section>
 
-      <!-- PLANCHAS -->
-      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-10 py-16">
-        <!-- Título + buscador -->
-        <div class="flex w-full items-center justify-between px-12">
+      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-4 sm:px-10 py-16">
+        <div class="flex w-full items-center justify-between px-2 sm:px-12 flex-wrap gap-4">
           <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
-          <div class="flex w-[400px] items-center gap-2 rounded-2xl bg-[#2A3240] px-8 py-4">
+          <div class="flex w-full sm:w-[400px] items-center gap-2 rounded-2xl bg-[#2A3240] px-4 sm:px-8 py-4">
             <span class="h-6 w-6 rounded bg-[#171A1F]/80"></span>
             <input
               class="w-full bg-transparent text-[16px] leading-6 text-[#9AA4B2] outline-none"
@@ -60,103 +57,85 @@ import "../styles/global.css";
             />
           </div>
         </div>
-
-        <!-- Carrusel simple de cards (3) -->
-        <div class="flex items-center gap-8">
-          <button class="h-7 w-5 rounded bg-[#9AA4B2]/60" aria-label="Anterior"></button>
-
-          <div class="flex items-center gap-8">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex w-[240px] flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md">
-                <div class="flex h-[139px] w-[208px] items-start justify-end rounded-lg bg-[#101010] p-2">
-                  <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
-                    <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
-                  </span>
-                </div>
-                <div class="flex w-full flex-col items-start gap-2">
-                  <div class="flex w-full items-center justify-between">
-                    <h3 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h3>
+        <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
+            <div class="w-full md:w-[118px] text-center">
+              <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
+            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full px-2 sm:px-0">
+            {
+              Array.from({ length: 3 }).map((_, i) => (
+                <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full">
+                  <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
+                    <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
+                      <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
+                    </span>
                   </div>
-                  <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                    <span>PC1</span>
-                    <span>2024-II</span>
+                  <div class="flex w-full flex-col items-start gap-2">
+                    <div class="flex w-full items-center justify-between">
+                      <h3 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h3>
+                    </div>
+                    <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
+                      <span>PC1</span>
+                      <span>2024-II</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            }
           </div>
-
-          <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
         </div>
 
-        <!-- Segundo carrusel: “más populares” (estructura similar) -->
-        <div class="flex items-center gap-8">
-          <div class="w-[118px] text-center">
+        <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
+          <div class="w-full md:w-[118px] text-center">
             <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
           </div>
 
-          <div class="flex items-center gap-8">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex w-[240px] flex-col items-center gap-2 rounded-2xl border border-[#2A3240] bg-[#1E2430] p-4 shadow-md">
-                <div class="flex h-[139px] w-[208px] items-start justify-end rounded-lg bg-[#101010] p-2">
-                  <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
-                    <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
-                  </span>
-                </div>
-                <div class="flex w-full flex-col items-start gap-2">
-                  <div class="flex w-full items-center justify-between">
-                    <h4 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
+            {
+              Array.from({ length: 3 }).map((_, i) => (
+                <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240] bg-[#1E2430] p-4 shadow-md w-full">
+                  <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
+                    <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
+                      <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
+                    </span>
                   </div>
-                  <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                    <span>PC1</span>
-                    <span>2024-II</span>
+                  <div class="flex w-full flex-col items-start gap-2">
+                    <div class="flex w-full items-center justify-between">
+                      <h4 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h4>
+                    </div>
+                    <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
+                      <span>PC1</span>
+                      <span>2024-II</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))
+            }
           </div>
-
-          <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
         </div>
       </section>
 
-      <!-- PROFESORES -->
-      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-12 py-16">
-        <div class="flex h-[50px] w-full items-center justify-between">
+      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-6 sm:px-12 md:px-16 py-16">
+        <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
-          <p class="text-[24px] leading-8 font-medium">¿Deseas buscar tu profesor?</p>
+          <p class="text-[24px] leading-8 font-medium hidden sm:block">¿Deseas buscar tu profesor?</p>
           <a href="/profesores" class="rounded-2xl bg-[#22C55E] px-6 py-[7px] text-[16px] font-semibold text-[#E6E9EF]">Filtros</a>
         </div>
 
-        <div class="flex h-96 items-center gap-12">
-          <button class="h-7 w-5 rounded bg-[#9AA4B2]/60" aria-label="Anterior"></button>
-
-          <div class="flex items-center gap-14">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex w-[280px] flex-col items-center gap-6 rounded-2xl bg-[#1E2430] px-4 py-9">
-                <div class="flex justify-center">
-                  <img src="/img/teacher.png" alt="Profesor" class="h-[200px] w-[200px] rounded-full border-2 border-[#1E2430] p-2 shadow" />
-                </div>
-                <div class="flex w-full flex-col items-center gap-4">
-                  <h3 class="text-center text-[24px] leading-8 font-medium">Carlos Arámbulo</h3>
-                  <div class="flex items-center gap-4">
-                    {Array.from({ length: 5 }).map((_, j) => (
-                      <span class={j < 4 ? "block h-5 w-5 rounded-sm bg-[#22C55E]" : "block h-5 w-5 rounded-sm border-2 border-[#22C55E]"} />
-                    ))}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <button class="h-7 w-5 rotate-180 rounded bg-[#9AA4B2]/60" aria-label="Siguiente"></button>
+        <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mt-6 px-4 sm:px-0">
+          <TeacherCard name="Alexis Garay" role="Profesor" rating={4} avatarSrc="/img/teacher.png" openId="open-alexis" buttonLabel="Ver perfil" />
+          <TeacherCard name="Profesor Genérico 2" role="Profesor" rating={2} avatarSrc="/img/teacher.png" href="/profesores" buttonLabel="Ver perfil" />
+          <TeacherCard name="Profesor Genérico 3" role="Profesor" rating={0} avatarSrc="/img/teacher.png" href="/profesores" buttonLabel="Ver perfil" />
         </div>
       </section>
 
-      <!-- FOOTER -->
       <footer class="w-full bg-black py-3 text-center text-[16px] leading-6">
-        © {new Date().getFullYear()} TrikaWeb. Todos los derechos reservados.
+        © {new Date().getFullYear()} TrikaWeb.
+        Todos los derechos reservados.
       </footer>
     </div>
-  </body>
-</html>
+
+    <!-- INCLUIR EL COMPONENTE DEL MODAL -->
+    <FichaProfesor {...alexisGarayData} />
+  </Layout>
