@@ -1,0 +1,229 @@
+
+body {
+    font-family: Gotham,Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+header {
+    background-color: #ffffff; /* Blanco Puro */
+    color: #101010; /* Negro Unicode */
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.logo-container {
+    flex: 2 3 auto;
+    display: flex;
+    align-items: center;
+    height: 100px;
+}
+
+.logo {
+    height: 100%;
+    margin: auto;
+}
+
+.search-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    flex-grow: 1;
+    margin-top: 20px;
+    gap: 20px 10px;
+}
+
+.search-bar select, .search-bar button {
+    padding: 10px;
+    font-size: 16px;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.search-bar select {
+    width: 200px;
+}
+
+.search-bar button {
+    background-color: #51a624; /* Verde Unicode 2 */
+    color: #FFFFFF; /* Blanco Puro */
+    border: none;
+    cursor: pointer;
+}
+
+.hero {
+    background-color: #51a624; /* Verde Unicode 2 */
+    color: #FFFFFF; /* Blanco Puro */
+    padding: 50px 110px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: nowrap;
+    position: relative;
+    gap: 30px;
+    overflow: hidden;
+    min-height: 400px;
+}
+
+.hero-text {
+    flex: 1 4 auto;
+    max-width: 540px;
+}
+
+.hero h1 {
+    font-size: 2.5em;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    font-size: 1.2em;
+}
+
+.animation-container {
+    max-width: 500px;
+    flex: 3 2 auto;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: center; 
+    box-sizing: inherit;
+}
+
+.animation-item {
+    background-color: #ffffff;
+    color: #101010;
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    margin: 5px;
+    animation: fadeInOut 5s infinite;
+    text-align: center;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.animation-item.small {
+    width: 50px;
+    height: 50px;
+}
+
+.animation-item.medium {
+    width: 100px;
+    height: 50px;
+}
+
+.animation-item.large {
+    width: 150px;
+    height: 50px;
+}
+
+.animation-item.dark {
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeInOut {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+main {
+    padding: 20px;
+}
+
+main section {
+    margin-bottom: 40px;
+}
+
+footer {
+    background-color: #000000; /* Negro Puro */
+    color: #FFFFFF; /* Blanco Puro */
+    text-align: center;
+    padding: 10px;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+#ultimas-planchas {
+    padding: 20px;
+}
+
+.planchas-container {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 20px 0;
+}
+
+.plancha-card {
+    background-color: #ffffff;
+    color: #101010;
+    padding: 20px;
+    border-radius: 15px;
+    flex: 0 0 200px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: transform 0.3s;
+    cursor: pointer;
+    border: none; /* Remove button default styling */
+}
+
+.plancha-card img {
+    width: 100%;
+    border-radius: 15px 15px 0 0;
+}
+
+.plancha-card .plancha-content {
+    padding: 10px;
+}
+
+.plancha-card:hover {
+    transform: scale(1.05);
+}
+
+.botones {
+  margin: 10000px;
+  text-align: center;
+}
+
+#download-btn, #solution-btn {
+  padding: 10px 20px;
+  margin: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#pdf-container {
+  margin-top: 20px;
+}
+
+
+
+
+@media only screen and (max-width: 910px) {
+    header {
+        flex-direction: column;
+    }
+    .search-bar {
+        flex-direction: column;
+    }
+    .hero {
+        flex-direction: column;
+        gap: 80px;
+        padding: 70px 20px;
+    }
+    .hero-text {
+        transform: scale(85%);
+    }
+}

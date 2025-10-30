@@ -1,0 +1,87 @@
+
+---
+import SiteHeader from "../../components/SiteHeader.astro";
+---
+
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BMA03 - TrikaWeb</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  </head>
+
+  <body class="min-h-screen bg-[#070809] text-white">
+    <SiteHeader />
+
+    <main class="mx-auto mb-10 w-[44.8%] max-w-[900px] px-0">
+      <div id="header-container"
+           class="sticky top-[72px] z-[1000] mb-0 flex items-center justify-between gap-3 rounded-xl bg-[#171A1F] px-4 py-4">
+        <h3 class="m-0 text-[26px] leading-none">PC N°1 - 2024 II</h3>
+        <div class="flex items-center gap-2">
+          <button id="download-btn" class="rounded-lg bg-[#2A3240] px-4 py-2 hover:bg-[#1E2430]">Descargar PDF</button>
+          <button id="solution-btn" class="rounded-lg bg-[#2A3240] px-4 py-2 hover:bg-[#1E2430]">Solucionario</button>
+          <button id="exit-btn" class="rounded-lg bg-[#2A3240] px-3 py-2 hover:bg-[#1E2430]">X</button>
+        </div>
+      </div>
+
+      <div id="pdf-container"
+           class="flex h-[1205px] w-full justify-center border-4 border-[#171A1F] p-5">
+        <canvas id="pdf-canvas" class="h-full w-full border-4 border-white"></canvas>
+      </div>
+    </main>
+
+    <footer class="mt-auto w-full bg-black py-2 text-center text-sm text-white">
+      © 2024 TrikaWeb. Todos los derechos reservados.
+    </footer>
+
+    <script is:inline>
+      const url = "/pdfs/plancha1.pdf";
+      
+        //botones
+      document.getElementById("download-btn")?.addEventListener("click", () =>{
+        const a=document.createElement("a");
+        a.href = "/pdfs/plancha1.pdf";
+        a.download = "plancha1.pdf";
+        a.click();
+      })
+
+      document.getElementById("solution-btn")?.addEventListener("click", ()=> {
+        window.open("/pdfs/plancha1-solucionario.pdf", "_blank");
+      })
+
+      document.getElementById("exit-btn")?.addEventListener("click", ()=>{
+        window.location.href="/";
+      })
+
+      function initPDF() {
+        if (typeof pdfjsLib === "undefined") {
+          console.error("❌ pdf.js no cargó");
+          return;
+        }
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
+
+        const canvas = document.getElementById("pdf-canvas");
+        const ctx = canvas.getContext("2d");
+
+        pdfjsLib.getDocument({ url }).promise.then((pdf) => pdf.getPage(1))
+          .then((page) => {
+            const scale = 1.5;
+            const vp = page.getViewport({ scale });
+            canvas.width = vp.width;
+            canvas.height = vp.height;
+            return page.render({ canvasContext: ctx, viewport: vp }).promise;
+          })
+          .catch((err) => console.error("Error cargando PDF:", err));
+      };
+
+      if(document.readyState === "loading"){
+        document.addEventListener("DOMContentLoaded", initPDF);
+      }else{
+        initPDF();
+      }
+    </script>
+  </body>
+</html>
