@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
 import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
+import TeacherCard from "../components/TeacherCard.astro";
 
 const alexisGarayData = {
     id: "alexis",
@@ -23,31 +25,10 @@ const alexisGarayData = {
 };
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TrikaWeb</title>
-    <link rel="icon" href="/img/icono.png" />
-  </head>
-  <body class="bg-[#101010] text-neutral-100 antialiased">
-    <div class="flex min-h-screen w-full flex-col items-center gap-12">
+<Layout title="TrikaWeb">
+  <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-8 sm:mt-10">
 
-      <header class="w-full bg-[#171A1F]">
-        <div class="mx-auto flex max-w-[1200px] items-center justify-between px-4 sm:px-16 py-6">
-          <div class="flex w-[188px] items-center justify-between">
-            <img src="/img/logo2.png" alt="TrikaWeb" class="h-auto w-auto" />
-          </div>
-
-          <nav class="flex items-center gap-10">
-            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400 hidden sm:block" href="/planchas">Planchas</a>
-            <a class="text-[20px] leading-7 font-medium hover:text-emerald-400 hidden sm:block" href="/profesores">Profesores</a>
-            <button class="rounded-xl p-2 hover:bg-neutral-800/60" aria-label="Inicio">
-              <span class="block h-[19px] w-[18px] border-2 border-[#E6E9EF]"></span>
-            </button>
-          </nav>
-        </div>
-      </header>
+      <!-- Header now comes from Layout via <SiteHeader /> -->
 
       <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
@@ -76,28 +57,32 @@ const alexisGarayData = {
             />
           </div>
         </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full px-2 sm:px-0">
-          {
-            Array.from({ length: 3 }).map((_, i) => (
-              <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full">
-                <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
-                  <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
-                    <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
-                  </span>
-                </div>
-                <div class="flex w-full flex-col items-start gap-2">
-                  <div class="flex w-full items-center justify-between">
-                    <h3 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h3>
+        <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
+            <div class="w-full md:w-[118px] text-center">
+              <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
+            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full px-2 sm:px-0">
+            {
+              Array.from({ length: 3 }).map((_, i) => (
+                <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full">
+                  <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
+                    <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
+                      <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
+                    </span>
                   </div>
-                  <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                    <span>PC1</span>
-                    <span>2024-II</span>
+                  <div class="flex w-full flex-col items-start gap-2">
+                    <div class="flex w-full items-center justify-between">
+                      <h3 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h3>
+                    </div>
+                    <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
+                      <span>PC1</span>
+                      <span>2024-II</span>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))
-          }
+                </article>
+              ))
+            }
+          </div>
         </div>
 
         <div class="flex flex-col md:flex-row items-center gap-8 w-full px-2 sm:px-0 mt-8">
@@ -139,24 +124,9 @@ const alexisGarayData = {
 
         <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mt-6 px-4 sm:px-0">
-          {
-            Array.from({ length: 3 }).map((_, i) => (
-              <div class="flex flex-col items-center gap-4 rounded-lg bg-[#1e293b] px-6 py-8 hover:scale-105 transition-transform duration-200">
-                <div class="h-[200px] w-[200px] overflow-hidden rounded-lg">
-                  <img src="/img/teacher.png" alt="Profesor" class="h-full w-full object-cover" />
-                </div>
-                <h3 class="text-[24px] font-bold">{i === 0 ? 'Alexis Garay' : `Profesor Genérico ${i + 1}`}</h3>
-                <div class="flex gap-2">
-                  {Array.from({ length: 5 }).map((_, j) => (
-                    <div class={`h-4 w-4 rounded ${j < (i === 0 ? 4 : 0) ? 'bg-green-500' : 'bg-gray-600'}`}></div>
-                  ))}
-                </div>
-                <button id={`open-${i === 0 ? 'alexis' : `profesor${i}`}`} class="mt-4 rounded-lg bg-green-500 px-8 py-2 font-semibold hover:bg-green-600 transition duration-200">
-                  Ver perfil
-                </button>
-              </div>
-            ))
-          }
+          <TeacherCard name="Alexis Garay" role="Profesor" rating={4} avatarSrc="/img/teacher.png" openId="open-alexis" buttonLabel="Ver perfil" />
+          <TeacherCard name="Profesor Genérico 2" role="Profesor" rating={2} avatarSrc="/img/teacher.png" href="/profesores" buttonLabel="Ver perfil" />
+          <TeacherCard name="Profesor Genérico 3" role="Profesor" rating={0} avatarSrc="/img/teacher.png" href="/profesores" buttonLabel="Ver perfil" />
         </div>
       </section>
 
@@ -165,9 +135,7 @@ const alexisGarayData = {
         Todos los derechos reservados.
       </footer>
     </div>
-    
+
     <!-- INCLUIR EL COMPONENTE DEL MODAL -->
     <FichaProfesor {...alexisGarayData} />
-
-  </body>
-</html>
+  </Layout>
