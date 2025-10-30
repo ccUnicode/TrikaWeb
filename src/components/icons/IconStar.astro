@@ -1,0 +1,38 @@
+---
+export interface Props {
+  size?: number;
+  class?: string;
+  title?: string;
+  filled?: boolean;
+}
+const { size = 22, class: extraClass = "", title, filled = false } = Astro.props as Props;
+---
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 22 22"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  class={extraClass}
+  aria-hidden={title ? 'false' : 'true'}
+  aria-label={title}
+>
+  {filled ? (
+    <path
+      d="M11 1L14.09 7.26L21 8.27L16 13.14L17.18 20.02L11 16.77L4.82 20.02L6 13.14L1 8.27L7.91 7.26L11 1Z"
+      fill="currentColor"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  ) : (
+    <path
+      d="M11 1L14.09 7.26L21 8.27L16 13.14L17.18 20.02L11 16.77L4.82 20.02L6 13.14L1 8.27L7.91 7.26L11 1Z"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  )}
+</svg>

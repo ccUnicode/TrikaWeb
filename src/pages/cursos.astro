@@ -1,6 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import TeacherCard from '../components/TeacherCard.astro';
+import IconSearch from '../components/icons/IconSearch.astro';
+import IconChevronDown from '../components/icons/IconChevronDown.astro';
 ---
 
 <Layout title="Profesores | Química I">
@@ -8,9 +10,7 @@ import TeacherCard from '../components/TeacherCard.astro';
     <div class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-5 flex items-center justify-between">
       <div class="text-global-primary-hover text-2xl md:text-3xl font-semibold">Química I</div>
       <div class="hidden md:flex items-center gap-3 rounded-xl border border-global-border px-4 py-2 bg-global-surface">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M19.6 21L13.3 14.7C12.8 15.1 12.225 15.4167 11.575 15.65C10.925 15.8833 10.2333 16 9.5 16C7.68333 16 6.14583 15.3708 4.8875 14.1125C3.62917 12.8542 3 11.3167 3 9.5C3 7.68333 3.62917 6.14583 4.8875 4.8875C6.14583 3.62917 7.68333 3 9.5 3C11.3167 3 12.8542 3.62917 14.1125 4.8875C15.3708 6.14583 16 7.68333 16 9.5C16 10.2333 15.8833 10.925 15.65 11.575C15.4167 12.225 15.1 12.8 14.7 13.3L21 19.6L19.6 21Z" fill="currentColor" class="text-global-border" />
-        </svg>
+        <IconSearch class="text-global-border" />
         <input aria-label="Buscar profesor" placeholder="Ingresa el profesor…" class="bg-transparent placeholder:text-global-text-muted text-global-text focus:outline-none" />
       </div>
     </div>
@@ -27,9 +27,7 @@ import TeacherCard from '../components/TeacherCard.astro';
           class="hidden md:inline-flex items-center gap-2 rounded-lg border border-global-border px-3 py-2 text-sm font-medium text-global-text hover:text-global-primary-hover hover:bg-global-surface"
         >
           Ordenar por calificación
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M18.3087 10.271C19.3827 8.967 18.4537 7 16.7637 7H7.00365C5.31365 7 4.38565 8.967 5.45965 10.271L10.3407 16.198C10.5283 16.4259 10.764 16.6094 11.031 16.7354C11.2979 16.8614 11.5895 16.9268 11.8847 16.9268C12.1798 16.9268 12.4714 16.8614 12.7383 16.7354C13.0053 16.6094 13.241 16.4259 13.4287 16.198L18.3087 10.271Z" fill="#9AA4B2" fill-opacity="0.6" />
-          </svg>
+          <IconChevronDown class="text-global-text-muted opacity-60" />
         </button>
       </div>
 
@@ -50,9 +48,7 @@ import TeacherCard from '../components/TeacherCard.astro';
           class="hidden md:inline-flex items-center gap-2 rounded-lg border border-global-border px-3 py-2 text-sm font-medium text-global-text hover:text-global-primary-hover hover:bg-global-surface"
         >
           Ordenar por calificación
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M18.3087 10.271C19.3827 8.967 18.4537 7 16.7637 7H7.00365C5.31365 7 4.38565 8.967 5.45965 10.271L10.3407 16.198C10.5283 16.4259 10.764 16.6094 11.031 16.7354C11.2979 16.8614 11.5895 16.9268 11.8847 16.9268C12.1798 16.9268 12.4714 16.8614 12.7383 16.7354C13.0053 16.6094 13.241 16.4259 13.4287 16.198L18.3087 10.271Z" fill="#9AA4B2" fill-opacity="0.6" />
-          </svg>
+          <IconChevronDown class="text-global-text-muted opacity-60" />
         </button>
       </div>
 
@@ -67,3 +63,4 @@ import TeacherCard from '../components/TeacherCard.astro';
   <footer class="w-full py-4 text-center text-sm text-global-text-muted">
     © 2024 TrikaWeb. Todos los derechos reservados.
   </footer>
+\n+</Layout>

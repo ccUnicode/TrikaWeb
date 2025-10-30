@@ -1,4 +1,6 @@
 ---
+import IconStar from './icons/IconStar.astro';
+
 export interface Props {
   name: string;
   role: string;
@@ -23,7 +25,7 @@ const safeRating = Math.max(0, Math.min(5, Math.round(rating)));
 const stars = Array.from({ length: 5 });
 ---
 
-<div class={`bg-global-card rounded-2xl p-6 flex flex-col items-center gap-4 text-center ${extraClass}`}>
+<div class={`bg-global-card rounded-2xl p-8 flex flex-col items-center gap-8 text-center${extraClass}`}>
   {
     href ? (
       <a
@@ -31,7 +33,7 @@ const stars = Array.from({ length: 5 });
         class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624] rounded-2xl"
         aria-label={`Ver perfil de ${name}`}
       >
-        <div class="mx-auto w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-global-bg outline outline-2 outline-global-card shadow">
+        <div class="mx-auto w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-global-bg outline outline-2 outline-global-border shadow">
           {avatarSrc ? (
             <img
               src={avatarSrc}
@@ -44,7 +46,7 @@ const stars = Array.from({ length: 5 });
         </div>
       </a>
     ) : (
-      <div class="mx-auto w-40 h-40 sm:w-44 sm:h-44 rounded-full bg-global-bg outline outline-2 outline-global-card shadow">
+      <div class="mx-auto w-auto h-full sm:w-44 sm:h-44 rounded-full bg-global-bg outline outline-2 outline-global-card shadow">
         {avatarSrc ? (
           <img
             src={avatarSrc}
@@ -65,35 +67,7 @@ const stars = Array.from({ length: 5 });
 
   <div class="flex items-center gap-2" aria-label={`Calificación: ${safeRating} de 5`}>
     {stars.map((_, i) => (
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 22 22"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        {i < safeRating ? (
-          <path
-            d="M11 1L14.09 7.26L21 8.27L16 13.14L17.18 20.02L11 16.77L4.82 20.02L6 13.14L1 8.27L7.91 7.26L11 1Z"
-            fill="currentColor"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="text-global-primary"
-          />
-        ) : (
-          <path
-            d="M11 1L14.09 7.26L21 8.27L16 13.14L17.18 20.02L11 16.77L4.82 20.02L6 13.14L1 8.27L7.91 7.26L11 1Z"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="text-global-primary"
-          />
-        )}
-      </svg>
+      <IconStar filled={i < safeRating} class="text-global-primary" />
     ))}
   </div>
 </div>

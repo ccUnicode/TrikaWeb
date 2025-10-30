@@ -1,0 +1,25 @@
+---
+export interface Props {
+  size?: number;
+  class?: string;
+  title?: string;
+}
+const { size = 20, class: extraClass = "", title } = Astro.props as Props;
+---
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+  class={extraClass}
+  aria-hidden={title ? 'false' : 'true'}
+  aria-label={title}
+>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M18.3087 10.271C19.3827 8.967 18.4537 7 16.7637 7H7.00365C5.31365 7 4.38565 8.967 5.45965 10.271L10.3407 16.198C10.5283 16.4259 10.764 16.6094 11.031 16.7354C11.2979 16.8614 11.5895 16.9268 11.8847 16.9268C12.1798 16.9268 12.4714 16.8614 12.7383 16.7354C13.0053 16.6094 13.241 16.4259 13.4287 16.198L18.3087 10.271Z"
+    fill="currentColor"
+  />
+</svg>
