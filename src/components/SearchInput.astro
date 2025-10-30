@@ -1,0 +1,25 @@
+---
+// Definimos las propiedades (props)
+export interface Props {
+  placeholder?: string;
+  className?: string; // Para controlar el ancho y la posición desde afuera
+}
+
+// Asignamos el valor por defecto al placeholder
+const { placeholder = "Buscar...", className } = Astro.props;
+---
+
+<div class:list={[
+    // Contenedor principal de la barra de búsqueda
+    "flex items-center gap-2 rounded-2xl bg-[#2A3240] px-4 py-4",
+    className // Aquí se aplican las clases externas (ej. ancho)
+  ]}>
+  
+  <span class="h-6 w-6 rounded bg-[#171A1F]/80"></span>
+  
+  <input
+    class="w-full bg-transparent text-[16px] leading-6 text-[#9AA4B2] outline-none"
+    type="text"
+    placeholder={placeholder}
+  />
+</div>
