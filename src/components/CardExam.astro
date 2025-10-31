@@ -5,8 +5,9 @@ export interface Props {
   profesor: string;
   tieneSolucion: boolean;
   evaluacion?: string;
+  href?: string;
 }
-const { ciclo, profesor, tieneSolucion, evaluacion } = Astro.props as Props;
+const { ciclo, profesor, tieneSolucion, evaluacion, href } = Astro.props as Props;
 
 
 /* 2. Definimos los íconos (los metemos aquí) */
@@ -22,7 +23,7 @@ const noCheckIcon = `
 `;
 ---
 
-<a href="#" class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105">
+<a href={href ?? '#'} class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105">
   
   <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
   
