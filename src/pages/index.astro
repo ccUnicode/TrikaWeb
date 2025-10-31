@@ -4,6 +4,7 @@ import Layout from "../layouts/Layout.astro";
 import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
 import TeacherCard from "../components/TeacherCard.astro";
 import SearchInput from "../components/SearchInput.astro";
+import CardExam from "../components/CardExam.astro";
 
 const alexisGarayData = {
     id: "alexis",
@@ -24,32 +25,51 @@ const alexisGarayData = {
         { anonimo: "Anónimo 2", texto: "consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." }
     ]
 };
+
+// Datos de ejemplo para las grillas de Planchas
+const planchasPopulares = [
+  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Cálculo Diferencial", tieneSolucion: true },
+  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Álgebra Lineal", tieneSolucion: false },
+  { evaluacion: "Parcial", ciclo: "2023-II", profesor: "Física II", tieneSolucion: true },
+];
+
+const planchasNuevas = [
+  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Química I", tieneSolucion: true },
+  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Estática", tieneSolucion: true },
+  { evaluacion: "Final", ciclo: "2023-II", profesor: "Economía", tieneSolucion: false },
+];
 ---
 
 <Layout title="TrikaWeb">
-  <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-8 sm:mt-10">
+  <div class="flex min-h-screen w-full flex-col items-center gap-12">
 
       <!-- Header now comes from Layout via <SiteHeader /> -->
 
-      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-[#171A1F] bg-[#171A1F] px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
+      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
-          <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-[#E6E9EF] text-center md:text-left">
+          <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left">
             ¿Planchas y reseñas de profes?
             Todo en un solo lugar.
           </h1>
-          <p class="max-w-[383px] text-base leading-6 text-[#9AA4B2] text-center md:text-left">
+          <p class="max-w-[383px] text-base leading-6 text-global-text-muted text-center md:text-left">
             La experiencia de generaciones, organizada para que estudies mejor y evites la trika.
           </p>
         </div>
 
         <div class="flex items-center justify-center">
-          <img src="/img/mascota.png" alt="Mascota Trika" class="h-[200px] w-auto md:h-[292px] md:w-[257px]" />
+          <img
+            src="/img/mascota.png"
+            alt="Mascota Trika"
+            class="h-auto w-auto max-w-[257px]"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
       </section>
 
 <!--SECCIÓN DE PLANCHAS -->
 
-      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-[#171A1F] px-4 sm:px-10 py-16">
+  <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
 
         <div class="flex w-full flex-col md:flex-row items-center gap-8">
           
@@ -64,62 +84,28 @@ const alexisGarayData = {
         </div>
 
         <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
-          
-          <div class="w-full md:w-[118px] text-center">
-            <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
-          </div>
-          
+
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1">
-            {
-              Array.from({ length: 3 }).map((_, i) => (
-                <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full">
-                  <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
-                    <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
-                      <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
-                    </span>
-                  </div>
-                  <div class="flex w-full flex-col items-start gap-2">
-                    <div class="flex w-full items-center justify-between">
-                      <h3 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h3>
-                    </div>
-                    <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                      <span>PC1</span>
-                      <span>2024-II</span>
-                    </div>
-                  </div>
-                </article>
-              ))
-            }
+            {planchasPopulares.map((p) => (
+              <CardExam evaluacion={p.evaluacion} ciclo={p.ciclo} profesor={p.profesor} tieneSolucion={p.tieneSolucion} />
+            ))}
+
+          </div>
+                    <div class="w-full md:w-[118px] text-center">
+            <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
           </div>
         </div>
 
         <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
           
-          <div class="w-full md:w-[118px] text-center">
-            <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
-          </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
-            {
-              Array.from({ length: 3 }).map((_, i) => (
-                <article class="inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240] bg-[#1E2430] p-4 shadow-md w-full">
-                  <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
-                    <span class="inline-flex h-6 items-center justify-center rounded-full bg-[#22C55E] px-2">
-                      <span class="block h-2 w-3 rounded-sm border-[3px] border-[#E6E9EF]"></span>
-                    </span>
-                  </div>
-                  <div class="flex w-full flex-col items-start gap-2">
-                    <div class="flex w-full items-center justify-between">
-                      <h4 class="flex-1 text-[16px] leading-[22px] font-medium">Cálculo Diferencial</h4>
-                    </div>
-                    <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                      <span>PC1</span>
-                      <span>2024-II</span>
-                    </div>
-                  </div>
-                </article>
-              ))
-            }
+            {planchasNuevas.map((p) => (
+              <CardExam evaluacion={p.evaluacion} ciclo={p.ciclo} profesor={p.profesor} tieneSolucion={p.tieneSolucion} />
+            ))}
+          </div>
+          <div class="w-full md:w-[118px] text-center">
+            <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
           </div>
         </div>
         
@@ -127,7 +113,7 @@ const alexisGarayData = {
 
 <!--Sección de profesores -->
 
-      <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-[#171A1F] px-6 sm:px-12 md:px-16 py-16">
+  <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
         <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
         <SearchInput placeholder="Busca a tu profesor..." className="flex-1 max-w-[400px]" />
@@ -141,7 +127,7 @@ const alexisGarayData = {
         </div>
       </section>
 
-      <footer class="w-full bg-black py-3 text-center text-[16px] leading-6">
+  <footer class="w-full bg-global-bg py-3 text-center text-[16px] leading-6">
         © {new Date().getFullYear()} TrikaWeb.
         Todos los derechos reservados.
       </footer>

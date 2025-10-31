@@ -20,6 +20,7 @@
 	.border-global-border { border-color: #2A3240; }
 	.border-global-surface { border-color: #171A1F; }
 	.border-global-card { border-color: #1E2430; }
+	.border-global-text { border-color: #E6E9EF; }
 
 	/* Hover variants */
 	.hover\:bg-global-surface:hover { background-color: #171A1F; }
