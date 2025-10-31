@@ -9,7 +9,6 @@ import SiteHeader from "../../components/SiteHeader.astro";
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>BMA03 - TrikaWeb</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
   </head>
 
   <body class="min-h-screen bg-[#070809] text-white">
@@ -34,7 +33,6 @@ import SiteHeader from "../../components/SiteHeader.astro";
 
       <div id="pdf-container"
            class="flex h-[1205px] w-full justify-center border-4 border-[#171A1F] p-5">
-        <canvas id="pdf-canvas" class="h-full w-full border-4 border-white"></canvas>
       </div>
       <!-- Panel de dificultad -->
     <section
@@ -90,50 +88,68 @@ import SiteHeader from "../../components/SiteHeader.astro";
     </footer>
 
     <script is:inline>
-      const url = "/pdfs/plancha1.pdf";
-      
-        //botones
-      document.getElementById("download-btn")?.addEventListener("click", () =>{
-        const a=document.createElement("a");
-        a.href = "/pdfs/plancha1.pdf";
-        a.download = "plancha1.pdf";
+      function getParam(name) {
+        const params = new URLSearchParams(window.location.search);
+        const v = params.get(name);
+        return v && v.trim() ? v.trim() : null;
+      }
+
+      const fileParam = getParam('file'); // e.g., plancha1.pdf
+      const solutionParam = getParam('solution'); // e.g., plancha1-solucionario.pdf
+      const titleParam = getParam('title'); // e.g., "PC1 - 2024 II"
+
+      const titleEl = document.getElementById('viewer-title');
+      if (titleEl && titleParam) {
+        titleEl.textContent = titleParam;
+      }
+
+      const buildUrl = (filename) => `/pdfs/${filename}`;
+      const pdfUrl = fileParam ? buildUrl(fileParam) : '/pdfs/plancha1.pdf';
+
+      const downloadBtn = document.getElementById('download-btn');
+      const solutionBtn = document.getElementById('solution-btn');
+      const openDirectBtn = document.getElementById('open-direct-btn');
+      const exitBtn = document.getElementById('exit-btn');
+
+      openDirectBtn?.addEventListener('click', () => {
+        window.open(pdfUrl, '_blank');
+      });
+
+      downloadBtn?.addEventListener('click', () => {
+        const a = document.createElement('a');
+        a.href = pdfUrl;
+        const fname = fileParam || 'plancha1.pdf';
+        a.download = fname;
         a.click();
-      })
+      });
 
-      document.getElementById("solution-btn")?.addEventListener("click", ()=> {
-        window.open("/pdfs/plancha1-solucionario.pdf", "_blank");
-      })
+      if (solutionParam) {
+        solutionBtn?.addEventListener('click', () => {
+          window.open(buildUrl(solutionParam), '_blank');
+        });
+      } else {
+        solutionBtn?.classList.add('hidden');
+      }
 
-      document.getElementById("exit-btn")?.addEventListener("click", ()=>{
-        window.location.href="/";
-      })
+      exitBtn?.addEventListener('click', () => {
+        window.location.href = '/';
+      });
 
-      function initPDF() {
-        if (typeof pdfjsLib === "undefined") {
-          console.error("❌ pdf.js no cargó");
-          return;
-        }
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
+      function renderEmbed() {
+        const container = document.getElementById('pdf-container');
+        if (!container) return;
+        container.innerHTML = '';
+        const iframe = document.createElement('iframe');
+        iframe.src = pdfUrl + '#toolbar=0';
+        iframe.className = 'w-full h-full rounded-lg bg-[#0b0e13]';
+        iframe.setAttribute('loading', 'lazy');
+        container.appendChild(iframe);
+      }
 
-        const canvas = document.getElementById("pdf-canvas");
-        const ctx = canvas.getContext("2d");
-
-        pdfjsLib.getDocument({ url }).promise.then((pdf) => pdf.getPage(1))
-          .then((page) => {
-            const scale = 1.5;
-            const vp = page.getViewport({ scale });
-            canvas.width = vp.width;
-            canvas.height = vp.height;
-            return page.render({ canvasContext: ctx, viewport: vp }).promise;
-          })
-          .catch((err) => console.error("Error cargando PDF:", err));
-      };
-
-      if(document.readyState === "loading"){
-        document.addEventListener("DOMContentLoaded", initPDF);
-      }else{
-        initPDF();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', renderEmbed);
+      } else {
+        renderEmbed();
       }
     </script>
   </body>

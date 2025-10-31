@@ -4,6 +4,7 @@ import Layout from "../layouts/Layout.astro";
 import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
 import TeacherCard from "../components/TeacherCard.astro";
 import SearchInput from "../components/SearchInput.astro";
+import SearchAutocomplete from "../components/SearchAutocomplete.astro";
 import CardExam from "../components/CardExam.astro";
 
 const alexisGarayData = {
@@ -28,15 +29,15 @@ const alexisGarayData = {
 
 // Datos de ejemplo para las grillas de Planchas
 const planchasPopulares = [
-  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Cálculo Diferencial", tieneSolucion: true },
-  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Álgebra Lineal", tieneSolucion: false },
-  { evaluacion: "Parcial", ciclo: "2023-II", profesor: "Física II", tieneSolucion: true },
+  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Cálculo Diferencial", tieneSolucion: true, file: "plancha1.pdf" },
+  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Álgebra Lineal", tieneSolucion: false, file: "plancha1.pdf" },
+  { evaluacion: "Parcial", ciclo: "2023-II", profesor: "Física II", tieneSolucion: true, file: "plancha1.pdf" },
 ];
 
 const planchasNuevas = [
-  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Química I", tieneSolucion: true },
-  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Estática", tieneSolucion: true },
-  { evaluacion: "Final", ciclo: "2023-II", profesor: "Economía", tieneSolucion: false },
+  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Química I", tieneSolucion: true, file: "plancha1.pdf" },
+  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Estática", tieneSolucion: true, file: "plancha1.pdf" },
+  { evaluacion: "Final", ciclo: "2023-II", profesor: "Economía", tieneSolucion: false, file: "plancha1.pdf" },
 ];
 ---
 
@@ -78,18 +79,37 @@ const planchasNuevas = [
           </div>
           
           <div class="flex w-full flex-1 justify-center md:justify-end">
-            
-            <SearchInput placeholder="Ingresa el curso..." className="w-full max-w-[400px]" />
+            <SearchAutocomplete
+              id="plancha"
+              placeholder="Ingresa el curso, evaluación o ciclo..."
+              targetSelector=".plancha-card"
+              fields="curso,evaluacion,ciclo"
+              filter="curso,evaluacion,ciclo,solucion"
+              class="max-w-[400px]"
+            />
           </div>
         </div>
 
         <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1">
-            {planchasPopulares.map((p) => (
-              <CardExam evaluacion={p.evaluacion} ciclo={p.ciclo} profesor={p.profesor} tieneSolucion={p.tieneSolucion} />
+            {planchasPopulares.map((p, idx) => (
+              <article
+                class="plancha-card w-full"
+                data-curso={p.profesor}
+                data-evaluacion={p.evaluacion}
+                data-ciclo={p.ciclo}
+                data-solucion={p.tieneSolucion ? 'si' : 'no'}
+              >
+                <CardExam
+                  evaluacion={p.evaluacion}
+                  ciclo={p.ciclo}
+                  profesor={p.profesor}
+                  tieneSolucion={p.tieneSolucion}
+                  href={`/pdfs/pdfViewerPage?file=${encodeURIComponent(p.file)}&title=${encodeURIComponent(`${p.evaluacion} - ${p.ciclo}`)}&curso=${encodeURIComponent(p.profesor)}`}
+                />
+              </article>
             ))}
-
           </div>
                     <div class="w-full md:w-[118px] text-center">
             <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
@@ -100,8 +120,22 @@ const planchasNuevas = [
           
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
-            {planchasNuevas.map((p) => (
-              <CardExam evaluacion={p.evaluacion} ciclo={p.ciclo} profesor={p.profesor} tieneSolucion={p.tieneSolucion} />
+            {planchasNuevas.map((p, idx) => (
+              <article
+                class="plancha-card w-full"
+                data-curso={p.profesor}
+                data-evaluacion={p.evaluacion}
+                data-ciclo={p.ciclo}
+                data-solucion={p.tieneSolucion ? 'si' : 'no'}
+              >
+                <CardExam
+                  evaluacion={p.evaluacion}
+                  ciclo={p.ciclo}
+                  profesor={p.profesor}
+                  tieneSolucion={p.tieneSolucion}
+                  href={`/pdfs/pdfViewerPage?file=${encodeURIComponent(p.file)}&title=${encodeURIComponent(`${p.evaluacion} - ${p.ciclo}`)}&curso=${encodeURIComponent(p.profesor)}`}
+                />
+              </article>
             ))}
           </div>
           <div class="w-full md:w-[118px] text-center">
@@ -149,109 +183,59 @@ const planchasNuevas = [
 
         <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
         <div id="professors-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mt-6 px-4 sm:px-0">
-          
           <!-- Card 1: Alexis (tiene modal asociado open-alexis) -->
           <article
-            class="teacher-card inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full"
+            class="teacher-card w-full"
             data-name="Alexis Garay"
             data-role="Profesor"
             data-id="alexis"
             data-courses="Álgebra Lineal,Cálculo Diferencial,Física II"
           >
-            <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
-              <img src="/img/teacher.png" alt="Alexis" class="h-full object-cover rounded-md" />
-            </div>
-            <div class="flex w-full flex-col items-start gap-2">
-              <div class="flex w-full items-center justify-between">
-                <h3 class="flex-1 text-[16px] leading-[22px] font-medium text-white">Alexis Garay</h3>
-              </div>
-              <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                <div class="flex items-center gap-4">
-                  <span class="text-[16px] leading-6 text-[#9AA4B2]">Profesor</span>
-                  <div class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#22C55E]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#22C55E]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#22C55E]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#22C55E]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                  </div>
-                </div>
-                <span class="text-[16px] leading-6 text-[#9AA4B2]">4.5</span>
-              </div>
-              <div class="w-full mt-2">
-                <button id="open-alexis" class="w-full py-2 rounded-lg bg-green-500 hover:bg-green-600 text-sm font-semibold">Ver perfil</button>
-              </div>
-            </div>
+            <TeacherCard
+              name="Alexis Garay"
+              role="Profesor"
+              rating={4.5}
+              avatarSrc="/img/teacher.png"
+              openId="open-alexis"
+              buttonLabel="Ver perfil"
+            />
           </article>
 
           <!-- Card 2 -->
           <article
-            class="teacher-card inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full"
+            class="teacher-card w-full"
             data-name="Silvio Quinteros"
             data-role="Profesor"
             data-id="generic-2"
             data-courses="Química 1,Fisicoquímica"
           >
-            <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
-              <img src="/img/teacher.png" alt="Profesor Genérico 2" class="h-full object-cover rounded-md" />
-            </div>
-            <div class="flex w-full flex-col items-start gap-2">
-              <div class="flex w-full items-center justify-between">
-                <h3 class="flex-1 text-[16px] leading-[22px] font-medium text-white">Profesor Genérico 2</h3>
-              </div>
-              <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                <div class="flex items-center gap-4">
-                  <span class="text-[16px] leading-6 text-[#9AA4B2]">Profesor</span>
-                  <div class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#22C55E]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#22C55E]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                  </div>
-                </div>
-                <span class="text-[16px] leading-6 text-[#9AA4B2]">2.0</span>
-              </div>
-              <div class="w-full mt-2">
-                <button class="w-full py-2 rounded-lg bg-gray-700 text-sm font-semibold">Ver perfil</button>
-              </div>
-            </div>
+            <TeacherCard
+              name="Profesor Genérico 2"
+              role="Profesor"
+              rating={2}
+              avatarSrc="/img/teacher.png"
+              href="/profesores"
+              buttonLabel="Ver perfil"
+            />
           </article>
 
           <!-- Card 3 -->
           <article
-            class="teacher-card inline-flex flex-col items-center gap-2 rounded-2xl border border-[#2A3240]/30 bg-[#1E2430] p-4 shadow-md w-full"
+            class="teacher-card w-full"
             data-name="Profesor Genérico 3"
             data-role="Profesor"
             data-id="generic-3"
             data-courses="Física II,Álgebra Lineal"
           >
-            <div class="flex h-[139px] w-full items-start justify-end rounded-lg bg-[#101010] p-2">
-              <img src="/img/teacher.png" alt="Profesor Genérico 3" class="h-full object-cover rounded-md" />
-            </div>
-            <div class="flex w-full flex-col items-start gap-2">
-              <div class="flex w-full items-center justify-between">
-                <h3 class="flex-1 text-[16px] leading-[22px] font-medium text-white">Profesor Genérico 3</h3>
-              </div>
-              <div class="flex w-full items-center justify-between text-[16px] leading-6 text-[#9AA4B2]">
-                <div class="flex items-center gap-4">
-                  <span class="text-[16px] leading-6 text-[#9AA4B2]">Profesor</span>
-                  <div class="flex items-center gap-1">
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                    <span class="inline-block h-2 w-3 rounded-sm bg-[#39414A]"></span>
-                  </div>
-                </div>
-                <span class="text-[16px] leading-6 text-[#9AA4B2]">0.0</span>
-              </div>
-              <div class="w-full mt-2">
-                <button class="w-full py-2 rounded-lg bg-gray-700 text-sm font-semibold">Ver perfil</button>
-              </div>
-            </div>
+            <TeacherCard
+              name="Profesor Genérico 3"
+              role="Profesor"
+              rating={0}
+              avatarSrc="/img/teacher.png"
+              href="/profesores"
+              buttonLabel="Ver perfil"
+            />
           </article>
-
         </div>
       </section>
 
@@ -436,5 +420,7 @@ const planchasNuevas = [
         }
       }
     });
+
+    // Buscador de Planchas encapsulado en <SearchAutocomplete />
   </script>
 </attachment>
