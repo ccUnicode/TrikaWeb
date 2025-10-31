@@ -1,0 +1,49 @@
+---
+export interface QuestionCardProps {
+  title: string;
+  solutionHref: string;
+  thumbSrc?: string;
+}
+const { title, solutionHref, thumbSrc } = Astro.props as QuestionCardProps;
+---
+
+<article class="rounded-2xl bg-[#1E2430] p-5 shadow ring-1 ring-black/10 transition hover:shadow-lg">
+  <div class="relative mb-4 grid h-[170px] place-items-center overflow-hidden rounded-xl bg-[#101010]">
+    {thumbSrc ? (
+      <img
+        src={thumbSrc}
+        alt={`Miniatura de ${title}`}
+        class="h-full w-full object-cover opacity-90"
+        loading="lazy"
+      />
+    ) : null}
+
+    <!-- Play -->
+    <div
+      class="absolute grid place-items-center rounded-full bg-white/10 p-3 ring-1 ring-white/20 backdrop-blur"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 24 24" class="h-7 w-7" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="8 5 19 12 8 19 8 5"></polygon>
+      </svg>
+    </div>
+  </div>
+
+  <h3 class="mb-3 text-center text-lg font-semibold text-white">{title}</h3>
+
+  <div class="grid">
+    <a
+      href={solutionHref}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center justify-center rounded-full
+             bg-[#22C55E] px-6 py-2 text-sm font-semibold text-white
+             transition-all duration-200
+             hover:brightness-110 hover:shadow-[0_0_18px_rgba(34,197,94,0.65)]
+             focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E]
+             active:scale-[0.98]"
+    >
+      Solución
+    </a>
+  </div>
+</article>

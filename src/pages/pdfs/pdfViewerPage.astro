@@ -17,11 +17,17 @@ import SiteHeader from "../../components/SiteHeader.astro";
 
     <main class="mx-auto mb-10 w-[44.8%] max-w-[900px] px-0">
       <div id="header-container"
-           class="sticky top-[72px] z-[1000] mb-0 flex items-center justify-between gap-3 rounded-xl bg-[#171A1F] px-4 py-4">
+           class="sticky top-[60px] z-[1000] mb-0 flex items-center justify-between gap-3 rounded-xl bg-[#171A1F] px-4 py-4">
         <h3 class="m-0 text-[26px] leading-none">PC N°1 - 2024 II</h3>
         <div class="flex items-center gap-2">
           <button id="download-btn" class="rounded-lg bg-[#2A3240] px-4 py-2 hover:bg-[#1E2430]">Descargar PDF</button>
-          <button id="solution-btn" class="rounded-lg bg-[#2A3240] px-4 py-2 hover:bg-[#1E2430]">Solucionario</button>
+          <a
+            href="/soluciones"
+            class="rounded-lg bg-[#2A3240] px-4 py-2 inline-flex items-center justify-center hover:bg-[#1E2430]"
+            aria-label="Ver soluciones"
+            >
+            Solucionario
+        </a>
           <button id="exit-btn" class="rounded-lg bg-[#2A3240] px-3 py-2 hover:bg-[#1E2430]">X</button>
         </div>
       </div>
@@ -30,6 +36,53 @@ import SiteHeader from "../../components/SiteHeader.astro";
            class="flex h-[1205px] w-full justify-center border-4 border-[#171A1F] p-5">
         <canvas id="pdf-canvas" class="h-full w-full border-4 border-white"></canvas>
       </div>
+      <!-- Panel de dificultad -->
+    <section
+    id="difficulty-panel"
+    class="mt-4 w-full rounded-xl bg-[#1E232B] px-5 py-5 text-white shadow-xl"
+    aria-labelledby="difficulty-title"
+    >
+    <h4 id="difficulty-title" class="mb-3 text-center text-lg font-semibold">
+        ¿Qué dificultad tiene?
+    </h4>
+
+    <div class="flex items-center justify-between gap-4">
+        <span class="text-sm text-gray-300">Menos dificultoso</span>
+
+        <!-- Estrellas -->
+        <div class="flex items-center gap-5" role="radiogroup" aria-label="Dificultad">
+        <!-- Cada botón es una 'estrella' -->
+        {Array.from({ length: 5 }).map((_, i) => (
+            <button
+            type="button"
+            class="star btn-star"
+            data-value={(i + 1).toString()}
+            aria-label={`Dificultad ${i + 1} de 5`}
+            aria-checked="false"
+            role="radio"
+            >
+            <!-- SVG estrella (contorno) -->
+            <svg
+                class="h-8 w-8 transition-transform duration-150 hover:scale-110"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <path
+                d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z"
+                />
+            </svg>
+            </button>
+        ))}
+        </div>
+
+        <span class="text-sm text-gray-300">Más dificultoso</span>
+    </div>
+    </section>
+
     </main>
 
     <footer class="mt-auto w-full bg-black py-2 text-center text-sm text-white">
