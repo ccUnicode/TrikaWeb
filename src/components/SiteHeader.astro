@@ -1,8 +1,9 @@
 ---
 import "../styles/global.css";
+import IconHome from "./icons/IconHome.astro";
 ---
 
-<header class="fixed w-full bg-global-surface shadow z-50 top-0">
+<header class="sticky top-0 z-50 w-full bg-global-surface shadow border-b border-global-border">
   <div class="mx-auto flex max-w-[1200px] items-center justify-between px-2 sm:px-4 py-2">
     <div class="flex w-[188px] items-center justify-between">
       <img src="/img/logo.png" alt="TrikaWeb" class="h-auto w-auto" />
@@ -12,7 +13,7 @@ import "../styles/global.css";
       <a class="text-[20px] leading-7 font-medium hover:text-global-primary hidden sm:block" href="/planchas">Planchas</a>
       <a class="text-[20px] leading-7 font-medium hover:text-global-primary hidden sm:block" href="/profesores">Profesores</a>
       <a class="rounded-xl p-2 hover:bg-global-surface" aria-label="Inicio" href="/">
-        <span class="block h-[19px] w-[18px] border-2 border-global-border"></span>
+        <IconHome class="text-global-text" size={24} title="Inicio" />
       </a>
     </nav>
   </div>

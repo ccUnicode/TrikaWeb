@@ -24,9 +24,11 @@ const {
 		<link rel="icon" href={favicon} />
 		<title>{title}</title>
 	</head>
-		<body class="bg-global-bg text-global-text antialiased">
-			<SiteHeader />
-			<slot />
+				<body class="bg-global-bg text-global-text antialiased">
+					<SiteHeader />
+					<main class="mt-12 sm:mt-16">
+					<slot />
+				</main>
 	</body>
 	<style>
 		html,
