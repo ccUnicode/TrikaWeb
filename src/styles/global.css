@@ -24,4 +24,34 @@
 	/* Hover variants */
 	.hover\:bg-global-surface:hover { background-color: #171A1F; }
 	.hover\:text-global-primary-hover:hover { color: #51A624; }
+
+	/* Scrollbar personalizada (scoped a .teacher-scroll) */
+	.teacher-scroll {
+		scrollbar-width: thin; /* Firefox */
+		scrollbar-color: rgba(148,163,184,0.6) transparent;
+	}
+
+	.teacher-scroll::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	.teacher-scroll::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.teacher-scroll::-webkit-scrollbar-thumb {
+		background: linear-gradient(180deg, #2d3748 0%, #0f1724 100%);
+		border-radius: 9999px;
+		border: 2px solid rgba(255,255,255,0.04);
+		min-height: 28px;
+	}
+
+	.teacher-scroll::-webkit-scrollbar-thumb:hover {
+		background: linear-gradient(180deg, #475569 0%, #0b1220 100%);
+	}
+
+	.teacher-scroll::-webkit-scrollbar-thumb:vertical {
+		box-shadow: inset 0 0 0 2px rgba(255,255,255,0.02);
+	}
 }
