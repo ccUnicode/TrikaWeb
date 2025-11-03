@@ -1,58 +1,111 @@
 @import "tailwindcss";
 
-/* Fallback utilities for palette tokens (works without @theme) */
+/* ----------------------------------------------- */
+/* 🧩 1️⃣ BASE: variables globales y reglas generales */
+/* ----------------------------------------------- */
+@layer base {
+  :root {
+    /* 🎨 Paleta de colores (en formato RGB para permitir opacidades) */
+    --global-bg: 16 16 16;            /* #101010 */
+    --global-surface: 23 26 31;       /* #171A1F */
+    --global-card: 30 36 48;          /* #1E2430 */
+    --global-border: 42 50 64;        /* #2A3240 */
+    --global-text: 230 233 239;       /* #E6E9EF */
+    --global-text-muted: 154 164 178; /* #9AA4B2 */
+    --global-primary: 34 197 94;      /* #22C55E */
+    --global-primary-hover: 81 166 36;/* #51A624 */
+  }
+
+  html {
+    scroll-behavior: smooth; /* desplazamiento suave para anclas */
+  }
+
+  body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Evita que el header tape los títulos al saltar con #id */
+  section[id] { scroll-margin-top: 96px; }
+  @media (min-width: 640px) {
+    section[id] { scroll-margin-top: 112px; }
+  }
+}
+
+/* ----------------------------------------------- */
+/* 🧱 2️⃣ COMPONENTS: clases grandes o reutilizables */
+/* ----------------------------------------------- */
+@layer components {
+
+  /* Enlace para accesibilidad (skip link oculto) */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* ----------------------------------------------- */
+/* ⚙️ 3️⃣ UTILITIES: tokens, colores y scrollbars */
+/* ----------------------------------------------- */
 @layer utilities {
-	/* Backgrounds */
-	.bg-global-bg { background-color: #101010; }
-	.bg-global-surface { background-color: #171A1F; }
-	.bg-global-card { background-color: #1E2430; }
-	/* Primary brand background (used for buttons) */
-	.bg-global-primary { background-color: #22C55E; }
-	.hover\:bg-global-primary-hover:hover { background-color: #51A624; }
+  /* 🎨 Backgrounds */
+  .bg-global-bg { background-color: rgb(var(--global-bg)); }
+  .bg-global-surface { background-color: rgb(var(--global-surface)); }
+  .bg-global-card { background-color: rgb(var(--global-card)); }
+  .bg-global-primary { background-color: rgb(var(--global-primary)); }
+  .hover\:bg-global-primary-hover:hover { background-color: rgb(var(--global-primary-hover)); }
 
-	/* Text colors */
-	.text-global-text { color: #E6E9EF; }
-	.text-global-primary { color: #22C55E; }
-	.text-global-primary-hover { color: #51A624; }
-	.text-global-text-muted { color: #9AA4B2; }
+  /* 🖋️ Text colors */
+  .text-global-text { color: rgb(var(--global-text)); }
+  .text-global-primary { color: rgb(var(--global-primary)); }
+  .text-global-primary-hover { color: rgb(var(--global-primary-hover)); }
+  .text-global-text-muted { color: rgb(var(--global-text-muted)); }
 
-	/* Borders */
-	.border-global-border { border-color: #2A3240; }
-	.border-global-surface { border-color: #171A1F; }
-	.border-global-card { border-color: #1E2430; }
-	.border-global-text { border-color: #E6E9EF; }
+  /* 🧱 Borders */
+  .border-global-border { border-color: rgb(var(--global-border)); }
+  .border-global-surface { border-color: rgb(var(--global-surface)); }
+  .border-global-card { border-color: rgb(var(--global-card)); }
+  .border-global-text { border-color: rgb(var(--global-text)); }
 
-	/* Hover variants */
-	.hover\:bg-global-surface:hover { background-color: #171A1F; }
-	.hover\:text-global-primary-hover:hover { color: #51A624; }
+  /* ✨ Hover variants */
+  .hover\:bg-global-surface:hover { background-color: rgb(var(--global-surface)); }
+  .hover\:text-global-primary-hover:hover { color: rgb(var(--global-primary-hover)); }
 
-	/* Scrollbar personalizada (scoped a .teacher-scroll) */
-	.teacher-scroll {
-		scrollbar-width: thin; /* Firefox */
-		scrollbar-color: rgba(148,163,184,0.6) transparent;
-	}
+  /* 🧭 Scrollbar personalizada (para .teacher-scroll) */
+  .teacher-scroll {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(148,163,184,0.6) transparent;
+  }
 
-	.teacher-scroll::-webkit-scrollbar {
-		width: 10px;
-		height: 10px;
-	}
+  .teacher-scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
-	.teacher-scroll::-webkit-scrollbar-track {
-		background: transparent;
-	}
+  .teacher-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-	.teacher-scroll::-webkit-scrollbar-thumb {
-		background: linear-gradient(180deg, #2d3748 0%, #0f1724 100%);
-		border-radius: 9999px;
-		border: 2px solid rgba(255,255,255,0.04);
-		min-height: 28px;
-	}
+  .teacher-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #2d3748 0%, #0f1724 100%);
+    border-radius: 9999px;
+    border: 2px solid rgba(255,255,255,0.04);
+    min-height: 28px;
+  }
 
-	.teacher-scroll::-webkit-scrollbar-thumb:hover {
-		background: linear-gradient(180deg, #475569 0%, #0b1220 100%);
-	}
+  .teacher-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #475569 0%, #0b1220 100%);
+  }
 
-	.teacher-scroll::-webkit-scrollbar-thumb:vertical {
-		box-shadow: inset 0 0 0 2px rgba(255,255,255,0.02);
-	}
+  .teacher-scroll::-webkit-scrollbar-thumb:vertical {
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.02);
+  }
 }

@@ -24,11 +24,16 @@ const {
 		<link rel="icon" href={favicon} />
 		<title>{title}</title>
 	</head>
-				<body class="bg-global-bg text-global-text antialiased">
-					<SiteHeader />
-					<main class="mt-12 sm:mt-16">
-					<slot />
-				</main>
+	<body class="bg-global-bg text-global-text antialiased">
+		<SiteHeader />
+		<main>
+			<slot />
+		</main>
+		<footer class=" bg-global-surface text-center py-6 mt-12">
+			<p class="text-global-text">
+				© {new Date().getFullYear()} Unicode. Todos los derechos reservados.
+			</p>
+		</footer>
 	</body>
 	<style>
 		html,

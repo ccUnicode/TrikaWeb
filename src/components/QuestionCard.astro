@@ -15,6 +15,7 @@ const { title, solutionHref, thumbSrc } = Astro.props as QuestionCardProps;
         alt={`Miniatura de ${title}`}
         class="h-full w-full object-cover opacity-90"
         loading="lazy"
+        onerror="this.onerror=null;this.src='/img/fallback.png';"
       />
     ) : null}
 
