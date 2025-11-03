@@ -3,109 +3,47 @@ import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import ContainerCardExam from "../../components/ContainerCardExam.astro";
 import CardExam from "../../components/CardExam.astro";
+import PageSubHeader from "../../components/PageSubHeader.astro";
+
+const secciones = [
+  { id: "pc1", label: "PC1", titulo: "Práctica Calificada 1" },
+  { id: "pc2", label: "PC2", titulo: "Práctica Calificada 2" },
+  { id: "pc3", label: "PC3", titulo: "Práctica Calificada 3" },
+  { id: "pc4", label: "PC4", titulo: "Práctica Calificada 4" },
+  { id: "ep",  label: "EP",  titulo: "Examen Parcial" },
+  { id: "ef",  label: "EF",  titulo: "Examen Final" },
+];
+
+const examenes = [
+  { ciclo: "25-I", profesor: "Prof. Arámbulo Ostos", tieneSolucion: true },
+  { ciclo: "24-II", profesor: "Prof. Arámbulo Ostos", tieneSolucion: true },
+  { ciclo: "24-I", profesor: "Prof. Arámbulo Ostos", tieneSolucion: false },
+  { ciclo: "23-II", profesor: "Prof. Arámbulo Ostos", tieneSolucion: false },
+  { ciclo: "23-I", profesor: "Prof. Arámbulo Ostos", tieneSolucion: true },
+  { ciclo: "22-II", profesor: "Prof. Arámbulo Ostos", tieneSolucion: true },
+];
 ---
 
 <Layout title="Cálculo Diferencial - TrikaWeb" lang="es">
-  <header class="fixed top-0 z-50 w-full bg-global-surface shadow-lg">
-    <div class="mx-auto max-w-[1400px] px-8">
-      <div class="flex items-center justify-between py-4">
-        <div class="flex w-[188px] items-center justify-between">
-          <img src="/img/logo2.png" alt="TrikaWeb" class="h-auto w-auto" />
+ <PageSubHeader title="Cálculo Diferencial" tabs={secciones} />
+
+  <div class="mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10 xl:px-16 py-10 space-y-10">
+    {secciones.map((sec) => (
+      <section
+        id={sec.id}
+        class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12"
+      >
+        <ContainerCardExam titulo={sec.titulo} />
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
+          {examenes.map((exam) => (
+            <CardExam
+              ciclo={exam.ciclo}
+              profesor={exam.profesor}
+              tieneSolucion={exam.tieneSolucion}
+            />
+          ))}
         </div>
-        <nav class="flex items-center gap-10">
-          <a class="text-[20px] leading-7 font-medium hover:text-global-primary-hover" href="/planchas">Planchas</a>
-          <a class="text-[20px] leading-7 font-medium hover:text-global-primary-hover" href="/profesores">Profesores</a>
-          <button class="rounded-xl p-2 hover:bg-neutral-800/60" aria-label="Inicio">
-            <span class="block h-[19px] w-[18px] border-2 border-[#E6E9EF]"></span>
-          </button>
-        </nav>
-      </div>
-
-      <nav class="flex w-full items-baseline gap-2 overflow-x-auto pb-2 md:gap-4">
-        <div class="mr-auto">
-          <h1 class="text-3xl font-medium text-global-primary-hover md:text-3xl">Cálculo Diferencial</h1>
-        </div>
-        <a href="#pc1" class="whitespace-nowrap rounded-lg px-3 py-1 text-gray-300 hover:bg-global-surface hover:text-global-primary-hover">PC1</a>
-        <a href="#pc2" class="whitespace-nowrap rounded-lg px-3 py-1 text-gray-300 hover:bg-global-surface hover:text-global-primary-hover">PC2</a>
-        <a href="#pc3" class="whitespace-nowrap rounded-lg px-3 py-1 text-gray-300 hover:bg-global-surface hover:text-global-primary-hover">PC3</a>
-        <a href="#pc4" class="whitespace-nowrap rounded-lg px-3 py-1 text-gray-300 hover:bg-global-surface hover:text-global-primary-hover">PC4</a>
-        <a href="#ep" class="whitespace-nowrap rounded-lg px-3 py-1 text-gray-300 hover:bg-global-surface hover:text-global-primary-hover">EP</a>
-        <a href="#ef" class="whitespace-nowrap rounded-lg px-3 py-1 text-gray-300 hover:bg-global-surface hover:text-global-primary-hover">EF</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="mx-auto ... md:px-10 pt-40 md:pt-38">
-    <section id="pc1" class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12">
-      <ContainerCardExam titulo="Práctica Calificada 1" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
-        <CardExam ciclo="25-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="22-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-      </div>
-    </section>
-
-    <section id="pc2" class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12">
-      <ContainerCardExam titulo="Práctica Calificada 2" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8 py-4 my-8">
-        <CardExam ciclo="25-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="22-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-      </div>
-    </section>
-
-    <section id="pc3" class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12">
-      <ContainerCardExam titulo="Práctica Calificada 3" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
-        <CardExam ciclo="25-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="22-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-      </div>
-    </section>
-
-    <section id="pc4" class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12">
-      <ContainerCardExam titulo="Práctica Calificada 4" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
-        <CardExam ciclo="25-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="22-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-      </div>
-    </section>
-
-    <section id="ep" class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12">
-      <ContainerCardExam titulo="Examen Parcial" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
-        <CardExam ciclo="25-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="22-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-      </div>
-    </section>
-
-    <section id="ef" class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12">
-      <ContainerCardExam titulo="Examen Final" />
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
-        <CardExam ciclo="25-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="24-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={false} />
-        <CardExam ciclo="23-I" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-        <CardExam ciclo="22-II" profesor="Prof. Arámbulo Ostos" tieneSolucion={true} />
-      </div>
-    </section>
-  </main>
+      </section>
+    ))}
+  </div>
 </Layout>

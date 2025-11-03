@@ -42,11 +42,11 @@ const planchasNuevas = [
 ---
 
 <Layout title="TrikaWeb">
-  <div class="flex min-h-screen w-full flex-col items-center gap-12">
+  <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16">
 
       <!-- Header now comes from Layout via <SiteHeader /> -->
 
-      <section class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
+      <section id="hero" class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
           <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left">
             ¿Planchas y reseñas de profes?
@@ -70,7 +70,7 @@ const planchasNuevas = [
 
 <!--SECCIÓN DE PLANCHAS -->
 
-  <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
+  <section  id="planchas" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
 
         <div class="flex w-full flex-col md:flex-row items-center gap-8">
           
@@ -147,7 +147,7 @@ const planchasNuevas = [
 
 <!--Sección de profesores -->
 
-  <section class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
+  <section  id="profesores" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
         <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
 
@@ -238,12 +238,6 @@ const planchasNuevas = [
           </article>
         </div>
       </section>
-
-  <footer class="w-full bg-global-bg py-3 text-center text-[16px] leading-6">
-        © {new Date().getFullYear()} TrikaWeb.
-        Todos los derechos reservados.
-      </footer>
-    </div>
 
     <!-- INCLUIR EL COMPONENTE DEL MODAL -->
     <FichaProfesor {...alexisGarayData} />
