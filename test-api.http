@@ -1,0 +1,102 @@
+### ============================================
+### PRUEBAS DE API - TRIKAWEB (ROL B)
+### ============================================
+
+### 1. ✅ VOTAR DIFICULTAD DE UN EXAMEN
+POST http://localhost:4321/api/sheets/1/rate
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440001",
+  "score": 4
+}
+
+###
+
+### 2. ✅ REGISTRAR VISTA DE UN EXAMEN
+POST http://localhost:4321/api/sheets/1/view
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440001"
+}
+
+###
+
+### 3. ✅ CALIFICAR UN PROFESOR
+POST http://localhost:4321/api/teachers/1/rate
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440002",
+  "overall": 5,
+  "difficulty": 3,
+  "didactic": 5,
+  "resources": 4,
+  "responsability": 5,
+  "grading": 4,
+  "comment": "Excelente profesor, muy didáctico"
+}
+
+###
+
+### 4. ✅ DESCARGAR PDF DE EXAMEN
+GET http://localhost:4321/api/sheets/1/file
+
+###
+
+### 5. ✅ DESCARGAR SOLUCIONARIO
+GET http://localhost:4321/api/sheets/1/solution
+
+###
+
+### 6. ❌ Votar con score inválido (debe dar error 400)
+POST http://localhost:4321/api/sheets/1/rate
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440001",
+  "score": 10
+}
+
+###
+
+### 7. ❌ Calificar profesor sin device_id (debe dar error 400)
+POST http://localhost:4321/api/teachers/1/rate
+Content-Type: application/json
+
+{
+  "overall": 5,
+  "difficulty": 3,
+  "didactic": 5,
+  "resources": 4,
+  "responsability": 5,
+  "grading": 4
+}
+
+###
+
+### 8. ❌ Descargar examen que no existe (debe dar error 404)
+GET http://localhost:4321/api/sheets/9999/file
+
+###
+
+### 9. ✅ Votar un examen por primera vez
+POST http://localhost:4321/api/sheets/1/rate
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440003",
+  "score": 3
+}
+
+###
+
+### 10. ✅ Cambiar el voto del mismo examen (debe ACTUALIZAR, no duplicar)
+POST http://localhost:4321/api/sheets/1/rate
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440003",
+  "score": 5
+}
