@@ -1,0 +1,106 @@
+export const prerender = false;
+import type { APIRoute } from 'astro';
+import { supabaseAdmin } from '../../../../lib/supabase.server';
+import { sha256Hash, getDeviceId, getClientIP } from '../../../../lib/utils';
+
+export const POST: APIRoute = async ({ params, request }) => {
+  const teacherId = Number(params.id);
+  if (!teacherId) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  }
+
+  const { overall, difficulty, didactic, resources, responsability, grading, comment } = body;
+  
+  if (!overall || !difficulty || !didactic || !resources || !responsability || !grading) {
+    return new Response(
+      JSON.stringify({ 
+        error: 'Faltan calificaciones (overall, difficulty, didactic, resources, responsability, grading)' 
+      }), 
+      { status: 400 }
+    );
+  }
+
+  const ratings = [overall, difficulty, didactic, resources, responsability, grading];
+  if (ratings.some(r => r < 1 || r > 5)) {
+    return new Response(
+      JSON.stringify({ error: 'Todas las calificaciones deben ser 1-5' }), 
+      { status: 400 }
+    );
+  }
+
+  const deviceId = getDeviceId(body);
+  if (!deviceId) {
+    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  }
+
+  const clientIP = getClientIP(request);
+  const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
+
+  const supa = supabaseAdmin();
+
+  // Verificar si ya existe
+  const { data: existing } = await supa
+    .from('teacher_ratings')
+    .select('id')
+    .eq('teacher_id', teacherId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  let error;
+
+  if (existing) {
+    // Actualizar
+    const result = await supa
+      .from('teacher_ratings')
+      .update({
+        overall,
+        difficulty,
+        didactic,
+        resources,
+        responsability,
+        grading,
+        comment: comment || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('teacher_id', teacherId)
+      .eq('device_id', deviceId);
+    
+    error = result.error;
+  } else {
+    // Insertar
+    const result = await supa
+      .from('teacher_ratings')
+      .insert({
+        teacher_id: teacherId,
+        device_id: deviceId,
+        overall,
+        difficulty,
+        didactic,
+        resources,
+        responsability,
+        grading,
+        comment: comment || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    
+    error = result.error;
+  }
+
+  if (error) {
+    console.error('Error al guardar rating:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error al guardar', details: error.message }), 
+      { status: 500 }
+    );
+  }
+
+  return new Response(JSON.stringify({ success: true }), { status: 200 });
+};
