@@ -268,16 +268,7 @@ Este proyecto es de código cerrado para uso interno universitario.
 4. Push a la rama (`git push origin feat/amazing-feature`)
 5. Abre un Pull Request
 
----
 
-## 📞 Contacto
-
-Para dudas o sugerencias, contactar al equipo de desarrollo.
-
----
-
-**Hecho con ❤️ por el equipo TrikaWeb**
----
 
 ## Admin y Moderacion
 
@@ -289,4 +280,15 @@ Para dudas o sugerencias, contactar al equipo de desarrollo.
 ## Supabase (scripts y seeds)
 
 - Corre `supabase/schema.sql`, `supabase/function_triggers.sql` y `supabase/seed.sql` en el SQL Editor de Supabase para recrear tablas, RLS y datos de prueba.
-- Estos archivos documentan la infraestructura (incluye `write_limits` e `is_hidden`) para sincronizar otros entornos.
+- Estos archivos documentan la infraestructura para sincronizar otros entornos.
+
+---
+
+## 📞 Contacto
+
+Para dudas o sugerencias, contactar al equipo de desarrollo.
+
+---
+
+**Hecho con ❤️ por el equipo TrikaWeb**
+---
