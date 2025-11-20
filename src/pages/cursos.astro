@@ -1,20 +1,33 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabaseClient } from '../lib/supabase.client';
+
 const { data: courses, error } = await supabaseClient
   .from('courses')
-  .select('*')
-  .order('name', { ascending: true });
+  .select('id, code, name')
+  .order('code', { ascending: true });
 ---
-<Layout title="Cursos ">
 
-  <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10"></main>
-    <h1 class="text-xl font-bold mb-4">Cursos</h1>
-    {error && <pre class="text-red-400">{error.message}</pre>}
-    <ul class="space-y-2">
-    {courses?.map(c => (
-        <li>{c.code} / {c.name}</li>
-    ))}
-    </ul>
+<Layout title="Cursos - TrikaWeb">
+  <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10">
+    <h1 class="text-3xl font-bold mb-6 text-global-text">Cursos disponibles</h1>
+    
+    {error && (
+      <div class="bg-red-900/20 border border-red-500 text-red-200 px-4 py-3 rounded">
+        Error: {error.message}
+      </div>
+    )}
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {courses?.map(course => (
+        <a 
+          href={`/curso/${course.code.toLowerCase()}`}
+          class="block p-6 bg-global-card rounded-lg border border-global-border hover:border-global-primary transition"
+        >
+          <h2 class="text-xl font-semibold text-global-primary mb-2">{course.code}</h2>
+          <p class="text-global-text-muted">{course.name}</p>
+        </a>
+      ))}
+    </div>
   </main>
 </Layout>

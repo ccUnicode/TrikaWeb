@@ -1,0 +1,129 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabaseClient } from '../../lib/supabase.client';
+import Rating from '../../components/Rating.astro';
+
+// Generar rutas estáticas para todos los exámenes
+export async function getStaticPaths() {
+  const { data: sheets } = await supabaseClient
+    .from('sheets')
+    .select('id');
+  
+  return sheets?.map(sheet => ({
+    params: { id: sheet.id.toString() }
+  })) || [];
+}
+
+const { id } = Astro.params;
+const sheetId = Number(id);
+
+const { data: sheet } = await supabaseClient
+  .from('sheets')
+  .select(`
+    id,
+    exam_type,
+    cycle,
+    teacher_hint,
+    avg_difficulty,
+    rating_count,
+    view_count,
+    solution_kind,
+    courses (code, name)
+  `)
+  .eq('id', sheetId)
+  .single();
+
+if (!sheet) {
+  return Astro.redirect('/cursos');
+}
+
+// Extraer el código del curso de forma segura
+const courseCode = sheet.courses && typeof sheet.courses === 'object' && 'code' in sheet.courses 
+  ? sheet.courses.code 
+  : 'Sin curso';
+
+const courseName = sheet.courses && typeof sheet.courses === 'object' && 'name' in sheet.courses 
+  ? sheet.courses.name 
+  : '';
+---
+
+<Layout title={`${sheet.exam_type} - ${sheet.cycle} | TrikaWeb`}>
+  <main class="mx-auto max-w-4xl px-4 py-10">
+    <div class="bg-global-surface rounded-xl p-8">
+      <h1 class="text-3xl font-bold text-global-text mb-4">
+        {courseCode} - {sheet.exam_type}
+      </h1>
+      
+      <div class="grid grid-cols-2 gap-4 mb-6 text-global-text-muted">
+        <div>
+          <strong>Ciclo:</strong> {sheet.cycle}
+        </div>
+        <div>
+          <strong>Profesor:</strong> {sheet.teacher_hint || 'No especificado'}
+        </div>
+        <div>
+          <strong>Vistas:</strong> {sheet.view_count}
+        </div>
+        <div>
+          <strong>Calificaciones:</strong> {sheet.rating_count}
+        </div>
+      </div>
+
+      <div class="mb-6">
+        <h3 class="text-lg font-semibold text-global-text mb-2">Dificultad</h3>
+        <Rating 
+          sheetId={sheet.id} 
+          initialAvg={sheet.avg_difficulty} 
+          initialCount={sheet.rating_count} 
+        />
+      </div>
+
+      <div class="flex gap-4">
+        <button
+          id="view-btn"
+          data-sheet-id={sheet.id}
+          class="flex-1 bg-global-primary hover:bg-global-primary-hover text-black font-semibold py-3 rounded-lg transition"
+        >
+          Ver examen
+        </button>
+        
+        {sheet.solution_kind && (
+          <button
+            id="solution-btn"
+            data-sheet-id={sheet.id}
+            class="flex-1 bg-global-border hover:bg-global-card text-global-text font-semibold py-3 rounded-lg transition"
+          >
+            Ver solucionario
+          </button>
+        )}
+      </div>
+    </div>
+  </main>
+
+  <script>
+    import { getOrCreateDeviceId } from '../../lib/clientUtils.js';
+
+    const viewBtn = document.getElementById('view-btn');
+    const solutionBtn = document.getElementById('solution-btn');
+
+    viewBtn?.addEventListener('click', async () => {
+      const sheetId = viewBtn.dataset.sheetId;
+      const deviceId = getOrCreateDeviceId();
+
+      // Registrar vista
+      await fetch(`/api/sheets/${sheetId}/view`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: deviceId, type: 'view' })
+      });
+
+      // Abrir examen
+      window.open(`/api/sheets/${sheetId}/file`, '_blank');
+    });
+
+    solutionBtn?.addEventListener('click', () => {
+      const sheetId = solutionBtn.dataset.sheetId;
+      window.open(`/api/sheets/${sheetId}/solution`, '_blank');
+    });
+  </script>
+</Layout>

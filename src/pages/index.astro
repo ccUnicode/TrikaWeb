@@ -1,50 +1,51 @@
 ---
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
-import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
 import TeacherCard from "../components/TeacherCard.astro";
-import SearchInput from "../components/SearchInput.astro";
 import SearchAutocomplete from "../components/SearchAutocomplete.astro";
 import CardExam from "../components/CardExam.astro";
+import { supabaseClient } from "../lib/supabase.client";
 
-const alexisGarayData = {
-    id: "alexis",
-    nombre: "Alexis Garay",
-    puntuacion: 4.5,
-    imagenSrc: "/img/teacher.png",
-    descripcion: "fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Pellentesque laoreet molestie gravida nisl. Integer senectus. Pellentesque laoreet molestie gravida nisl. Integer senectus.",
-    cursos: ["Álgebra Lineal", "Cálculo Diferencial", "Física II"],
-    estadisticas: {
-        Didáctica: 4.0,
-        Dificultad: 4.4,
-        Material: 3.7,
-        'Justo al evaluar': 3.1,
-        Responsabilidad: 3.4
-    },
-    comentarios: [
-        { anonimo: "Anónimo 1", texto: "Lorem ipsum dolor sit amet, consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." },
-        { anonimo: "Anónimo 2", texto: "consectetur adipiscing elit sodales blandit, porta a pellentesque laoreet molestie gravida nisl." }
-    ]
-};
+// Planchas más difíciles (mínimo 5 votos)
+const { data: planchasDificiles } = await supabaseClient
+  .from('sheets')
+  .select(`
+    id, 
+    exam_type, 
+    cycle, 
+    teacher_hint, 
+    solution_kind,
+    courses (code, name)
+  `)
+  .gte('rating_count', 5)
+  .order('avg_difficulty', { ascending: false })
+  .limit(6);
 
-// Datos de ejemplo para las grillas de Planchas
-const planchasPopulares = [
-  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Cálculo Diferencial", tieneSolucion: true, file: "plancha1.pdf" },
-  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Álgebra Lineal", tieneSolucion: false, file: "plancha1.pdf" },
-  { evaluacion: "Parcial", ciclo: "2023-II", profesor: "Física II", tieneSolucion: true, file: "plancha1.pdf" },
-];
+// Planchas más vistas
+const { data: planchasPopulares } = await supabaseClient
+  .from('sheets')
+  .select(`
+    id, 
+    exam_type, 
+    cycle, 
+    teacher_hint, 
+    solution_kind,
+    courses (code, name)
+  `)
+  .order('view_count', { ascending: false })
+  .limit(6);
 
-const planchasNuevas = [
-  { evaluacion: "PC1", ciclo: "2024-II", profesor: "Química I", tieneSolucion: true, file: "plancha1.pdf" },
-  { evaluacion: "PC2", ciclo: "2024-I", profesor: "Estática", tieneSolucion: true, file: "plancha1.pdf" },
-  { evaluacion: "Final", ciclo: "2023-II", profesor: "Economía", tieneSolucion: false, file: "plancha1.pdf" },
-];
+// Profesores top (mínimo 3 votos)
+const { data: profesoresTop } = await supabaseClient
+  .from('teachers')
+  .select('id, full_name, avg_overall, rating_count')
+  .gte('rating_count', 3)
+  .order('avg_overall', { ascending: false })
+  .limit(6);
 ---
 
 <Layout title="TrikaWeb">
   <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16">
-
-      <!-- Header now comes from Layout via <SiteHeader /> -->
 
       <section id="hero" class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
@@ -70,7 +71,7 @@ const planchasNuevas = [
 
 <!--SECCIÓN DE PLANCHAS -->
 
-  <section  id="planchas" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
+  <section id="planchas" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
 
         <div class="flex w-full flex-col md:flex-row items-center gap-8">
           
@@ -90,56 +91,73 @@ const planchasNuevas = [
           </div>
         </div>
 
+        <!-- Planchas más populares -->
         <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1">
-            {planchasPopulares.map((p, idx) => (
-              <article
-                class="plancha-card w-full"
-                data-curso={p.profesor}
-                data-evaluacion={p.evaluacion}
-                data-ciclo={p.ciclo}
-                data-solucion={p.tieneSolucion ? 'si' : 'no'}
-              >
-                <CardExam
-                  evaluacion={p.evaluacion}
-                  ciclo={p.ciclo}
-                  profesor={p.profesor}
-                  tieneSolucion={p.tieneSolucion}
-                  href={`/pdfs/pdfViewerPage?file=${encodeURIComponent(p.file)}&title=${encodeURIComponent(`${p.evaluacion} - ${p.ciclo}`)}&curso=${encodeURIComponent(p.profesor)}`}
-                />
-              </article>
-            ))}
+            {planchasPopulares && planchasPopulares.length > 0 ? (
+              planchasPopulares.map((p) => {
+                const courseCode = p.courses && typeof p.courses === 'object' && 'code' in p.courses ? p.courses.code : 'Sin curso';
+                return (
+                  <article
+                    class="plancha-card w-full"
+                    data-curso={courseCode}
+                    data-evaluacion={p.exam_type || ''}
+                    data-ciclo={p.cycle || ''}
+                    data-solucion={p.solution_kind ? 'si' : 'no'}
+                  >
+                    <CardExam
+                      evaluacion={p.exam_type || 'Examen'}
+                      ciclo={p.cycle || 'Sin ciclo'}
+                      profesor={courseCode}
+                      tieneSolucion={!!p.solution_kind}
+                      href={`/examen/${p.id}`}
+                    />
+                  </article>
+                );
+              })
+            ) : (
+              <p class="col-span-3 text-center text-global-text-muted">No hay planchas disponibles</p>
+            )}
           </div>
-                    <div class="w-full md:w-[118px] text-center">
+          
+          <div class="w-full md:w-[118px] text-center">
             <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
           </div>
         </div>
 
+        <!-- Planchas más difíciles -->
         <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
           
-
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
-            {planchasNuevas.map((p, idx) => (
-              <article
-                class="plancha-card w-full"
-                data-curso={p.profesor}
-                data-evaluacion={p.evaluacion}
-                data-ciclo={p.ciclo}
-                data-solucion={p.tieneSolucion ? 'si' : 'no'}
-              >
-                <CardExam
-                  evaluacion={p.evaluacion}
-                  ciclo={p.ciclo}
-                  profesor={p.profesor}
-                  tieneSolucion={p.tieneSolucion}
-                  href={`/pdfs/pdfViewerPage?file=${encodeURIComponent(p.file)}&title=${encodeURIComponent(`${p.evaluacion} - ${p.ciclo}`)}&curso=${encodeURIComponent(p.profesor)}`}
-                />
-              </article>
-            ))}
+            {planchasDificiles && planchasDificiles.length > 0 ? (
+              planchasDificiles.map((p) => {
+                const courseCode = p.courses && typeof p.courses === 'object' && 'code' in p.courses ? p.courses.code : 'Sin curso';
+                return (
+                  <article
+                    class="plancha-card w-full"
+                    data-curso={courseCode}
+                    data-evaluacion={p.exam_type || ''}
+                    data-ciclo={p.cycle || ''}
+                    data-solucion={p.solution_kind ? 'si' : 'no'}
+                  >
+                    <CardExam
+                      evaluacion={p.exam_type || 'Examen'}
+                      ciclo={p.cycle || 'Sin ciclo'}
+                      profesor={courseCode}
+                      tieneSolucion={!!p.solution_kind}
+                      href={`/examen/${p.id}`}
+                    />
+                  </article>
+                );
+              })
+            ) : (
+              <p class="col-span-3 text-center text-global-text-muted">No hay planchas disponibles</p>
+            )}
           </div>
+          
           <div class="w-full md:w-[118px] text-center">
-            <h3 class="text-[24px] leading-8 font-medium">Planchas más populares</h3>
+            <h3 class="text-[24px] leading-8 font-medium">Planchas más difíciles</h3>
           </div>
         </div>
         
@@ -147,15 +165,13 @@ const planchasNuevas = [
 
 <!--Sección de profesores -->
 
-  <section  id="profesores" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
+  <section id="profesores" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
         <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
 
-          <!-- Reemplazado SearchInput por input real para búsqueda -->
           <div class="flex-1 max-w-[400px]">
             <label for="prof-search" class="sr-only">Busca a tu profesor</label>
 
-            <!-- wrapper relativo para el input y el dropdown -->
             <div class="relative">
               <input
                 id="prof-search"
@@ -168,10 +184,8 @@ const planchasNuevas = [
                 aria-expanded="false"
               />
 
-              <!-- botón para limpiar -->
               <button id="clear-search" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 hidden" aria-label="Limpiar búsqueda">×</button>
 
-              <!-- contenedor de sugerencias -->
               <ul
                 id="prof-suggestions"
                 role="listbox"
@@ -181,240 +195,180 @@ const planchasNuevas = [
           </div>
         </div>
 
-        <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
+        <!-- GRID DE PROFESORES -->
         <div id="professors-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mt-6 px-4 sm:px-0">
-          <!-- Card 1: Alexis (tiene modal asociado open-alexis) -->
-          <article
-            class="teacher-card w-full"
-            data-name="Alexis Garay"
-            data-role="Profesor"
-            data-id="alexis"
-            data-courses="Álgebra Lineal,Cálculo Diferencial,Física II"
-          >
-            <TeacherCard
-              name="Alexis Garay"
-              role="Profesor"
-              rating={4.5}
-              avatarSrc="/img/teacher.png"
-              openId="open-alexis"
-              buttonLabel="Ver perfil"
-            />
-          </article>
-
-          <!-- Card 2 -->
-          <article
-            class="teacher-card w-full"
-            data-name="Silvio Quinteros"
-            data-role="Profesor"
-            data-id="generic-2"
-            data-courses="Química 1,Fisicoquímica"
-          >
-            <TeacherCard
-              name="Profesor Genérico 2"
-              role="Profesor"
-              rating={2}
-              avatarSrc="/img/teacher.png"
-              href="/profesores"
-              buttonLabel="Ver perfil"
-            />
-          </article>
-
-          <!-- Card 3 -->
-          <article
-            class="teacher-card w-full"
-            data-name="Profesor Genérico 3"
-            data-role="Profesor"
-            data-id="generic-3"
-            data-courses="Física II,Álgebra Lineal"
-          >
-            <TeacherCard
-              name="Profesor Genérico 3"
-              role="Profesor"
-              rating={0}
-              avatarSrc="/img/teacher.png"
-              href="/profesores"
-              buttonLabel="Ver perfil"
-            />
-          </article>
+          {profesoresTop && profesoresTop.length > 0 ? (
+            profesoresTop.map((profesor) => (
+              <article
+                class="teacher-card w-full"
+                data-name={profesor.full_name}
+                data-role="Profesor"
+                data-id={`teacher-${profesor.id}`}
+                data-courses=""
+              >
+                <TeacherCard
+                  name={profesor.full_name}
+                  role="Profesor"
+                  rating={profesor.avg_overall || 0}
+                  avatarSrc="/img/teacher.png"
+                  href={`/profesor/${profesor.id}`}
+                  buttonLabel="Ver perfil"
+                />
+              </article>
+            ))
+          ) : (
+            <p class="col-span-3 text-center text-global-text-muted">No hay profesores disponibles</p>
+          )}
         </div>
       </section>
 
-    <!-- INCLUIR EL COMPONENTE DEL MODAL -->
-    <FichaProfesor {...alexisGarayData} />
-  </Layout>
+  </div>
+</Layout>
 
-  <!-- Script cliente para filtrar tarjetas y abrir modal -->
-  <script type="module">
-    const input = document.getElementById('prof-search');
-    const cards = Array.from(document.querySelectorAll('.teacher-card'));
+<script type="module">
+  const input = document.getElementById('prof-search');
+  const cards = Array.from(document.querySelectorAll('.teacher-card'));
 
-    const normalize = (s = '') =>
-      String(s).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
+  const normalize = (s = '') =>
+    String(s).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
 
-    // --- SUGGESTIONS SETUP ---
-    const suggestionsContainer = document.getElementById('prof-suggestions');
-    const clearBtn = document.getElementById('clear-search');
+  const suggestionsContainer = document.getElementById('prof-suggestions');
+  const clearBtn = document.getElementById('clear-search');
 
-    // Build suggestions from cards (names and courses) and dedupe by normalized text
-    const suggestionMap = new Map();
-    cards.forEach(card => {
-      const name = card.dataset.name?.trim();
-      if (name) suggestionMap.set(normalize(name), { text: name, type: 'profesor' });
+  const suggestionMap = new Map();
+  cards.forEach(card => {
+    const name = card.dataset.name?.trim();
+    if (name) suggestionMap.set(normalize(name), { text: name, type: 'profesor' });
 
-      const courses = (card.dataset.courses || '')
-        .split(',')
-        .map(c => c.trim())
-        .filter(Boolean);
-      courses.forEach(c => suggestionMap.set(normalize(c), { text: c, type: 'curso' }));
-    });
-    const allSuggestions = Array.from(suggestionMap.values());
+    const courses = (card.dataset.courses || '')
+      .split(',')
+      .map(c => c.trim())
+      .filter(Boolean);
+    courses.forEach(c => suggestionMap.set(normalize(c), { text: c, type: 'curso' }));
+  });
+  const allSuggestions = Array.from(suggestionMap.values());
 
-    let activeIndex = -1;
+  let activeIndex = -1;
 
-    function renderSuggestions(list) {
-      if (!suggestionsContainer) return;
-      if (!list.length) {
-        suggestionsContainer.classList.add('hidden');
-        input.setAttribute('aria-expanded', 'false');
-        return;
-      }
-      suggestionsContainer.innerHTML = list.map((s, i) => `
-        <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" class="px-4 py-3 hover:bg-[#111827] cursor-pointer">
-          <div class="flex items-center justify-between">
-            <span class="truncate">${s.text}</span>
-            <small class="text-xs text-[#9AA4B2] ml-3">${s.type}</small>
-          </div>
-        </li>
-      `).join('');
-      activeIndex = -1;
-      suggestionsContainer.classList.remove('hidden');
-      input.setAttribute('aria-expanded', 'true');
-    }
-
-    function hideSuggestions() {
+  function renderSuggestions(list) {
+    if (!suggestionsContainer) return;
+    if (!list.length) {
       suggestionsContainer.classList.add('hidden');
       input.setAttribute('aria-expanded', 'false');
-      activeIndex = -1;
-      Array.from(suggestionsContainer.children).forEach(ch => ch.classList.remove('bg-[#111827]'));
+      return;
     }
+    suggestionsContainer.innerHTML = list.map((s, i) => `
+      <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" class="px-4 py-3 hover:bg-[#111827] cursor-pointer">
+        <div class="flex items-center justify-between">
+          <span class="truncate">${s.text}</span>
+          <small class="text-xs text-[#9AA4B2] ml-3">${s.type}</small>
+        </div>
+      </li>
+    `).join('');
+    activeIndex = -1;
+    suggestionsContainer.classList.remove('hidden');
+    input.setAttribute('aria-expanded', 'true');
+  }
 
-    function showClearIfNeeded() {
-      if (!clearBtn) return;
-      if (input.value.trim().length > 0) clearBtn.classList.remove('hidden');
-      else clearBtn.classList.add('hidden');
-    }
+  function hideSuggestions() {
+    suggestionsContainer.classList.add('hidden');
+    input.setAttribute('aria-expanded', 'false');
+    activeIndex = -1;
+    Array.from(suggestionsContainer.children).forEach(ch => ch.classList.remove('bg-[#111827]'));
+  }
 
-    // Filter cards function (existing)
-    function filterCardsByInputValue() {
-      const q = input.value.trim();
-      const tokens = normalize(q).split(/\s+/).filter(Boolean);
+  function showClearIfNeeded() {
+    if (!clearBtn) return;
+    if (input.value.trim().length > 0) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+  }
 
-      cards.forEach(card => {
-        const name = normalize(card.dataset.name || '');
-        const role = normalize(card.dataset.role || '');
-        const courses = normalize(card.dataset.courses || '');
-        const matches = tokens.length === 0 || tokens.every(t => name.includes(t) || role.includes(t) || courses.includes(t));
-        card.classList.toggle('hidden', !matches);
-      });
-    }
+  function filterCardsByInputValue() {
+    const q = input.value.trim();
+    const tokens = normalize(q).split(/\s+/).filter(Boolean);
 
-    if (input) {
-      input.addEventListener('input', (e) => {
-        const q = e.target.value.trim();
-        showClearIfNeeded();
+    cards.forEach(card => {
+      const name = normalize(card.dataset.name || '');
+      const role = normalize(card.dataset.role || '');
+      const courses = normalize(card.dataset.courses || '');
+      const matches = tokens.length === 0 || tokens.every(t => name.includes(t) || role.includes(t) || courses.includes(t));
+      card.classList.toggle('hidden', !matches);
+    });
+  }
 
-        // build visible suggestions: contains query (normalized)
-        const nq = normalize(q);
-        const results = nq ? allSuggestions.filter(s => normalize(s.text).includes(nq)).slice(0, 8) : [];
-        renderSuggestions(results);
+  if (input) {
+    input.addEventListener('input', (e) => {
+      const q = e.target.value.trim();
+      showClearIfNeeded();
 
-        // update grid filtering
-        filterCardsByInputValue();
-      });
+      const nq = normalize(q);
+      const results = nq ? allSuggestions.filter(s => normalize(s.text).includes(nq)).slice(0, 8) : [];
+      renderSuggestions(results);
 
-      // keyboard navigation for suggestions
-      input.addEventListener('keydown', (e) => {
-        const items = Array.from(suggestionsContainer.children);
-        if (suggestionsContainer.classList.contains('hidden') || !items.length) {
-          if (e.key === 'ArrowDown' && allSuggestions.length) {
-            // show suggestions if hidden
-            renderSuggestions(allSuggestions.slice(0, 8));
-            e.preventDefault();
-          }
-          return;
-        }
+      filterCardsByInputValue();
+    });
 
-        if (e.key === 'ArrowDown') {
-          activeIndex = Math.min(activeIndex + 1, items.length - 1);
-          items.forEach(it => it.classList.remove('bg-[#111827]'));
-          items[activeIndex].classList.add('bg-[#111827]');
-          items[activeIndex].scrollIntoView({ block: 'nearest' });
+    input.addEventListener('keydown', (e) => {
+      const items = Array.from(suggestionsContainer.children);
+      if (suggestionsContainer.classList.contains('hidden') || !items.length) {
+        if (e.key === 'ArrowDown' && allSuggestions.length) {
+          renderSuggestions(allSuggestions.slice(0, 8));
           e.preventDefault();
-        } else if (e.key === 'ArrowUp') {
-          activeIndex = Math.max(activeIndex - 1, 0);
-          items.forEach(it => it.classList.remove('bg-[#111827]'));
-          items[activeIndex].classList.add('bg-[#111827]');
-          items[activeIndex].scrollIntoView({ block: 'nearest' });
-          e.preventDefault();
-        } else if (e.key === 'Enter') {
-          if (activeIndex >= 0 && items[activeIndex]) {
-            const val = items[activeIndex].dataset.value;
-            input.value = val;
-            hideSuggestions();
-            showClearIfNeeded();
-            filterCardsByInputValue();
-            e.preventDefault();
-          }
-        } else if (e.key === 'Escape') {
-          hideSuggestions();
         }
-      });
-
-      // click on suggestion
-      suggestionsContainer.addEventListener('click', (ev) => {
-        const li = ev.target.closest('li[role="option"]');
-        if (!li) return;
-        const val = li.dataset.value;
-        input.value = val;
-        hideSuggestions();
-        showClearIfNeeded();
-        filterCardsByInputValue();
-        input.focus();
-      });
-
-      // clear button
-      if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          input.value = '';
-          clearBtn.classList.add('hidden');
-          filterCardsByInputValue();
-          hideSuggestions();
-          input.focus();
-        });
+        return;
       }
 
-      // hide suggestions on outside click
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest || !input) return;
-        if (e.target.closest('#prof-suggestions') || e.target.closest('#prof-search')) return;
-        hideSuggestions();
-      });
-    }
-
-    // --- existing modal-open handler (kept) ---
-    document.addEventListener('click', (e) => {
-      const target = e.target;
-      if (!target) return;
-      const openId = target.id && target.id.startsWith('open-') ? target.id.replace('open','') : null;
-      if (openId) {
-        const modal = document.getElementById(`modal-${openId}`);
-        if (modal) {
-          modal.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
+      if (e.key === 'ArrowDown') {
+        activeIndex = Math.min(activeIndex + 1, items.length - 1);
+        items.forEach(it => it.classList.remove('bg-[#111827]'));
+        items[activeIndex].classList.add('bg-[#111827]');
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+        e.preventDefault();
+      } else if (e.key === 'ArrowUp') {
+        activeIndex = Math.max(activeIndex - 1, 0);
+        items.forEach(it => it.classList.remove('bg-[#111827]'));
+        items[activeIndex].classList.add('bg-[#111827]');
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        if (activeIndex >= 0 && items[activeIndex]) {
+          const val = items[activeIndex].dataset.value;
+          input.value = val;
+          hideSuggestions();
+          showClearIfNeeded();
+          filterCardsByInputValue();
+          e.preventDefault();
         }
+      } else if (e.key === 'Escape') {
+        hideSuggestions();
       }
     });
 
-    // Buscador de Planchas encapsulado en <SearchAutocomplete />
-  </script>
-</attachment>
+    suggestionsContainer.addEventListener('click', (ev) => {
+      const li = ev.target.closest('li[role="option"]');
+      if (!li) return;
+      const val = li.dataset.value;
+      input.value = val;
+      hideSuggestions();
+      showClearIfNeeded();
+      filterCardsByInputValue();
+      input.focus();
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        input.value = '';
+        clearBtn.classList.add('hidden');
+        filterCardsByInputValue();
+        hideSuggestions();
+        input.focus();
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest || !input) return;
+      if (e.target.closest('#prof-suggestions') || e.target.closest('#prof-search')) return;
+      hideSuggestions();
+    });
+  }
+</script>

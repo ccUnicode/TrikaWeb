@@ -1,0 +1,61 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { supabaseClient } from '../../lib/supabase.client';
+import CardExam from '../../components/CardExam.astro';
+
+const { code } = Astro.params;
+
+// Obtener datos del curso
+const { data: course } = await supabaseClient
+  .from('courses')
+  .select('id, code, name')
+  .ilike('code', code!)
+  .single();
+
+if (!course) {
+  return Astro.redirect('/cursos');
+}
+
+// Obtener planchas del curso
+const { data: sheets } = await supabaseClient
+  .from('sheets')
+  .select(`
+    id,
+    exam_type,
+    cycle,
+    teacher_hint,
+    avg_difficulty,
+    rating_count,
+    view_count,
+    solution_kind
+  `)
+  .eq('course_id', course.id)
+  .order('cycle', { ascending: false });
+---
+
+<Layout title={`${course.code} - ${course.name} | TrikaWeb`}>
+  <main class="mx-auto max-w-[1400px] px-4 sm:px-8 py-10">
+    <div class="mb-8">
+      <a href="/cursos" class="text-global-primary hover:underline mb-2 inline-block">
+        ← Volver a cursos
+      </a>
+      <h1 class="text-3xl font-bold text-global-text">{course.code} - {course.name}</h1>
+    </div>
+
+    {!sheets || sheets.length === 0 ? (
+      <p class="text-global-text-muted">No hay planchas disponibles para este curso.</p>
+    ) : (
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {sheets.map(sheet => (
+          <CardExam
+            evaluacion={sheet.exam_type}
+            ciclo={sheet.cycle}
+            profesor={sheet.teacher_hint || 'Varios profesores'}
+            tieneSolucion={!!sheet.solution_kind}
+            href={`/examen/${sheet.id}`}
+          />
+        ))}
+      </div>
+    )}
+  </main>
+</Layout>
