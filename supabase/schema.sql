@@ -156,3 +156,10 @@ create index if not exists idx_teacher_ratings_teacher_id
 alter table teacher_ratings enable row level security;
 create policy "public read teacher_ratings" on teacher_ratings
   for select using (true); 
+
+--Tabla para almacenar los limties de escritura
+create table if not exists write_limits (
+  ip_hash text primary key,
+  last_at timestamptz not null default now(),
+  count_1h int not null default 0
+);

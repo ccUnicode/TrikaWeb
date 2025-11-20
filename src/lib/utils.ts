@@ -33,6 +33,7 @@ type RateLimitResult =
   | { allowed: true }
   | { allowed: false; reason: 'rate_limit' | 'internal'; details?: string };
 
+  // Función para aplicar limitar la escritura por IP
 export async function enforceIpRateLimit(
   supa: SupabaseClient,
   ipHash: string,
