@@ -20,7 +20,9 @@ create policy "public read courses" on courses
 create table if not exists teachers (
   id bigserial primary key,
   full_name text not null,
-  bio text not null
+  bio text not null,
+  avg_overall numeric(3,2) default 0,
+  rating_count int default 0
 );
 
 -- Unicidad por nombre

@@ -32,3 +32,37 @@ end; $$ language plpgsql;
 create trigger t_sheet_views_stats
 after insert on sheet_views
 for each row execute function refresh_view_count();
+
+--Funci��n para recalcular promedios de profesores
+create or replace function refresh_teacher_stats() returns trigger as $$
+declare
+  target_id bigint := coalesce(new.teacher_id, old.teacher_id);
+begin
+  update teachers t
+  set
+    avg_overall = coalesce(sub.avg, 0),
+    rating_count = coalesce(sub.cnt, 0)
+  from (
+    select teacher_id,
+           avg(overall)::numeric(3,2) as avg,
+           count(*) as cnt
+    from teacher_ratings
+    where teacher_id = target_id
+    group by teacher_id
+  ) sub
+  where t.id = target_id;
+
+  if not found then
+    update teachers
+    set avg_overall = 0,
+        rating_count = 0
+    where id = target_id;
+  end if;
+
+  return null;
+end; $$ language plpgsql;
+
+--Trigger para aplicar la funci��n en teacher_ratings
+create trigger t_teacher_ratings_stats
+after insert or update or delete on teacher_ratings
+for each row execute function refresh_teacher_stats();
