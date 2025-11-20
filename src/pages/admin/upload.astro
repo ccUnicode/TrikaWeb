@@ -52,16 +52,16 @@ import SiteHeader from "../../components/SiteHeader.astro";
           <!-- Datos de la plancha -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="block text-sm font-medium mb-1" for="course-id">
-                ID de curso (course_id)
+              <label class="block text-sm font-medium mb-1" for="course-code">
+                Código de curso
               </label>
               <input
-                id="course-id"
-                name="course_id"
-                type="number"
+                id="course-code"
+                name="course_code"
+                type="text"
                 required
                 class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-                placeholder="Ej: 1"
+                placeholder="Ej: BMA02"
               />
             </div>
 
@@ -80,77 +80,79 @@ import SiteHeader from "../../components/SiteHeader.astro";
             </div>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium mb-1" for="title">
-              Título de la plancha
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              required
-              class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-              placeholder="Ej: PC N°1 – Integrales"
-            />
-          </div>
-
-          <!-- Tipo de recurso y bucket -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="block text-sm font-medium mb-1" for="resource-kind">
-                Tipo de recurso
+              <label class="block text-sm font-medium mb-1" for="exam-type">
+                Evaluación
               </label>
-              <select
-                id="resource-kind"
-                name="resource_kind"
+              <input
+                id="exam-type"
+                name="exam_type"
+                type="text"
+                required
                 class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-              >
-                <option value="PLANCHA">Plancha</option>
-                <option value="SOLUCIONARIO">Solucionario</option>
-              </select>
+                placeholder="Ej: PC1, Parcial, Final"
+              />
             </div>
-
             <div>
-              <label class="block text-sm font-medium mb-1" for="bucket">
-                Bucket de Storage
+              <label class="block text-sm font-medium mb-1" for="teacher-hint">
+                Docente (opcional)
               </label>
-              <select
-                id="bucket"
-                name="bucket"
+              <input
+                id="teacher-hint"
+                name="teacher_hint"
+                type="text"
                 class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-              >
-                <option value="exams">Planchas (exams)</option>
-                <option value="solutions">Solucionarios (solutions)</option>
-              </select>
+                placeholder="Prof. Arámbulo, Todos los profesores, etc."
+              />
             </div>
           </div>
 
-          <!-- Archivo PDF -->
+          <!-- Tipo de recurso -->
           <div>
-            <label class="block text-sm font-medium mb-1" for="file">
-              Archivo PDF
+            <label class="block text-sm font-medium mb-1" for="resource-kind">
+              Tipo de recurso
             </label>
-            <input
-              id="file"
-              name="file"
-              type="file"
-              accept="application/pdf"
-              required
-              class="w-full text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-[#22C55E] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-emerald-400"
-            />
+            <select
+              id="resource-kind"
+              name="resource_kind"
+              class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+            >
+              <option value="PLANCHA">Plancha</option>
+              <option value="SOLUCIONARIO">Solucionario (adjunta a una plancha existente)</option>
+            </select>
             <p class="mt-1 text-xs text-gray-400">
-              Se subirá al bucket elegido y luego se registrará el <code>storage_path</code> en la tabla <code>sheets</code>.
+              Para un solucionario usa exactamente el mismo <code>código</code>, ciclo y tipo de examen de la plancha ya creada.
             </p>
           </div>
+          <div class="">
+            <!-- Archivo PDF -->
+            <div>
+              <label class="block text-sm font-medium mb-1" for="file">
+                Archivo PDF
+              </label>
+              <input
+                id="file"
+                name="file"
+                type="file"
+                accept="application/pdf"
+                required
+                class="w-full text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-[#22C55E] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-emerald-400"
+              />
+              <p class="mt-1 text-xs text-gray-400">
+                Para planchas se registrará en <code>exam_storage_path</code>. Para solucionarios se actualizará <code>solution_storage_path</code> del sheet existente.
+              </p>
+            </div>
 
-          <!-- Botón -->
-          <div class="pt-2">
-            <button
-              type="submit"
-              class="inline-flex items-center justify-center rounded-full bg-[#22C55E] px-8 py-2.5 text-sm font-semibold text-black shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E]"
-            >
-              Subir archivo
-            </button>
+            <!-- Botón -->
+            <div class="pt-2">
+              <button
+                type="submit"
+                class="inline-flex items-center justify-center rounded-full bg-[#22C55E] px-8 py-2.5 text-sm font-semibold text-black shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E]"
+              >
+                Subir archivo
+              </button>
+            </div>
           </div>
         </form>
       </section>
