@@ -1,0 +1,163 @@
+---
+import "../../styles/global.css";
+import SiteHeader from "../../components/SiteHeader.astro";
+
+// (Luego Rol B usará /api/admin/upload, aquí solo hacemos el formulario)
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin – Subir material | TrikaWeb</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  </head>
+
+  <body class="min-h-screen bg-[#050505] text-white">
+    <SiteHeader />
+
+    <!-- Separación bajo el header -->
+    <div class="h-8"></div>
+
+    <main class="mx-auto w-full max-w-[1100px] px-4 pb-10">
+      <section class="rounded-3xl bg-[#171A1F] p-6 sm:p-8 shadow-2xl ring-1 ring-black/30">
+        <header class="mb-6">
+          <h1 class="text-2xl font-semibold">Panel de subida de material</h1>
+          <p class="mt-1 text-sm text-gray-300">
+            Aquí podrás subir PDFs de planchas y solucionarios para que luego se vean en la web.
+          </p>
+        </header>
+
+        <!-- FORMULARIO PRINCIPAL -->
+        <form
+          method="POST"
+          action="/api/admin/upload"
+          enctype="multipart/form-data"
+          class="space-y-5"
+        >
+          <!-- Password simple de admin -->
+          <div>
+            <label class="block text-sm font-medium mb-1" for="admin-pass">
+              Clave de administrador
+            </label>
+            <input
+              id="admin-pass"
+              name="admin_pass"
+              type="password"
+              required
+              class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+              placeholder="Ingresa la clave que definan en .env"
+            />
+          </div>
+
+          <!-- Datos de la plancha -->
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="course-id">
+                ID de curso (course_id)
+              </label>
+              <input
+                id="course-id"
+                name="course_id"
+                type="number"
+                required
+                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+                placeholder="Ej: 1"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1" for="cycle">
+                Ciclo
+              </label>
+              <input
+                id="cycle"
+                name="cycle"
+                type="text"
+                required
+                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+                placeholder="Ej: 2024-II"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1" for="title">
+              Título de la plancha
+            </label>
+            <input
+              id="title"
+              name="title"
+              type="text"
+              required
+              class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+              placeholder="Ej: PC N°1 – Integrales"
+            />
+          </div>
+
+          <!-- Tipo de recurso y bucket -->
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="resource-kind">
+                Tipo de recurso
+              </label>
+              <select
+                id="resource-kind"
+                name="resource_kind"
+                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+              >
+                <option value="PLANCHA">Plancha</option>
+                <option value="SOLUCIONARIO">Solucionario</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1" for="bucket">
+                Bucket de Storage
+              </label>
+              <select
+                id="bucket"
+                name="bucket"
+                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+              >
+                <option value="exams">Planchas (exams)</option>
+                <option value="solutions">Solucionarios (solutions)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Archivo PDF -->
+          <div>
+            <label class="block text-sm font-medium mb-1" for="file">
+              Archivo PDF
+            </label>
+            <input
+              id="file"
+              name="file"
+              type="file"
+              accept="application/pdf"
+              required
+              class="w-full text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-[#22C55E] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-emerald-400"
+            />
+            <p class="mt-1 text-xs text-gray-400">
+              Se subirá al bucket elegido y luego se registrará el <code>storage_path</code> en la tabla <code>sheets</code>.
+            </p>
+          </div>
+
+          <!-- Botón -->
+          <div class="pt-2">
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center rounded-full bg-[#22C55E] px-8 py-2.5 text-sm font-semibold text-black shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E]"
+            >
+              Subir archivo
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <footer class="mt-auto w-full bg-black/80 py-3 text-center text-sm text-white">
+      © 2024 TrikaWeb. Todos los derechos reservados.
+    </footer>
+  </body>
+</html>
