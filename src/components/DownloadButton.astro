@@ -1,0 +1,51 @@
+---
+export interface Props {
+  sheetId: number;
+  label?: string;
+  variant?: 'primary' | 'secondary';
+}
+const { sheetId, label = 'Ver / Descargar', variant = 'primary' } = Astro.props;
+const baseClasses = 'inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition';
+const variantClass = variant === 'secondary'
+  ? 'border border-global-border text-global-text hover:border-global-primary'
+  : 'bg-global-primary text-black hover:bg-global-primary-hover';
+---
+<button
+  type="button"
+  class={`${baseClasses} ${variantClass}`}
+  data-sheet-download
+  data-sheet-id={sheetId}
+>
+  {label}
+</button>
+
+<script type="module">
+import { ensureDeviceId } from '../lib/client/device';
+
+const initDownload = (button) => {
+  if (button.dataset.bound === 'true') return;
+  button.dataset.bound = 'true';
+  button.addEventListener('click', async () => {
+    const sheetId = button.dataset.sheetId;
+    if (!sheetId) return;
+    button.disabled = true;
+    button.classList.add('opacity-70');
+    try {
+      const deviceId = ensureDeviceId();
+      await fetch(`/api/sheets/${sheetId}/view`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: deviceId, type: 'download' })
+      }).catch(() => undefined);
+      window.open(`/api/sheets/${sheetId}/file`, '_blank', 'noopener');
+    } finally {
+      button.disabled = false;
+      button.classList.remove('opacity-70');
+    }
+  });
+};
+
+if (typeof window !== 'undefined') {
+  document.querySelectorAll('[data-sheet-download]').forEach(initDownload);
+}
+</script>
