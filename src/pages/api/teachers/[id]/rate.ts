@@ -1,7 +1,7 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabase.server';
-import { sha256Hash, getDeviceId, getClientIP } from '../../../../lib/utils';
+import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
 export const POST: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
@@ -45,6 +45,17 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin();
 
+  const rateLimit = await enforceIpRateLimit(supa, ipHash);
+  if (!rateLimit.allowed) {
+    if (rateLimit.reason === 'rate_limit') {
+      return new Response(JSON.stringify({ error: 'Demasiados intentos desde esta IP' }), {
+        status: 429
+      });
+    }
+    console.error('Rate limit interno teacher rate:', rateLimit.details);
+    return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
+  }
+
   // Verificar si ya existe
   const { data: existing } = await supa
     .from('teacher_ratings')
@@ -60,6 +71,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     const result = await supa
       .from('teacher_ratings')
       .update({
+        ip_hash: ipHash,
         overall,
         difficulty,
         didactic,
@@ -78,6 +90,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     const result = await supa
       .from('teacher_ratings')
       .insert({
+        ip_hash: ipHash,
         teacher_id: teacherId,
         device_id: deviceId,
         overall,

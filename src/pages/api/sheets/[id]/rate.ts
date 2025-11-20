@@ -1,7 +1,7 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabase.server';
-import { sha256Hash, getDeviceId, getClientIP } from '../../../../lib/utils';
+import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
@@ -33,6 +33,17 @@ export const POST: APIRoute = async ({ params, request }) => {
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
 
   const supa = supabaseAdmin();
+
+  const rateLimit = await enforceIpRateLimit(supa, ipHash);
+  if (!rateLimit.allowed) {
+    if (rateLimit.reason === 'rate_limit') {
+      return new Response(JSON.stringify({ error: 'Demasiados intentos desde esta IP' }), {
+        status: 429
+      });
+    }
+    console.error('Rate limit interno sheet rate:', rateLimit.details);
+    return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
+  }
 
   // Verificar si ya existe un voto de este device_id
   const { data: existing } = await supa
