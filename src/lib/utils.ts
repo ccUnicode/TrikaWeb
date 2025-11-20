@@ -1,13 +1,6 @@
-// ==========================================
-// UTILIDADES PARA TU API
-// ==========================================
+//Hashing functions
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-/**
- * Función: sha256Hash
- * ¿Qué hace?: Convierte texto en un código irreconocible (hash)
- * ¿Para qué?: Proteger IPs de usuarios
- * Ejemplo: "192.168.1.1" → "a3f8b2c9d1e..."
- */
 export async function sha256Hash(text: string): Promise<string> {
   // Convierte el texto a bytes
   const data = new TextEncoder().encode(text);
@@ -20,24 +13,71 @@ export async function sha256Hash(text: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * Función: getDeviceId
- * ¿Qué hace?: Extrae el ID del dispositivo desde el cuerpo de la petición
- * ¿Para qué?: Identificar al usuario sin usar cookies
- */
+//Se obtiene la id del dispositivo
 export function getDeviceId(body: any): string | null {
   return body?.device_id || null;
 }
 
-/**
- * Función: getClientIP
- * ¿Qué hace?: Obtiene la IP del usuario que hace la petición
- * ¿Para qué?: Para el rate limiting (evitar spam)
- */
+//Se obtiene la ip del cliente
 export function getClientIP(request: Request): string {
   // Intenta obtener la IP de los headers (si usas Cloudflare o proxy)
   return request.headers.get('cf-connecting-ip') 
     || request.headers.get('x-forwarded-for')?.split(',')[0]
     || request.headers.get('x-real-ip')
     || 'unknown';
+}
+
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
+type RateLimitResult =
+  | { allowed: true }
+  | { allowed: false; reason: 'rate_limit' | 'internal'; details?: string };
+
+export async function enforceIpRateLimit(
+  supa: SupabaseClient,
+  ipHash: string,
+  limitPerHour = 60
+): Promise<RateLimitResult> {
+  const now = new Date();
+  const cutoff = now.getTime() - ONE_HOUR_MS;
+  const nowIso = now.toISOString();
+
+  const { data, error } = await supa
+    .from('write_limits')
+    .select('count_1h, last_at')
+    .eq('ip_hash', ipHash)
+    .maybeSingle();
+
+  if (error) {
+    return { allowed: false, reason: 'internal', details: error.message };
+  }
+
+  if (!data) {
+    const { error: insertError } = await supa
+      .from('write_limits')
+      .insert({ ip_hash: ipHash, last_at: nowIso, count_1h: 1 });
+    if (insertError) {
+      return { allowed: false, reason: 'internal', details: insertError.message };
+    }
+    return { allowed: true };
+  }
+
+  const lastAt = data.last_at ? new Date(data.last_at).getTime() : 0;
+  const withinWindow = lastAt >= cutoff;
+  const nextCount = withinWindow ? (data.count_1h ?? 0) + 1 : 1;
+
+  if (withinWindow && nextCount > limitPerHour) {
+    return { allowed: false, reason: 'rate_limit' };
+  }
+
+  const { error: updateError } = await supa
+    .from('write_limits')
+    .update({ last_at: nowIso, count_1h: nextCount })
+    .eq('ip_hash', ipHash);
+
+  if (updateError) {
+    return { allowed: false, reason: 'internal', details: updateError.message };
+  }
+
+  return { allowed: true };
 }
