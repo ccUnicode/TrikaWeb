@@ -277,3 +277,16 @@ Para dudas o sugerencias, contactar al equipo de desarrollo.
 ---
 
 **Hecho con ❤️ por el equipo TrikaWeb**
+---
+
+## Admin y Moderacion
+
+- `/admin/upload` usa `ADMIN_PASS` y envia los datos a `/api/admin/upload`.
+- `PLANCHA` se guarda en el bucket `exams` (`exam_storage_path`), `SOLUCIONARIO` en `solutions` (`solution_storage_path`).
+- `config/moderation.json` lista las palabras prohibidas editables por contenido.
+- `POST /api/admin/hide-comment` marca `is_hidden = true` en `teacher_ratings`.
+
+## Supabase (scripts y seeds)
+
+- Corre `supabase/schema.sql`, `supabase/function_triggers.sql` y `supabase/seed.sql` en el SQL Editor de Supabase para recrear tablas, RLS y datos de prueba.
+- Estos archivos documentan la infraestructura (incluye `write_limits` e `is_hidden`) para sincronizar otros entornos.

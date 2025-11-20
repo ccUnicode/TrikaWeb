@@ -144,6 +144,7 @@ create table if not exists teacher_ratings (
   responsability int not null check (responsability between 1 and 5),
   grading int not null check (grading between 1 and 5),
   comment text,
+  is_hidden boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

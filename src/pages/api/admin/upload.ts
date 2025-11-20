@@ -35,10 +35,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   const adminPass = String(formData.get("admin_pass") ?? "").trim();
   const courseId = String(formData.get("course_id") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
+  const examType = String(formData.get("exam_type") ?? "").trim();
   const cycle = String(formData.get("cycle") ?? "").trim();
-  const resourceKind = String(formData.get("resource_kind") ?? "").trim(); // PLANCHA / SOLUCIONARIO
-  const bucket = String(formData.get("bucket") ?? "").trim();             // exams / solutions
+  const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
+  const resourceKind = String(formData.get("resource_kind") ?? "").trim().toUpperCase(); // PLANCHA / SOLUCIONARIO
   const file = formData.get("file") as File | null;
 
   // 3) Validar clave ADMIN_PASS
@@ -50,21 +50,39 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   // 4) Validar campos
-  if (!courseId || !title || !cycle || !resourceKind || !bucket || !file) {
+  if (!courseId || !examType || !cycle || !resourceKind || !file) {
     return new Response(
       JSON.stringify({ ok: false, error: "Faltan campos o archivo" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
+  if (!["PLANCHA", "SOLUCIONARIO"].includes(resourceKind)) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "resource_kind inválido" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   try {
-    // 5) Subir archivo a Storage (bucket: exams / solutions)
+    const numericCourseId = Number(courseId);
+    if (Number.isNaN(numericCourseId)) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "course_id debe ser numérico" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
+
+    // 5) Subir archivo a Storage
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
 
     // ruta interna dentro del bucket, ej: "1/2024-II/PC_N1_nombre.pdf"
-    const safeTitle = title.replace(/\s+/g, "_");
-    const path = `${courseId}/${cycle}/${Date.now()}_${safeTitle}.pdf`;
+    const safeCycle = cycle.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const safeTitle = examType.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const path = `${numericCourseId}/${safeCycle}/${Date.now()}_${safeTitle}.pdf`;
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from(bucket)
@@ -81,37 +99,108 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // 6) Insertar fila en la tabla sheets
-    const { error: insertError } = await supabaseAdmin
+    const { data: existingSheet, error: lookupError } = await supabaseAdmin
       .from("sheets")
-      .insert([
-        {
-          course_id: Number(courseId),
-          title,
-          cycle,
-          resource_kind: resourceKind, // "PLANCHA" o "SOLUCIONARIO"
-          storage_path: path,
-          // si en la tabla existe storage_bucket, descomenta:
-          // storage_bucket: bucket,
-        },
-      ]);
-
-    if (insertError) {
-      console.error("Error al insertar en sheets:", insertError);
+      .select("id")
+      .eq("course_id", numericCourseId)
+      .eq("cycle", cycle)
+      .eq("exam_type", examType)
+      .maybeSingle();
+    if (lookupError) {
+      console.error("Error al buscar sheet existente:", lookupError);
       return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Archivo subido, pero falló el registro en la tabla sheets",
-        }),
+        JSON.stringify({ ok: false, error: "No se pudo validar la plancha" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
+    if (resourceKind === "PLANCHA") {
+      const insertPayload = {
+        course_id: numericCourseId,
+        cycle,
+        exam_type: examType,
+        exam_storage_path: path,
+        teacher_hint: teacherHint || null,
+      };
+
+      if (existingSheet) {
+        const updatePayload: Record<string, unknown> = {
+          exam_storage_path: path,
+        };
+        if (teacherHint) {
+          updatePayload.teacher_hint = teacherHint;
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from("sheets")
+          .update(updatePayload)
+          .eq("id", existingSheet.id);
+
+        if (updateError) {
+          console.error("Error al actualizar sheet:", updateError);
+          return new Response(
+            JSON.stringify({
+              ok: false,
+              error: "El archivo se subió, pero no se pudo actualizar la plancha",
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      } else {
+        const { error: insertError } = await supabaseAdmin
+          .from("sheets")
+          .insert([insertPayload]);
+
+        if (insertError) {
+          console.error("Error al insertar sheet:", insertError);
+          return new Response(
+            JSON.stringify({
+              ok: false,
+              error: "Archivo subido, pero falló el registro de la plancha",
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+          );
+        }
+      }
+    } else {
+      if (!existingSheet) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "Primero sube la plancha antes de adjuntar un solucionario",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: updateSolutionError } = await supabaseAdmin
+        .from("sheets")
+        .update({
+          solution_kind: "pdf",
+          solution_storage_path: path,
+        })
+        .eq("id", existingSheet.id);
+
+      if (updateSolutionError) {
+        console.error("Error al actualizar solucionario:", updateSolutionError);
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "Archivo subido, pero no se pudo registrar el solucionario",
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // 7) Todo ok
+    const action =
+      resourceKind === "PLANCHA" ? "Plancha" : "Solucionario";
+
     return new Response(
       JSON.stringify({
         ok: true,
-        message: "Archivo subido y registrado en sheets correctamente",
+        message: `${action} guardado correctamente`,
         bucket,
         path,
       }),
