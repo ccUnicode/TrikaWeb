@@ -1,0 +1,108 @@
+---
+export interface Props {
+  sheetId: number;
+  avg: number | null;
+  count: number | null;
+}
+const { sheetId, avg, count } = Astro.props as Props;
+const displayAvg = typeof avg === 'number' ? avg.toFixed(2) : '-';
+const displayCount = count ?? 0;
+---
+<div
+  class="sheet-rating space-y-1 rounded-xl border border-global-border/30 bg-global-surface px-4 py-3"
+  data-rating-widget
+  data-sheet-id={sheetId}
+  data-current-rating={typeof avg === 'number' ? avg : ''}
+>
+  <div class="flex items-center justify-between">
+    <p class="text-sm font-semibold text-global-text">Dificultad promedio</p>
+    <span class="text-lg font-bold text-global-primary" data-rating-value>{displayAvg}</span>
+  </div>
+  <div class="flex items-center gap-2" role="radiogroup" aria-label="Calificar dificultad">
+    {Array.from({ length: 5 }).map((_, index) => (
+      <button
+        type="button"
+        class="rating-star h-8 w-8 rounded-full border border-global-border text-base text-global-text-muted transition hover:border-global-primary"
+        data-score={index + 1}
+        aria-label={`${index + 1} estrellas`}
+      >&#9733;</button>
+    ))}
+  </div>
+  <p class="text-xs text-global-text-muted">
+    <span data-rating-count>{displayCount}</span> votos
+    <span data-rating-status class="ml-2 text-[11px] text-global-primary"></span>
+  </p>
+</div>
+
+<script type="module">
+import { ensureDeviceId } from '../lib/client/device';
+
+const initWidget = (widget) => {
+  if (widget.dataset.bound === 'true') return;
+  widget.dataset.bound = 'true';
+  const sheetId = widget.dataset.sheetId;
+  const buttons = widget.querySelectorAll('[data-score]');
+  const valueEl = widget.querySelector('[data-rating-value]');
+  const countEl = widget.querySelector('[data-rating-count]');
+  const statusEl = widget.querySelector('[data-rating-status]');
+
+  const highlight = (score) => {
+    buttons.forEach(btn => {
+      const val = Number(btn.dataset.score);
+      btn.classList.toggle('bg-global-primary', val <= score);
+      btn.classList.toggle('text-black', val <= score);
+      btn.classList.toggle('text-global-text-muted', val > score);
+    });
+  };
+
+  const initial = Number(widget.dataset.currentRating || 0);
+  highlight(Math.round(initial));
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const score = Number(btn.dataset.score);
+      widget.classList.add('opacity-80');
+      widget.classList.add('pointer-events-none');
+      try {
+        const deviceId = ensureDeviceId();
+        const response = await fetch(`/api/sheets/${sheetId}/rate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score, device_id: deviceId })
+        });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          statusEl.textContent = error?.error ?? 'Error al enviar';
+          statusEl.classList.add('text-red-400');
+          return;
+        }
+        const result = await response.json();
+        if (result?.stats) {
+          const avg = result.stats.avg_difficulty ?? score;
+          const count = result.stats.rating_count ?? 0;
+          valueEl.textContent = Number(avg).toFixed(2);
+          countEl.textContent = count;
+          highlight(Math.round(avg));
+        } else {
+          highlight(score);
+        }
+        statusEl.textContent = 'Gracias por votar';
+        statusEl.classList.remove('text-red-400');
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = 'Error inesperado';
+        statusEl.classList.add('text-red-400');
+      } finally {
+        setTimeout(() => {
+          widget.classList.remove('opacity-80');
+          widget.classList.remove('pointer-events-none');
+        }, 300);
+      }
+    });
+  });
+};
+
+if (typeof window !== 'undefined') {
+  document.querySelectorAll('[data-rating-widget]').forEach(initWidget);
+}
+</script>

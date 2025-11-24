@@ -1,0 +1,67 @@
+---
+export interface Props {
+  sheetId: number;
+  label?: string;
+  variant?: "primary" | "secondary";
+}
+const { sheetId, label = "Ver / Descargar", variant = "primary" } = Astro.props;
+const baseClasses =
+  "inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition text-center no-underline";
+const variantClass =
+  variant === "secondary"
+    ? "border border-global-border text-global-text hover:border-global-primary"
+    : "bg-global-primary text-black hover:bg-global-primary-hover";
+
+const downloadUrl = `/api/sheets/${sheetId}/file`;
+---
+
+<a
+  href={downloadUrl}
+  target="_blank"
+  rel="noopener noreferrer"
+  class={`${baseClasses} ${variantClass}`}
+  data-sheet-download
+  data-sheet-id={sheetId}
+>
+  {label}
+</a>
+
+<script>
+  import { ensureDeviceId } from "../lib/client/device";
+
+  const initDownload = (link: Element) => {
+    if ((link as HTMLElement).dataset.bound === "true") return;
+    (link as HTMLElement).dataset.bound = "true";
+
+    link.addEventListener("click", () => {
+      // Fire and forget view tracking
+      const sheetId = (link as HTMLElement).dataset.sheetId;
+      if (!sheetId) return;
+
+      try {
+        const deviceId = ensureDeviceId();
+        // Use sendBeacon if available for better reliability on page unload/navigation
+        const data = JSON.stringify({ device_id: deviceId, type: "download" });
+        const url = `/api/sheets/${sheetId}/view`;
+
+        if (navigator.sendBeacon) {
+          const blob = new Blob([data], { type: "application/json" });
+          navigator.sendBeacon(url, blob);
+        } else {
+          fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: data,
+            keepalive: true,
+          }).catch(() => undefined);
+        }
+      } catch (e) {
+        console.error("Error tracking download:", e);
+      }
+    });
+  };
+
+  if (typeof window !== "undefined") {
+    document.querySelectorAll("[data-sheet-download]").forEach(initDownload);
+  }
+</script>

@@ -91,23 +91,22 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Calcular nuevo promedio
+  let responseStats: { avg_difficulty: number | null; rating_count: number } | null = null;
   const { data: stats } = await supa
-    .from('sheet_ratings')
-    .select('score')
-    .eq('sheet_id', sheetId);
+    .from('sheets')
+    .select('avg_difficulty, rating_count')
+    .eq('id', sheetId)
+    .single();
 
   if (stats) {
-    const avg = stats.reduce((sum, r) => sum + r.score, 0) / stats.length;
-    
-    await supa
-      .from('sheets')
-      .update({
-        avg_difficulty: Number(avg.toFixed(2)),
-        rating_count: stats.length
-      })
-      .eq('id', sheetId);
+    responseStats = {
+      avg_difficulty: stats.avg_difficulty,
+      rating_count: stats.rating_count ?? 0
+    };
   }
 
-  return new Response(JSON.stringify({ success: true }), { status: 200 });
+  return new Response(
+    JSON.stringify({ success: true, stats: responseStats }),
+    { status: 200 }
+  );
 };

@@ -115,5 +115,14 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  return new Response(JSON.stringify({ success: true }), { status: 200 });
+  const { data: stats } = await supa
+    .from('teachers')
+    .select('avg_overall, rating_count')
+    .eq('id', teacherId)
+    .single();
+
+  return new Response(
+    JSON.stringify({ success: true, stats }),
+    { status: 200 }
+  );
 };
