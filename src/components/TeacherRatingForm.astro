@@ -57,7 +57,7 @@ const fields = [
 </div>
 
 <script type="module">
-import { ensureDeviceId } from '../lib/client/device';
+import { ensureDeviceId } from '/src/lib/client/device';
 
 const init = (widget) => {
   if (widget.dataset.bound === 'true') return;
@@ -70,7 +70,9 @@ const init = (widget) => {
   const teacherId = widget.dataset.teacherId;
 
   toggle?.addEventListener('click', () => {
-    form?.classList.toggle('hidden');
+    if (!form) return;
+    const isHidden = form.classList.toggle('hidden');
+    toggle.textContent = isHidden ? 'Calificar' : 'Ocultar';
   });
 
   form?.addEventListener('submit', async (event) => {

@@ -1,0 +1,77 @@
+---
+export const prerender = false;
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
+import PageSubHeader from "../../components/PageSubHeader.astro";
+import ContainerCardExam from "../../components/ContainerCardExam.astro";
+import CardExam from "../../components/CardExam.astro";
+import { getCourseByCode } from "../../lib/data";
+
+const codeParam = Astro.params.code ?? "";
+const course = await getCourseByCode(codeParam);
+
+if (!course) {
+  return Astro.redirect("/cursos");
+}
+
+const slugify = (value?: string) => {
+  if (!value) return "otros";
+  return (
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "otros"
+  );
+};
+
+type Section = { id: string; label: string; sheets: typeof course.sheets };
+
+const grouped = new Map<string, Section>();
+for (const sheet of course.sheets) {
+  const label = sheet.exam_type || "Planchas";
+  const id = slugify(label);
+  if (!grouped.has(id)) {
+    grouped.set(id, { id, label, sheets: [] });
+  }
+  grouped.get(id)!.sheets.push(sheet);
+}
+
+const sections = grouped.size
+  ? Array.from(grouped.values())
+  : [{ id: "sin-planchas", label: "Planchas", sheets: [] }];
+---
+
+<Layout title={`${course.code} - ${course.name}`}>
+  <PageSubHeader
+    title={`${course.code} · ${course.name}`}
+    tabs={sections.map(section => ({ id: section.id, label: section.label }))}
+  >
+    <span slot="right" class="text-sm text-global-text-muted">
+      {course.sheetCount} planchas
+    </span>
+  </PageSubHeader>
+
+  <div class="mx-auto max-w-[1400px] px-4 sm:px-8 lg:px-10 xl:px-16 py-10 space-y-10">
+    {sections.map(section => (
+      <section
+        id={section.id}
+        class="w-full scroll-mt-32 rounded-2xl bg-global-surface px-6 md:px-16 py-10 md:py-12"
+      >
+        <ContainerCardExam titulo={section.label} />
+        {section.sheets.length === 0 ? (
+          <p class="rounded-xl border border-dashed border-global-border/50 bg-black/10 p-6 text-center text-global-text-muted">
+            Aún no hay planchas publicadas para este curso.
+          </p>
+        ) : (
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 py-4 my-8">
+            {section.sheets.map(sheet => (
+              <CardExam sheet={sheet} />
+            ))}
+          </div>
+        )}
+      </section>
+    ))}
+  </div>
+</Layout>

@@ -1,20 +1,18 @@
----
+﻿---
+export const prerender = false;
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
-import FichaProfesor from '../components/IntroductionOfTeachers.astro'; 
-import TeacherCard from "../components/TeacherCard.astro";
-import SearchInput from "../components/SearchInput.astro";
 import SearchAutocomplete from "../components/SearchAutocomplete.astro";
 import CardExam from "../components/CardExam.astro";
+import TeacherCard from "../components/TeacherCard.astro";
+import { getTopSheetsByDifficulty, getTopSheetsByViews, getTopTeachers } from "../lib/data";
 
-import { getTopSheetsByDifficulty, getTopSheetsByViews, getTopTeachers } from '../lib/data';
-
-const topDifficultySheets = await getTopSheetsByDifficulty(6);
-const topViewedSheets = await getTopSheetsByViews(6);
-const topTeachers = await getTopTeachers(3);
-
+const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
+  getTopSheetsByViews(6),
+  getTopSheetsByDifficulty(6),
+  getTopTeachers(6, 1),
+]);
 ---
-
 <Layout title="TrikaWeb">
   <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16">
 
@@ -23,7 +21,7 @@ const topTeachers = await getTopTeachers(3);
       <section id="hero" class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
         <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
           <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left">
-            ¿Planchas y reseñas de profes?
+            Planchas y resenas de profes?
             Todo en un solo lugar.
           </h1>
           <p class="max-w-[383px] text-base leading-6 text-global-text-muted text-center md:text-left">
@@ -42,7 +40,7 @@ const topTeachers = await getTopTeachers(3);
         </div>
       </section>
 
-<!--SECCIÓN DE PLANCHAS -->
+<!--SECCION DE PLANCHAS -->
 
   <section  id="planchas" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
 
@@ -55,7 +53,7 @@ const topTeachers = await getTopTeachers(3);
           <div class="flex w-full flex-1 justify-center md:justify-end">
             <SearchAutocomplete
               id="plancha"
-              placeholder="Ingresa el curso, evaluación o ciclo..."
+              placeholder="Ingresa el curso, evaluacion o ciclo..."
               targetSelector=".plancha-card"
               fields="curso,evaluacion,ciclo"
               filter="curso,evaluacion,ciclo,solucion"
@@ -64,296 +62,94 @@ const topTeachers = await getTopTeachers(3);
           </div>
         </div>
 
-        <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
+        <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1">
-            {topDifficultySheets.map((p) => (
-              <article
-                class="plancha-card w-full"
-                data-curso={p.course_name}
-                data-evaluacion={p.exam_type}
-                data-ciclo={p.cycle}
-                data-solucion={p.solution_kind ? 'si' : 'no'}
-              >
-                <CardExam
-                  evaluacion={p.exam_type}
-                  ciclo={p.cycle}
-                  profesor={p.course_name || ''}
-                  tieneSolucion={!!p.solution_kind}
-                  href={`/curso/${p.course_code}`}
-                />
-              </article>
-            ))}
+            {planchasPopulares.length === 0 ? (
+              <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
+                Aun no hay planchas con vistas registradas.
+              </p>
+            ) : (
+              planchasPopulares.map(sheet => (
+                <article
+                  class="plancha-card w-full"
+                  data-curso={sheet.course_name ?? sheet.course_code ?? 'Curso'}
+                  data-evaluacion={sheet.exam_type}
+                  data-ciclo={sheet.cycle}
+                  data-solucion={sheet.solution_kind ? 'si' : 'no'}
+                >
+                  <CardExam sheet={sheet} />
+                </article>
+              ))
+            )}
           </div>
-                    <div class="w-full md:w-[118px] text-center">
-            <h3 class="text-[24px] leading-8 font-medium">Más difíciles</h3>
+          <div class="w-full md:w-[160px] text-center md:text-left">
+            <h3 class="text-[24px] leading-8 font-medium">Mas visitadas</h3>
+            <p class="text-sm text-global-text-muted mt-2">Se actualizan con descargas y vistas.</p>
           </div>
         </div>
 
-        <div class="flex flex-col md:flex-row items-center gap-8 w-full mt-8">
+        <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
           
 
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
-            {topViewedSheets.map((p) => (
-              <article
-                class="plancha-card w-full"
-                data-curso={p.course_name}
-                data-evaluacion={p.exam_type}
-                data-ciclo={p.cycle}
-                data-solucion={p.solution_kind ? 'si' : 'no'}
-              >
-                <CardExam
-                  evaluacion={p.exam_type}
-                  ciclo={p.cycle}
-                  profesor={p.course_name || ''}
-                  tieneSolucion={!!p.solution_kind}
-                  href={`/curso/${p.course_code}`}
-                />
-              </article>
-            ))}
+            {planchasDificiles.length === 0 ? (
+              <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
+                Aun no hay votos de dificultad suficientes.
+              </p>
+            ) : (
+              planchasDificiles.map(sheet => (
+                <article
+                  class="plancha-card w-full"
+                  data-curso={sheet.course_name ?? sheet.course_code ?? 'Curso'}
+                  data-evaluacion={sheet.exam_type}
+                  data-ciclo={sheet.cycle}
+                  data-solucion={sheet.solution_kind ? 'si' : 'no'}
+                >
+                  <CardExam sheet={sheet} />
+                </article>
+              ))
+            )}
           </div>
-          <div class="w-full md:w-[118px] text-center">
-            <h3 class="text-[24px] leading-8 font-medium">Más visitadas</h3>
+          <div class="w-full md:w-[160px] text-center md:text-left">
+            <h3 class="text-[24px] leading-8 font-medium">Mas dificiles</h3>
+            <p class="text-sm text-global-text-muted mt-2">Basado en los votos de dificultad.</p>
           </div>
         </div>
         
       </section>
 
-<!--Sección de profesores -->
+<!--Seccion de profesores -->
 
   <section  id="profesores" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
-        <div class="flex w-full items-center justify-between flex-wrap gap-4 px-2 sm:px-0">
+        <div class="flex w-full items-start justify-between flex-wrap gap-4 px-2 sm:px-0">
           <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
-
-          <!-- Reemplazado SearchInput por input real para búsqueda -->
-          <div class="flex-1 max-w-[400px]">
-            <label for="prof-search" class="sr-only">Busca a tu profesor</label>
-
-            <!-- wrapper relativo para el input y el dropdown -->
-            <div class="relative">
-              <input
-                id="prof-search"
-                type="search"
-                placeholder="Busca a tu profesor..."
-                class="w-full rounded-full bg-[#0f1724] text-gray-200 placeholder:text-gray-500 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autocomplete="off"
-                aria-autocomplete="list"
-                aria-haspopup="listbox"
-                aria-expanded="false"
-              />
-
-              <!-- botón para limpiar -->
-              <button id="clear-search" type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 hidden" aria-label="Limpiar búsqueda">×</button>
-
-              <!-- contenedor de sugerencias -->
-              <ul
-                id="prof-suggestions"
-                role="listbox"
-                class="hidden absolute mt-2 z-50 w-full max-h-56 overflow-auto rounded-lg bg-[#0f1724] shadow-lg divide-y divide-[#222831] text-sm"
-              ></ul>
-            </div>
-          </div>
+          <a
+            href="/profes"
+            class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
+          >
+            Ver todos
+          </a>
         </div>
 
-        <!-- CONTENEDOR DE CARDS DE PROFESORES: GRID RESPONSIVO -->
-        <div id="professors-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 w-full mt-6 px-4 sm:px-0">
-          {topTeachers.map(t => (
-            <article
-              class="teacher-card w-full"
-              data-name={t.full_name}
-              data-role="Profesor"
-              data-id={t.id}
-              data-courses={t.courses.map(c => c.name).join(',')}
-            >
+        {topTeachers.length === 0 ? (
+          <p class="rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted w-full">
+            Aun no hay calificaciones de profesores.
+          </p>
+        ) : (
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-6">
+            {topTeachers.map(teacher => (
               <TeacherCard
-                name={t.full_name}
-                role="Profesor"
-                rating={t.avg_overall ?? 0}
+                name={teacher.full_name}
+                role={teacher.courses?.[0]?.code ?? "Profesor"}
+                rating={teacher.avg_overall ?? 0}
                 avatarSrc="/img/teacher.png"
-                href="/profes"
-                buttonLabel="Ver perfil"
+                href={`/teachers#teacher-${teacher.id}`}
+                buttonLabel="Calificar"
               />
-            </article>
-          ))}
-        </div>
-      </section>
-
-    <!-- INCLUIR EL COMPONENTE DEL MODAL -->
-    <!-- <FichaProfesor {...alexisGarayData} /> -->
-  </Layout>
-
-  <!-- Script cliente para filtrar tarjetas y abrir modal -->
-  <script type="module">
-    const input = document.getElementById('prof-search');
-    const cards = Array.from(document.querySelectorAll('.teacher-card'));
-
-    const normalize = (s = '') =>
-      String(s).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '');
-
-    // --- SUGGESTIONS SETUP ---
-    const suggestionsContainer = document.getElementById('prof-suggestions');
-    const clearBtn = document.getElementById('clear-search');
-
-    // Build suggestions from cards (names and courses) and dedupe by normalized text
-    const suggestionMap = new Map();
-    cards.forEach(card => {
-      const name = card.dataset.name?.trim();
-      if (name) suggestionMap.set(normalize(name), { text: name, type: 'profesor' });
-
-      const courses = (card.dataset.courses || '')
-        .split(',')
-        .map(c => c.trim())
-        .filter(Boolean);
-      courses.forEach(c => suggestionMap.set(normalize(c), { text: c, type: 'curso' }));
-    });
-    const allSuggestions = Array.from(suggestionMap.values());
-
-    let activeIndex = -1;
-
-    function renderSuggestions(list) {
-      if (!suggestionsContainer) return;
-      if (!list.length) {
-        suggestionsContainer.classList.add('hidden');
-        input.setAttribute('aria-expanded', 'false');
-        return;
-      }
-      suggestionsContainer.innerHTML = list.map((s, i) => `
-        <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" class="px-4 py-3 hover:bg-[#111827] cursor-pointer">
-          <div class="flex items-center justify-between">
-            <span class="truncate">${s.text}</span>
-            <small class="text-xs text-[#9AA4B2] ml-3">${s.type}</small>
+            ))}
           </div>
-        </li>
-      `).join('');
-      activeIndex = -1;
-      suggestionsContainer.classList.remove('hidden');
-      input.setAttribute('aria-expanded', 'true');
-    }
-
-    function hideSuggestions() {
-      suggestionsContainer.classList.add('hidden');
-      input.setAttribute('aria-expanded', 'false');
-      activeIndex = -1;
-      Array.from(suggestionsContainer.children).forEach(ch => ch.classList.remove('bg-[#111827]'));
-    }
-
-    function showClearIfNeeded() {
-      if (!clearBtn) return;
-      if (input.value.trim().length > 0) clearBtn.classList.remove('hidden');
-      else clearBtn.classList.add('hidden');
-    }
-
-    // Filter cards function (existing)
-    function filterCardsByInputValue() {
-      const q = input.value.trim();
-      const tokens = normalize(q).split(/\s+/).filter(Boolean);
-
-      cards.forEach(card => {
-        const name = normalize(card.dataset.name || '');
-        const role = normalize(card.dataset.role || '');
-        const courses = normalize(card.dataset.courses || '');
-        const matches = tokens.length === 0 || tokens.every(t => name.includes(t) || role.includes(t) || courses.includes(t));
-        card.classList.toggle('hidden', !matches);
-      });
-    }
-
-    if (input) {
-      input.addEventListener('input', (e) => {
-        const q = e.target.value.trim();
-        showClearIfNeeded();
-
-        // build visible suggestions: contains query (normalized)
-        const nq = normalize(q);
-        const results = nq ? allSuggestions.filter(s => normalize(s.text).includes(nq)).slice(0, 8) : [];
-        renderSuggestions(results);
-
-        // update grid filtering
-        filterCardsByInputValue();
-      });
-
-      // keyboard navigation for suggestions
-      input.addEventListener('keydown', (e) => {
-        const items = Array.from(suggestionsContainer.children);
-        if (suggestionsContainer.classList.contains('hidden') || !items.length) {
-          if (e.key === 'ArrowDown' && allSuggestions.length) {
-            // show suggestions if hidden
-            renderSuggestions(allSuggestions.slice(0, 8));
-            e.preventDefault();
-          }
-          return;
-        }
-
-        if (e.key === 'ArrowDown') {
-          activeIndex = Math.min(activeIndex + 1, items.length - 1);
-          items.forEach(it => it.classList.remove('bg-[#111827]'));
-          items[activeIndex].classList.add('bg-[#111827]');
-          items[activeIndex].scrollIntoView({ block: 'nearest' });
-          e.preventDefault();
-        } else if (e.key === 'ArrowUp') {
-          activeIndex = Math.max(activeIndex - 1, 0);
-          items.forEach(it => it.classList.remove('bg-[#111827]'));
-          items[activeIndex].classList.add('bg-[#111827]');
-          items[activeIndex].scrollIntoView({ block: 'nearest' });
-          e.preventDefault();
-        } else if (e.key === 'Enter') {
-          if (activeIndex >= 0 && items[activeIndex]) {
-            const val = items[activeIndex].dataset.value;
-            input.value = val;
-            hideSuggestions();
-            showClearIfNeeded();
-            filterCardsByInputValue();
-            e.preventDefault();
-          }
-        } else if (e.key === 'Escape') {
-          hideSuggestions();
-        }
-      });
-
-      // click on suggestion
-      suggestionsContainer.addEventListener('click', (ev) => {
-        const li = ev.target.closest('li[role="option"]');
-        if (!li) return;
-        const val = li.dataset.value;
-        input.value = val;
-        hideSuggestions();
-        showClearIfNeeded();
-        filterCardsByInputValue();
-        input.focus();
-      });
-
-      // clear button
-      if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          input.value = '';
-          clearBtn.classList.add('hidden');
-          filterCardsByInputValue();
-          hideSuggestions();
-          input.focus();
-        });
-      }
-
-      // hide suggestions on outside click
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest || !input) return;
-        if (e.target.closest('#prof-suggestions') || e.target.closest('#prof-search')) return;
-        hideSuggestions();
-      });
-    }
-
-    // --- existing modal-open handler (kept) ---
-    document.addEventListener('click', (e) => {
-      const target = e.target;
-      if (!target) return;
-      const openId = target.id && target.id.startsWith('open-') ? target.id.replace('open','') : null;
-      if (openId) {
-        const modal = document.getElementById(`modal-${openId}`);
-        if (modal) {
-          modal.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        }
-      }
-    });
-
-    // Buscador de Planchas encapsulado en <SearchAutocomplete />
-  </script>
-</attachment>
+        )}
+      </section>
+  </div>
+</Layout>
