@@ -22,33 +22,44 @@ const targetHref = downloadUrl ?? (sheetId ? `/api/sheets/${sheetId}/file` : '#'
 >
   {label}
 </a>
+</a>
 
-<script type="module">
-import { ensureDeviceId } from '/src/lib/client/device';
+<script>
+  import { ensureDeviceId } from "../lib/client/device";
 
-const initDownload = (el) => {
-  if (el.dataset.bound === 'true') return;
-  el.dataset.bound = 'true';
-  el.addEventListener('click', () => {
-    const sheetId = el.dataset.sheetId;
-    if (!sheetId) return;
-    const deviceId = ensureDeviceId();
-    const payload = JSON.stringify({ device_id: deviceId, type: 'download' });
-    const viewUrl = `/api/sheets/${sheetId}/view`;
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(viewUrl, new Blob([payload], { type: 'application/json' }));
-      return;
-    }
-    fetch(viewUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-      keepalive: true,
-    }).catch(() => undefined);
-  });
-};
+  const initDownload = (link: Element) => {
+    if ((link as HTMLElement).dataset.bound === "true") return;
+    (link as HTMLElement).dataset.bound = "true";
 
-if (typeof window !== 'undefined') {
-  document.querySelectorAll('[data-sheet-download]').forEach(initDownload);
-}
+    link.addEventListener("click", () => {
+      // Fire and forget view tracking
+      const sheetId = (link as HTMLElement).dataset.sheetId;
+      if (!sheetId) return;
+
+      try {
+        const deviceId = ensureDeviceId();
+        // Use sendBeacon if available for better reliability on page unload/navigation
+        const data = JSON.stringify({ device_id: deviceId, type: "download" });
+        const url = `/api/sheets/${sheetId}/view`;
+
+        if (navigator.sendBeacon) {
+          const blob = new Blob([data], { type: "application/json" });
+          navigator.sendBeacon(url, blob);
+        } else {
+          fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: data,
+            keepalive: true,
+          }).catch(() => undefined);
+        }
+      } catch (e) {
+        console.error("Error tracking download:", e);
+      }
+    });
+  };
+
+  if (typeof window !== "undefined") {
+    document.querySelectorAll("[data-sheet-download]").forEach(initDownload);
+  }
 </script>

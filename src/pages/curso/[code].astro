@@ -1,56 +1,48 @@
 ---
 export const prerender = false;
-import Layout from '../../layouts/Layout.astro';
-import SheetRating from '../../components/SheetRating.astro';
-import DownloadButton from '../../components/DownloadButton.astro';
-import { getCourseByCode } from '../../lib/data';
+import Layout from "../../layouts/Layout.astro";
+import CardExam from "../../components/CardExam.astro";
+import { getCourseByCode } from "../../lib/data";
 
-const code = Astro.params.code ?? '';
+const code = Astro.params.code ?? "";
 const course = await getCourseByCode(code);
 if (!course) {
-  return Astro.redirect('/cursos');
+  return Astro.redirect("/cursos");
 }
 ---
+
 <Layout title={`Curso ${course.code}`}>
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
     <header class="space-y-2 border-b border-global-border/50 pb-6">
-      <p class="text-sm uppercase tracking-[0.3em] text-global-text-muted">Curso</p>
-      <h1 class="text-3xl font-bold text-global-text">{course.code} - {course.name}</h1>
-      <p class="text-sm text-global-text-muted">{course.sheetCount} planchas registradas</p>
+      <p class="text-sm uppercase tracking-[0.3em] text-global-text-muted">
+        Curso
+      </p>
+      <h1 class="text-3xl font-bold text-global-text">
+        {course.code} - {course.name}
+      </h1>
+      <p class="text-sm text-global-text-muted">
+        {course.sheetCount} planchas registradas
+      </p>
     </header>
 
-    {course.sheets.length === 0 ? (
-      <p class="rounded-2xl border border-dashed border-global-border/60 bg-global-surface p-6 text-center text-global-text-muted">
-        Aun no hay planchas para este curso.
-      </p>
-    ) : (
-      <div class="space-y-4">
-        {course.sheets.map(sheet => (
-          <article class="rounded-2xl border border-global-border/40 bg-global-surface p-4 sm:p-6">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p class="text-sm uppercase tracking-[0.2em] text-global-text-muted">{sheet.exam_type}</p>
-                <h2 class="text-2xl font-semibold text-global-text">{sheet.cycle}</h2>
-                {sheet.teacher_hint && (
-                  <p class="text-sm text-global-text-muted">{sheet.teacher_hint}</p>
-                )}
-              </div>
-              <div class="text-right text-sm text-global-text-muted">
-                <p>Vistas: <strong>{sheet.view_count ?? 0}</strong></p>
-                <p>Votos: <strong>{sheet.rating_count ?? 0}</strong></p>
-              </div>
-            </div>
-
-            <div class="mt-4 grid gap-4 lg:grid-cols-2">
-              <SheetRating sheetId={sheet.id} avg={sheet.avg_difficulty} count={sheet.rating_count} />
-              <div class="flex h-full flex-col justify-between gap-3 rounded-2xl border border-global-border/30 bg-black/10 p-4 text-sm text-global-text">
-                <p>Obt�n la plancha en PDF. Cada descarga registra una visita.</p>
-                <DownloadButton sheetId={sheet.id} />
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    )}
+    {
+      course.sheets.length === 0 ? (
+        <p class="rounded-2xl border border-dashed border-global-border/60 bg-global-surface p-6 text-center text-global-text-muted">
+          Aun no hay planchas para este curso.
+        </p>
+      ) : (
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {course.sheets.map((sheet) => (
+            <CardExam
+              evaluacion={sheet.exam_type}
+              ciclo={sheet.cycle}
+              profesor={sheet.teacher_hint || "Varios profesores"}
+              tieneSolucion={!!sheet.solution_kind}
+              href={`/examen/${sheet.id}`}
+            />
+          ))}
+        </div>
+      )
+    }
   </main>
 </Layout>
