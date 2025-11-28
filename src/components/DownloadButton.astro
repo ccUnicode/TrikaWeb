@@ -3,45 +3,48 @@ export interface Props {
   sheetId: number;
   label?: string;
   variant?: 'primary' | 'secondary';
+  downloadUrl?: string;
 }
-const { sheetId, label = 'Ver / Descargar', variant = 'primary' } = Astro.props;
+const { sheetId, label = 'Ver / Descargar', variant = 'primary', downloadUrl } = Astro.props;
 const baseClasses = 'inline-flex items-center justify-center rounded-full px-4 py-2 text-sm font-semibold transition';
 const variantClass = variant === 'secondary'
   ? 'border border-global-border text-global-text hover:border-global-primary'
   : 'bg-global-primary text-black hover:bg-global-primary-hover';
+const targetHref = downloadUrl ?? (sheetId ? `/api/sheets/${sheetId}/file` : '#');
 ---
-<button
-  type="button"
+<a
+  href={targetHref}
+  target="_blank"
+  rel="noreferrer"
   class={`${baseClasses} ${variantClass}`}
   data-sheet-download
   data-sheet-id={sheetId}
 >
   {label}
-</button>
+</a>
 
 <script type="module">
-import { ensureDeviceId } from '../lib/client/device';
+import { ensureDeviceId } from '/src/lib/client/device';
 
-const initDownload = (button) => {
-  if (button.dataset.bound === 'true') return;
-  button.dataset.bound = 'true';
-  button.addEventListener('click', async () => {
-    const sheetId = button.dataset.sheetId;
+const initDownload = (el) => {
+  if (el.dataset.bound === 'true') return;
+  el.dataset.bound = 'true';
+  el.addEventListener('click', () => {
+    const sheetId = el.dataset.sheetId;
     if (!sheetId) return;
-    button.disabled = true;
-    button.classList.add('opacity-70');
-    try {
-      const deviceId = ensureDeviceId();
-      await fetch(`/api/sheets/${sheetId}/view`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ device_id: deviceId, type: 'download' })
-      }).catch(() => undefined);
-      window.open(`/api/sheets/${sheetId}/file`, '_blank', 'noopener');
-    } finally {
-      button.disabled = false;
-      button.classList.remove('opacity-70');
+    const deviceId = ensureDeviceId();
+    const payload = JSON.stringify({ device_id: deviceId, type: 'download' });
+    const viewUrl = `/api/sheets/${sheetId}/view`;
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(viewUrl, new Blob([payload], { type: 'application/json' }));
+      return;
     }
+    fetch(viewUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      keepalive: true,
+    }).catch(() => undefined);
   });
 };
 

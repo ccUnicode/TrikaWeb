@@ -1,16 +1,25 @@
 ---
+import type { SheetSummary } from "../lib/data";
+
 /* 1. Definimos las "props" (las variables) que la tarjeta va a recibir */
 export interface Props {
-  ciclo: string;
-  profesor: string;
-  tieneSolucion: boolean;
+  sheet?: SheetSummary;
+  ciclo?: string;
+  profesor?: string;
+  tieneSolucion?: boolean;
   evaluacion?: string;
   href?: string;
 }
-const { ciclo, profesor, tieneSolucion, evaluacion, href } = Astro.props as Props;
+const { sheet, ciclo, profesor, tieneSolucion, evaluacion, href } = Astro.props as Props;
+
+const courseLabel = sheet?.course_name ?? sheet?.course_code ?? profesor ?? "Curso";
+const cycleLabel = sheet?.cycle ?? ciclo ?? "Sin ciclo";
+const examLabel = sheet?.exam_type ?? evaluacion ?? "";
+const hasSolution = sheet ? Boolean(sheet.solution_kind) : Boolean(tieneSolucion);
+const resolvedHref = sheet ? `/exams/${sheet.id}` : href ?? "#";
 
 
-/* 2. Definimos los íconos (los metemos aquí) */
+/* 2. Definimos los iconos (los metemos aqui) */
 const checkIcon = `
 <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-primary">
   <span class="block h-1.5 w-2.5 rounded-sm border-b-[3px] border-l-[3px] border-global-text" style="transform: rotate(-45deg) translate(-1px, -1px);"></span>
@@ -23,28 +32,31 @@ const noCheckIcon = `
 `;
 ---
 
-<a href={href ?? '#'} class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105">
+<a
+  href={resolvedHref}
+  class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105"
+>
   
   <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
   
   <div class="flex items-center  pr-2 justify-between -mt-2">
     
-    <span class="text-base md:text-lg font-semibold text-global-text">{profesor}</span>
+    <span class="text-base md:text-lg font-semibold text-global-text">{courseLabel}</span>
     
-    {tieneSolucion ? (
+    {hasSolution ? (
       <Fragment set:html={checkIcon} />
     ) : (
       <Fragment set:html={noCheckIcon} />
     )}
 
   </div>
-  {evaluacion ? (
+  {examLabel ? (
     <div class="flex items-center justify-between gap-2 pr-2 text-sm md:text-base">
-      <span class="font-semibold text-global-text-muted">{evaluacion}</span>
-      <span class="text-global-text-muted">{ciclo}</span>
+      <span class="font-semibold text-global-text-muted">{examLabel}</span>
+      <span class="text-global-text-muted">{cycleLabel}</span>
     </div>
   ) : (
-    <span class="text-sm md:text-base font-medium text-global-text-muted">{ciclo}</span>
+    <span class="text-sm md:text-base font-medium text-global-text-muted">{cycleLabel}</span>
   )}
   
 </a>
