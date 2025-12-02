@@ -44,7 +44,8 @@ const teachers = await getTeachers();
               name={teacher.full_name}
               role={teacher.courses?.[0]?.code ?? "Profesor"}
               rating={teacher.avg_overall ?? 0}
-              avatarSrc="/img/teacher.png"
+              avatarSrc={teacher.avatar_url || "/img/fallback_teacher.png"}
+              href={`/teachers/${teacher.id}`}
               showButton={false}
               class="w-full"
             />

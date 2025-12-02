@@ -3,8 +3,9 @@ export interface Props {
   teacherId: number;
   avg: number | null;
   count: number | null;
+  showSummary?: boolean;
 }
-const { teacherId, avg, count } = Astro.props as Props;
+const { teacherId, avg, count, showSummary = true } = Astro.props as Props;
 const displayAvg = typeof avg === 'number' ? avg.toFixed(2) : '-';
 const displayCount = count ?? 0;
 const fields = [
@@ -17,27 +18,38 @@ const fields = [
 ];
 ---
 <div class="teacher-rating space-y-3 rounded-2xl border border-global-border/40 bg-global-surface p-4" data-teacher-rating data-teacher-id={teacherId}>
-  <div class="flex items-center justify-between">
-    <div>
-      <p class="text-sm font-semibold text-global-text">Promedio</p>
-      <p class="text-lg font-bold text-global-primary">
-        <span data-teacher-rating-value>{displayAvg}</span>
-        <span class="text-xs text-global-text-muted">(<span data-teacher-rating-count>{displayCount}</span> votos)</span>
-      </p>
-    </div>
-    <button type="button" class="rounded-full border border-global-primary px-4 py-2 text-sm font-semibold text-global-primary transition hover:bg-global-primary hover:text-black" data-toggle-form>
-      Calificar
-    </button>
-  </div>
-  <form class="hidden space-y-3" data-rating-form>
+  <form class="space-y-3" data-rating-form>
+    {
+      showSummary && (
+        <p class="text-sm text-global-text-muted">
+          Califica de 1 a 5 cada criterio. Promedio actual:
+          <span data-teacher-rating-value class="text-global-primary font-semibold ml-1">{displayAvg}</span>
+          (<span data-teacher-rating-count>{displayCount}</span> votos)
+        </p>
+      )
+    }
+    {
+      !showSummary && (
+        <span class="hidden" data-teacher-rating-value>{displayAvg}</span>
+      )
+    }
+    {
+      !showSummary && (
+        <span class="hidden" data-teacher-rating-count>{displayCount}</span>
+      )
+    }
     <div class="grid gap-3 sm:grid-cols-2">
       {fields.map(field => (
         <label class="text-sm text-global-text" for={`${field.name}-${teacherId}`}>
           {field.label}
-          <select id={`${field.name}-${teacherId}`} name={field.name} class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm">
+          <select
+            id={`${field.name}-${teacherId}`}
+            name={field.name}
+            class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm text-global-text"
+          >
             <option value="" selected>Selecciona</option>
             {Array.from({ length: 5 }).map((_, idx) => (
-              <option value={idx + 1}>{idx + 1}</option>
+              <option value={idx + 1} class="text-black">{idx + 1}</option>
             ))}
           </select>
         </label>
@@ -62,18 +74,11 @@ import { ensureDeviceId } from '/src/lib/client/device';
 const init = (widget) => {
   if (widget.dataset.bound === 'true') return;
   widget.dataset.bound = 'true';
-  const toggle = widget.querySelector('[data-toggle-form]');
   const form = widget.querySelector('[data-rating-form]');
   const status = widget.querySelector('[data-status]');
   const avgEl = widget.querySelector('[data-teacher-rating-value]');
   const countEl = widget.querySelector('[data-teacher-rating-count]');
   const teacherId = widget.dataset.teacherId;
-
-  toggle?.addEventListener('click', () => {
-    if (!form) return;
-    const isHidden = form.classList.toggle('hidden');
-    toggle.textContent = isHidden ? 'Calificar' : 'Ocultar';
-  });
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
