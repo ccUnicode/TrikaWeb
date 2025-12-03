@@ -13,30 +13,30 @@
 
 ### 1. Detalle de profesor (datos)
 
-- [ ] Implementar helper `getTeacherDetail(teacherId, page, pageSize)` que:
-  - [ ] Lea de `teachers`:
+- [X] Implementar helper `getTeacherDetail(teacherId, page, pageSize)` que:
+  - [X] Lea de `teachers`:
     - `id`
     - `full_name`
     - `bio`
     - `avg_overall`
     - `rating_count`
-  - [ ] Lea de `teacher_ratings`:
-    - [ ] Filtre `is_hidden = false`
-    - [ ] Calcule promedios por dimensión:
+  - [X] Lea de `teacher_ratings`:
+    - [X] Filtre `is_hidden = false`
+    - [X] Calcule promedios por dimensión:
       - `overall`
       - `difficulty`
       - `didactic`
       - `resources`
       - `responsability`
       - `grading`
-    - [ ] Obtenga listado de reseñas:
+    - [X] Obtenga listado de reseñas:
       - ordenadas por `created_at DESC`
       - paginadas con `limit` + `offset`
-  - [ ] Lea de `courses_teachers` (+ `courses`) para obtener cursos donde dicta:
+  - [X] Lea de `courses_teachers` (+ `courses`) para obtener cursos donde dicta:
     - `id`
     - `code`
     - `name`
-  - [ ] Devuelva un objeto con:
+  - [X] Devuelva un objeto con:
     - `teacher`
     - `stats`
     - `courses`
@@ -45,12 +45,12 @@
 
 ### 2. Endpoint de detalle de profesor (opcional pero recomendado)
 
-- [ ] Crear endpoint `GET /api/teachers/[id]?page=&pageSize=` que:
-  - [ ] Use `getTeacherDetail`
-  - [ ] Devuelva JSON con todos los datos calculados
-  - [ ] Maneje:
-    - [ ] 404 si el profesor no existe
-    - [ ] 400 si el `id` es inválido
+- [X] Crear endpoint `GET /api/teachers/[id]?page=&pageSize=` que:
+  - [X] Use `getTeacherDetail`
+  - [X] Devuelva JSON con todos los datos calculados
+  - [X] Maneje:
+    - [X] 404 si el profesor no existe
+    - [X] 400 si el `id` es inválido
 
 ### 3. Admin: soporte a solucionarios en video + thumbnails
 
@@ -99,38 +99,38 @@
 
 ### 1. Página de detalle de profesor `/teachers/[id]`
 
-- [ ] Crear página dinámica `src/pages/teachers/[id].astro` que:
-  - [ ] Consuma `getTeacherDetail` (o `GET /api/teachers/[id]`)
-- [ ] Implementar layout con secciones:
+- [X] Crear página dinámica `src/pages/teachers/[id].astro` que:
+  - [X] Consuma `getTeacherDetail` (o `GET /api/teachers/[id]`)
+- [X] Implementar layout con secciones:
 
 **Header del profesor**
-- [ ] Mostrar:
-  - [ ] `full_name`
-  - [ ] `avg_overall` + `rating_count` (ej: “4.6 ⭐ (50 reseñas)”)
-  - [ ] `bio` (si existe)
-- [ ] Avatar:
-  - [ ] Placeholder con iniciales por ahora (componente preparado para foto en el futuro)
-- [ ] Botón “Calificar profesor”:
-  - [ ] Navega a la vista de calificación existente
+- [X] Mostrar:
+  - [X] `full_name`
+  - [X] `avg_overall` + `rating_count` (ej: “4.6 ⭐ (50 reseñas)”)
+  - [X] `bio` (si existe)
+- [X] Avatar:
+  - [X] Se obtiene desde Supabase y usa `/img/fallback_teacher.jpeg` como placeholder si no hay foto
+- [X] Botón “Calificar profesor”:
+  - [X] Navega a la vista de calificación existente
 
 **Barras por dimensión**
-- [ ] Usar `stats`:
-  - [ ] overall, difficulty, didactic, resources, responsability, grading
-- [ ] Renderizar barras horizontales con Tailwind
+- [X] Usar `stats`:
+  - [X] overall, difficulty, didactic, resources, responsability, grading
+- [X] Renderizar barras horizontales con Tailwind
 
 **Cursos asociados**
-- [ ] Mostrar chips/botones con cursos donde dicta
-- [ ] Si existen rutas por curso, linkear; si no, decorativo en v1
+- [X] Mostrar chips/botones con cursos donde dicta
+- [X] Si existen rutas por curso, linkear; si no, decorativo en v1
 
 **Reseñas**
-- [ ] Listar `reviews`:
-  - [ ] mostrar al menos `overall` y `comment`
-  - [ ] fecha formateada
-  - [ ] comentario con texto justificado
-- [ ] Añadir paginación:
-  - [ ] “Anterior / Siguiente” o “Ver más”
-- [ ] Estado vacío:
-  - [ ] Mensaje tipo: “Todavía no hay reseñas visibles para este profesor”
+- [X] Listar `reviews`:
+  - [X] mostrar al menos `overall` y `comment`
+  - [X] fecha formateada
+  - [X] comentario con texto justificado
+- [X] Añadir paginación:
+  - [X] “Anterior / Siguiente” o “Ver más”
+- [X] Estado vacío:
+  - [X] Mensaje tipo: “Todavía no hay reseñas visibles para este profesor”
 
 ---
 

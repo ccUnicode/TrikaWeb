@@ -29,6 +29,12 @@ const statsItems = [
 const formatScore = (n: number | null) =>
   n === null || n === undefined ? "—" : Number(n).toFixed(1);
 
+const formatDate = (iso: string) => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Fecha desconocida";
+  return date.toLocaleDateString("es-PE", { year: "numeric", month: "short", day: "numeric" });
+};
+
 const safeBio =
   detail.teacher.bio && detail.teacher.bio.trim().length > 0
     ? detail.teacher.bio
@@ -68,10 +74,13 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
         </div>
         <div class="flex items-center justify-between bg-global-bg/60 rounded-2xl px-4 py-3">
           <div class="text-sm text-global-text-muted leading-tight">
-            <p>Puntuación</p>
+            <p>Puntuacion</p>
             <p>General</p>
           </div>
-          <p class="text-4xl font-bold">{formatScore(detail.teacher.avg_overall)}</p>
+          <div class="text-right">
+            <p class="text-4xl font-bold">{formatScore(detail.teacher.avg_overall)}</p>
+            <p class="text-xs text-global-text-muted mt-1">{detail.teacher.rating_count} resenas</p>
+          </div>
         </div>
         <button
           id="open-rating-modal"
@@ -147,8 +156,11 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                 {detail.reviews.map(review => (
                   <article class="rounded-xl bg-global-bg/70 border border-global-border/40 px-4 py-3 space-y-2">
                     <header class="flex items-center justify-between text-sm">
-                      <span class="font-semibold">Anónimo</span>
-                      <span class="text-global-text-muted">{formatScore(review.overall)}</span>
+                      <div class="leading-tight">
+                        <span class="font-semibold block">Anonimo</span>
+                        <time class="text-[11px] text-global-text-muted/80">{formatDate(review.created_at)}</time>
+                      </div>
+                      <span class="text-global-text-muted font-semibold">{formatScore(review.overall)}</span>
                     </header>
                     {review.comment ? (
                       <p class="text-sm text-global-text-muted leading-relaxed text-justify max-h-24 overflow-y-auto teacher-scroll pr-1">
