@@ -69,11 +69,11 @@
 
 ### 4. Búsqueda (lado datos, si se implementa en API)
 
-- [ ] Crear helper o endpoint `GET /api/search?query=...` que:
-  - [ ] Reciba `query`
-  - [ ] Use Supabase con `ilike` sobre cursos/profes/sheets (según alcance)
-  - [ ] Ordene resultados por relevancia
-  - [ ] Devuelva datos mínimos para pintar cards en el frontend
+- [X] Crear helper o endpoint `GET /api/search?query=...` que:
+  - [X] Reciba `query`
+  - [X] Use Supabase con `ilike` sobre cursos/profes/sheets (según alcance)
+  - [X] Ordene resultados por relevancia
+  - [X] Devuelva datos mínimos para pintar cards en el frontend
 
 ### 5. Deploy y configuración
 

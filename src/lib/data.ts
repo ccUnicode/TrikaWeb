@@ -69,6 +69,13 @@ export interface TeacherDetail {
   };
 }
 
+export interface SearchResults {
+  query: string;
+  courses: CourseSummary[];
+  teachers: TeacherSummary[];
+  sheets: SheetSummary[];
+}
+
 const sheetSelect = `
   id,
   exam_type,
@@ -186,6 +193,38 @@ function formatTeacherSummary(rows: any[] | null): TeacherSummary[] {
       .map((course: any) => ({ code: course.code, name: course.name })),
   }));
 }
+
+const normalizeText = (value: string) =>
+  String(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+
+const scoreAgainstQuery = (normalizedQuery: string, fields: (string | null | undefined)[]) => {
+  if (!normalizedQuery) return 0;
+  return fields.reduce((acc, current, index) => {
+    if (!current) return acc;
+    const normalizedValue = normalizeText(current);
+    const position = normalizedValue.indexOf(normalizedQuery);
+    if (position === -1) return acc;
+    const lengthFactor = normalizedQuery.length / Math.max(normalizedValue.length, normalizedQuery.length);
+    const positionBoost = position === 0 ? 2 : 1;
+    const weight = index === 0 ? 1.2 : 1;
+    return acc + lengthFactor * positionBoost * weight;
+  }, 0);
+};
+
+const sortByScore = <T extends { _score: number }>(rows: T[], fallback?: (a: T, b: T) => number) => {
+  return rows
+    .filter(row => row._score > 0)
+    .sort((a, b) => {
+      if (a._score === b._score) {
+        return fallback ? fallback(a, b) : 0;
+      }
+      return b._score - a._score;
+    });
+};
 
 const normalizeAvg = (value: any): number | null => {
   if (value === null || value === undefined) return null;
@@ -336,4 +375,111 @@ export async function getTeacherDetail(
       totalPages,
     },
   };
+}
+
+export async function searchEntities(query: string, limit = 6): Promise<SearchResults> {
+  const trimmed = (query ?? '').trim();
+  if (!trimmed) {
+    return { query: '', courses: [], teachers: [], sheets: [] };
+  }
+
+  const normalizedQuery = normalizeText(trimmed);
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), 25) : 6;
+  const pattern = `%${trimmed}%`;
+
+  const [coursesRes, teachersRes] = await Promise.all([
+    supabaseClient
+      .from('courses')
+      .select('id, code, name, sheets(count)')
+      .or(`code.ilike.${pattern},name.ilike.${pattern}`)
+      .limit(safeLimit * 2),
+    supabaseClient
+      .from('teachers')
+      .select(
+        'id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (code,name) )'
+      )
+      .or(`full_name.ilike.${pattern},bio.ilike.${pattern}`)
+      .limit(safeLimit * 2),
+  ]);
+
+  if (coursesRes.error) console.error('searchEntities courses error', coursesRes.error);
+  if (teachersRes.error) console.error('searchEntities teachers error', teachersRes.error);
+
+  const courses = sortByScore(
+    (coursesRes.data || []).map((course: any) => ({
+      id: course.id,
+      code: course.code,
+      name: course.name,
+      sheetCount: course.sheets?.[0]?.count ?? 0,
+      _score: scoreAgainstQuery(normalizedQuery, [course.code, course.name]),
+    })),
+    (a, b) => (b.sheetCount ?? 0) - (a.sheetCount ?? 0)
+  )
+    .slice(0, safeLimit)
+    .map(({ _score, ...rest }) => rest) as CourseSummary[];
+
+  const teachers = sortByScore(
+    formatTeacherSummary(teachersRes.data || []).map(t => {
+      const courseLabels = (t.courses || []).map(c => `${c.code} ${c.name}`);
+      return {
+        ...t,
+        _score: scoreAgainstQuery(normalizedQuery, [t.full_name, t.bio, ...courseLabels]),
+      };
+    }),
+    (a, b) => (b.rating_count ?? 0) - (a.rating_count ?? 0)
+  )
+    .slice(0, safeLimit)
+    .map(({ _score, ...rest }) => rest) as TeacherSummary[];
+
+  const courseIdsForSheets =
+    courses.length > 0
+      ? courses.map(c => c.id)
+      : (coursesRes.data || []).map((c: any) => c.id).filter(Boolean);
+
+  const sheetFilters = [
+    `exam_type.ilike.${pattern}`,
+    `cycle.ilike.${pattern}`,
+    `teacher_hint.ilike.${pattern}`,
+  ];
+
+  if (courseIdsForSheets.length) {
+    sheetFilters.push(`course_id.in.(${courseIdsForSheets.join(',')})`);
+  }
+
+  const { data: sheetRows, error: sheetError } = await supabaseClient
+    .from('sheets')
+    .select(
+      'id, exam_type, cycle, avg_difficulty, rating_count, view_count, teacher_hint, solution_kind, courses:course_id (id, code, name)'
+    )
+    .or(sheetFilters.join(','))
+    .limit(safeLimit * 2);
+
+  if (sheetError) console.error('searchEntities sheets error', sheetError);
+
+  const sheets = sortByScore(
+    (sheetRows || []).map((sheet: any) => ({
+      id: sheet.id,
+      exam_type: sheet.exam_type,
+      cycle: sheet.cycle,
+      avg_difficulty: sheet.avg_difficulty,
+      rating_count: sheet.rating_count ?? 0,
+      view_count: sheet.view_count ?? null,
+      teacher_hint: sheet.teacher_hint ?? null,
+      solution_kind: sheet.solution_kind,
+      course_code: sheet.courses?.code,
+      course_name: sheet.courses?.name,
+      _score: scoreAgainstQuery(normalizedQuery, [
+        sheet.exam_type,
+        sheet.cycle,
+        sheet.teacher_hint,
+        sheet.courses?.code,
+        sheet.courses?.name,
+      ]),
+    })),
+    (a, b) => (b.view_count ?? 0) - (a.view_count ?? 0)
+  )
+    .slice(0, safeLimit)
+    .map(({ _score, ...rest }) => rest) as SheetSummary[];
+
+  return { query: trimmed, courses, teachers, sheets };
 }
