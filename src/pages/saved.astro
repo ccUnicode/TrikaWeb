@@ -1,0 +1,109 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+---
+
+<Layout title="Guardados">
+  <section class="mx-auto max-w-5xl px-4 py-10 space-y-6">
+    <div>
+      <h1 class="text-3xl font-bold text-global-text">Guardados</h1>
+      <p class="text-global-text-muted">Aquí verás las planchas que marcaste.</p>
+    </div>
+
+    <div
+      id="saved-empty"
+      class="rounded-lg border border-dashed border-global-border p-6 text-center text-global-text-muted hidden"
+    >
+      Todavía no has guardado ninguna plancha. Usa el marcador en las cards para agregarlas aquí.
+    </div>
+
+    <div
+      id="saved-error"
+      class="rounded-lg border border-red-400/40 bg-red-400/10 p-4 text-red-100 hidden"
+    ></div>
+
+    <div id="saved-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+  </section>
+</Layout>
+
+<script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script is:inline>
+  // @ts-ignore: valores inyectados desde el frontmatter
+  const SUPABASE_URL = `${JSON.stringify(SUPABASE_URL)}`;
+  // @ts-ignore: valores inyectados desde el frontmatter
+  const SUPABASE_ANON_KEY = `${JSON.stringify(SUPABASE_ANON_KEY)}`;
+
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const KEY = 'trikaweb:favorites';
+
+  const loadFavorites = () => {
+    try {
+      const raw = localStorage.getItem(KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.map(Number).filter(Number.isInteger) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const emptyBox = document.getElementById('saved-empty');
+  const errorBox = document.getElementById('saved-error');
+  const grid = document.getElementById('saved-grid');
+
+  async function render() {
+    const ids = loadFavorites();
+    errorBox.classList.add('hidden');
+    errorBox.textContent = '';
+
+    if (!ids.length) {
+      emptyBox.classList.remove('hidden');
+      grid.innerHTML = '';
+      return;
+    }
+
+    emptyBox.classList.add('hidden');
+    const { data, error } = await supabaseClient
+      .from('sheets')
+      .select('id, exam_type, cycle, solution_kind, courses:course_id (code, name)')
+      .in('id', ids);
+
+    if (error) {
+      errorBox.textContent = 'Hubo un error al cargar tus guardados.';
+      errorBox.classList.remove('hidden');
+      grid.innerHTML = '';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      emptyBox.textContent = 'No encontramos esas planchas. ¿Siguen existiendo en Supabase?';
+      emptyBox.classList.remove('hidden');
+      grid.innerHTML = '';
+      return;
+    }
+
+    const sorted = data.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+    grid.innerHTML = '';
+    sorted.forEach((sheet) => {
+      const courseLabel = sheet.courses?.name || sheet.courses?.code || 'Curso';
+      const cycle = sheet.cycle || '';
+      const exam = sheet.exam_type || '';
+      const hasSolution = sheet.solution_kind ? 'Tiene solucionario' : 'Sin solucionario';
+
+      const card = document.createElement('a');
+      card.href = `/exams/${sheet.id}`;
+      card.className =
+        'relative rounded-lg border border-global-border bg-global-card p-4 shadow hover:shadow-lg hover:-translate-y-1 transition block';
+      card.innerHTML = `
+        <div class="text-sm text-global-text-muted">${exam} · ${cycle}</div>
+        <div class="mt-1 text-lg font-semibold text-global-text">${courseLabel}</div>
+        <div class="mt-2 text-xs text-global-text-muted">${hasSolution}</div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  render();
+  window.addEventListener('favorites:changed', render);
+</script>
