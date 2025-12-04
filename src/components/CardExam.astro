@@ -32,31 +32,139 @@ const noCheckIcon = `
 `;
 ---
 
-<a
-  href={resolvedHref}
-  class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105"
->
-  
-  <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
-  
-  <div class="flex items-center  pr-2 justify-between -mt-2">
-    
-    <span class="text-base md:text-lg font-semibold text-global-text">{courseLabel}</span>
-    
-    {hasSolution ? (
-      <Fragment set:html={checkIcon} />
-    ) : (
-      <Fragment set:html={noCheckIcon} />
-    )}
+<div class="relative" data-fav-card>
+  <button
+    type="button"
+    class="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full border border-global-border bg-global-card/80 hover:border-[#51A624] hover:text-[#51A624] transition"
+    data-fav-btn
+    data-sheet-id={sheet?.id}
+    aria-label="Guardar plancha"
+    aria-pressed="false"
+  >
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z" />
+    </svg>
+  </button>
 
-  </div>
-  {examLabel ? (
-    <div class="flex items-center justify-between gap-2 pr-2 text-sm md:text-base">
-      <span class="font-semibold text-global-text-muted">{examLabel}</span>
-      <span class="text-global-text-muted">{cycleLabel}</span>
+  <a
+    href={resolvedHref}
+    class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105"
+  >
+    <div class="w-full aspect-3/2 rounded bg-global-bg mb-4"></div>
+    
+    <div class="flex items-center  pr-2 justify-between -mt-2">
+      
+      <span class="text-base md:text-lg font-semibold text-global-text">{courseLabel}</span>
+      
+      {hasSolution ? (
+        <Fragment set:html={checkIcon} />
+      ) : (
+        <Fragment set:html={noCheckIcon} />
+      )}
+
     </div>
-  ) : (
-    <span class="text-sm md:text-base font-medium text-global-text-muted">{cycleLabel}</span>
-  )}
-  
-</a>
+    {examLabel ? (
+      <div class="flex items-center justify-between gap-2 pr-2 text-sm md:text-base">
+        <span class="font-semibold text-global-text-muted">{examLabel}</span>
+        <span class="text-global-text-muted">{cycleLabel}</span>
+      </div>
+    ) : (
+      <span class="text-sm md:text-base font-medium text-global-text-muted">{cycleLabel}</span>
+    )}
+    
+  </a>
+</div>
+
+<script is:inline>
+  // Evita redeclarar variables si el componente se renderiza varias veces
+  if (!window.__trikaFavInit) {
+    window.__trikaFavInit = true;
+
+    const KEY = 'trikaweb:favorites';
+
+    const hasWindow = () =>
+      typeof window !== 'undefined' &&
+      typeof localStorage !== 'undefined' &&
+      typeof JSON !== 'undefined';
+
+    const loadFavorites = () => {
+      if (!hasWindow()) return [];
+      try {
+        const raw = localStorage.getItem(KEY);
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr)
+          ? arr.map(Number).filter(n => Number.isInteger(n))
+          : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const saveFavorites = (ids) => {
+      if (!hasWindow()) return;
+      localStorage.setItem(KEY, JSON.stringify(ids));
+      window.dispatchEvent(new CustomEvent('favorites:changed', { detail: { ids } }));
+    };
+
+    const isFavorite = (id) => loadFavorites().includes(id);
+
+    const toggleFavorite = (id) => {
+      const ids = new Set(loadFavorites());
+      ids.has(id) ? ids.delete(id) : ids.add(id);
+      const next = Array.from(ids);
+      saveFavorites(next);
+      return next;
+    };
+
+    function updateBtn(btn) {
+      const id = Number(btn?.dataset.sheetId);
+      if (!Number.isInteger(id)) return;
+      const on = isFavorite(id);
+      btn.setAttribute('aria-pressed', String(on));
+      // estado activo
+      btn.classList.toggle('bg-[#51A624]', on);
+      btn.classList.toggle('text-[#0B1C0B]', on);
+      btn.classList.toggle('border-[#0B1C0B]', on);
+      // estado inactivo
+      btn.classList.toggle('bg-global-card/80', !on);
+      btn.classList.toggle('border-global-border', !on);
+      btn.classList.toggle('text-global-text', !on);
+      // hover solo cuando está inactivo
+      btn.classList.toggle('hover:border-[#51A624]', !on);
+      btn.classList.toggle('hover:text-[#51A624]', !on);
+    }
+
+    function init() {
+      const buttons = Array.from(document.querySelectorAll('[data-fav-btn]'));
+      buttons.forEach(updateBtn);
+
+      document.addEventListener(
+        'click',
+        (e) => {
+          const btn = e.target && e.target.closest
+            ? e.target.closest('[data-fav-btn]')
+            : null;
+          if (!btn) return;
+          const id = Number(btn.dataset.sheetId);
+          if (!Number.isInteger(id)) return;
+
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFavorite(id);
+          updateBtn(btn);
+        },
+        { capture: true }
+      );
+
+      window.addEventListener('favorites:changed', () => {
+        buttons.forEach(updateBtn);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init, { once: true });
+    } else {
+      init();
+    }
+  }
+</script>
