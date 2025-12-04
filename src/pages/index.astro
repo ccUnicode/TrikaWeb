@@ -5,7 +5,11 @@ import Layout from "../layouts/Layout.astro";
 import SearchAutocomplete from "../components/SearchAutocomplete.astro";
 import CardExam from "../components/CardExam.astro";
 import TeacherCard from "../components/TeacherCard.astro";
-import { getTopSheetsByDifficulty, getTopSheetsByViews, getTopTeachers } from "../lib/data";
+import {
+  getTopSheetsByDifficulty,
+  getTopSheetsByViews,
+  getTopTeachers,
+} from "../lib/data";
 
 const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopSheetsByViews(6),
@@ -13,132 +17,154 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopTeachers(6, 1),
 ]);
 ---
+
 <Layout title="TrikaWeb">
-  <div class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16">
+  <div
+    class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16"
+  >
+    <!-- Header now comes from Layout via <SiteHeader /> -->
 
-      <!-- Header now comes from Layout via <SiteHeader /> -->
+    <section
+      id="hero"
+      class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20"
+    >
+      <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
+        <h1
+          class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left"
+        >
+          Planchas y resenas de profes? Todo en un solo lugar.
+        </h1>
+        <p
+          class="max-w-[383px] text-base leading-6 text-global-text-muted text-center md:text-left"
+        >
+          La experiencia de generaciones, organizada para que estudies mejor y
+          evites la trika.
+        </p>
+      </div>
 
-      <section id="hero" class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20">
-        <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
-          <h1 class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left">
-            Planchas y resenas de profes?
-            Todo en un solo lugar.
-          </h1>
-          <p class="max-w-[383px] text-base leading-6 text-global-text-muted text-center md:text-left">
-            La experiencia de generaciones, organizada para que estudies mejor y evites la trika.
-          </p>
+      <div class="flex items-center justify-center">
+        <img
+          src="/img/mascota.png"
+          alt="Mascota Trika"
+          class="h-auto w-auto max-w-[257px]"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+    </section>
+
+    <!--SECCION DE PLANCHAS -->
+
+    <section
+      id="planchas"
+      class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16"
+    >
+      <div class="flex w-full flex-col md:flex-row items-center gap-8">
+        <div class="w-full md:w-[118px] text-center md:text-left">
+          <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
         </div>
 
-        <div class="flex items-center justify-center">
-          <img
-            src="/img/mascota.png"
-            alt="Mascota Trika"
-            class="h-auto w-auto max-w-[257px]"
-            loading="lazy"
-            decoding="async"
+        <div class="flex w-full flex-1 justify-center md:justify-end">
+          <SearchAutocomplete
+            id="plancha"
+            placeholder="Busca cursos o profesores..."
+            endpoint="/api/search"
+            class="max-w-[400px]"
           />
         </div>
-      </section>
+      </div>
 
-<!--SECCION DE PLANCHAS -->
-
-  <section  id="planchas" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16">
-
-        <div class="flex w-full flex-col md:flex-row items-center gap-8">
-          
-          <div class="w-full md:w-[118px] text-center md:text-left">
-            <h2 class="text-[32px] leading-10 font-semibold">Planchas</h2>
-          </div>
-          
-          <div class="flex w-full flex-1 justify-center md:justify-end">
-            <SearchAutocomplete
-              id="plancha"
-              placeholder="Ingresa el curso, evaluacion o ciclo..."
-              targetSelector=".plancha-card"
-              fields="curso,evaluacion,ciclo"
-              filter="curso,evaluacion,ciclo,solucion"
-              class="max-w-[400px]"
-            />
-          </div>
-        </div>
-
-        <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1">
-            {planchasPopulares.length === 0 ? (
+      <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1"
+        >
+          {
+            planchasPopulares.length === 0 ? (
               <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
                 Aun no hay planchas con vistas registradas.
               </p>
             ) : (
-              planchasPopulares.map(sheet => (
+              planchasPopulares.map((sheet) => (
                 <article
                   class="plancha-card w-full"
-                  data-curso={sheet.course_name ?? sheet.course_code ?? 'Curso'}
+                  data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
                   data-evaluacion={sheet.exam_type}
                   data-ciclo={sheet.cycle}
-                  data-solucion={sheet.solution_kind ? 'si' : 'no'}
+                  data-solucion={sheet.solution_kind ? "si" : "no"}
                 >
                   <CardExam sheet={sheet} />
                 </article>
               ))
-            )}
-          </div>
-          <div class="w-full md:w-[160px] text-center md:text-left">
-            <h3 class="text-[24px] leading-8 font-medium">Mas visitadas</h3>
-            <p class="text-sm text-global-text-muted mt-2">Se actualizan con descargas y vistas.</p>
-          </div>
+            )
+          }
         </div>
+        <div class="w-full md:w-[160px] text-center md:text-left">
+          <h3 class="text-[24px] leading-8 font-medium">Mas visitadas</h3>
+          <p class="text-sm text-global-text-muted mt-2">
+            Se actualizan con descargas y vistas.
+          </p>
+        </div>
+      </div>
 
-        <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
-          
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1">
-            {planchasDificiles.length === 0 ? (
+      <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
+        <div
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1"
+        >
+          {
+            planchasDificiles.length === 0 ? (
               <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
                 Aun no hay votos de dificultad suficientes.
               </p>
             ) : (
-              planchasDificiles.map(sheet => (
+              planchasDificiles.map((sheet) => (
                 <article
                   class="plancha-card w-full"
-                  data-curso={sheet.course_name ?? sheet.course_code ?? 'Curso'}
+                  data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
                   data-evaluacion={sheet.exam_type}
                   data-ciclo={sheet.cycle}
-                  data-solucion={sheet.solution_kind ? 'si' : 'no'}
+                  data-solucion={sheet.solution_kind ? "si" : "no"}
                 >
                   <CardExam sheet={sheet} />
                 </article>
               ))
-            )}
-          </div>
-          <div class="w-full md:w-[160px] text-center md:text-left">
-            <h3 class="text-[24px] leading-8 font-medium">Mas dificiles</h3>
-            <p class="text-sm text-global-text-muted mt-2">Basado en los votos de dificultad.</p>
-          </div>
+            )
+          }
         </div>
-        
-      </section>
-
-<!--Seccion de profesores -->
-
-  <section  id="profesores" class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16">
-        <div class="flex w-full items-start justify-between flex-wrap gap-4 px-2 sm:px-0">
-          <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
-          <a
-            href="/teachers"
-            class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
-          >
-            Ver todos
-          </a>
+        <div class="w-full md:w-[160px] text-center md:text-left">
+          <h3 class="text-[24px] leading-8 font-medium">Mas dificiles</h3>
+          <p class="text-sm text-global-text-muted mt-2">
+            Basado en los votos de dificultad.
+          </p>
         </div>
+      </div>
+    </section>
 
-        {topTeachers.length === 0 ? (
+    <!--Seccion de profesores -->
+
+    <section
+      id="profesores"
+      class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16"
+    >
+      <div
+        class="flex w-full items-start justify-between flex-wrap gap-4 px-2 sm:px-0"
+      >
+        <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
+        <a
+          href="/teachers"
+          class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
+        >
+          Ver todos
+        </a>
+      </div>
+
+      {
+        topTeachers.length === 0 ? (
           <p class="rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted w-full">
             Aun no hay calificaciones de profesores.
           </p>
         ) : (
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-6">
-            {topTeachers.map(teacher => (
+            {topTeachers.map((teacher) => (
               <TeacherCard
                 name={teacher.full_name}
                 role={teacher.courses?.[0]?.code ?? "Profesor"}
@@ -149,7 +175,8 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
               />
             ))}
           </div>
-        )}
-      </section>
+        )
+      }
+    </section>
   </div>
 </Layout>

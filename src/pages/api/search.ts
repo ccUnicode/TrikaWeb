@@ -1,26 +1,46 @@
 export const prerender = false;
-import type { APIRoute } from 'astro';
-import { searchEntities } from '../../lib/data';
+import type { APIRoute } from "astro";
+import { searchEntities } from "../../lib/data";
 
-export const GET: APIRoute = async ({ url }) => {
-  const query = url.searchParams.get('query') ?? url.searchParams.get('q') ?? '';
-  const limitParam = url.searchParams.get('limit');
-  const parsedLimit = limitParam ? Number(limitParam) : undefined;
-  const limit = Number.isFinite(parsedLimit) ? parsedLimit : undefined;
+export const GET: APIRoute = async ({ request }) => {
+    const url = new URL(request.url);
+    const query = url.searchParams.get("query") || "";
 
-  if (!query.trim()) {
-    return new Response(JSON.stringify({ error: 'query requerido' }), { status: 400 });
-  }
+    if (!query || query.length < 2) {
+        return new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+        });
+    }
 
-  try {
-    const results = await searchEntities(query, limit);
-    return new Response(JSON.stringify(results), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('search endpoint error', error);
-    return new Response(JSON.stringify({ error: 'search_failed' }), { status: 500 });
-  }
+    try {
+        const results = await searchEntities(query, 5);
+
+        // Format for autocomplete
+        const suggestions = [
+            ...results.courses.map(c => ({
+                text: `${c.code} - ${c.name}`,
+                type: "curso",
+                url: `/curso/${c.code}`
+            })),
+            ...results.teachers.map(t => ({
+                text: t.full_name,
+                type: "profesor",
+                url: `/teachers/${t.id}`
+            })),
+            ...results.sheets.map(s => ({
+                text: `${s.course_code} ${s.exam_type} ${s.cycle}`,
+                type: "plancha",
+                url: `/exams/${s.id}`
+            }))
+        ];
+
+        return new Response(JSON.stringify(suggestions), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+        });
+    } catch (e) {
+        console.error(e);
+        return new Response(JSON.stringify({ error: "Search failed" }), { status: 500 });
+    }
 };
-

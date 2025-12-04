@@ -2,222 +2,334 @@
 export interface Props {
   id: string; // identificador base (ej: "plancha")
   placeholder?: string;
-  targetSelector: string; // selector de cards (ej: ".plancha-card")
+  targetSelector?: string; // selector de cards (ej: ".plancha-card")
   fields?: string; // para sugerencias, separado por comas. ej: "curso,evaluacion,ciclo"
   filter?: string; // campos a filtrar, separado por comas. ej: "curso,evaluacion,ciclo,solucion"
+  endpoint?: string; // URL del endpoint para busqueda server-side (ej: "/api/search")
   class?: string;
 }
 
 const {
   id,
-  placeholder = 'Buscar...',
+  placeholder = "Buscar...",
   targetSelector,
-  fields = 'curso,evaluacion,ciclo',
-  filter = 'curso,evaluacion,ciclo,solucion',
-  class: extraClass = ''
+  fields = "curso,evaluacion,ciclo",
+  filter = "curso,evaluacion,ciclo,solucion",
+  endpoint = "",
+  class: extraClass = "",
 } = Astro.props as Props;
 
 const inputId = `${id}-search`;
-const clearId = `clear-${id}-search`;
+const clearId = `${id}-clear`;
 const listId = `${id}-suggestions`;
 ---
 
-<div class={`relative w-full ${extraClass}`} data-autocomplete data-target-selector={targetSelector} data-fields={fields} data-filter={filter}>
+<div
+  class={`relative w-full ${extraClass}`}
+  data-autocomplete
+  data-target-selector={targetSelector}
+  data-fields={fields}
+  data-filter={filter}
+  data-endpoint={endpoint}
+>
   <label for={inputId} class="sr-only">{placeholder}</label>
   <input
     id={inputId}
     type="search"
     placeholder={placeholder}
-    class="w-full rounded-full bg-global-bg text-global-text placeholder:text-global-text-muted px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#51A624]"
+    class="w-full rounded-full border border-global-border bg-global-bg px-5 py-3 pr-10 text-sm text-global-text placeholder-global-text-muted shadow-sm focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary"
     autocomplete="off"
     aria-autocomplete="list"
-    aria-haspopup="listbox"
+    aria-controls={listId}
     aria-expanded="false"
   />
 
-  <button id={clearId} type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-global-text-muted hover:text-global-text hidden" aria-label="Limpiar búsqueda">×</button>
+  <button
+    id={clearId}
+    type="button"
+    class="absolute right-3 top-1/2 -translate-y-1/2 text-global-text-muted hover:text-global-text hidden"
+    aria-label="Limpiar búsqueda">×</button
+  >
 
   <ul
     id={listId}
     role="listbox"
     class="hidden absolute mt-2 z-50 w-full max-h-56 overflow-auto rounded-lg bg-global-bg shadow-lg border border-global-surface text-sm"
-  ></ul>
+  >
+  </ul>
 </div>
 
 <script type="module">
   function setup(root) {
     const input = root.querySelector('input[type="search"]');
     const list = root.querySelector('ul[role="listbox"]');
-    const clearBtn = root.querySelector('button');
+    const clearBtn = root.querySelector("button");
 
-    const targetSelector = root.getAttribute('data-target-selector') || '';
-    const fieldsStr = root.getAttribute('data-fields') || '';
-    const filterStr = root.getAttribute('data-filter') || '';
+    const targetSelector = root.getAttribute("data-target-selector") || "";
+    const fieldsStr = root.getAttribute("data-fields") || "";
+    const filterStr = root.getAttribute("data-filter") || "";
+    const endpoint = root.getAttribute("data-endpoint") || "";
 
-    const fields = fieldsStr.split(',').map(s => s.trim()).filter(Boolean);
-    const filterFields = filterStr.split(',').map(s => s.trim()).filter(Boolean);
+    const fields = fieldsStr
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const filterFields = filterStr
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
 
-    const normalize = (s = '') =>
+    const normalize = (s = "") =>
       String(s)
         .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
 
-    const getCards = () => Array.from(document.querySelectorAll(targetSelector));
+    const getCards = () =>
+      Array.from(document.querySelectorAll(targetSelector));
+
+    let suggestions = [];
+    let activeIndex = -1;
 
     function buildSuggestions() {
+      if (endpoint) return []; // If endpoint is set, we don't build from DOM
       const cards = getCards();
       const map = new Map();
-      cards.forEach(card => {
-        fields.forEach(f => {
-          const v = card.dataset && card.dataset[f] ? card.dataset[f].trim() : '';
+      cards.forEach((card) => {
+        fields.forEach((f) => {
+          const v =
+            card.dataset && card.dataset[f] ? card.dataset[f].trim() : "";
           if (v) map.set(normalize(v), { text: v, type: f });
         });
       });
       return Array.from(map.values());
     }
 
-    let suggestions = buildSuggestions();
-    let activeIndex = -1;
-
     function renderSuggestions(listData) {
       if (!list || !input) return;
       if (!listData.length) {
-        list.classList.add('hidden');
-        input.setAttribute('aria-expanded', 'false');
+        list.classList.add("hidden");
+        input.setAttribute("aria-expanded", "false");
         return;
       }
-      list.innerHTML = listData.map((s, i) => `
-        <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" class="px-4 py-3 hover:bg-global-surface cursor-pointer">
+      list.innerHTML = listData
+        .map(
+          (s, i) => `
+        <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" data-url="${s.url || ""}" class="px-4 py-3 hover:bg-global-surface cursor-pointer">
           <div class="flex items-center justify-between">
             <span class="truncate">${s.text}</span>
             <small class="text-xs text-global-text-muted ml-3">${s.type}</small>
           </div>
         </li>
-      `).join('');
+      `,
+        )
+        .join("");
       activeIndex = -1;
-      list.classList.remove('hidden');
-      input.setAttribute('aria-expanded', 'true');
+      list.classList.remove("hidden");
+      input.setAttribute("aria-expanded", "true");
     }
 
     function hideSuggestions() {
       if (!list || !input) return;
-      list.classList.add('hidden');
-      input.setAttribute('aria-expanded', 'false');
+      list.classList.add("hidden");
+      input.setAttribute("aria-expanded", "false");
       activeIndex = -1;
-      Array.from(list.children).forEach(ch => ch.classList.remove('bg-global-surface'));
+      Array.from(list.children).forEach((ch) =>
+        ch.classList.remove("bg-global-surface"),
+      );
     }
 
     function showClearIfNeeded() {
-      if (!clearBtn || !input) return;
-      if (input.value.trim().length > 0) clearBtn.classList.remove('hidden');
-      else clearBtn.classList.add('hidden');
+      if (!input || !clearBtn) return;
+      if (input.value.trim().length > 0) clearBtn.classList.remove("hidden");
+      else clearBtn.classList.add("hidden");
     }
 
     function filterCards() {
+      if (endpoint) return; // No local filtering if using API
       const cards = getCards();
       if (!input) return;
       const q = input.value.trim();
       const tokens = normalize(q).split(/\s+/).filter(Boolean);
-      cards.forEach(card => {
-        const matches = tokens.length === 0 || tokens.every(t =>
-          filterFields.some(f => {
-            const ds = card.dataset && card.dataset[f] ? card.dataset[f] : '';
-            return normalize(ds).includes(t);
-          })
-        );
-        card.classList.toggle('hidden', !matches);
+
+      cards.forEach((card) => {
+        // Calculate relevance score
+        let score = 0;
+        if (tokens.length === 0) {
+          score = 1; // Show all if empty
+        } else {
+          const matches = tokens.every((t) =>
+            filterFields.some((f) => {
+              const ds = card.dataset && card.dataset[f] ? card.dataset[f] : "";
+              const val = normalize(ds);
+              if (val === t) return true; // Exact match
+              if (val.startsWith(t)) return true; // Starts with
+              return val.includes(t); // Includes
+            }),
+          );
+          if (matches) score = 1;
+        }
+
+        card.classList.toggle("hidden", score === 0);
       });
     }
 
-    if (input) {
-      input.addEventListener('focus', () => { suggestions = buildSuggestions(); });
+    // Debounce utility
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+      };
+    }
 
-      input.addEventListener('input', (e) => {
-        const target = e.target;
-        const q = target && 'value' in target ? String(target.value).trim() : '';
-        showClearIfNeeded();
-        const nq = normalize(q);
-        const results = nq ? suggestions.filter(s => normalize(s.text).includes(nq)).slice(0, 8) : [];
-        renderSuggestions(results);
-        filterCards();
+    const handleInput = debounce(async (e) => {
+      const target = e.target;
+      const q = target && "value" in target ? String(target.value).trim() : "";
+      showClearIfNeeded();
+      const nq = normalize(q);
+
+      if (endpoint) {
+        if (q.length < 2) {
+          renderSuggestions([]);
+          return;
+        }
+        try {
+          const res = await fetch(`${endpoint}?query=${encodeURIComponent(q)}`);
+          if (res.ok) {
+            const data = await res.json();
+            renderSuggestions(data);
+          }
+        } catch (err) {
+          console.error("Search error", err);
+        }
+        return;
+      }
+
+      // Improved sorting for suggestions (Local)
+      const results = nq
+        ? suggestions
+            .filter((s) => normalize(s.text).includes(nq))
+            .sort((a, b) => {
+              const na = normalize(a.text);
+              const nb = normalize(b.text);
+              // Exact match first
+              if (na === nq) return -1;
+              if (nb === nq) return 1;
+              // Starts with second
+              if (na.startsWith(nq) && !nb.startsWith(nq)) return -1;
+              if (!na.startsWith(nq) && nb.startsWith(nq)) return 1;
+              return 0;
+            })
+            .slice(0, 8)
+        : [];
+
+      renderSuggestions(results);
+      filterCards();
+    }, 300); // 300ms debounce
+
+    if (input) {
+      input.addEventListener("focus", () => {
+        if (!endpoint) suggestions = buildSuggestions();
       });
 
-      input.addEventListener('keydown', (e) => {
-        const key = 'key' in e ? e.key : '';
+      input.addEventListener("input", handleInput);
+
+      input.addEventListener("keydown", (e) => {
+        const key = "key" in e ? e.key : "";
         const items = Array.from(list?.children || []);
-        if (list?.classList.contains('hidden') || !items.length) {
-          if (key === 'ArrowDown' && suggestions.length) {
+        if (list?.classList.contains("hidden") || !items.length) {
+          if (key === "ArrowDown" && suggestions.length && !endpoint) {
             renderSuggestions(suggestions.slice(0, 8));
             e.preventDefault();
           }
           return;
         }
 
-        if (key === 'ArrowDown') {
+        if (key === "ArrowDown") {
           activeIndex = Math.min(activeIndex + 1, items.length - 1);
-          items.forEach(it => it.classList.remove('bg-global-surface'));
-          items[activeIndex].classList.add('bg-global-surface');
-          items[activeIndex].scrollIntoView({ block: 'nearest' });
+          items.forEach((it) => it.classList.remove("bg-global-surface"));
+          items[activeIndex].classList.add("bg-global-surface");
+          items[activeIndex].scrollIntoView({ block: "nearest" });
           e.preventDefault();
-        } else if (key === 'ArrowUp') {
+        } else if (key === "ArrowUp") {
           activeIndex = Math.max(activeIndex - 1, 0);
-          items.forEach(it => it.classList.remove('bg-global-surface'));
-          items[activeIndex].classList.add('bg-global-surface');
-          items[activeIndex].scrollIntoView({ block: 'nearest' });
+          items.forEach((it) => it.classList.remove("bg-global-surface"));
+          items[activeIndex].classList.add("bg-global-surface");
+          items[activeIndex].scrollIntoView({ block: "nearest" });
           e.preventDefault();
-        } else if (key === 'Enter') {
+        } else if (key === "Enter") {
           if (activeIndex >= 0 && items[activeIndex]) {
             const el = items[activeIndex];
-            const val = el && 'dataset' in el ? el.dataset.value : undefined;
-            input.value = val || '';
+            const val = el && "dataset" in el ? el.dataset.value : undefined;
+            const url = el && "dataset" in el ? el.dataset.url : undefined;
+
+            if (url) {
+              window.location.href = url;
+              return;
+            }
+
+            input.value = val || "";
             hideSuggestions();
             showClearIfNeeded();
             filterCards();
             e.preventDefault();
           }
-        } else if (key === 'Escape') {
+        } else if (key === "Escape") {
           hideSuggestions();
         }
       });
 
-      list?.addEventListener('click', (ev) => {
+      list?.addEventListener("click", (ev) => {
         const tgt = ev.target;
         if (!(tgt && tgt instanceof Element)) return;
         const li = tgt.closest('li[role="option"]');
         if (!li) return;
-        const val = li && 'dataset' in li ? li.dataset.value : undefined;
-        input.value = val || '';
+
+        const val = li && "dataset" in li ? li.dataset.value : undefined;
+        const url = li && "dataset" in li ? li.dataset.url : undefined;
+
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+
+        input.value = val || "";
         hideSuggestions();
         showClearIfNeeded();
         filterCards();
         input.focus();
       });
 
-      clearBtn?.addEventListener('click', () => {
-        input.value = '';
-        clearBtn.classList.add('hidden');
-        filterCards();
+      clearBtn?.addEventListener("click", () => {
+        input.value = "";
+        clearBtn.classList.add("hidden");
+        if (!endpoint) filterCards();
         hideSuggestions();
         input.focus();
       });
 
-      document.addEventListener('click', (e) => {
+      document.addEventListener("click", (e) => {
         const tgt = e.target;
         if (!(tgt && tgt instanceof Element)) return;
-        if (tgt.closest(`[id="${list?.id}"]`) || tgt.closest(`[id="${input?.id}"]`)) return;
+        if (
+          tgt.closest(`[id="${list?.id}"]`) ||
+          tgt.closest(`[id="${input?.id}"]`)
+        )
+          return;
         hideSuggestions();
       });
     }
   }
 
   function init() {
-    const roots = Array.from(document.querySelectorAll('[data-autocomplete]'));
+    const roots = Array.from(document.querySelectorAll("[data-autocomplete]"));
     roots.forEach(setup);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
   } else {
     init();
   }
