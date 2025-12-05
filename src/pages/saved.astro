@@ -1,153 +1,151 @@
 ---
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
-import CardExam from "../components/CardExam.astro";
 import IconHome from "../components/icons/IconHome.astro";
 ---
 
 <Layout title="Mis Guardados | TrikaWeb">
-    <main class="mx-auto max-w-[1200px] px-4 py-10 min-h-screen">
-        <header class="mb-8 flex items-center justify-between">
-            <h1 class="text-3xl font-bold text-global-text">Mis Guardados</h1>
-            <a
-                href="/"
-                class="text-global-primary hover:underline flex items-center gap-2"
-            >
-                <IconHome class="w-5 h-5" />
-                Volver al inicio
-            </a>
-        </header>
+  <main class="mx-auto max-w-[1200px] px-4 py-10 min-h-screen">
+    <header class="mb-8 flex items-center justify-between">
+      <h1 class="text-3xl font-bold text-global-text">Mis Guardados</h1>
+      <a
+        href="/"
+        class="text-global-primary hover:underline flex items-center gap-2"
+      >
+        <IconHome class="w-5 h-5" />
+        Volver al inicio
+      </a>
+    </header>
 
-        <div id="loading" class="py-12 text-center text-global-text-muted">
-            Cargando tus planchas guardadas...
-        </div>
+    <div id="loading" class="py-12 text-center text-global-text-muted">
+      Cargando tus planchas guardadas...
+    </div>
 
-        <div id="empty-state" class="hidden py-12 text-center">
-            <p class="text-xl text-global-text-muted mb-4">
-                Todavía no has guardado ninguna plancha.
-            </p>
-            <p class="text-sm text-global-text-muted">
-                Usa el icono de corazón en las cards para guardarlas aquí.
-            </p>
-            <a
-                href="/"
-                class="mt-6 inline-block rounded-full bg-global-primary px-6 py-2 text-black font-semibold hover:bg-global-primary-hover"
-            >
-                Explorar planchas
-            </a>
-        </div>
+    <div id="empty-state" class="hidden py-12 text-center">
+      <p class="text-xl text-global-text-muted mb-4">
+        Todavía no has guardado ninguna plancha.
+      </p>
+      <p class="text-sm text-global-text-muted">
+        Usa el icono de corazón en las cards para guardarlas aquí.
+      </p>
+      <a
+        href="/"
+        class="mt-6 inline-block rounded-full bg-global-primary px-6 py-2 text-black font-semibold hover:bg-global-primary-hover"
+      >
+        Explorar planchas
+      </a>
+    </div>
 
-        <div
-            id="grid"
-            class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
-        >
-            <!-- Cards injected via JS -->
-        </div>
-    </main>
+    <div
+      id="grid"
+      class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+    >
+      <!-- Cards injected via JS -->
+    </div>
+  </main>
 </Layout>
 
-<script>
-    import { getFavorites, isFavorite, toggleFavorite } from "../lib/favorites";
+<script lang="ts">
+  import { getFavorites, toggleFavorite } from "../lib/favorites";
 
-    const container = document.getElementById("saved-container");
-    const loading = document.getElementById("loading");
-    const emptyState = document.getElementById("empty-state");
-    const grid = document.getElementById("grid");
+  type SavedSheet = {
+    id: number;
+    course_name?: string | null;
+    course_code?: string | null;
+    exam_type?: string | null;
+    cycle?: string | null;
+    solution_kind?: string | null;
+  };
 
-    async function loadSaved() {
-        const ids = getFavorites();
+  const loading = document.getElementById("loading");
+  const emptyState = document.getElementById("empty-state");
+  const grid = document.getElementById("grid");
 
-        if (ids.length === 0) {
-            loading?.classList.add("hidden");
-            emptyState?.classList.remove("hidden");
-            grid?.classList.add("hidden");
-            return;
-        }
+  async function loadSaved() {
+    const ids = getFavorites();
 
-        try {
-            const res = await fetch("/api/sheets/batch", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids }),
-            });
+    if (!ids.length) {
+      loading?.classList.add("hidden");
+      emptyState?.classList.remove("hidden");
+      grid?.classList.add("hidden");
+      return;
+    }
 
-            if (!res.ok) throw new Error("Failed to fetch");
+    try {
+      const res = await fetch("/api/sheets/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
 
-            const sheets = await res.json();
+      if (!res.ok) throw new Error("Failed to fetch");
 
-            if (sheets.length === 0) {
-                loading?.classList.add("hidden");
-                emptyState?.classList.remove("hidden");
-                grid?.classList.add("hidden");
-                return;
+      const sheets = (await res.json()) as SavedSheet[];
+
+      if (!sheets.length) {
+        loading?.classList.add("hidden");
+        emptyState?.classList.remove("hidden");
+        grid?.classList.add("hidden");
+        return;
+      }
+
+      renderGrid(sheets);
+      loading?.classList.add("hidden");
+      emptyState?.classList.add("hidden");
+      grid?.classList.remove("hidden");
+    } catch (e) {
+      console.error(e);
+      if (loading) loading.textContent = "Error al cargar favoritos.";
+    }
+  }
+
+  function renderGrid(sheets: SavedSheet[]) {
+    if (!(grid instanceof HTMLElement)) return;
+    grid.innerHTML = "";
+
+    sheets.forEach((sheet) => {
+      const card = document.createElement("article");
+      card.className = "w-full";
+      card.innerHTML = `
+        <a href="/exams/${sheet.id}" class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105 relative group">
+          <button class="absolute top-2 right-2 z-10 p-2 text-red-500 hover:scale-110 transition" data-remove-id="${sheet.id}" title="Quitar de guardados">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </button>
+          <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
+          <div class="flex items-center pr-2 justify-between -mt-2">
+            <span class="text-base md:text-lg font-semibold text-global-text">${sheet.course_name || sheet.course_code || "Curso"}</span>
+            ${
+              sheet.solution_kind
+                ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-primary"><span class="block h-1.5 w-2.5 rounded-sm border-b-[3px] border-l-[3px] border-global-text" style="transform: rotate(-45deg) translate(-1px, -1px);"></span></span>`
+                : `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-border"><span class="block h-0.5 w-2.5 rounded-full bg-white/50"></span></span>`
             }
+          </div>
+          <div class="flex items-center justify-between gap-2 pr-2 text-sm md:text-base">
+            <span class="font-semibold text-global-text-muted">${sheet.exam_type ?? ""}</span>
+            <span class="text-global-text-muted">${sheet.cycle ?? ""}</span>
+          </div>
+        </a>
+      `;
+      grid.appendChild(card);
+    });
 
-            renderGrid(sheets);
-            loading?.classList.add("hidden");
-            emptyState?.classList.add("hidden");
-            grid?.classList.remove("hidden");
-        } catch (e) {
-            console.error(e);
-            if (loading) loading.textContent = "Error al cargar favoritos.";
+    grid.querySelectorAll("[data-remove-id]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const target = e.currentTarget as HTMLElement | null;
+        const id = Number(target?.dataset.removeId);
+        if (!Number.isInteger(id)) return;
+        toggleFavorite(id);
+        target?.closest("article")?.remove();
+        if (grid.children.length === 0) {
+          emptyState?.classList.remove("hidden");
+          grid.classList.add("hidden");
         }
-    }
+      });
+    });
+  }
 
-    function renderGrid(sheets: any[]) {
-        if (!grid) return;
-        grid.innerHTML = "";
-        sheets.forEach((sheet) => {
-            // Re-use CardExam structure manually or via a web component if possible.
-            // Since we can't easily hydrate Astro components client-side without islands,
-            // we'll reconstruct the HTML structure of CardExam here.
-            // A better approach would be to make CardExam a React/Preact component,
-            // but for now we stick to vanilla JS.
-
-            const card = document.createElement("article");
-            card.className = "w-full";
-            card.innerHTML = `
-                <a href="/exams/${sheet.id}" class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105 relative group">
-                    <button class="absolute top-2 right-2 z-10 p-2 text-red-500 hover:scale-110 transition" data-remove-id="${sheet.id}" title="Quitar de guardados">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                    </button>
-                    <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
-                    <div class="flex items-center pr-2 justify-between -mt-2">
-                        <span class="text-base md:text-lg font-semibold text-global-text">${sheet.course_name || sheet.course_code || "Curso"}</span>
-                        ${
-                            sheet.solution_kind
-                                ? `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-primary"><span class="block h-1.5 w-2.5 rounded-sm border-b-[3px] border-l-[3px] border-global-text" style="transform: rotate(-45deg) translate(-1px, -1px);"></span></span>`
-                                : `<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-border"><span class="block h-0.5 w-2.5 rounded-full bg-white/50"></span></span>`
-                        }
-                    </div>
-                    <div class="flex items-center justify-between gap-2 pr-2 text-sm md:text-base">
-                        <span class="font-semibold text-global-text-muted">${sheet.exam_type}</span>
-                        <span class="text-global-text-muted">${sheet.cycle}</span>
-                    </div>
-                </a>
-            `;
-            grid.appendChild(card);
-        });
-
-        // Attach remove listeners
-        grid.querySelectorAll("[data-remove-id]").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const id = Number(
-                    (e.currentTarget as HTMLElement).dataset.removeId,
-                );
-                toggleFavorite(id);
-                // Remove from DOM immediately
-                const article = (e.currentTarget as HTMLElement).closest(
-                    "article",
-                );
-                article?.remove();
-                if (grid.children.length === 0) {
-                    emptyState?.classList.remove("hidden");
-                    grid.classList.add("hidden");
-                }
-            });
-        });
-    }
-
-    loadSaved();
+  loadSaved();
+  window.addEventListener("favorites:updated", loadSaved);
 </script>

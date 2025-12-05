@@ -32,7 +32,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         <h1
           class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left"
         >
-          Planchas y resenas de profes? Todo en un solo lugar.
+          ¿Planchas y reseñas de profes? Todo en un solo lugar.
         </h1>
         <p
           class="max-w-[383px] text-base leading-6 text-global-text-muted text-center md:text-left"
@@ -40,6 +40,12 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           La experiencia de generaciones, organizada para que estudies mejor y
           evites la trika.
         </p>
+        <a
+          href="#planchas"
+          class="inline-flex items-center justify-center rounded-2xl bg-global-primary hover:bg-global-primary-hover px-6 py-3 text-base font-semibold text-black transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-global-primary"
+        >
+          Explorar planchas
+        </a>
       </div>
 
       <div class="flex items-center justify-center">
@@ -67,8 +73,10 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         <div class="flex w-full flex-1 justify-center md:justify-end">
           <SearchAutocomplete
             id="plancha"
-            placeholder="Busca cursos o profesores..."
-            endpoint="/api/search"
+            placeholder="Ingresa el curso, evaluacion o ciclo..."
+            targetSelector=".plancha-card"
+            fields="curso,evaluacion,ciclo"
+            filter="curso,evaluacion,ciclo,solucion"
             class="max-w-[400px]"
           />
         </div>
@@ -84,21 +92,29 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                 Aun no hay planchas con vistas registradas.
               </p>
             ) : (
-              planchasPopulares.map((sheet) => (
-                <article
-                  class="plancha-card w-full"
-                  data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
-                  data-evaluacion={sheet.exam_type}
-                  data-ciclo={sheet.cycle}
-                  data-solucion={sheet.solution_kind ? "si" : "no"}
-                >
-                  <CardExam sheet={sheet} />
-                </article>
-              ))
+              planchasPopulares.map((sheet) => {
+                const courseCode = sheet.course_code ?? "N/A";
+                return (
+                  <article
+                    class="plancha-card w-full relative"
+                    data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
+                    data-evaluacion={sheet.exam_type}
+                    data-ciclo={sheet.cycle}
+                    data-solucion={sheet.solution_kind ? "si" : "no"}
+                  >
+                    {courseCode !== "N/A" && (
+                      <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
+                        {courseCode}
+                      </span>
+                    )}
+                    <CardExam sheet={sheet} />
+                  </article>
+                );
+              })
             )
           }
         </div>
-        <div class="w-full md:w-[160px] text-center md:text-left">
+        <div class="w-full md:w-40 text-center md:text-left">
           <h3 class="text-[24px] leading-8 font-medium">Mas visitadas</h3>
           <p class="text-sm text-global-text-muted mt-2">
             Se actualizan con descargas y vistas.
@@ -116,21 +132,29 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                 Aun no hay votos de dificultad suficientes.
               </p>
             ) : (
-              planchasDificiles.map((sheet) => (
-                <article
-                  class="plancha-card w-full"
-                  data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
-                  data-evaluacion={sheet.exam_type}
-                  data-ciclo={sheet.cycle}
-                  data-solucion={sheet.solution_kind ? "si" : "no"}
-                >
-                  <CardExam sheet={sheet} />
-                </article>
-              ))
+              planchasDificiles.map((sheet) => {
+                const courseCode = sheet.course_code ?? "N/A";
+                return (
+                  <article
+                    class="plancha-card w-full relative"
+                    data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
+                    data-evaluacion={sheet.exam_type}
+                    data-ciclo={sheet.cycle}
+                    data-solucion={sheet.solution_kind ? "si" : "no"}
+                  >
+                    {courseCode !== "N/A" && (
+                      <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
+                        {courseCode}
+                      </span>
+                    )}
+                    <CardExam sheet={sheet} />
+                  </article>
+                );
+              })
             )
           }
         </div>
-        <div class="w-full md:w-[160px] text-center md:text-left">
+        <div class="w-full md:w-40 text-center md:text-left">
           <h3 class="text-[24px] leading-8 font-medium">Mas dificiles</h3>
           <p class="text-sm text-global-text-muted mt-2">
             Basado en los votos de dificultad.
