@@ -2,6 +2,7 @@
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
+import TeacherAvatar from "../../components/TeacherAvatar.astro";
 import { getTeacherDetail } from "../../lib/data";
 
 const teacherId = Number(Astro.params.id);
@@ -32,7 +33,11 @@ const formatScore = (n: number | null) =>
 const formatDate = (iso: string) => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "Fecha desconocida";
-  return date.toLocaleDateString("es-PE", { year: "numeric", month: "short", day: "numeric" });
+  return date.toLocaleDateString("es-PE", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 };
 
 const safeBio =
@@ -57,29 +62,35 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
   <main class="mx-auto max-w-6xl px-4 py-10 text-global-text">
     <div class="grid gap-6 lg:grid-cols-3">
       <!-- Columna izquierda: avatar, nombre, score y CTA -->
-      <section class="rounded-3xl bg-global-card border border-global-border/40 p-6 flex flex-col gap-6 shadow-lg">
+      <section
+        class="rounded-3xl bg-global-card border border-global-border-subtle p-6 flex flex-col gap-6 shadow-lg"
+      >
         <div class="flex flex-col items-center gap-6">
-          <div class="h-48 w-48 sm:h-52 sm:w-52 rounded-3xl bg-global-bg border border-global-border/50 overflow-hidden">
-            <img
-              src={avatarUrl}
-              alt={`Foto de ${detail.teacher.full_name}`}
-              class="h-full w-full object-cover object-center"
-              loading="lazy"
-              onerror="this.onerror=null;this.src='/img/teacher.png';"
-            />
-          </div>
-          <div class="w-full rounded-2xl bg-global-card border border-global-border/40 px-4 py-3 text-center">
+          <TeacherAvatar
+            name={detail.teacher.full_name}
+            avatarSrc={detail.teacher.avatar_url}
+            size="lg"
+          />
+          <div
+            class="w-full rounded-2xl bg-global-card border border-global-border-subtle px-4 py-3 text-center"
+          >
             <p class="text-lg font-semibold">{detail.teacher.full_name}</p>
           </div>
         </div>
-        <div class="flex items-center justify-between bg-global-bg/60 rounded-2xl px-4 py-3">
+        <div
+          class="flex items-center justify-between bg-global-bg/60 rounded-2xl px-4 py-3"
+        >
           <div class="text-sm text-global-text-muted leading-tight">
             <p>Puntuacion</p>
             <p>General</p>
           </div>
           <div class="text-right">
-            <p class="text-4xl font-bold">{formatScore(detail.teacher.avg_overall)}</p>
-            <p class="text-xs text-global-text-muted mt-1">{detail.teacher.rating_count} resenas</p>
+            <p class="text-4xl font-bold">
+              {formatScore(detail.teacher.avg_overall)}
+            </p>
+            <p class="text-xs text-global-text-muted mt-1">
+              {detail.teacher.rating_count} resenas
+            </p>
           </div>
         </div>
         <button
@@ -92,51 +103,61 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
       </section>
 
       <!-- Columna centro: descripción y estadísticas -->
-      <section class="rounded-3xl bg-global-card border border-global-border/40 p-6 space-y-6 shadow-lg">
+      <section
+        class="rounded-3xl bg-global-card border border-global-border-subtle p-6 space-y-6 shadow-lg"
+      >
         <div class="space-y-3">
           <h2 class="text-2xl font-semibold">Descripción</h2>
-          <p class="text-global-text-muted leading-relaxed max-h-40 overflow-y-auto pr-1 teacher-scroll">
+          <p
+            class="text-global-text-muted leading-relaxed max-h-40 overflow-y-auto pr-1 teacher-scroll text-justify-bio"
+          >
             {safeBio}
           </p>
         </div>
         <div class="space-y-4">
           <h3 class="text-2xl font-semibold">Estadísticas</h3>
           <div class="space-y-3">
-            {statsItems.map(item => (
-              <div class="flex items-center gap-3">
-                <span class="min-w-[120px]">{item.label}</span>
-                <div class="flex-1 h-8 rounded-md bg-global-bg/60 border border-global-border/40 relative overflow-hidden">
-                  {
-                    item.value !== null ? (
+            {
+              statsItems.map((item) => (
+                <div class="flex items-center gap-3">
+                  <span class="min-w-[120px]">{item.label}</span>
+                  <div class="flex-1 h-8 rounded-md bg-global-bg/60 border border-global-border-subtle relative overflow-hidden">
+                    {item.value !== null ? (
                       <div
                         class="absolute inset-y-0 left-0 bg-global-primary/80"
-                        style={{ width: `${Math.min(100, (item.value / 5) * 100)}%` }}
+                        style={{
+                          width: `${Math.min(100, (item.value / 5) * 100)}%`,
+                        }}
                       />
-                    ) : null
-                  }
-                  <span class="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-semibold">
-                    {formatScore(item.value)}
-                  </span>
+                    ) : null}
+                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-semibold">
+                      {formatScore(item.value)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            }
           </div>
         </div>
       </section>
 
       <!-- Columna derecha: cursos y comentarios -->
-      <section class="rounded-3xl bg-global-card border border-global-border/40 p-6 space-y-6 shadow-lg">
+      <section
+        class="rounded-3xl bg-global-card border border-global-border-subtle p-6 space-y-6 shadow-lg"
+      >
         <div class="space-y-3">
           <h3 class="text-2xl font-semibold text-center">Cursos</h3>
           {
             detail.courses.length === 0 ? (
-              <p class="text-center text-global-text-muted text-sm">Sin cursos asociados.</p>
+              <p class="text-center text-global-text-muted text-sm">
+                Sin cursos asociados.
+              </p>
             ) : (
               <div class="flex flex-col gap-3">
-                {detail.courses.map(course => (
+                {detail.courses.map((course) => (
                   <a
                     href={`/curso/${course.code}`}
-                    class="rounded-xl bg-global-bg/70 border border-global-border/40 px-4 py-2 text-center font-medium hover:border-global-primary transition"
+                    class="rounded-xl bg-global-bg/70 border border-global-border-subtle px-4 py-2 text-center font-medium hover:border-global-primary transition"
                   >
                     {course.code} · {course.name}
                   </a>
@@ -150,24 +171,33 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
           <h3 class="text-2xl font-semibold text-center">Comentarios</h3>
           {
             detail.reviews.length === 0 ? (
-              <p class="text-center text-global-text-muted text-sm">Sin comentarios visibles.</p>
+              <p class="text-center text-global-text-muted text-sm">
+                Sin comentarios visibles.
+              </p>
             ) : (
               <div class="flex flex-col gap-3 max-h-80 overflow-y-auto pr-2 teacher-scroll">
-                {detail.reviews.map(review => (
-                  <article class="rounded-xl bg-global-bg/70 border border-global-border/40 px-4 py-3 space-y-2">
+                {detail.reviews.map((review) => (
+                  <article class="rounded-xl bg-global-bg/70 border border-global-border-subtle px-4 py-3 space-y-2">
+                    {" "}
                     <header class="flex items-center justify-between text-sm">
                       <div class="leading-tight">
                         <span class="font-semibold block">Anonimo</span>
-                        <time class="text-[11px] text-global-text-muted/80">{formatDate(review.created_at)}</time>
+                        <time class="text-[11px] text-global-text-muted/80">
+                          {formatDate(review.created_at)}
+                        </time>
                       </div>
-                      <span class="text-global-text-muted font-semibold">{formatScore(review.overall)}</span>
+                      <span class="text-global-text-muted font-semibold">
+                        {formatScore(review.overall)}
+                      </span>
                     </header>
                     {review.comment ? (
                       <p class="text-sm text-global-text-muted leading-relaxed text-justify max-h-24 overflow-y-auto teacher-scroll pr-1">
                         {review.comment}
                       </p>
                     ) : (
-                      <p class="text-xs text-global-text-muted italic">Sin comentario.</p>
+                      <p class="text-xs text-global-text-muted italic">
+                        Sin comentario.
+                      </p>
                     )}
                   </article>
                 ))}
@@ -183,7 +213,9 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                 >
                   ← Anterior
                 </a>
-                <span>Página {page} de {detail.pagination.totalPages}</span>
+                <span>
+                  Página {page} de {detail.pagination.totalPages}
+                </span>
                 <a
                   class={`px-3 py-2 rounded-lg border ${page < detail.pagination.totalPages ? "border-global-border hover:border-global-primary" : "border-transparent opacity-50 pointer-events-none"}`}
                   href={`/teachers/${teacherId}?page=${Math.min(detail.pagination.totalPages, page + 1)}&pageSize=${pageSize}`}
@@ -203,7 +235,9 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
   id="rating-modal"
   class="hidden fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
 >
-  <div class="rating-modal relative w-full max-w-2xl rounded-3xl bg-global-card border border-global-border/50 p-6 shadow-2xl">
+  <div
+    class="rating-modal relative w-full max-w-2xl rounded-3xl bg-global-card border border-global-border/50 p-6 shadow-2xl"
+  >
     <button
       type="button"
       id="close-rating-modal"
@@ -212,7 +246,9 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
     >
       ✕
     </button>
-    <h3 class="text-2xl font-semibold mb-4">Calificar a {detail.teacher.full_name}</h3>
+    <h3 class="text-2xl font-semibold mb-4">
+      Calificar a {detail.teacher.full_name}
+    </h3>
     <TeacherRatingForm
       teacherId={detail.teacher.id}
       avg={detail.teacher.avg_overall}
@@ -239,19 +275,19 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 </style>
 
 <script>
-  const openBtn = document.getElementById('open-rating-modal');
-  const modal = document.getElementById('rating-modal');
-  const closeBtn = document.getElementById('close-rating-modal');
+  const openBtn = document.getElementById("open-rating-modal");
+  const modal = document.getElementById("rating-modal");
+  const closeBtn = document.getElementById("close-rating-modal");
 
-  const openModal = () => modal?.classList.remove('hidden');
-  const closeModal = () => modal?.classList.add('hidden');
+  const openModal = () => modal?.classList.remove("hidden");
+  const closeModal = () => modal?.classList.add("hidden");
 
-  openBtn?.addEventListener('click', openModal);
-  closeBtn?.addEventListener('click', closeModal);
-  modal?.addEventListener('click', (e) => {
+  openBtn?.addEventListener("click", openModal);
+  closeBtn?.addEventListener("click", closeModal);
+  modal?.addEventListener("click", (e) => {
     if (e.target === modal) closeModal();
   });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
   });
 </script>

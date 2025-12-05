@@ -14,7 +14,8 @@ if (!sheetId) {
 const supa = supabaseAdmin();
 const { data: sheet, error } = await supa
   .from("sheets")
-  .select(`
+  .select(
+    `
     id,
     exam_type,
     cycle,
@@ -27,7 +28,8 @@ const { data: sheet, error } = await supa
     solution_storage_path,
     solution_video_url,
     courses:course_id (code,name)
-  `)
+  `,
+  )
   .eq("id", sheetId)
   .single();
 
@@ -37,18 +39,25 @@ if (error || !sheet) {
 
 const courseCode = sheet.courses?.code ?? "Curso";
 const courseName = sheet.courses?.name ?? "Curso";
-const headerTitle = `${courseCode} - ${sheet.exam_type || "Plancha"} ${sheet.cycle || ""}`.trim();
-const description = sheet.teacher_hint || `${sheet.exam_type || "Evaluacion"} - ${sheet.cycle || "Sin ciclo"}`;
+const headerTitle =
+  `${courseCode} - ${sheet.exam_type || "Plancha"} ${sheet.cycle || ""}`.trim();
+const description =
+  sheet.teacher_hint ||
+  `${sheet.exam_type || "Evaluacion"} - ${sheet.cycle || "Sin ciclo"}`;
 
 let examUrl: string | null = null;
 if (sheet.exam_storage_path) {
-  const { data } = await supa.storage.from("exams").createSignedUrl(sheet.exam_storage_path, 600);
+  const { data } = await supa.storage
+    .from("exams")
+    .createSignedUrl(sheet.exam_storage_path, 600);
   examUrl = data?.signedUrl ?? null;
 }
 
 let solutionUrl: string | null = null;
 if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
-  const { data } = await supa.storage.from("solutions").createSignedUrl(sheet.solution_storage_path, 600);
+  const { data } = await supa.storage
+    .from("solutions")
+    .createSignedUrl(sheet.solution_storage_path, 600);
   solutionUrl = data?.signedUrl ?? null;
 } else if (sheet.solution_kind === "video" && sheet.solution_video_url) {
   solutionUrl = sheet.solution_video_url;
@@ -58,63 +67,101 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
 <Layout title={headerTitle}>
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
     <header class="space-y-3 border-b border-global-border/50 pb-6">
-      <p class="text-sm uppercase tracking-[0.3em] text-global-text-muted">Plancha</p>
-      <h1 class="text-3xl font-bold text-global-text">{courseCode} - {courseName}</h1>
-      <div class="flex flex-wrap items-center gap-3 text-sm text-global-text-muted">
-        <span class="rounded-full bg-global-surface px-3 py-1 font-semibold text-global-text">
+      <p class="text-sm uppercase tracking-[0.3em] text-global-text-muted">
+        Plancha
+      </p>
+      <h1 class="text-3xl font-bold text-global-text">
+        {courseCode} - {courseName}
+      </h1>
+      <div
+        class="flex flex-wrap items-center gap-3 text-sm text-global-text-muted"
+      >
+        <span
+          class="rounded-full bg-global-surface px-3 py-1 font-semibold text-global-text"
+        >
           {sheet.exam_type} - {sheet.cycle}
         </span>
-        {sheet.view_count !== null && (
-          <span>Vistas: <strong>{sheet.view_count}</strong></span>
-        )}
-        {sheet.rating_count !== null && (
-          <span>Votos: <strong>{sheet.rating_count}</strong></span>
-        )}
+        {
+          sheet.view_count !== null && (
+            <span>
+              Vistas: <strong>{sheet.view_count}</strong>
+            </span>
+          )
+        }
+        {
+          sheet.rating_count !== null && (
+            <span>
+              Votos: <strong>{sheet.rating_count}</strong>
+            </span>
+          )
+        }
       </div>
       <p class="text-base text-global-text-muted">{description}</p>
 
       <div class="flex flex-wrap gap-3">
         <DownloadButton sheetId={sheet.id} downloadUrl={examUrl || undefined} />
-        {solutionUrl && (
-          <a
-            href={solutionUrl}
-            target="_blank"
-            rel="noreferrer"
-            class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
-          >
-            Ver solucionario
-          </a>
-        )}
+        {
+          solutionUrl && (
+            <a
+              href={solutionUrl}
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
+            >
+              Ver solucionario
+            </a>
+          )
+        }
       </div>
     </header>
 
     <section class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-      <div class="rounded-2xl border border-global-border/40 bg-global-surface/60 p-2 sm:p-4">
-        {examUrl ? (
-          <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40 shadow-lg">
-            <iframe
-              src={`${examUrl}#toolbar=0&navpanes=0`}
-              class="absolute inset-0 h-full w-full rounded-xl border-0"
-              loading="lazy"
-              allowfullscreen
-            ></iframe>
-          </div>
-        ) : (
-          <p class="rounded-xl border border-dashed border-global-border/50 bg-black/10 p-6 text-center text-global-text-muted">
-            No pudimos generar el visor para esta plancha.
-          </p>
-        )}
+      <div
+        class="rounded-2xl border border-global-border-subtle bg-global-surface/60 p-2 sm:p-4"
+      >
+        {
+          examUrl ? (
+            <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40 shadow-lg">
+              <iframe
+                src={`${examUrl}#toolbar=0&navpanes=0`}
+                class="absolute inset-0 h-full w-full rounded-xl border-0"
+                loading="lazy"
+                allowfullscreen
+              />
+            </div>
+          ) : (
+            <p class="rounded-xl border border-dashed border-global-border/50 bg-black/10 p-6 text-center text-global-text-muted">
+              No pudimos generar el visor para esta plancha.
+            </p>
+          )
+        }
       </div>
 
-      <div class="space-y-4 rounded-2xl border border-global-border/40 bg-global-surface/60 p-4 sm:p-6">
+      <div
+        class="space-y-4 rounded-2xl border border-global-border-subtle bg-global-surface/60 p-4 sm:p-6"
+      >
         <div class="space-y-2">
-          <p class="text-xs uppercase tracking-[0.2em] text-global-text-muted">Evaluacion</p>
-          <p class="text-xl font-semibold text-global-text">{sheet.exam_type}</p>
+          <p class="text-xs uppercase tracking-[0.2em] text-global-text-muted">
+            Evaluacion
+          </p>
+          <p class="text-xl font-semibold text-global-text">
+            {sheet.exam_type}
+          </p>
           <p class="text-sm text-global-text-muted">Ciclo: {sheet.cycle}</p>
-          {sheet.teacher_hint && <p class="text-sm text-global-text-muted">Profesor: {sheet.teacher_hint}</p>}
+          {
+            sheet.teacher_hint && (
+              <p class="text-sm text-global-text-muted">
+                Profesor: {sheet.teacher_hint}
+              </p>
+            )
+          }
         </div>
 
-        <SheetRating sheetId={sheet.id} avg={sheet.avg_difficulty} count={sheet.rating_count} />
+        <SheetRating
+          sheetId={sheet.id}
+          avg={sheet.avg_difficulty}
+          count={sheet.rating_count}
+        />
       </div>
     </section>
   </main>
@@ -122,14 +169,20 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
 
 <script type="module">
   import { ensureDeviceId } from "/src/lib/client/device";
-  const SHEET_ID = {sheetId};
+  const SHEET_ID = { sheetId };
 
   const registerView = () => {
-    const payload = JSON.stringify({ device_id: ensureDeviceId(), type: "view" });
+    const payload = JSON.stringify({
+      device_id: ensureDeviceId(),
+      type: "view",
+    });
     const url = `/api/sheets/${SHEET_ID}/view`;
 
     if (navigator.sendBeacon) {
-      navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
+      navigator.sendBeacon(
+        url,
+        new Blob([payload], { type: "application/json" }),
+      );
       return;
     }
 
@@ -143,11 +196,11 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
 
   if (typeof window !== "undefined") {
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", registerView, { once: true });
+      document.addEventListener("DOMContentLoaded", registerView, {
+        once: true,
+      });
     } else {
       registerView();
     }
   }
 </script>
-
-
