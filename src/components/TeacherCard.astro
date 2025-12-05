@@ -1,5 +1,6 @@
 ﻿---
-import IconStar from './icons/IconStar.astro';
+import IconStar from "./icons/IconStar.astro";
+import TeacherAvatar from "./TeacherAvatar.astro";
 
 export interface Props {
   name: string;
@@ -9,7 +10,7 @@ export interface Props {
   href?: string;
   class?: string;
   alt?: string;
-  ratingStyle?: 'stars' | 'squares';
+  ratingStyle?: "stars" | "squares";
   showButton?: boolean; // force show CTA even without href/openId
   buttonLabel?: string;
   openId?: string; // optional button id to integrate with modals
@@ -23,110 +24,126 @@ const {
   href,
   class: extraClass = "",
   alt,
-  ratingStyle = 'stars',
+  ratingStyle = "stars",
   showButton = false,
-  buttonLabel = 'Ver perfil',
+  buttonLabel = "Ver perfil",
   openId,
 } = Astro.props as Props;
 
 const safeRating = Math.max(0, Math.min(5, Math.round(rating)));
 const stars = Array.from({ length: 5 });
-const wrapperClass = `bg-global-card rounded-xl px-2 lg:px-0 py-6 flex flex-col items-center gap-4 text-center${extraClass ? ' ' + extraClass : ''}`;
-const toAvatarUrl = (src?: string) => {
-  const fallback = "/img/fallback_teacher.jpeg";
-  const cleanSrc = (src || "").trim();
-  if (!cleanSrc) return fallback;
-  if (cleanSrc.startsWith("http")) return cleanSrc;
-  const base = import.meta.env.PUBLIC_SUPABASE_URL;
-  if (!base) return fallback;
-  const clean = cleanSrc.replace(/^\/+/, "");
-  return `${base}/storage/v1/object/public/avatars/${clean}`;
-};
-const resolvedAvatar = toAvatarUrl(avatarSrc);
+const wrapperClass = `bg-global-card rounded-xl px-2 lg:px-0 py-6 flex flex-col items-center gap-4 text-center${extraClass ? " " + extraClass : ""}`;
 ---
 
-{href ? (
-  <a
-    href={href}
-    class={wrapperClass + " focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624]"}
-    aria-label={`Ver perfil de ${name}`}
-  >
-    <div class="mx-auto w-40 h-40 sm:w-40 sm:h-40 rounded-full bg-global-bg shadow-md overflow-hidden">
-      <img
-        src={resolvedAvatar}
-        alt={alt ?? `Foto de ${name}`}
-        class="w-full h-full rounded-full object-cover"
-        loading="lazy"
-        decoding="async"
-        onerror="this.onerror=null;this.src='/img/fallback_teacher.jpeg';"
-      />
-    </div>
+{
+  href ? (
+    <a
+      href={href}
+      class={
+        wrapperClass +
+        " focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624]"
+      }
+      aria-label={`Ver perfil de ${name}`}
+    >
+      <TeacherAvatar name={name} avatarSrc={avatarSrc} size="md" />
 
-    <div class="space-y-2">
-      <h3 class="text-xl md:text-2xl font-semibold text-global-text">{name}</h3>
-      <p class="text-sm md:text-base font-medium text-global-text-muted">{role}</p>
-    </div>
+      <div class="space-y-2">
+        <h3 class="text-xl md:text-2xl font-semibold text-global-text">
+          {name}
+        </h3>
+        <p class="text-sm md:text-base font-medium text-global-text-muted">
+          {role}
+        </p>
+      </div>
 
-    <div class="flex items-center gap-2" aria-label={`Calificación: ${safeRating} de 5`}>
-      {ratingStyle === 'stars'
-        ? stars.map((_, i) => (
-            <IconStar size={18} filled={i < safeRating} class="text-global-primary" />
-          ))
-        : stars.map((_, i) => (
-            <span class={i < safeRating ? 'block h-3.5 w-3.5 rounded-sm bg-global-primary' : 'block h-3.5 w-3.5 rounded-sm border border-global-border'} />
-          ))}
-    </div>
+      <div
+        class="flex items-center gap-2"
+        aria-label={`Calificación: ${safeRating} de 5`}
+      >
+        {ratingStyle === "stars"
+          ? stars.map((_, i) => (
+              <IconStar
+                size={18}
+                filled={i < safeRating}
+                class="text-global-primary"
+              />
+            ))
+          : stars.map((_, i) => (
+              <span
+                class={
+                  i < safeRating
+                    ? "block h-3.5 w-3.5 rounded-sm bg-global-primary"
+                    : "block h-3.5 w-3.5 rounded-sm border border-global-border"
+                }
+              />
+            ))}
+      </div>
 
-    <div class="pt-2">
-      {openId ? (
-        <button id={openId} class="inline-flex items-center justify-center rounded-2xl bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-[15px] font-semibold text-global-text focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624]">
-          {buttonLabel}
-        </button>
-      ) : showButton ? (
-        <span class="inline-flex items-center justify-center rounded-2xl bg-global-primary px-4 py-2 text-[15px] font-semibold text-global-text">
-          {buttonLabel}
-        </span>
-      ) : null}
-    </div>
-  </a>
-) : (
-  <div class={wrapperClass}>
-    <div class="mx-auto w-28 h-28 sm:w-40 sm:h-40 rounded-full bg-global-bg shadow-md overflow-hidden">
-      <img
-        src={resolvedAvatar}
-        alt={alt ?? `Foto de ${name}`}
-        class="w-full h-full rounded-full object-cover"
-        loading="lazy"
-        decoding="async"
-        onerror="this.onerror=null;this.src='/img/fallback_teacher.jpeg';"
-      />
-    </div>
+      <div class="pt-2">
+        {openId ? (
+          <button
+            id={openId}
+            class="inline-flex items-center justify-center rounded-2xl bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-[15px] font-semibold text-global-text focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624]"
+          >
+            {buttonLabel}
+          </button>
+        ) : showButton ? (
+          <span class="inline-flex items-center justify-center rounded-2xl bg-global-primary px-4 py-2 text-[15px] font-semibold text-global-text">
+            {buttonLabel}
+          </span>
+        ) : null}
+      </div>
+    </a>
+  ) : (
+    <div class={wrapperClass}>
+      <TeacherAvatar name={name} avatarSrc={avatarSrc} size="md" />
 
-    <div class="space-y-2">
-      <h3 class="text-xl md:text-2xl font-semibold text-global-text">{name}</h3>
-      <p class="text-sm md:text-base font-medium text-global-text-muted">{role}</p>
-    </div>
+      <div class="space-y-2">
+        <h3 class="text-xl md:text-2xl font-semibold text-global-text">
+          {name}
+        </h3>
+        <p class="text-sm md:text-base font-medium text-global-text-muted">
+          {role}
+        </p>
+      </div>
 
-    <div class="flex items-center gap-2" aria-label={`Calificación: ${safeRating} de 5`}>
-      {ratingStyle === 'stars'
-        ? stars.map((_, i) => (
-            <IconStar size={18} filled={i < safeRating} class="text-global-primary" />
-          ))
-        : stars.map((_, i) => (
-            <span class={i < safeRating ? 'block h-3.5 w-3.5 rounded-sm bg-global-primary' : 'block h-3.5 w-3.5 rounded-sm border border-global-border'} />
-          ))}
-    </div>
+      <div
+        class="flex items-center gap-2"
+        aria-label={`Calificación: ${safeRating} de 5`}
+      >
+        {ratingStyle === "stars"
+          ? stars.map((_, i) => (
+              <IconStar
+                size={18}
+                filled={i < safeRating}
+                class="text-global-primary"
+              />
+            ))
+          : stars.map((_, i) => (
+              <span
+                class={
+                  i < safeRating
+                    ? "block h-3.5 w-3.5 rounded-sm bg-global-primary"
+                    : "block h-3.5 w-3.5 rounded-sm border border-global-border"
+                }
+              />
+            ))}
+      </div>
 
-    <div class="pt-2">
-      {openId ? (
-        <button id={openId} class="inline-flex items-center justify-center rounded-2xl bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-[15px] font-semibold text-global-text focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624]">
-          {buttonLabel}
-        </button>
-      ) : showButton ? (
-        <span class="inline-flex cursor-default items-center justify-center rounded-2xl bg-global-primary px-4 py-2 text-[15px] font-semibold text-global-text opacity-70">
-          {buttonLabel}
-        </span>
-      ) : null}
+      <div class="pt-2">
+        {openId ? (
+          <button
+            id={openId}
+            class="inline-flex items-center justify-center rounded-2xl bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-[15px] font-semibold text-global-text focus:outline-none focus-visible:ring-2 focus-visible:ring-[#51A624]"
+          >
+            {buttonLabel}
+          </button>
+        ) : showButton ? (
+          <span class="inline-flex cursor-default items-center justify-center rounded-2xl bg-global-primary px-4 py-2 text-[15px] font-semibold text-global-text opacity-70">
+            {buttonLabel}
+          </span>
+        ) : null}
+      </div>
     </div>
-  </div>
-)}
+  )
+}

@@ -6,18 +6,29 @@
 @layer base {
   :root {
     /* 🎨 Paleta de colores (en formato RGB para permitir opacidades) */
-    --global-bg: 16 16 16;            /* #101010 */
-    --global-surface: 23 26 31;       /* #171A1F */
-    --global-card: 30 36 48;          /* #1E2430 */
-    --global-border: 42 50 64;        /* #2A3240 */
-    --global-text: 230 233 239;       /* #E6E9EF */
-    --global-text-muted: 154 164 178; /* #9AA4B2 */
-    --global-primary: 34 197 94;      /* #22C55E */
-    --global-primary-hover: 81 166 36;/* #51A624 */
+    --global-bg: 16 16 16;
+    /* #101010 */
+    --global-surface: 23 26 31;
+    /* #171A1F */
+    --global-card: 30 36 48;
+    /* #1E2430 */
+    --global-border: 42 50 64;
+    /* #2A3240 */
+    --global-border-subtle: 30 30 30;
+    /* #1E1E1E */
+    --global-text: 230 233 239;
+    /* #E6E9EF */
+    --global-text-muted: 180 189 201;
+    /* #B4BDC9 - Better contrast */
+    --global-primary: 34 197 94;
+    /* #22C55E */
+    --global-primary-hover: 81 166 36;
+    /* #51A624 */
   }
 
   html {
-    scroll-behavior: smooth; /* desplazamiento suave para anclas */
+    scroll-behavior: smooth;
+    /* desplazamiento suave para anclas */
   }
 
   body {
@@ -27,9 +38,14 @@
   }
 
   /* Evita que el header tape los títulos al saltar con #id */
-  section[id] { scroll-margin-top: 96px; }
+  section[id] {
+    scroll-margin-top: 96px;
+  }
+
   @media (min-width: 640px) {
-    section[id] { scroll-margin-top: 112px; }
+    section[id] {
+      scroll-margin-top: 112px;
+    }
   }
 }
 
@@ -56,33 +72,91 @@
 /* ⚙️ 3️⃣ UTILITIES: tokens, colores y scrollbars */
 /* ----------------------------------------------- */
 @layer utilities {
+
   /* 🎨 Backgrounds */
-  .bg-global-bg { background-color: rgb(var(--global-bg)); }
-  .bg-global-surface { background-color: rgb(var(--global-surface)); }
-  .bg-global-card { background-color: rgb(var(--global-card)); }
-  .bg-global-primary { background-color: rgb(var(--global-primary)); }
-  .hover\:bg-global-primary-hover:hover { background-color: rgb(var(--global-primary-hover)); }
+  .bg-global-bg {
+    background-color: rgb(var(--global-bg));
+  }
+
+  .bg-global-surface {
+    background-color: rgb(var(--global-surface));
+  }
+
+  .bg-global-card {
+    background-color: rgb(var(--global-card));
+  }
+
+  .bg-global-primary {
+    background-color: rgb(var(--global-primary));
+  }
+
+  .hover\:bg-global-primary-hover:hover {
+    background-color: rgb(var(--global-primary-hover));
+  }
 
   /* 🖋️ Text colors */
-  .text-global-text { color: rgb(var(--global-text)); }
-  .text-global-primary { color: rgb(var(--global-primary)); }
-  .text-global-primary-hover { color: rgb(var(--global-primary-hover)); }
-  .text-global-text-muted { color: rgb(var(--global-text-muted)); }
+  .text-global-text {
+    color: rgb(var(--global-text));
+  }
+
+  .text-global-primary {
+    color: rgb(var(--global-primary));
+  }
+
+  .text-global-primary-hover {
+    color: rgb(var(--global-primary-hover));
+  }
+
+  .text-global-text-muted {
+    color: rgb(var(--global-text-muted));
+  }
 
   /* 🧱 Borders */
-  .border-global-border { border-color: rgb(var(--global-border)); }
-  .border-global-surface { border-color: rgb(var(--global-surface)); }
-  .border-global-card { border-color: rgb(var(--global-card)); }
-  .border-global-text { border-color: rgb(var(--global-text)); }
+  .border-global-border {
+    border-color: rgb(var(--global-border));
+  }
+
+  .border-global-border-subtle {
+    border-color: rgb(var(--global-border-subtle));
+  }
+
+  .border-global-surface {
+    border-color: rgb(var(--global-surface));
+  }
+
+  .border-global-card {
+    border-color: rgb(var(--global-card));
+  }
+
+  .border-global-text {
+    border-color: rgb(var(--global-text));
+  }
 
   /* ✨ Hover variants */
-  .hover\:bg-global-surface:hover { background-color: rgb(var(--global-surface)); }
-  .hover\:text-global-primary-hover:hover { color: rgb(var(--global-primary-hover)); }
+  .hover\:bg-global-surface:hover {
+    background-color: rgb(var(--global-surface));
+  }
+
+  .hover\:text-global-primary-hover:hover {
+    color: rgb(var(--global-primary-hover));
+  }
+
+  /* 📝 Text utilities */
+  .text-justify {
+    text-align: justify;
+  }
+
+  .text-justify-bio {
+    text-align: justify;
+    line-height: 1.7;
+    max-width: 65ch;
+  }
 
   /* 🧭 Scrollbar personalizada (para .teacher-scroll) */
   .teacher-scroll {
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: rgba(148,163,184,0.6) transparent;
+    scrollbar-width: thin;
+    /* Firefox */
+    scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
   }
 
   .teacher-scroll::-webkit-scrollbar {
@@ -97,7 +171,7 @@
   .teacher-scroll::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #2d3748 0%, #0f1724 100%);
     border-radius: 9999px;
-    border: 2px solid rgba(255,255,255,0.04);
+    border: 2px solid rgba(255, 255, 255, 0.04);
     min-height: 28px;
   }
 
@@ -106,6 +180,6 @@
   }
 
   .teacher-scroll::-webkit-scrollbar-thumb:vertical {
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.02);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.02);
   }
 }
