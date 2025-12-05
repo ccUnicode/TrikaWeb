@@ -1,0 +1,78 @@
+---
+export interface Props {
+  name: string;
+  avatarSrc?: string | null | undefined;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  class?: string;
+}
+
+const {
+  name,
+  avatarSrc,
+  size = 'md',
+  class: extraClass = '',
+} = Astro.props as Props;
+
+// Generate initials from name (first letter of first and last name)
+const getInitials = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
+  const first = parts[0][0]?.toUpperCase() ?? '';
+  const last = parts[parts.length - 1][0]?.toUpperCase() ?? '';
+  return first + last;
+};
+
+const initials = getInitials(name);
+
+// Size mappings
+const sizeClasses = {
+  sm: 'h-12 w-12 text-sm',
+  md: 'h-28 w-28 sm:h-40 sm:w-40 text-2xl',
+  lg: 'h-48 w-48 sm:h-52 sm:w-52 text-4xl',
+  xl: 'h-56 w-56 sm:h-64 sm:w-64 text-5xl',
+};
+
+const sizeClass = sizeClasses[size];
+
+// Avatar URL resolution
+const toAvatarUrl = (src?: string | null) => {
+  const fallback = null; // We'll use initials instead
+  const cleanSrc = (src || '').trim();
+  if (!cleanSrc) return fallback;
+  if (cleanSrc.startsWith('http')) return cleanSrc;
+  const base = import.meta.env.PUBLIC_SUPABASE_URL;
+  if (!base) return fallback;
+  const clean = cleanSrc.replace(/^\/+/, '');
+  return `${base}/storage/v1/object/public/avatars/${clean}`;
+};
+
+const resolvedAvatar = toAvatarUrl(avatarSrc);
+const hasAvatar = Boolean(resolvedAvatar);
+---
+
+<div
+  class={`${sizeClass} rounded-full overflow-hidden bg-global-bg shadow-md ${extraClass}`}
+  aria-label={`Avatar de ${name}`}
+>
+  {hasAvatar ? (
+    <img
+      src={resolvedAvatar}
+      alt={`Foto de ${name}`}
+      class="w-full h-full object-cover object-center"
+      loading="lazy"
+      decoding="async"
+      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+    />
+    <div
+      class="hidden w-full h-full items-center justify-center bg-gradient-to-br from-global-primary/20 to-global-primary/40 text-global-text font-bold"
+      style="display: none;"
+    >
+      {initials}
+    </div>
+  ) : (
+    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-global-primary/20 to-global-primary/40 text-global-text font-bold">
+      {initials}
+    </div>
+  )}
+</div>

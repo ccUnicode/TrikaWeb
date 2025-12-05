@@ -29,9 +29,13 @@ export default defineConfig({
           surface: "#171A1F",
           card: "#1E2430",
           border: "#2A3240",
+          "border-subtle": "#1E1E1E", // Custom subtle border color
           text: "#E6E9EF",
-          "text-muted": "#9AA4B2",
+          "text-muted": "#B4BDC9", // Increased opacity for better readability
         },
+      },
+      maxWidth: {
+        prose: "65ch", // For readable line lengths in bios/descriptions
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

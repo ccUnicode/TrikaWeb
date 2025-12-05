@@ -11,9 +11,14 @@ const teachers = await getTeachers();
 <Layout title="Profesores">
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-10">
     <header class="mb-6 space-y-2">
-      <p class="text-sm uppercase tracking-[0.2em] text-global-text-muted">Explorar</p>
+      <p class="text-sm uppercase tracking-[0.2em] text-global-text-muted">
+        Explorar
+      </p>
       <h1 class="text-3xl font-bold text-global-text">Profesores y reseñas</h1>
-      <p class="text-global-text-muted">Busca a tu profe y deja tu calificacion para que otros sepan que esperar.</p>
+      <p class="text-global-text-muted">
+        Busca a tu profe y deja tu calificacion para que otros sepan que
+        esperar.
+      </p>
       <div class="mt-4 max-w-xl">
         <label for="teacher-search" class="sr-only">Buscar profesor</label>
         <input
@@ -26,55 +31,64 @@ const teachers = await getTeachers();
       </div>
     </header>
 
-    {teachers.length === 0 ? (
-      <p class="rounded-xl border border-dashed border-global-border bg-global-surface p-6 text-center text-global-text-muted">
-        Aun no hay profesores registrados.
-      </p>
-    ) : (
-      <div class="grid gap-6 md:grid-cols-2">
-        {teachers.map(teacher => (
-          <article
-            id={`teacher-${teacher.id}`}
-            class="teacher-card rounded-2xl border border-global-border bg-global-surface/70 p-5 shadow-sm"
-            data-teacher-card
-            data-teacher-name={teacher.full_name}
-            data-teacher-courses={(teacher.courses || []).map(c => `${c.code} ${c.name}`).join(', ')}
-          >
-            <TeacherCard
-              name={teacher.full_name}
-              role={teacher.courses?.[0]?.code ?? "Profesor"}
-              rating={teacher.avg_overall ?? 0}
-              avatarSrc={teacher.avatar_url || "/img/fallback_teacher.png"}
-              href={`/teachers/${teacher.id}`}
-              showButton={false}
-              class="w-full"
-            />
-            <div class="mt-4">
-              <TeacherRatingForm teacherId={teacher.id} avg={teacher.avg_overall} count={teacher.rating_count} />
-            </div>
-          </article>
-        ))}
-      </div>
-    )}
+    {
+      teachers.length === 0 ? (
+        <p class="rounded-xl border border-dashed border-global-border bg-global-surface p-6 text-center text-global-text-muted">
+          Aun no hay profesores registrados.
+        </p>
+      ) : (
+        <div class="grid gap-6 md:grid-cols-2">
+          {teachers.map((teacher) => (
+            <article
+              id={`teacher-${teacher.id}`}
+              class="teacher-card rounded-2xl border border-global-border-subtle bg-global-surface/70 p-5 shadow-sm"
+              data-teacher-card
+              data-teacher-name={teacher.full_name}
+              data-teacher-courses={(teacher.courses || [])
+                .map((c) => `${c.code} ${c.name}`)
+                .join(", ")}
+            >
+              <TeacherCard
+                name={teacher.full_name}
+                role={teacher.courses?.[0]?.code ?? "Profesor"}
+                rating={teacher.avg_overall ?? 0}
+                avatarSrc={teacher.avatar_url || "/img/fallback_teacher.png"}
+                href={`/teachers/${teacher.id}`}
+                showButton={false}
+                class="w-full"
+              />
+              <div class="mt-4">
+                <TeacherRatingForm
+                  teacherId={teacher.id}
+                  avg={teacher.avg_overall}
+                  count={teacher.rating_count}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+      )
+    }
   </main>
 </Layout>
 
 <script type="module">
-  const normalize = (value = '') => value
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+  const normalize = (value = "") =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
 
-  const input = document.getElementById('teacher-search');
-  const cards = Array.from(document.querySelectorAll('[data-teacher-card]'));
+  const input = document.getElementById("teacher-search");
+  const cards = Array.from(document.querySelectorAll("[data-teacher-card]"));
 
-  input?.addEventListener('input', () => {
+  input?.addEventListener("input", () => {
     const term = normalize(input.value.trim());
-    cards.forEach(card => {
-      const name = normalize(card.dataset.teacherName || '');
-      const courses = normalize(card.dataset.teacherCourses || '');
+    cards.forEach((card) => {
+      const name = normalize(card.dataset.teacherName || "");
+      const courses = normalize(card.dataset.teacherCourses || "");
       const match = !term || name.includes(term) || courses.includes(term);
-      card.classList.toggle('hidden', !match);
+      card.classList.toggle("hidden", !match);
     });
   });
 </script>
