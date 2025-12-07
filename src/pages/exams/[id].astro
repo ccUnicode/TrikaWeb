@@ -127,11 +127,11 @@ function getYouTubeId(url: string) {
       </div>
     </header>
 
-    <section class="grid gap-6 lg:grid-cols-[2fr_1fr]">
+    <section class="space-y-6">
       <div class="space-y-6">
         <!-- Visor de Plancha (PDF) -->
         <div
-          class="rounded-2xl border border-global-border-subtle bg-global-surface/60 p-2 sm:p-4"
+          class="rounded-2xl border border-global-border-subtle bg-global-surface/60 p-2 sm:p-4 max-w-4xl mx-auto"
         >
           {
             examUrl ? (
@@ -154,7 +154,7 @@ function getYouTubeId(url: string) {
         <!-- Solucionario en Video -->
         {
           sheet.solution_kind === "video" && sheet.solution_video_url && (
-            <div class="rounded-2xl border border-global-border/40 bg-global-surface/60 p-4 sm:p-6 space-y-4">
+            <div class="rounded-2xl border border-global-border/40 bg-global-surface/60 p-4 sm:p-6 space-y-4 max-w-4xl mx-auto">
               <h3 class="text-xl font-semibold text-global-text flex items-center gap-2">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -213,7 +213,7 @@ function getYouTubeId(url: string) {
       </div>
 
       <div
-        class="space-y-4 rounded-2xl border border-global-border-subtle bg-global-surface/60 p-4 sm:p-6 h-fit"
+        class="space-y-4 rounded-2xl border border-global-border-subtle bg-global-surface/60 p-4 sm:p-6 lg:flex lg:items-center lg:justify-between lg:gap-6 max-w-4xl mx-auto"
       >
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-[0.2em] text-global-text-muted">
@@ -232,11 +232,13 @@ function getYouTubeId(url: string) {
           }
         </div>
 
-        <SheetRating
-          sheetId={sheet.id}
-          avg={sheet.avg_difficulty}
-          count={sheet.rating_count}
-        />
+        <div class="lg:ml-auto lg:min-w-[280px]">
+          <SheetRating
+            sheetId={sheet.id}
+            avg={sheet.avg_difficulty}
+            count={sheet.rating_count}
+          />
+        </div>
       </div>
     </section>
   </main>
@@ -322,5 +324,86 @@ function getYouTubeId(url: string) {
     } else {
       registerView();
     }
+  }
+</script>
+
+<script type="module">
+  import { ensureDeviceId } from "/src/lib/client/device";
+
+  const highlight = (widget, score) => {
+    widget.querySelectorAll('[data-score]').forEach(btn => {
+      const val = Number(btn.dataset.score);
+      const active = val <= score;
+      btn.classList.toggle('bg-global-primary', active);
+      btn.classList.toggle('text-black', active);
+      btn.classList.toggle('text-global-text-muted', !active);
+      btn.classList.toggle('ring-2', active);
+      btn.classList.toggle('ring-global-primary/70', active);
+    });
+  };
+
+  const initRatings = () => {
+    document.querySelectorAll('[data-rating-widget]').forEach(widget => {
+      const sheetId = widget.getAttribute('data-sheet-id');
+      const valueEl = widget.querySelector('[data-rating-value]');
+      const countEl = widget.querySelector('[data-rating-count]');
+      const statusEl = widget.querySelector('[data-rating-status]');
+      const initial = Number(widget.getAttribute('data-current-rating') || 0);
+      highlight(widget, Math.round(initial));
+
+      widget.querySelectorAll('[data-score]').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const score = Number(btn.dataset.score);
+          if (!Number.isFinite(score) || !sheetId) return;
+          highlight(widget, score);
+          widget.classList.add('opacity-80', 'pointer-events-none');
+          try {
+            const deviceId = ensureDeviceId();
+            const response = await fetch(`/api/sheets/${sheetId}/rate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ score, device_id: deviceId })
+            });
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({}));
+              if (statusEl) {
+                statusEl.textContent = error?.error ?? 'Error al enviar';
+                statusEl.classList.add('text-red-400');
+              }
+              return;
+            }
+            const result = await response.json();
+            const avg = result?.stats?.avg_difficulty ?? score;
+            const count = result?.stats?.rating_count ?? 0;
+            if (valueEl) valueEl.textContent = Number(avg).toFixed(2);
+            if (countEl) countEl.textContent = count;
+            // Mantenemos resaltado el voto del usuario para que vea el cambio
+            highlight(widget, score);
+            if (statusEl) {
+              statusEl.textContent = 'Voto guardado';
+              statusEl.classList.remove('text-red-400');
+            }
+          } catch (err) {
+            console.error(err);
+            if (statusEl) {
+              statusEl.textContent = 'Error inesperado';
+              statusEl.classList.add('text-red-400');
+            }
+          } finally {
+            setTimeout(() => {
+              widget.classList.remove('opacity-80', 'pointer-events-none');
+            }, 250);
+          }
+        });
+      });
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initRatings, { once: true });
+  } else {
+    initRatings();
   }
 </script>
