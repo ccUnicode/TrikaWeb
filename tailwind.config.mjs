@@ -2,6 +2,7 @@
 import { defineConfig } from "tailwindcss";
 
 export default defineConfig({
+  darkMode: 'class', // Enable dark mode with class strategy
   content: ["./src/**/*.{astro,html,js,jsx,ts,tsx,vue}"],
   // Force-generate key utilities for our theme tokens in case the scanner misses them
   safelist: [

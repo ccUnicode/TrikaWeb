@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import IconHome from "./icons/IconHome.astro";
+import ThemeToggle from "./ThemeToggle.astro";
 ---
 
 <header
@@ -15,7 +16,7 @@ import IconHome from "./icons/IconHome.astro";
       </a>
     </div>
 
-    <nav class="flex items-center gap-10">
+    <nav class="flex items-center gap-4">
       <a
         class="text-[20px] leading-7 font-medium hover:text-global-primary hidden sm:block"
         href="#planchas">Planchas</a
@@ -24,6 +25,7 @@ import IconHome from "./icons/IconHome.astro";
         class="text-[20px] leading-7 font-medium hover:text-global-primary hidden sm:block"
         href="#profesores">Profesores</a
       >
+      <ThemeToggle />
       <a
         class="rounded-xl p-2 hover:bg-global-surface"
         aria-label="Inicio"

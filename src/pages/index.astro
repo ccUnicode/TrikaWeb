@@ -20,19 +20,20 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
 <Layout title="TrikaWeb">
   <div
-    class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16"
+    class="flex min-h-screen w-full flex-col items-center gap-12 mt-12 sm:mt-16 px-4"
   >
     <!-- Header now comes from Layout via <SiteHeader /> -->
 
     <section
       id="hero"
-      class="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 rounded-[40px] border-2 border-global-surface bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20"
+      class="mx-[19px] md:mx-auto grid max-w-[1200px] w-full grid-cols-1 items-center gap-10 rounded-2xl md:rounded-[40px] border-2 border-global-border bg-global-surface px-8 py-12 md:grid-cols-2 md:gap-[140px] md:px-40 md:py-20"
     >
       <div class="flex flex-col items-center gap-8 md:items-start md:px-4">
         <h1
           class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left"
         >
-          ¿Planchas y reseñas de profes? Todo en un solo lugar.
+          ¿Planchas y reseñas de profes?<br />
+          Todo en un solo lugar.
         </h1>
         <p
           class="max-w-[383px] text-base leading-6 text-global-text-muted text-center md:text-left"
@@ -82,9 +83,17 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         </div>
       </div>
 
-      <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
+      <!-- Más visitadas section -->
+      <div class="w-full mt-8">
+        <div class="text-center mb-6">
+          <h3 class="text-[24px] leading-8 font-medium">Más visitadas</h3>
+          <p class="text-sm text-global-text-muted mt-2">
+            Se actualizan con descargas y vistas.
+          </p>
+        </div>
+
         <div
-          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full flex-1"
+          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full"
         >
           {
             planchasPopulares.length === 0 ? (
@@ -114,18 +123,18 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
             )
           }
         </div>
-        <div class="w-full md:w-40 text-center md:text-left">
-          <h3 class="text-[24px] leading-8 font-medium">Mas visitadas</h3>
-          <p class="text-sm text-global-text-muted mt-2">
-            Se actualizan con descargas y vistas.
-          </p>
-        </div>
       </div>
 
-      <div class="flex flex-col md:flex-row items-start gap-8 w-full mt-8">
-        <div
-          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 flex-1"
-        >
+      <!-- Más difíciles section -->
+      <div class="w-full mt-8">
+        <div class="text-center mb-6">
+          <h3 class="text-[24px] leading-8 font-medium">Más difíciles</h3>
+          <p class="text-sm text-global-text-muted mt-2">
+            Basado en los votos de dificultad.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
           {
             planchasDificiles.length === 0 ? (
               <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
@@ -153,12 +162,6 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
               })
             )
           }
-        </div>
-        <div class="w-full md:w-40 text-center md:text-left">
-          <h3 class="text-[24px] leading-8 font-medium">Mas dificiles</h3>
-          <p class="text-sm text-global-text-muted mt-2">
-            Basado en los votos de dificultad.
-          </p>
         </div>
       </div>
     </section>
