@@ -25,3 +25,9 @@ pnpm-debug.log*
 .idea/
 
 .env
+
+# vercel folder
+.vercel/
+
+#vscode folder
+.vscode/

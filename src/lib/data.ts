@@ -84,6 +84,7 @@ const sheetSelect = `
   rating_count,
   view_count,
   teacher_hint,
+  solution_kind,
   courses:course_id (code,name)
 `;
 
@@ -158,6 +159,33 @@ export async function getTopSheetsByViews(limit = 6) {
     course_code: sheet.courses?.code,
     course_name: sheet.courses?.name,
   }));
+}
+
+export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
+  const uniqueIds = Array.from(
+    new Set(
+      (ids || [])
+        .map(n => Number(n))
+        .filter(n => Number.isFinite(n))
+    )
+  );
+  if (!uniqueIds.length) return [];
+
+  const { data, error } = await supabaseClient
+    .from('sheets')
+    .select(sheetSelect)
+    .in('id', uniqueIds);
+
+  if (error || !data) {
+    console.error('getSheetsByIds error', error);
+    return [];
+  }
+
+  return data.map((sheet: any) => ({
+    ...sheet,
+    course_code: sheet.courses?.code,
+    course_name: sheet.courses?.name,
+  })) as SheetSummary[];
 }
 
 export async function getTopTeachers(limit = 6, minRatings = 3): Promise<TeacherSummary[]> {
