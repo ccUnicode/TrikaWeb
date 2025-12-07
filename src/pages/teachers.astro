@@ -1,7 +1,6 @@
 ---
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
-import TeacherRatingForm from "../components/TeacherRatingForm.astro";
 import TeacherCard from "../components/TeacherCard.astro";
 import { getTeachers } from "../lib/data";
 
@@ -57,13 +56,6 @@ const teachers = await getTeachers();
                 showButton={false}
                 class="w-full"
               />
-              <div class="mt-4">
-                <TeacherRatingForm
-                  teacherId={teacher.id}
-                  avg={teacher.avg_overall}
-                  count={teacher.rating_count}
-                />
-              </div>
             </article>
           ))}
         </div>

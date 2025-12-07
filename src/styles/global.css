@@ -5,7 +5,29 @@
 /* ----------------------------------------------- */
 @layer base {
   :root {
-    /* 🎨 Paleta de colores (en formato RGB para permitir opacidades) */
+    /* 🌞 Light Mode (default) */
+    --global-bg: 255 255 255;
+    /* #FFFFFF */
+    --global-surface: 245 245 245;
+    /* #F5F5F5 */
+    --global-card: 255 255 255;
+    /* #FFFFFF */
+    --global-border: 224 224 224;
+    /* #E0E0E0 */
+    --global-border-subtle: 240 240 240;
+    /* #F0F0F0 */
+    --global-text: 26 26 26;
+    /* #1A1A1A */
+    --global-text-muted: 102 102 102;
+    /* #666666 */
+    --global-primary: 34 197 94;
+    /* #22C55E */
+    --global-primary-hover: 81 166 36;
+    /* #51A624 */
+  }
+
+  .dark {
+    /* 🌙 Dark Mode */
     --global-bg: 16 16 16;
     /* #101010 */
     --global-surface: 23 26 31;
@@ -19,7 +41,7 @@
     --global-text: 230 233 239;
     /* #E6E9EF */
     --global-text-muted: 180 189 201;
-    /* #B4BDC9 - Better contrast */
+    /* #B4BDC9 */
     --global-primary: 34 197 94;
     /* #22C55E */
     --global-primary-hover: 81 166 36;
