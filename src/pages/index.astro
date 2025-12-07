@@ -106,9 +106,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                 return (
                   <article
                     class="plancha-card w-full relative"
-                    data-curso={
-                      sheet.course_name ?? sheet.course_code ?? "Curso"
-                    }
+                    data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
                     data-evaluacion={sheet.exam_type}
                     data-ciclo={sheet.cycle}
                     data-solucion={sheet.solution_kind ? "si" : "no"}
@@ -148,9 +146,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                 return (
                   <article
                     class="plancha-card w-full relative"
-                    data-curso={
-                      sheet.course_name ?? sheet.course_code ?? "Curso"
-                    }
+                    data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
                     data-evaluacion={sheet.exam_type}
                     data-ciclo={sheet.cycle}
                     data-solucion={sheet.solution_kind ? "si" : "no"}

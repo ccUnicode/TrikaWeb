@@ -136,16 +136,16 @@
 
 ### 2. Página de examen (planchas) con PDF + video
 
-- [ ] En `exams/[id].astro` (o equivalente), usar campos de `sheets`:
-  - [ ] `solution_kind`
-  - [ ] `solution_video_url`
-  - [ ] `thumb_storage_path`
-- [ ] Mostrar **thumbnail**:
-  - [ ] Obtener URL de `thumb_storage_path` (vía endpoint o URL firmada)
-  - [ ] Fallback si no hay thumbnail
-- [ ] Caso `solution_kind = 'pdf'`:
-  - [ ] Mantener botón “Ver solucionario (PDF)” (endpoint actual)
-- [ ] Caso `solution_kind = 'video'`:
+- [X] En `exams/[id].astro` (o equivalente), usar campos de `sheets`:
+  - [X] `solution_kind`
+  - [X] `solution_video_url`
+  - [X] `thumb_storage_path`
+- [X] Mostrar **thumbnail**:
+  - [X] Obtener URL de `thumb_storage_path` (vía endpoint o URL firmada)
+  - [X] Fallback si no hay thumbnail
+- [X] Caso `solution_kind = 'pdf'`:
+  - [X] Mantener botón “Ver solucionario (PDF)” (endpoint actual)
+- [] Caso `solution_kind = 'video'`:
   - [ ] Mostrar thumbnail con overlay de “Play”
   - [ ] Al hacer click:
     - [ ] Reemplazar thumbnail por `<iframe>` de YouTube embebido
@@ -156,14 +156,14 @@
 
 ### 3. Búsqueda: search-as-you-type (UI)
 
-- [ ] En el componente del buscador:
-  - [ ] Implementar debounce (~300–400 ms)
-  - [ ] Llamar a:
-    - [ ] endpoint `/api/search?query=...` (si existe),
-    - [ ] o lógica actual mejorada, mientras escribe
-- [ ] Mostrar resultados:
-  - [ ] Bajo el input (dropdown) o actualizando el listado principal
-  - [ ] Ordenar de modo que el resultado más relevante vaya arriba
+- [X] En el componente del buscador:
+  - [X] Implementar debounce (~300–400 ms)
+  - [X] Llamar a:
+    - [X] endpoint `/api/search?query=...` (si existe),
+    - [X] o lógica actual mejorada, mientras escribe
+- [X] Mostrar resultados:
+  - [X] Bajo el input (dropdown) o actualizando el listado principal
+  - [X] Ordenar de modo que el resultado más relevante vaya arriba
 - [ ] Estado sin resultados:
   - [ ] Mensaje de “No se encontraron resultados para ‘query’”
 
@@ -171,11 +171,11 @@
 
 ### 4. Integración para `/saved` (apoyo al Rol D)
 
-- [ ] Recibir lista de IDs favoritos (desde lógica de localStorage)
-- [ ] Implementar función/hook para:
-  - [ ] Pedir a Supabase los `sheets` por esos IDs
-  - [ ] Ordenarlos de forma razonable (por fecha, curso, etc.)
-- [ ] Reutilizar componente de card de plancha para renderizar esos resultados en `/saved`
+- [X] Recibir lista de IDs favoritos (desde lógica de localStorage)
+- [X] Implementar función/hook para:
+  - [X] Pedir a Supabase los `sheets` por esos IDs
+  - [X] Ordenarlos de forma razonable (por fecha, curso, etc.)
+- [X] Reutilizar componente de card de plancha para renderizar esos resultados en `/saved`
 
 ---
 

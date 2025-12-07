@@ -2,9 +2,10 @@
 export interface Props {
   id: string; // identificador base (ej: "plancha")
   placeholder?: string;
-  targetSelector: string; // selector de cards (ej: ".plancha-card")
+  targetSelector?: string; // selector de cards (ej: ".plancha-card")
   fields?: string; // para sugerencias, separado por comas. ej: "curso,evaluacion,ciclo"
   filter?: string; // campos a filtrar, separado por comas. ej: "curso,evaluacion,ciclo,solucion"
+  endpoint?: string; // URL del endpoint para busqueda server-side (ej: "/api/search")
   class?: string;
 }
 
@@ -14,11 +15,12 @@ const {
   targetSelector,
   fields = "curso,evaluacion,ciclo",
   filter = "curso,evaluacion,ciclo,solucion",
+  endpoint = "",
   class: extraClass = "",
 } = Astro.props as Props;
 
 const inputId = `${id}-search`;
-const clearId = `clear-${id}-search`;
+const clearId = `${id}-clear`;
 const listId = `${id}-suggestions`;
 ---
 
@@ -28,24 +30,24 @@ const listId = `${id}-suggestions`;
   data-target-selector={targetSelector}
   data-fields={fields}
   data-filter={filter}
+  data-endpoint={endpoint}
 >
   <label for={inputId} class="sr-only">{placeholder}</label>
   <input
     id={inputId}
     type="search"
     placeholder={placeholder}
-    class="w-full rounded-full bg-global-bg text-global-text placeholder:text-global-text-muted px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#51A624] [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none"
+    class="w-full rounded-full border border-global-border bg-global-bg px-5 py-3 pr-10 text-sm text-global-text placeholder-global-text-muted shadow-sm focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary"
     autocomplete="off"
     aria-autocomplete="list"
-    aria-haspopup="listbox"
+    aria-controls={listId}
     aria-expanded="false"
   />
 
   <button
     id={clearId}
     type="button"
-    class="absolute right-3 top-1/2 -translate-y-1/2 hidden text-2xl"
-    style="color: rgb(var(--global-text-muted));"
+    class="absolute right-3 top-1/2 -translate-y-1/2 text-global-text-muted hover:text-global-text hidden"
     aria-label="Limpiar búsqueda">×</button
   >
 
@@ -66,6 +68,7 @@ const listId = `${id}-suggestions`;
     const targetSelector = root.getAttribute("data-target-selector") || "";
     const fieldsStr = root.getAttribute("data-fields") || "";
     const filterStr = root.getAttribute("data-filter") || "";
+    const endpoint = root.getAttribute("data-endpoint") || "";
 
     const fields = fieldsStr
       .split(",")
@@ -85,7 +88,11 @@ const listId = `${id}-suggestions`;
     const getCards = () =>
       Array.from(document.querySelectorAll(targetSelector));
 
+    let suggestions = [];
+    let activeIndex = -1;
+
     function buildSuggestions() {
+      if (endpoint) return []; // If endpoint is set, we don't build from DOM
       const cards = getCards();
       const map = new Map();
       cards.forEach((card) => {
@@ -98,9 +105,6 @@ const listId = `${id}-suggestions`;
       return Array.from(map.values());
     }
 
-    let suggestions = buildSuggestions();
-    let activeIndex = -1;
-
     function renderSuggestions(listData) {
       if (!list || !input) return;
       if (!listData.length) {
@@ -111,7 +115,7 @@ const listId = `${id}-suggestions`;
       list.innerHTML = listData
         .map(
           (s, i) => `
-        <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" class="px-4 py-3 hover:bg-global-surface cursor-pointer">
+        <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" data-url="${s.url || ""}" class="px-4 py-3 hover:bg-global-surface cursor-pointer">
           <div class="flex items-center justify-between">
             <span class="truncate">${s.text}</span>
             <small class="text-xs text-global-text-muted ml-3">${s.type}</small>
@@ -136,54 +140,107 @@ const listId = `${id}-suggestions`;
     }
 
     function showClearIfNeeded() {
-      if (!clearBtn || !input) return;
+      if (!input || !clearBtn) return;
       if (input.value.trim().length > 0) clearBtn.classList.remove("hidden");
       else clearBtn.classList.add("hidden");
     }
 
     function filterCards() {
+      if (endpoint) return; // No local filtering if using API
       const cards = getCards();
       if (!input) return;
       const q = input.value.trim();
       const tokens = normalize(q).split(/\s+/).filter(Boolean);
+
       cards.forEach((card) => {
-        const matches =
-          tokens.length === 0 ||
-          tokens.every((t) =>
+        // Calculate relevance score
+        let score = 0;
+        if (tokens.length === 0) {
+          score = 1; // Show all if empty
+        } else {
+          const matches = tokens.every((t) =>
             filterFields.some((f) => {
               const ds = card.dataset && card.dataset[f] ? card.dataset[f] : "";
-              return normalize(ds).includes(t);
+              const val = normalize(ds);
+              if (val === t) return true; // Exact match
+              if (val.startsWith(t)) return true; // Starts with
+              return val.includes(t); // Includes
             }),
           );
-        card.classList.toggle("hidden", !matches);
+          if (matches) score = 1;
+        }
+
+        card.classList.toggle("hidden", score === 0);
       });
     }
 
+    // Debounce utility
+    function debounce(func, wait) {
+      let timeout;
+      return function (...args) {
+        const context = this;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
+      };
+    }
+
+    const handleInput = debounce(async (e) => {
+      const target = e.target;
+      const q = target && "value" in target ? String(target.value).trim() : "";
+      showClearIfNeeded();
+      const nq = normalize(q);
+
+      if (endpoint) {
+        if (q.length < 2) {
+          renderSuggestions([]);
+          return;
+        }
+        try {
+          const res = await fetch(`${endpoint}?query=${encodeURIComponent(q)}`);
+          if (res.ok) {
+            const data = await res.json();
+            renderSuggestions(data);
+          }
+        } catch (err) {
+          console.error("Search error", err);
+        }
+        return;
+      }
+
+      // Improved sorting for suggestions (Local)
+      const results = nq
+        ? suggestions
+            .filter((s) => normalize(s.text).includes(nq))
+            .sort((a, b) => {
+              const na = normalize(a.text);
+              const nb = normalize(b.text);
+              // Exact match first
+              if (na === nq) return -1;
+              if (nb === nq) return 1;
+              // Starts with second
+              if (na.startsWith(nq) && !nb.startsWith(nq)) return -1;
+              if (!na.startsWith(nq) && nb.startsWith(nq)) return 1;
+              return 0;
+            })
+            .slice(0, 8)
+        : [];
+
+      renderSuggestions(results);
+      filterCards();
+    }, 300); // 300ms debounce
+
     if (input) {
       input.addEventListener("focus", () => {
-        suggestions = buildSuggestions();
+        if (!endpoint) suggestions = buildSuggestions();
       });
 
-      input.addEventListener("input", (e) => {
-        const target = e.target;
-        const q =
-          target && "value" in target ? String(target.value).trim() : "";
-        showClearIfNeeded();
-        const nq = normalize(q);
-        const results = nq
-          ? suggestions
-              .filter((s) => normalize(s.text).includes(nq))
-              .slice(0, 8)
-          : [];
-        renderSuggestions(results);
-        filterCards();
-      });
+      input.addEventListener("input", handleInput);
 
       input.addEventListener("keydown", (e) => {
         const key = "key" in e ? e.key : "";
         const items = Array.from(list?.children || []);
         if (list?.classList.contains("hidden") || !items.length) {
-          if (key === "ArrowDown" && suggestions.length) {
+          if (key === "ArrowDown" && suggestions.length && !endpoint) {
             renderSuggestions(suggestions.slice(0, 8));
             e.preventDefault();
           }
@@ -206,6 +263,13 @@ const listId = `${id}-suggestions`;
           if (activeIndex >= 0 && items[activeIndex]) {
             const el = items[activeIndex];
             const val = el && "dataset" in el ? el.dataset.value : undefined;
+            const url = el && "dataset" in el ? el.dataset.url : undefined;
+
+            if (url) {
+              window.location.href = url;
+              return;
+            }
+
             input.value = val || "";
             hideSuggestions();
             showClearIfNeeded();
@@ -222,7 +286,15 @@ const listId = `${id}-suggestions`;
         if (!(tgt && tgt instanceof Element)) return;
         const li = tgt.closest('li[role="option"]');
         if (!li) return;
+
         const val = li && "dataset" in li ? li.dataset.value : undefined;
+        const url = li && "dataset" in li ? li.dataset.url : undefined;
+
+        if (url) {
+          window.location.href = url;
+          return;
+        }
+
         input.value = val || "";
         hideSuggestions();
         showClearIfNeeded();
@@ -233,7 +305,7 @@ const listId = `${id}-suggestions`;
       clearBtn?.addEventListener("click", () => {
         input.value = "";
         clearBtn.classList.add("hidden");
-        filterCards();
+        if (!endpoint) filterCards();
         hideSuggestions();
         input.focus();
       });

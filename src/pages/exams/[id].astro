@@ -59,8 +59,20 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
     .from("solutions")
     .createSignedUrl(sheet.solution_storage_path, 600);
   solutionUrl = data?.signedUrl ?? null;
-} else if (sheet.solution_kind === "video" && sheet.solution_video_url) {
-  solutionUrl = sheet.solution_video_url;
+}
+
+let thumbUrl: string | null = null;
+if (sheet.thumb_storage_path) {
+  const { data } = await supa.storage
+    .from("thumbnails")
+    .createSignedUrl(sheet.thumb_storage_path, 600);
+  thumbUrl = data?.signedUrl ?? null;
+}
+
+function getYouTubeId(url: string) {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
 }
 ---
 
@@ -116,29 +128,92 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
     </header>
 
     <section class="grid gap-6 lg:grid-cols-[2fr_1fr]">
-      <div
-        class="rounded-2xl border border-global-border-subtle bg-global-surface/60 p-2 sm:p-4"
-      >
+      <div class="space-y-6">
+        <!-- Visor de Plancha (PDF) -->
+        <div
+          class="rounded-2xl border border-global-border-subtle bg-global-surface/60 p-2 sm:p-4"
+        >
+          {
+            examUrl ? (
+              <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40 shadow-lg">
+                <iframe
+                  src={`${examUrl}#toolbar=0&navpanes=0`}
+                  class="absolute inset-0 h-full w-full rounded-xl border-0"
+                  loading="lazy"
+                  allowfullscreen
+                />
+              </div>
+            ) : (
+              <p class="rounded-xl border border-dashed border-global-border/50 bg-black/10 p-6 text-center text-global-text-muted">
+                No pudimos generar el visor para esta plancha.
+              </p>
+            )
+          }
+        </div>
+
+        <!-- Solucionario en Video -->
         {
-          examUrl ? (
-            <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40 shadow-lg">
-              <iframe
-                src={`${examUrl}#toolbar=0&navpanes=0`}
-                class="absolute inset-0 h-full w-full rounded-xl border-0"
-                loading="lazy"
-                allowfullscreen
-              />
+          sheet.solution_kind === "video" && sheet.solution_video_url && (
+            <div class="rounded-2xl border border-global-border/40 bg-global-surface/60 p-4 sm:p-6 space-y-4">
+              <h3 class="text-xl font-semibold text-global-text flex items-center gap-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="text-red-500"
+                >
+                  <>
+                    <polygon points="23 7 16 12 23 17 23 7" />
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                  </>
+                </svg>
+                Solucionario en Video
+              </h3>
+
+              <div
+                class="video-player-container relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg group cursor-pointer"
+                data-video-url={sheet.solution_video_url}
+              >
+                {/* Thumbnail Image or Fallback */}
+                <img
+                  src={
+                    thumbUrl ||
+                    `https://img.youtube.com/vi/${getYouTubeId(sheet.solution_video_url)}/maxresdefault.jpg`
+                  }
+                  alt="Video Thumbnail"
+                  class="absolute inset-0 h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                  onerror="this.src='https://img.youtube.com/vi/${getYouTubeId(sheet.solution_video_url)}/hqdefault.jpg'"
+                />
+
+                {/* Play Button Overlay */}
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/90 text-white shadow-xl transition-transform group-hover:scale-110">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="32"
+                      height="32"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      stroke="none"
+                    >
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <p class="rounded-xl border border-dashed border-global-border/50 bg-black/10 p-6 text-center text-global-text-muted">
-              No pudimos generar el visor para esta plancha.
-            </p>
           )
         }
       </div>
 
       <div
-        class="space-y-4 rounded-2xl border border-global-border-subtle bg-global-surface/60 p-4 sm:p-6"
+        class="space-y-4 rounded-2xl border border-global-border-subtle bg-global-surface/60 p-4 sm:p-6 h-fit"
       >
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-[0.2em] text-global-text-muted">
@@ -166,6 +241,51 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
     </section>
   </main>
 </Layout>
+
+<script>
+  // Helper to extract ID for client-side usage if needed
+  function getYouTubeId(url) {
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
+  }
+
+  function initVideoPlayers() {
+    const containers = document.querySelectorAll(".video-player-container");
+    containers.forEach((container) => {
+      container.addEventListener("click", () => {
+        const url = container.getAttribute("data-video-url");
+        if (!url) return;
+
+        const videoId = getYouTubeId(url);
+        if (!videoId) return;
+
+        const iframe = document.createElement("iframe");
+        iframe.setAttribute(
+          "src",
+          `https://www.youtube.com/embed/${videoId}?autoplay=1`,
+        );
+        iframe.setAttribute(
+          "class",
+          "absolute inset-0 h-full w-full rounded-xl border-0",
+        );
+        iframe.setAttribute(
+          "allow",
+          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+        );
+        iframe.setAttribute("allowfullscreen", "true");
+
+        container.innerHTML = "";
+        container.appendChild(iframe);
+        container.classList.remove("cursor-pointer", "group");
+      });
+    });
+  }
+
+  document.addEventListener("astro:page-load", initVideoPlayers);
+  document.addEventListener("DOMContentLoaded", initVideoPlayers);
+</script>
 
 <script type="module">
   import { ensureDeviceId } from "/src/lib/client/device";
