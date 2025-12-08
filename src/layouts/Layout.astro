@@ -26,6 +26,9 @@ const {
 
 		<!-- Theme initialization script (must run before body renders to prevent FOUC) -->
 		<script is:inline>
+			// Force dark mode always
+			// TODO: Uncomment below to restore light/dark mode toggle
+			/*
 			// Check for saved theme preference or default to system preference
 			const theme = (() => {
 				if (
@@ -46,6 +49,10 @@ const {
 			} else {
 				document.documentElement.classList.remove("dark");
 			}
+			*/
+
+			// Always use dark mode
+			document.documentElement.classList.add("dark");
 		</script>
 	</head>
 	<body class="bg-global-bg text-global-text antialiased">
