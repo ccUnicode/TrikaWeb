@@ -55,10 +55,13 @@ const noCheckIcon = `
 `;
 ---
 
-<div class="relative transition-transform hover:scale-105" data-fav-card>
+<div
+  class="relative transition-transform hover:scale-105 isolate"
+  data-fav-card
+>
   <button
     type="button"
-    class="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center text-white/80 hover:text-global-primary transition"
+    class="absolute right-3 top-3 z-50 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white/80 backdrop-blur-sm transition hover:scale-110 hover:bg-black/40 hover:text-global-primary"
     data-fav-btn
     data-sheet-id={sheet?.id}
     aria-label="Guardar plancha"
@@ -124,58 +127,64 @@ const noCheckIcon = `
   </a>
 </div>
 
-<script lang="ts">
+<script>
   import { isFavorite, toggleFavorite } from "../lib/favorites";
 
-  const activeClasses = ["text-red-500", "border-transparent"];
-  const inactiveClasses = [
-    "bg-global-card/80",
-    "text-white/70",
-    "border-transparent",
-    "hover:border-global-primary",
-    "hover:text-global-primary",
-  ];
-
-  function updateButton(btn: HTMLElement) {
+  // Updates the visual state of a button
+  function updateButtonState(btn: Element) {
+    if (!(btn instanceof HTMLElement)) return;
     const id = Number(btn.dataset.sheetId);
     if (!Number.isInteger(id)) return;
+
     const isFav = isFavorite(id);
     btn.setAttribute("aria-pressed", String(isFav));
 
-    activeClasses.forEach((cls) => btn.classList.toggle(cls, isFav));
-    inactiveClasses.forEach((cls) => btn.classList.toggle(cls, !isFav));
+    // Toggle classes
+    if (isFav) {
+      btn.classList.add("text-red-500", "scale-110");
+      btn.classList.remove("text-white/80");
+    } else {
+      btn.classList.remove("text-red-500", "scale-110");
+      btn.classList.add("text-white/80");
+    }
 
     const svg = btn.querySelector("svg");
-    if (isFav) {
-      svg?.setAttribute("fill", "currentColor");
-    } else {
-      svg?.setAttribute("fill", "none");
+    if (svg) {
+      svg.setAttribute("fill", isFav ? "currentColor" : "none");
+      svg.setAttribute("stroke", isFav ? "currentColor" : "currentColor");
     }
   }
 
-  function initFavorites() {
-    const buttons = Array.from(
-      document.querySelectorAll<HTMLElement>("[data-fav-btn]"),
-    );
-    buttons.forEach(updateButton);
+  // Setup listeners
+  function setupFavorites() {
+    const buttons = document.querySelectorAll("[data-fav-btn]");
 
     buttons.forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        const id = Number(btn.dataset.sheetId);
-        if (!Number.isInteger(id)) return;
-        e.preventDefault();
-        e.stopPropagation();
-        toggleFavorite(id);
-        updateButton(btn);
-      });
-    });
+      // Update initial state
+      updateButtonState(btn);
 
-    window.addEventListener("favorites:updated", () => {
-      buttons.forEach(updateButton);
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Stop bubbling to card link
+
+        const target = e.currentTarget as HTMLElement;
+        const id = Number(target.dataset.sheetId);
+
+        if (Number.isInteger(id)) {
+          toggleFavorite(id);
+          // State update happens via event listener below
+        }
+      });
     });
   }
 
-  // Run on load and after Astro swaps
-  document.addEventListener("astro:page-load", initFavorites);
-  document.addEventListener("DOMContentLoaded", initFavorites);
+  // Listen for storage/toggle updates
+  window.addEventListener("favorites:updated", () => {
+    document.querySelectorAll("[data-fav-btn]").forEach(updateButtonState);
+  });
+
+  // Init on load
+  document.addEventListener("astro:page-load", setupFavorites);
+  // Also on DOMContentLoaded for first load if ViewTransitions not active immediately
+  document.addEventListener("DOMContentLoaded", setupFavorites);
 </script>

@@ -31,3 +31,5 @@ pnpm-debug.log*
 
 #vscode folder
 .vscode/
+
+service-account.json

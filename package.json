@@ -6,14 +6,19 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "upload-from-drive": "ts-node scripts/upload-from-drive.ts"
   },
   "dependencies": {
     "@astrojs/vercel": "^9.0.2",
     "@supabase/supabase-js": "^2.81.1",
     "@tailwindcss/vite": "^4.1.15",
+    "@types/node": "^24.10.1",
     "astro": "^5.14.8",
+    "dotenv": "^17.2.3",
+    "googleapis": "^167.0.0",
     "pdfjs-dist": "^5.4.296",
-    "tailwindcss": "^4.1.15"
+    "tailwindcss": "^4.1.15",
+    "ts-node": "^10.9.2"
   }
 }
