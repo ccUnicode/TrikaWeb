@@ -27,6 +27,7 @@ const { data: sheet, error } = await supa
     solution_kind,
     solution_storage_path,
     solution_video_url,
+    thumb_storage_path,
     courses:course_id (code,name)
   `,
   )
@@ -37,8 +38,9 @@ if (error || !sheet) {
   return Astro.redirect("/cursos");
 }
 
-const courseCode = sheet.courses?.code ?? "Curso";
-const courseName = sheet.courses?.name ?? "Curso";
+const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
+const courseCode = course?.code ?? "Curso";
+const courseName = course?.name ?? "Curso";
 const headerTitle =
   `${courseCode} - ${sheet.exam_type || "Plancha"} ${sheet.cycle || ""}`.trim();
 const description =
@@ -246,7 +248,7 @@ function getYouTubeId(url: string) {
 
 <script>
   // Helper to extract ID for client-side usage if needed
-  function getYouTubeId(url) {
+  function getYouTubeId(url: string) {
     const regExp =
       /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -290,7 +292,7 @@ function getYouTubeId(url: string) {
 </script>
 
 <script type="module">
-  import { ensureDeviceId } from "/src/lib/client/device";
+  import { ensureDeviceId } from "../../lib/client/device";
   const SHEET_ID = { sheetId };
 
   const registerView = () => {
@@ -328,49 +330,49 @@ function getYouTubeId(url: string) {
 </script>
 
 <script type="module">
-  import { ensureDeviceId } from "/src/lib/client/device";
+  import { ensureDeviceId } from "../../lib/client/device";
 
   const highlight = (widget, score) => {
-    widget.querySelectorAll('[data-score]').forEach(btn => {
+    widget.querySelectorAll("[data-score]").forEach((btn) => {
       const val = Number(btn.dataset.score);
       const active = val <= score;
-      btn.classList.toggle('bg-global-primary', active);
-      btn.classList.toggle('text-black', active);
-      btn.classList.toggle('text-global-text-muted', !active);
-      btn.classList.toggle('ring-2', active);
-      btn.classList.toggle('ring-global-primary/70', active);
+      btn.classList.toggle("bg-global-primary", active);
+      btn.classList.toggle("text-black", active);
+      btn.classList.toggle("text-global-text-muted", !active);
+      btn.classList.toggle("ring-2", active);
+      btn.classList.toggle("ring-global-primary/70", active);
     });
   };
 
   const initRatings = () => {
-    document.querySelectorAll('[data-rating-widget]').forEach(widget => {
-      const sheetId = widget.getAttribute('data-sheet-id');
-      const valueEl = widget.querySelector('[data-rating-value]');
-      const countEl = widget.querySelector('[data-rating-count]');
-      const statusEl = widget.querySelector('[data-rating-status]');
-      const initial = Number(widget.getAttribute('data-current-rating') || 0);
+    document.querySelectorAll("[data-rating-widget]").forEach((widget) => {
+      const sheetId = widget.getAttribute("data-sheet-id");
+      const valueEl = widget.querySelector("[data-rating-value]");
+      const countEl = widget.querySelector("[data-rating-count]");
+      const statusEl = widget.querySelector("[data-rating-status]");
+      const initial = Number(widget.getAttribute("data-current-rating") || 0);
       highlight(widget, Math.round(initial));
 
-      widget.querySelectorAll('[data-score]').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+      widget.querySelectorAll("[data-score]").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
           const score = Number(btn.dataset.score);
           if (!Number.isFinite(score) || !sheetId) return;
           highlight(widget, score);
-          widget.classList.add('opacity-80', 'pointer-events-none');
+          widget.classList.add("opacity-80", "pointer-events-none");
           try {
             const deviceId = ensureDeviceId();
             const response = await fetch(`/api/sheets/${sheetId}/rate`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ score, device_id: deviceId })
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ score, device_id: deviceId }),
             });
             if (!response.ok) {
               const error = await response.json().catch(() => ({}));
               if (statusEl) {
-                statusEl.textContent = error?.error ?? 'Error al enviar';
-                statusEl.classList.add('text-red-400');
+                statusEl.textContent = error?.error ?? "Error al enviar";
+                statusEl.classList.add("text-red-400");
               }
               return;
             }
@@ -382,18 +384,18 @@ function getYouTubeId(url: string) {
             // Mantenemos resaltado el voto del usuario para que vea el cambio
             highlight(widget, score);
             if (statusEl) {
-              statusEl.textContent = 'Voto guardado';
-              statusEl.classList.remove('text-red-400');
+              statusEl.textContent = "Voto guardado";
+              statusEl.classList.remove("text-red-400");
             }
           } catch (err) {
             console.error(err);
             if (statusEl) {
-              statusEl.textContent = 'Error inesperado';
-              statusEl.classList.add('text-red-400');
+              statusEl.textContent = "Error inesperado";
+              statusEl.classList.add("text-red-400");
             }
           } finally {
             setTimeout(() => {
-              widget.classList.remove('opacity-80', 'pointer-events-none');
+              widget.classList.remove("opacity-80", "pointer-events-none");
             }, 250);
           }
         });
@@ -401,8 +403,8 @@ function getYouTubeId(url: string) {
     });
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initRatings, { once: true });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initRatings, { once: true });
   } else {
     initRatings();
   }

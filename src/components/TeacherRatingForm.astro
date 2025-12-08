@@ -6,61 +6,93 @@ export interface Props {
   showSummary?: boolean;
 }
 const { teacherId, avg, count, showSummary = true } = Astro.props as Props;
-const displayAvg = typeof avg === 'number' ? avg.toFixed(2) : '-';
+const displayAvg = typeof avg === "number" ? avg.toFixed(2) : "-";
 const displayCount = count ?? 0;
 const fields = [
-  { name: 'overall', label: 'General' },
-  { name: 'difficulty', label: 'Dificultad' },
-  { name: 'didactic', label: 'Didactica' },
-  { name: 'resources', label: 'Recursos' },
-  { name: 'responsability', label: 'Responsabilidad' },
-  { name: 'grading', label: 'Justicia al evaluar' }
+  { name: "overall", label: "General" },
+  { name: "difficulty", label: "Dificultad" },
+  { name: "didactic", label: "Didactica" },
+  { name: "resources", label: "Recursos" },
+  { name: "responsability", label: "Responsabilidad" },
+  { name: "grading", label: "Justicia al evaluar" },
 ];
 ---
-<div class="teacher-rating space-y-3 rounded-2xl border border-global-border/40 bg-global-surface p-4" data-teacher-rating data-teacher-id={teacherId}>
+
+<div
+  class="teacher-rating space-y-3 rounded-2xl border border-global-border/40 bg-global-surface p-4"
+  data-teacher-rating
+  data-teacher-id={teacherId}
+>
   <form class="space-y-3" data-rating-form>
     {
       showSummary && (
         <p class="text-sm text-global-text-muted">
           Califica de 1 a 5 cada criterio. Promedio actual:
-          <span data-teacher-rating-value class="text-global-primary font-semibold ml-1">{displayAvg}</span>
+          <span
+            data-teacher-rating-value
+            class="text-global-primary font-semibold ml-1"
+          >
+            {displayAvg}
+          </span>
           (<span data-teacher-rating-count>{displayCount}</span> votos)
         </p>
       )
     }
     {
       !showSummary && (
-        <span class="hidden" data-teacher-rating-value>{displayAvg}</span>
+        <span class="hidden" data-teacher-rating-value>
+          {displayAvg}
+        </span>
       )
     }
     {
       !showSummary && (
-        <span class="hidden" data-teacher-rating-count>{displayCount}</span>
+        <span class="hidden" data-teacher-rating-count>
+          {displayCount}
+        </span>
       )
     }
     <div class="grid gap-3 sm:grid-cols-2">
-      {fields.map(field => (
-        <label class="text-sm text-global-text" for={`${field.name}-${teacherId}`}>
-          {field.label}
-          <select
-            id={`${field.name}-${teacherId}`}
-            name={field.name}
-            class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm text-global-text"
+      {
+        fields.map((field) => (
+          <label
+            class="text-sm text-global-text"
+            for={`${field.name}-${teacherId}`}
           >
-            <option value="" selected>Selecciona</option>
-            {Array.from({ length: 5 }).map((_, idx) => (
-              <option value={idx + 1} class="text-black">{idx + 1}</option>
-            ))}
-          </select>
-        </label>
-      ))}
+            {field.label}
+            <select
+              id={`${field.name}-${teacherId}`}
+              name={field.name}
+              class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm text-global-text"
+            >
+              <option value="" selected>
+                Selecciona
+              </option>
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <option value={idx + 1} class="text-black">
+                  {idx + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))
+      }
     </div>
     <label class="text-sm text-global-text" for={`comment-${teacherId}`}>
       Comentario (opcional)
-      <textarea id={`comment-${teacherId}`} name="comment" rows={3} class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm" placeholder="Cuenta tu experiencia"></textarea>
+      <textarea
+        id={`comment-${teacherId}`}
+        name="comment"
+        rows={3}
+        class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm"
+        placeholder="Cuenta tu experiencia"></textarea>
     </label>
     <div class="flex items-center gap-3">
-      <button type="submit" class="rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black" data-submit>
+      <button
+        type="submit"
+        class="rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black"
+        data-submit
+      >
         Enviar
       </button>
       <span data-status class="text-xs text-global-text-muted"></span>
@@ -69,66 +101,73 @@ const fields = [
 </div>
 
 <script type="module">
-import { ensureDeviceId } from '/src/lib/client/device';
+  import { ensureDeviceId } from "../lib/client/device";
 
-const init = (widget) => {
-  if (widget.dataset.bound === 'true') return;
-  widget.dataset.bound = 'true';
-  const form = widget.querySelector('[data-rating-form]');
-  const status = widget.querySelector('[data-status]');
-  const avgEl = widget.querySelector('[data-teacher-rating-value]');
-  const countEl = widget.querySelector('[data-teacher-rating-count]');
-  const teacherId = widget.dataset.teacherId;
+  const init = (widget) => {
+    if (widget.dataset.bound === "true") return;
+    widget.dataset.bound = "true";
+    const form = widget.querySelector("[data-rating-form]");
+    const status = widget.querySelector("[data-status]");
+    const avgEl = widget.querySelector("[data-teacher-rating-value]");
+    const countEl = widget.querySelector("[data-teacher-rating-count]");
+    const teacherId = widget.dataset.teacherId;
 
-  form?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const formData = new FormData(form);
-    const payload = {};
-    formData.forEach((value, key) => {
-      payload[key] = value;
-    });
-    const missing = ['overall', 'difficulty', 'didactic', 'resources', 'responsability', 'grading'].some(
-      field => !payload[field]
-    );
-    if (missing) {
-      status.textContent = 'Completa todas las calificaciones';
-      status.classList.add('text-red-400');
-      return;
-    }
-    payload.device_id = ensureDeviceId();
-    widget.classList.add('opacity-70');
-    try {
-      const response = await fetch(`/api/teachers/${teacherId}/rate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(form);
+      const payload = {};
+      formData.forEach((value, key) => {
+        payload[key] = value;
       });
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        status.textContent = error?.error ?? 'Error al guardar';
-        status.classList.add('text-red-400');
+      const missing = [
+        "overall",
+        "difficulty",
+        "didactic",
+        "resources",
+        "responsability",
+        "grading",
+      ].some((field) => !payload[field]);
+      if (missing) {
+        status.textContent = "Completa todas las calificaciones";
+        status.classList.add("text-red-400");
         return;
       }
-      const result = await response.json();
-      if (result?.stats) {
-        avgEl.textContent = Number(result.stats.avg_overall ?? payload.overall).toFixed(2);
-        if (countEl && result.stats.rating_count != null) {
-          countEl.textContent = result.stats.rating_count;
+      payload.device_id = ensureDeviceId();
+      widget.classList.add("opacity-70");
+      try {
+        const response = await fetch(`/api/teachers/${teacherId}/rate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          status.textContent = error?.error ?? "Error al guardar";
+          status.classList.add("text-red-400");
+          return;
         }
+        const result = await response.json();
+        if (result?.stats) {
+          avgEl.textContent = Number(
+            result.stats.avg_overall ?? payload.overall,
+          ).toFixed(2);
+          if (countEl && result.stats.rating_count != null) {
+            countEl.textContent = result.stats.rating_count;
+          }
+        }
+        status.textContent = "Gracias por calificar!";
+        status.classList.remove("text-red-400");
+      } catch (err) {
+        console.error(err);
+        status.textContent = "Error inesperado";
+        status.classList.add("text-red-400");
+      } finally {
+        widget.classList.remove("opacity-70");
       }
-      status.textContent = 'Gracias por calificar!';
-      status.classList.remove('text-red-400');
-    } catch (err) {
-      console.error(err);
-      status.textContent = 'Error inesperado';
-      status.classList.add('text-red-400');
-    } finally {
-      widget.classList.remove('opacity-70');
-    }
-  });
-};
+    });
+  };
 
-if (typeof window !== 'undefined') {
-  document.querySelectorAll('[data-teacher-rating]').forEach(init);
-}
+  if (typeof window !== "undefined") {
+    document.querySelectorAll("[data-teacher-rating]").forEach(init);
+  }
 </script>
