@@ -19,12 +19,25 @@ import SiteHeader from "../../components/SiteHeader.astro";
     <div class="h-8"></div>
 
     <main class="mx-auto w-full max-w-[1100px] px-4 pb-10">
-      <section class="rounded-3xl bg-[#171A1F] p-6 sm:p-8 shadow-2xl ring-1 ring-black/30">
+      <section
+        class="rounded-3xl bg-[#171A1F] p-6 sm:p-8 shadow-2xl ring-1 ring-black/30"
+      >
         <header class="mb-6">
           <h1 class="text-2xl font-semibold">Panel de subida de material</h1>
           <p class="mt-1 text-sm text-gray-300">
-            Aquí podrás subir PDFs de planchas y solucionarios para que luego se vean en la web.
+            Aquí podrás subir PDFs de planchas y solucionarios para que luego se
+            vean en la web.
           </p>
+          <div class="mt-4 flex justify-end">
+            <form action="/api/admin/logout" method="POST">
+              <button
+                type="submit"
+                class="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+              >
+                Cerrar Sesión
+              </button>
+            </form>
+          </div>
         </header>
 
         <!-- FORMULARIO PRINCIPAL -->
@@ -34,21 +47,6 @@ import SiteHeader from "../../components/SiteHeader.astro";
           enctype="multipart/form-data"
           class="space-y-5"
         >
-          <!-- Password simple de admin -->
-          <div>
-            <label class="block text-sm font-medium mb-1" for="admin-pass">
-              Clave de administrador
-            </label>
-            <input
-              id="admin-pass"
-              name="admin_pass"
-              type="password"
-              required
-              class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-              placeholder="Ingresa la clave que definan en .env"
-            />
-          </div>
-
           <!-- Datos de la plancha -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -119,10 +117,13 @@ import SiteHeader from "../../components/SiteHeader.astro";
               class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
             >
               <option value="PLANCHA">Plancha</option>
-              <option value="SOLUCIONARIO">Solucionario (adjunta a una plancha existente)</option>
+              <option value="SOLUCIONARIO"
+                >Solucionario (adjunta a una plancha existente)</option
+              >
             </select>
             <p class="mt-1 text-xs text-gray-400">
-              Para un solucionario usa exactamente el mismo <code>código</code>, ciclo y tipo de examen de la plancha ya creada.
+              Para un solucionario usa exactamente el mismo <code>código</code>,
+              ciclo y tipo de examen de la plancha ya creada.
             </p>
           </div>
           <div class="">
@@ -140,7 +141,10 @@ import SiteHeader from "../../components/SiteHeader.astro";
                 class="w-full text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-[#22C55E] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-emerald-400"
               />
               <p class="mt-1 text-xs text-gray-400">
-                Para planchas se registrará en <code>exam_storage_path</code>. Para solucionarios se actualizará <code>solution_storage_path</code> del sheet existente.
+                Para planchas se registrará en <code>exam_storage_path</code>.
+                Para solucionarios se actualizará <code
+                  >solution_storage_path</code
+                > del sheet existente.
               </p>
             </div>
 
@@ -158,7 +162,9 @@ import SiteHeader from "../../components/SiteHeader.astro";
       </section>
     </main>
 
-    <footer class="mt-auto w-full bg-black/80 py-3 text-center text-sm text-white">
+    <footer
+      class="mt-auto w-full bg-black/80 py-3 text-center text-sm text-white"
+    >
       © 2024 TrikaWeb. Todos los derechos reservados.
     </footer>
   </body>

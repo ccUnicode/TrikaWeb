@@ -53,9 +53,16 @@ const {
 		<main>
 			<slot />
 		</main>
-		<footer class="bg-global-surface text-center py-6 mt-12">
+		<footer
+			class="bg-global-surface text-center py-6 mt-12 relative overflow-hidden"
+		>
 			<p class="text-global-text">
-				© {new Date().getFullYear()} Unicode. Todos los derechos reservados.
+				© {new Date().getFullYear()}
+				<a
+					href="/admin/upload"
+					class="text-inherit no-underline hover:text-global-text cursor-default"
+					>Unicode</a
+				>. Todos los derechos reservados.
 			</p>
 		</footer>
 	</body>
