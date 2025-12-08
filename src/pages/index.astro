@@ -85,83 +85,211 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
       <!-- Más visitadas section -->
       <div class="w-full mt-8">
-        <div class="text-center mb-6">
-          <h3 class="text-[24px] leading-8 font-medium">Más visitadas</h3>
-          <p class="text-sm text-global-text-muted mt-2">
-            Se actualizan con descargas y vistas.
-          </p>
-        </div>
+        <div class="flex gap-4 items-center">
+          <!-- Left arrow -->
+          <button
+            id="prev-popular"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            aria-label="Anterior"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
 
-        <div
-          class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 w-full"
-        >
-          {
-            planchasPopulares.length === 0 ? (
-              <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
-                Aun no hay planchas con vistas registradas.
+          <!-- Cards grid -->
+          <div class="flex-1">
+            <!-- Mobile title (shown on small screens) -->
+            <div class="lg:hidden text-center mb-6 w-full">
+              <h3 class="text-[24px] leading-8 font-medium">Más visitadas</h3>
+              <p class="text-sm text-global-text-muted mt-2">
+                Se actualizan con descargas y vistas.
               </p>
-            ) : (
-              planchasPopulares.map((sheet) => {
-                const courseCode = sheet.course_code ?? "N/A";
-                return (
-                  <article
-                    class="plancha-card w-full relative"
-                    data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
-                    data-evaluacion={sheet.exam_type}
-                    data-ciclo={sheet.cycle}
-                    data-solucion={sheet.solution_kind ? "si" : "no"}
-                  >
-                    {courseCode !== "N/A" && (
-                      <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
-                        {courseCode}
-                      </span>
-                    )}
-                    <CardExam sheet={sheet} />
-                  </article>
-                );
-              })
-            )
-          }
+            </div>
+
+            <div
+              id="carousel-popular"
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full transition-all duration-500"
+            >
+              {
+                planchasPopulares.length === 0 ? (
+                  <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
+                    Aun no hay planchas con vistas registradas.
+                  </p>
+                ) : (
+                  planchasPopulares.map((sheet, index) => {
+                    const courseCode = sheet.course_code ?? "N/A";
+                    return (
+                      <article
+                        class="plancha-card carousel-item-popular w-full relative"
+                        data-index={index}
+                        data-curso={
+                          sheet.course_name ?? sheet.course_code ?? "Curso"
+                        }
+                        data-evaluacion={sheet.exam_type}
+                        data-ciclo={sheet.cycle}
+                        data-solucion={sheet.solution_kind ? "si" : "no"}
+                        style={index >= 3 ? "display: none;" : ""}
+                      >
+                        {courseCode !== "N/A" && (
+                          <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
+                            {courseCode}
+                          </span>
+                        )}
+                        <CardExam sheet={sheet} />
+                      </article>
+                    );
+                  })
+                )
+              }
+            </div>
+          </div>
+
+          <!-- Right arrow -->
+          <button
+            id="next-popular"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            aria-label="Siguiente"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- Right title -->
+          <div class="hidden lg:block min-w-[110px] flex-shrink-0">
+            <h3 class="text-[20px] leading-6 font-medium">
+              Planchas<br />Populares
+            </h3>
+            <p class="text-xs text-global-text-muted mt-2 leading-relaxed">
+              Se actualizan<br />con vistas
+            </p>
+          </div>
         </div>
       </div>
 
       <!-- Más difíciles section -->
       <div class="w-full mt-8">
-        <div class="text-center mb-6">
-          <h3 class="text-[24px] leading-8 font-medium">Más difíciles</h3>
-          <p class="text-sm text-global-text-muted mt-2">
-            Basado en los votos de dificultad.
-          </p>
-        </div>
+        <div class="flex gap-4 items-center">
+          <!-- Left arrow -->
+          <button
+            id="prev-difficult"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            aria-label="Anterior"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-          {
-            planchasDificiles.length === 0 ? (
-              <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
-                Aun no hay votos de dificultad suficientes.
+          <!-- Cards grid -->
+          <div class="flex-1">
+            <!-- Mobile title (shown on small screens) -->
+            <div class="lg:hidden text-center mb-6 w-full">
+              <h3 class="text-[24px] leading-8 font-medium">Más difíciles</h3>
+              <p class="text-sm text-global-text-muted mt-2">
+                Basado en los votos de dificultad.
               </p>
-            ) : (
-              planchasDificiles.map((sheet) => {
-                const courseCode = sheet.course_code ?? "N/A";
-                return (
-                  <article
-                    class="plancha-card w-full relative"
-                    data-curso={sheet.course_name ?? sheet.course_code ?? "Curso"}
-                    data-evaluacion={sheet.exam_type}
-                    data-ciclo={sheet.cycle}
-                    data-solucion={sheet.solution_kind ? "si" : "no"}
-                  >
-                    {courseCode !== "N/A" && (
-                      <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
-                        {courseCode}
-                      </span>
-                    )}
-                    <CardExam sheet={sheet} />
-                  </article>
-                );
-              })
-            )
-          }
+            </div>
+
+            <div
+              id="carousel-difficult"
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-500"
+            >
+              {
+                planchasDificiles.length === 0 ? (
+                  <p class="col-span-full rounded-xl border border-dashed border-global-border bg-black/10 p-6 text-center text-global-text-muted">
+                    Aun no hay votos de dificultad suficientes.
+                  </p>
+                ) : (
+                  planchasDificiles.map((sheet, index) => {
+                    const courseCode = sheet.course_code ?? "N/A";
+                    return (
+                      <article
+                        class="plancha-card carousel-item-difficult w-full relative"
+                        data-index={index}
+                        data-curso={
+                          sheet.course_name ?? sheet.course_code ?? "Curso"
+                        }
+                        data-evaluacion={sheet.exam_type}
+                        data-ciclo={sheet.cycle}
+                        data-solucion={sheet.solution_kind ? "si" : "no"}
+                        style={index >= 3 ? "display: none;" : ""}
+                      >
+                        {courseCode !== "N/A" && (
+                          <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
+                            {courseCode}
+                          </span>
+                        )}
+                        <CardExam sheet={sheet} />
+                      </article>
+                    );
+                  })
+                )
+              }
+            </div>
+          </div>
+
+          <!-- Right arrow -->
+          <button
+            id="next-difficult"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            aria-label="Siguiente"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+
+          <!-- Right title -->
+          <div class="hidden lg:block min-w-[110px] flex-shrink-0">
+            <h3 class="text-[20px] leading-6 font-medium">
+              Planchas<br />Difíciles
+            </h3>
+            <p class="text-xs text-global-text-muted mt-2 leading-relaxed">
+              Basado en<br />votos
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -207,3 +335,78 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
     </section>
   </div>
 </Layout>
+
+<script>
+  // Carousel functionality
+  function setupCarousel(
+    prevBtnId: string,
+    nextBtnId: string,
+    itemClass: string,
+    totalItems: number,
+  ) {
+    let currentIndex = 0;
+    const itemsPerPage = 3;
+    const maxIndex = Math.max(0, totalItems - itemsPerPage);
+
+    const prevBtn = document.getElementById(prevBtnId);
+    const nextBtn = document.getElementById(nextBtnId);
+    const items = document.querySelectorAll(`.${itemClass}`);
+
+    if (!prevBtn || !nextBtn || items.length === 0) return;
+
+    function updateCarousel() {
+      items.forEach((item, index) => {
+        const htmlItem = item as HTMLElement;
+        if (index >= currentIndex && index < currentIndex + itemsPerPage) {
+          htmlItem.style.display = "";
+        } else {
+          htmlItem.style.display = "none";
+        }
+      });
+
+      // Disable buttons at boundaries
+      prevBtn.classList.toggle("opacity-50", currentIndex === 0);
+      prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
+      nextBtn.classList.toggle("opacity-50", currentIndex >= maxIndex);
+      nextBtn.classList.toggle("cursor-not-allowed", currentIndex >= maxIndex);
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateCarousel();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex < maxIndex) {
+        currentIndex++;
+        updateCarousel();
+      }
+    });
+
+    updateCarousel();
+  }
+
+  // Initialize carousels on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    const popularItems = document.querySelectorAll(".carousel-item-popular");
+    const difficultItems = document.querySelectorAll(
+      ".carousel-item-difficult",
+    );
+
+    setupCarousel(
+      "prev-popular",
+      "next-popular",
+      "carousel-item-popular",
+      popularItems.length,
+    );
+
+    setupCarousel(
+      "prev-difficult",
+      "next-difficult",
+      "carousel-item-difficult",
+      difficultItems.length,
+    );
+  });
+</script>
