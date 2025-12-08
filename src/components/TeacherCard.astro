@@ -14,6 +14,7 @@ export interface Props {
   showButton?: boolean; // force show CTA even without href/openId
   buttonLabel?: string;
   openId?: string; // optional button id to integrate with modals
+  modality?: string;
 }
 
 const {
@@ -28,6 +29,7 @@ const {
   showButton = false,
   buttonLabel = "Ver perfil",
   openId,
+  modality,
 } = Astro.props as Props;
 
 const safeRating = Math.max(0, Math.min(5, Math.round(rating)));
@@ -51,8 +53,23 @@ const wrapperClass = `bg-global-card rounded-xl px-2 lg:px-0 py-6 flex flex-col 
         <h3 class="text-xl md:text-2xl font-semibold text-global-text">
           {name}
         </h3>
-        <p class="text-sm md:text-base font-medium text-global-text-muted">
+        <p class="text-sm md:text-base font-medium text-global-text-muted flex items-center justify-center gap-2">
           {role}
+          {modality && modality.includes("T") && (
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-200">
+              Teoría
+            </span>
+          )}
+          {modality && modality.includes("P") && (
+            <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full dark:bg-green-900 dark:text-green-200">
+              Práctica
+            </span>
+          )}
+          {modality && modality.includes("L") && (
+            <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full dark:bg-purple-900 dark:text-purple-200">
+              Lab
+            </span>
+          )}
         </p>
       </div>
 
@@ -102,8 +119,23 @@ const wrapperClass = `bg-global-card rounded-xl px-2 lg:px-0 py-6 flex flex-col 
         <h3 class="text-xl md:text-2xl font-semibold text-global-text">
           {name}
         </h3>
-        <p class="text-sm md:text-base font-medium text-global-text-muted">
+        <p class="text-sm md:text-base font-medium text-global-text-muted flex items-center justify-center gap-2">
           {role}
+          {modality && modality.includes("T") && (
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-200">
+              Teoría
+            </span>
+          )}
+          {modality && modality.includes("P") && (
+            <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full dark:bg-green-900 dark:text-green-200">
+              Práctica
+            </span>
+          )}
+          {modality && modality.includes("L") && (
+            <span class="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full dark:bg-purple-900 dark:text-purple-200">
+              Lab
+            </span>
+          )}
         </p>
       </div>
 

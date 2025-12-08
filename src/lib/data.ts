@@ -32,7 +32,7 @@ export interface TeacherSummary {
   bio: string;
   avg_overall: number | null;
   rating_count: number;
-  courses: { code: string; name: string }[];
+  courses: { code: string; name: string; modality?: string }[];
   avatar_url?: string | null;
 }
 
@@ -203,9 +203,45 @@ export async function getTopTeachers(limit = 6, minRatings = 3): Promise<Teacher
 export async function getTeachers(): Promise<TeacherSummary[]> {
   const { data } = await supabaseClient
     .from('teachers')
-    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (code,name) )')
+    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name) )')
     .order('full_name');
   return formatTeacherSummary(data);
+}
+
+export async function getTeachersByCourseCode(code: string): Promise<{ teacher: TeacherSummary, modality: string }[]> {
+  const { data: course } = await supabaseClient
+    .from('courses')
+    .select('id')
+    .eq('code', code.toUpperCase())
+    .single();
+
+  if (!course) return [];
+
+  const { data } = await supabaseClient
+    .from('teachers')
+    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers!inner ( modality, course_id )')
+    .eq('courses_teachers.course_id', course.id);
+
+  if (!data) return [];
+
+  return data.flatMap((t: any) =>
+    t.courses_teachers.flatMap((ct: any) => {
+      const modalities = (ct.modality || 'T').split(',').map((m: string) => m.trim());
+
+      return modalities.map((mod: string) => ({
+        teacher: {
+          id: t.id,
+          full_name: t.full_name,
+          bio: t.bio,
+          avg_overall: t.avg_overall,
+          rating_count: t.rating_count ?? 0,
+          avatar_url: t.avatar_url ?? null,
+          courses: [] // Not needed for this specific view
+        },
+        modality: mod
+      }));
+    })
+  );
 }
 
 function formatTeacherSummary(rows: any[] | null): TeacherSummary[] {
@@ -218,9 +254,9 @@ function formatTeacherSummary(rows: any[] | null): TeacherSummary[] {
     rating_count: row.rating_count ?? 0,
     avatar_url: row.avatar_url ?? null,
     courses: (row.courses_teachers || [])
-      .map((ct: any) => ct.courses)
+      .map((ct: any) => ct.courses ? { ...(ct.courses), modality: ct.modality } : null)
       .filter(Boolean)
-      .map((course: any) => ({ code: course.code, name: course.name })),
+      .map((course: any) => ({ code: course.code, name: course.name, modality: course.modality })),
   }));
 }
 

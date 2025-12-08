@@ -9,14 +9,16 @@ const teachers = await getTeachers();
 
 <Layout title="Profesores">
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
-    <header class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <header
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
       <div>
         <h1 class="text-3xl font-bold text-global-text">Profesores</h1>
         <p class="text-global-text-muted mt-2">
           Encuentra a tu profesor y revisa sus calificaciones.
         </p>
       </div>
-      
+
       <div class="relative w-full md:w-96">
         <label for="search-teacher" class="sr-only">Buscar profesor</label>
         <input
@@ -32,7 +34,11 @@ const teachers = await getTeachers();
           viewBox="0 0 24 24"
           stroke="currentColor"
         >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>
       </div>
     </header>
@@ -43,16 +49,22 @@ const teachers = await getTeachers();
           No hay profesores registrados.
         </p>
       ) : (
-        <div id="teachers-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          id="teachers-grid"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {teachers.map((teacher) => (
             <article
               class="teacher-item"
               data-name={teacher.full_name}
-              data-courses={(teacher.courses || []).map(c => `${c.code} ${c.name}`).join(",")}
+              data-courses={(teacher.courses || [])
+                .map((c) => `${c.code} ${c.name}`)
+                .join(",")}
             >
               <TeacherCard
                 name={teacher.full_name}
                 role={teacher.courses?.[0]?.code ?? "Profesor"}
+                modality={teacher.courses?.[0]?.modality ?? undefined}
                 rating={teacher.avg_overall ?? 0}
                 avatarSrc={teacher.avatar_url || "/img/fallback_teacher.jpeg"}
                 href={`/teachers/${teacher.id}`}
@@ -63,7 +75,7 @@ const teachers = await getTeachers();
         </div>
       )
     }
-    
+
     <p id="no-results" class="hidden text-center text-global-text-muted py-10">
       No se encontraron profesores que coincidan con tu búsqueda.
     </p>
@@ -78,32 +90,34 @@ const teachers = await getTeachers();
       .replace(/[\u0300-\u036f]/g, "")
       .trim();
 
-  const input = document.getElementById('search-teacher');
-  const grid = document.getElementById('teachers-grid');
-  const noResults = document.getElementById('no-results');
-  const items = Array.from(document.querySelectorAll('.teacher-item'));
+  const input = document.getElementById("search-teacher");
+  const grid = document.getElementById("teachers-grid");
+  const noResults = document.getElementById("no-results");
+  const items = Array.from(document.querySelectorAll(".teacher-item"));
 
   if (input && grid) {
-    input.addEventListener('input', (e) => {
+    input.addEventListener("input", (e) => {
       const target = e.target;
-      const term = normalize(target && 'value' in target ? String(target.value) : '');
+      const term = normalize(
+        target && "value" in target ? String(target.value) : "",
+      );
       let visibleCount = 0;
 
       items.forEach((item) => {
         const el = item;
-        const name = normalize(el.dataset.name || '');
-        const courses = normalize(el.dataset.courses || '');
+        const name = normalize(el.dataset.name || "");
+        const courses = normalize(el.dataset.courses || "");
         const matches = !term || name.includes(term) || courses.includes(term);
-        el.classList.toggle('hidden', !matches);
+        el.classList.toggle("hidden", !matches);
         if (matches) visibleCount++;
       });
 
       if (visibleCount === 0) {
-        grid.classList.add('hidden');
-        noResults?.classList.remove('hidden');
+        grid.classList.add("hidden");
+        noResults?.classList.remove("hidden");
       } else {
-        grid.classList.remove('hidden');
-        noResults?.classList.add('hidden');
+        grid.classList.remove("hidden");
+        noResults?.classList.add("hidden");
       }
     });
   }
