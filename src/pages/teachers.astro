@@ -104,7 +104,7 @@ const teachers = await getTeachers();
       let visibleCount = 0;
 
       items.forEach((item) => {
-        const el = item;
+        const el = item as HTMLElement;
         const name = normalize(el.dataset.name || "");
         const courses = normalize(el.dataset.courses || "");
         const matches = !term || name.includes(term) || courses.includes(term);
