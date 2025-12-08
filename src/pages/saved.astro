@@ -37,8 +37,34 @@ import Layout from "../layouts/Layout.astro";
   </main>
 </Layout>
 
-<script lang="ts">
-  import { getFavorites, toggleFavorite } from "../lib/favorites";
+<script
+  define:vars={{ PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL }}
+>
+  // Inline logic to avoid module import issues
+  function getFavorites() {
+    try {
+      const stored = localStorage.getItem("trikaweb:favorites");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function toggleFavorite(id) {
+    const favs = getFavorites();
+    const index = favs.indexOf(id);
+    if (index >= 0) {
+      favs.splice(index, 1);
+    } else {
+      favs.push(id);
+    }
+    localStorage.setItem("trikaweb:favorites", JSON.stringify(favs));
+    window.dispatchEvent(
+      new CustomEvent("favorites:updated", {
+        detail: { id, active: index === -1 },
+      }),
+    );
+  }
 
   const loading = document.getElementById("loading");
   const emptyState = document.getElementById("empty-state");
@@ -91,19 +117,40 @@ import Layout from "../layouts/Layout.astro";
     }
   }
 
+  function getThumbUrl(path) {
+    if (!path) return null;
+    if (!PUBLIC_SUPABASE_URL) return null; // Safety check
+
+    // Remove "thumbnails/" prefix if present
+    const cleanPath = path.startsWith("thumbnails/")
+      ? path.replace("thumbnails/", "")
+      : path;
+
+    // Construct public URL manually to avoid dependency
+    return `${PUBLIC_SUPABASE_URL}/storage/v1/object/public/thumbnails/${cleanPath}`;
+  }
+
   function renderGrid(sheets) {
     if (!grid) return;
     grid.innerHTML = "";
 
     sheets.forEach((sheet) => {
+      const thumbUrl = getThumbUrl(sheet.thumb_storage_path);
+
       const card = document.createElement("article");
       card.className = "w-full";
       card.innerHTML = `
         <a href="/exams/${sheet.id}" class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg transition-transform hover:scale-105 relative group">
-          <button class="absolute top-2 right-2 z-10 p-2 text-red-500 hover:scale-110 transition" data-remove-id="${sheet.id}" title="Quitar de guardados">
+          <button class="absolute top-2 right-2 z-10 p-2 text-red-500 hover:scale-110 transition bg-white/10 rounded-full backdrop-blur-sm" data-remove-id="${sheet.id}" title="Quitar de guardados">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
           </button>
-          <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
+          
+          ${
+            thumbUrl
+              ? `<img src="${thumbUrl}" alt="Miniatura de ${sheet.course_code || "Curso"}" class="w-full aspect-[3/2] rounded object-cover object-top mb-4 bg-global-bg" loading="lazy" />`
+              : `<div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>`
+          }
+
           <div class="flex items-center pr-2 justify-between -mt-2">
             <span class="text-base md:text-lg font-semibold text-global-text">${sheet.course_name || sheet.course_code || "Curso"}</span>
             ${

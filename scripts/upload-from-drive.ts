@@ -76,17 +76,15 @@ async function listFolders(parentId: string) {
     return folders;
 }
 
-/**
- * List all PDF files inside a specific parent folder.
- */
 async function listPdfFiles(parentId: string) {
     const pdfs: { id: string; name: string }[] = [];
     let pageToken: string | undefined = undefined;
 
     do {
+        // Query for ALL files (not just PDFs) to see what's in there
         const res: any = await drive.files.list({
-            q: `'${parentId}' in parents and mimeType = 'application/pdf' and trashed = false`,
-            fields: 'nextPageToken, files(id, name)',
+            q: `'${parentId}' in parents and trashed = false`,
+            fields: 'nextPageToken, files(id, name, mimeType)',
             pageToken,
         });
 
@@ -94,7 +92,14 @@ async function listPdfFiles(parentId: string) {
         if (files) {
             files.forEach((file: any) => {
                 if (file.id && file.name) {
-                    pdfs.push({ id: file.id, name: file.name });
+                    const isPdfMime = file.mimeType.includes('pdf');
+                    const isPdfExt = file.name.toLowerCase().endsWith('.pdf');
+
+                    if (isPdfMime || isPdfExt) {
+                        pdfs.push({ id: file.id, name: file.name });
+                    } else {
+                        console.log(`      [IGNORED] ${file.name} (Type: ${file.mimeType})`);
+                    }
                 }
             });
         }
@@ -140,9 +145,44 @@ async function uploadToSupabaseStorage(localPath: string, storagePath: string) {
 
 // --- MAIN LOGIC ---
 
+// --- HELPER FUNCTIONS ---
+
+/**
+ * Fetch all courses and returns a map of Code -> ID
+ */
+async function getCourseMap() {
+    const { data, error } = await supabase
+        .from('courses')
+        .select('id, code');
+
+    if (error) {
+        console.error('Error fetching courses:', error);
+        return new Map<string, number>();
+    }
+
+    const map = new Map<string, number>();
+    if (data) {
+        data.forEach((c: any) => {
+            if (c.code) map.set(c.code.toUpperCase(), c.id);
+        });
+    }
+    return map;
+}
+
+// ... existing listFolders ...
+// ... existing listPdfFiles ...
+// ... existing downloadFile ...
+// ... existing uploadToSupabaseStorage ...
+
+// --- MAIN LOGIC ---
+
 async function main() {
     console.log('--- STARTING DRIVE TO SUPABASE SYNC ---');
     console.log(`Root Folder ID: ${DRIVE_EXAMS_FOLDER_ID}`);
+
+    // Pre-fetch courses to resolve Foreign Keys
+    const courseMap = await getCourseMap();
+    console.log(`Loaded ${courseMap.size} courses from DB.`);
 
     const tmpDir = path.join(__dirname, '../tmp-drive');
     if (!fs.existsSync(tmpDir)) {
@@ -153,29 +193,42 @@ async function main() {
         // Level 1: Course Codes (e.g., BMA01, FIS101)
         console.log('Listing Level 1 folders (Courses)...');
         const courseFolders = await listFolders(DRIVE_EXAMS_FOLDER_ID!);
-        console.log(`Found ${courseFolders.length} courses.`);
+        console.log(`Found ${courseFolders.length} courses in Drive.`);
 
         for (const courseFolder of courseFolders) {
-            const courseCode = courseFolder.name;
-            console.log(`Processing Course: ${courseCode}`);
+            const courseCode = courseFolder.name.toUpperCase();
+
+            // Validate Course Exists in DB
+            const courseId = courseMap.get(courseCode);
+            if (!courseId) {
+                console.warn(`[WARN] Course ${courseCode} not found in DB. Skipping...`);
+                continue;
+            }
+
+            console.log(`Processing Course: ${courseCode} (ID: ${courseId})`);
 
             // Level 2: Eval Labels (e.g., PC1, PC2, Parcial1)
             const evalFolders = await listFolders(courseFolder.id);
             console.log(`  Found ${evalFolders.length} eval folders in ${courseCode}`);
 
             for (const evalFolder of evalFolders) {
-                const evalLabel = evalFolder.name;
-                // console.log(`    Processing Eval: ${evalLabel}`);
+                const evalLabel = evalFolder.name; // This maps to 'exam_type'
 
                 // PDF Files (e.g., 2024-II.pdf)
                 const pdfFiles = await listPdfFiles(evalFolder.id);
-                console.log(`    Found ${pdfFiles.length} PDFs in ${evalLabel}`);
+                if (pdfFiles.length > 0) {
+                    console.log(`    Found ${pdfFiles.length} PDFs in ${evalLabel}`);
+                }
 
                 for (const pdfFile of pdfFiles) {
+                    // Filename is '2024-II.pdf' -> term/cycle is '2024-II'
                     const term = pdfFile.name.replace(/\.pdf$/i, '');
+
+                    // Supabase Path: BMA02/PC1/2024-II.pdf
                     const examStoragePath = `${courseCode}/${evalLabel}/${pdfFile.name}`;
 
-                    // Check if exists in DB
+                    // Check if exists in DB (sheets table)
+                    // Note: We check by exam_storage_path to ensure idempotency
                     const { data: existing } = await supabase
                         .from('sheets')
                         .select('id')
@@ -183,37 +236,41 @@ async function main() {
                         .maybeSingle();
 
                     if (existing) {
-                        console.log(`[SKIP] Already exists: ${examStoragePath}`);
+                        console.log(`      [SKIP] Already exists: ${examStoragePath}`);
                         continue;
                     }
 
-                    console.log(`[NEW] Processing: ${examStoragePath}`);
+                    console.log(`      [NEW] Processing: ${examStoragePath}`);
 
                     try {
                         const localFilePath = path.join(tmpDir, pdfFile.name);
 
                         // 1. Download from Drive
-                        // console.log(`  Downloading from Drive...`);
                         await downloadFile(pdfFile.id, localFilePath);
 
                         // 2. Upload to Supabase Storage
-                        // console.log(`  Uploading to Supabase Storage...`);
+                        // console.log(`      Uploading to Storage...`);
                         await uploadToSupabaseStorage(localFilePath, examStoragePath);
 
                         // 3. Insert into DB
-                        // console.log(`  Inserting into DB...`);
+                        // Field mapping based on schema:
+                        // course_code -> course_id
+                        // eval_label -> exam_type
+                        // term -> cycle
                         const { error: insertError } = await supabase
                             .from('sheets')
                             .insert({
-                                course_code: courseCode,
-                                eval_label: evalLabel,
-                                term: term,
+                                course_id: courseId,
+                                exam_type: evalLabel,
+                                cycle: term,
                                 exam_storage_path: examStoragePath,
+                                solution_kind: null, // Explicitly null to satisfy constraint
+                                solution_storage_path: null,
                             });
 
                         if (insertError) throw insertError;
 
-                        console.log(`  ✅ Successfully synced: ${examStoragePath}`);
+                        console.log(`      ✅ Successfully synced: ${examStoragePath}`);
 
                         // Cleanup local file
                         if (fs.existsSync(localFilePath)) {
@@ -221,7 +278,7 @@ async function main() {
                         }
 
                     } catch (err) {
-                        console.error(`  ❌ Error processing ${examStoragePath}:`, err);
+                        console.error(`      ❌ Error processing ${examStoragePath}:`, err);
                     }
                 }
             }

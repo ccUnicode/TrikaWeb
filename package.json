@@ -7,7 +7,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "upload-from-drive": "ts-node scripts/upload-from-drive.ts"
+    "drive:sync": "ts-node scripts/upload-from-drive.ts"
   },
   "dependencies": {
     "@astrojs/vercel": "^9.0.2",
