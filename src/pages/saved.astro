@@ -1,20 +1,12 @@
 ---
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
-import IconHome from "../components/icons/IconHome.astro";
 ---
 
 <Layout title="Mis Guardados | TrikaWeb">
   <main class="mx-auto max-w-[1200px] px-4 py-10 min-h-screen">
     <header class="mb-8 flex items-center justify-between">
       <h1 class="text-3xl font-bold text-global-text">Mis Guardados</h1>
-      <a
-        href="/"
-        class="text-global-primary hover:underline flex items-center gap-2"
-      >
-        <IconHome class="w-5 h-5" />
-        Volver al inicio
-      </a>
     </header>
 
     <div id="loading" class="py-12 text-center text-global-text-muted">
@@ -48,44 +40,39 @@ import IconHome from "../components/icons/IconHome.astro";
 <script lang="ts">
   import { getFavorites, toggleFavorite } from "../lib/favorites";
 
-  type SavedSheet = {
-    id: number;
-    course_name?: string | null;
-    course_code?: string | null;
-    exam_type?: string | null;
-    cycle?: string | null;
-    solution_kind?: string | null;
-  };
-
   const loading = document.getElementById("loading");
   const emptyState = document.getElementById("empty-state");
   const grid = document.getElementById("grid");
 
   async function loadSaved() {
-    const ids = getFavorites();
-
-    if (!ids.length) {
-      loading?.classList.add("hidden");
-      emptyState?.classList.remove("hidden");
-      grid?.classList.add("hidden");
-      return;
-    }
-
     try {
+      if (loading) loading.textContent = "Leyendo favoritos...";
+      const ids = getFavorites();
+
+      if (!ids.length) {
+        loading?.classList.add("hidden");
+        emptyState?.classList.remove("hidden");
+        grid?.classList.add("hidden");
+        return;
+      }
+
+      if (loading) loading.textContent = `Cargando ${ids.length} planchas...`;
+
       const res = await fetch("/api/sheets/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids }),
       });
 
-      if (!res.ok) throw new Error("Failed to fetch");
+      if (!res.ok) {
+        throw new Error(`Error del servidor: ${res.status}`);
+      }
 
-      const sheets = (await res.json()) as SavedSheet[];
+      const sheets = await res.json();
 
       if (!sheets.length) {
         loading?.classList.add("hidden");
         emptyState?.classList.remove("hidden");
-        grid?.classList.add("hidden");
         return;
       }
 
@@ -94,13 +81,18 @@ import IconHome from "../components/icons/IconHome.astro";
       emptyState?.classList.add("hidden");
       grid?.classList.remove("hidden");
     } catch (e) {
-      console.error(e);
-      if (loading) loading.textContent = "Error al cargar favoritos.";
+      if (loading) {
+        loading.innerHTML = `
+          <p class="text-red-500 mb-2">Ocurrió un error al cargar.</p>
+          <p class="text-xs text-gray-500 font-mono">${e instanceof Error ? e.message : String(e)}</p>
+          <button onclick="location.reload()" class="mt-4 underline text-sm">Reintentar</button>
+        `;
+      }
     }
   }
 
-  function renderGrid(sheets: SavedSheet[]) {
-    if (!(grid instanceof HTMLElement)) return;
+  function renderGrid(sheets) {
+    if (!grid) return;
     grid.innerHTML = "";
 
     sheets.forEach((sheet) => {
@@ -133,7 +125,7 @@ import IconHome from "../components/icons/IconHome.astro";
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const target = e.currentTarget as HTMLElement | null;
+        const target = e.currentTarget;
         const id = Number(target?.dataset.removeId);
         if (!Number.isInteger(id)) return;
         toggleFavorite(id);
