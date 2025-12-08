@@ -20,5 +20,8 @@
     "pdfjs-dist": "^5.4.296",
     "tailwindcss": "^4.1.15",
     "ts-node": "^10.9.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
   }
 }
