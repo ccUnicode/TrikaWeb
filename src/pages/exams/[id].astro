@@ -116,16 +116,26 @@ function getYouTubeId(url: string) {
         <DownloadButton sheetId={sheet.id} downloadUrl={examUrl || undefined} />
         {
           solutionUrl && (
-            <a
-              href={solutionUrl}
-              target="_blank"
-              rel="noreferrer"
-              class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
+            <button
+              id="view-solution-btn"
+              data-solution-url={solutionUrl}
+              data-solution-type="pdf"
+              type="button"
+              class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary transition-colors"
             >
               Ver solucionario
-            </a>
+            </button>
           )
         }
+        <button
+          id="view-exam-btn"
+          data-exam-url={examUrl}
+          type="button"
+          style="display: none;"
+          class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary transition-colors"
+        >
+          Ver examen
+        </button>
       </div>
     </header>
 
@@ -139,7 +149,9 @@ function getYouTubeId(url: string) {
             examUrl ? (
               <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40 shadow-lg">
                 <iframe
+                  id="pdf-viewer-iframe"
                   src={`${examUrl}#toolbar=0&navpanes=0`}
+                  data-exam-url={examUrl}
                   class="absolute inset-0 h-full w-full rounded-xl border-0"
                   loading="lazy"
                   allowfullscreen
@@ -289,6 +301,51 @@ function getYouTubeId(url: string) {
 
   document.addEventListener("astro:page-load", initVideoPlayers);
   document.addEventListener("DOMContentLoaded", initVideoPlayers);
+
+  // Handle solution/exam viewer switching
+  function initViewerSwitcher() {
+    const iframe = document.getElementById("pdf-viewer-iframe");
+    const solutionBtn = document.getElementById("view-solution-btn");
+    const examBtn = document.getElementById("view-exam-btn");
+
+    if (!iframe) return;
+
+    // Handle "Ver solucionario" button
+    if (solutionBtn) {
+      solutionBtn.addEventListener("click", () => {
+        const solutionUrl = solutionBtn.getAttribute("data-solution-url");
+        const solutionType = solutionBtn.getAttribute("data-solution-type");
+
+        if (!solutionUrl) return;
+
+        // Change iframe src to solution PDF
+        iframe.src = `${solutionUrl}#toolbar=0&navpanes=0`;
+
+        // Toggle button visibility
+        solutionBtn.classList.add("hidden");
+        if (examBtn) examBtn.classList.remove("hidden");
+      });
+    }
+
+    // Handle "Ver examen" button
+    if (examBtn) {
+      examBtn.addEventListener("click", () => {
+        const examUrl = examBtn.getAttribute("data-exam-url");
+
+        if (!examUrl) return;
+
+        // Change iframe src back to exam PDF
+        iframe.src = `${examUrl}#toolbar=0&navpanes=0`;
+
+        // Toggle button visibility
+        examBtn.classList.add("hidden");
+        if (solutionBtn) solutionBtn.classList.remove("hidden");
+      });
+    }
+  }
+
+  document.addEventListener("astro:page-load", initViewerSwitcher);
+  document.addEventListener("DOMContentLoaded", initViewerSwitcher);
 </script>
 
 <script type="module">
