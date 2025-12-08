@@ -1,5 +1,6 @@
 ---
 import type { SheetSummary } from "../lib/data";
+import { supabaseAdmin } from "../lib/supabase.server";
 
 /* 1. Definimos las "props" (las variables) que la tarjeta va a recibir */
 export interface Props {
@@ -21,6 +22,25 @@ const hasSolution = sheet
   ? Boolean(sheet.solution_kind)
   : Boolean(tieneSolucion);
 const resolvedHref = sheet ? `/exams/${sheet.id}` : (href ?? "#");
+
+let thumbUrl: string | null = null;
+if (sheet?.thumb_storage_path) {
+  try {
+    // Fix: Remove "thumbnails/" prefix if present in the database path
+    // The createSignedUrl method expects a path relative to the bucket, not including the bucket name.
+    const storagePath = sheet.thumb_storage_path.startsWith("thumbnails/")
+      ? sheet.thumb_storage_path.replace("thumbnails/", "")
+      : sheet.thumb_storage_path;
+
+    const supa = supabaseAdmin();
+    const { data } = await supa.storage
+      .from("thumbnails")
+      .createSignedUrl(storagePath, 3600);
+    thumbUrl = data?.signedUrl ?? null;
+  } catch (error) {
+    console.error("Error signing thumb url:", error);
+  }
+}
 
 /* 2. Definimos los iconos (los metemos aqui) */
 const checkIcon = `
@@ -44,24 +64,42 @@ const noCheckIcon = `
     aria-label="Guardar plancha"
     aria-pressed="false"
   >
-    <svg class="h-6 w-6 drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+    <svg
+      class="h-6 w-6 drop-shadow-md"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path
+        d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+      ></path>
     </svg>
-    {/*
-    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z" />
-    </svg>
-    */}
   </button>
 
   <a
     href={resolvedHref}
     class="flex w-full h-auto flex-col gap-2 rounded-lg bg-global-card p-4 shadow-lg"
   >
-    <div class="w-full aspect-[3/2] rounded bg-global-bg mb-4"></div>
+    {
+      thumbUrl ? (
+        <img
+          src={thumbUrl}
+          alt={`Miniatura de ${courseLabel}`}
+          class="w-full aspect-3/2 rounded object-cover object-top mb-4 bg-global-bg"
+          loading="lazy"
+        />
+      ) : (
+        <div class="w-full aspect-3/2 rounded bg-global-bg mb-4" />
+      )
+    }
 
     <div class="flex items-center pr-2 justify-between -mt-2">
-      <span class="text-base md:text-lg font-semibold text-global-text">{courseLabel}</span>
+      <span class="text-base md:text-lg font-semibold text-global-text"
+        >{courseLabel}</span
+      >
 
       {
         hasSolution ? (
@@ -78,7 +116,9 @@ const noCheckIcon = `
           <span class="text-global-text-muted">{cycleLabel}</span>
         </div>
       ) : (
-        <span class="text-sm md:text-base font-medium text-global-text-muted">{cycleLabel}</span>
+        <span class="text-sm md:text-base font-medium text-global-text-muted">
+          {cycleLabel}
+        </span>
       )
     }
   </a>
@@ -102,8 +142,8 @@ const noCheckIcon = `
     const isFav = isFavorite(id);
     btn.setAttribute("aria-pressed", String(isFav));
 
-    activeClasses.forEach(cls => btn.classList.toggle(cls, isFav));
-    inactiveClasses.forEach(cls => btn.classList.toggle(cls, !isFav));
+    activeClasses.forEach((cls) => btn.classList.toggle(cls, isFav));
+    inactiveClasses.forEach((cls) => btn.classList.toggle(cls, !isFav));
 
     const svg = btn.querySelector("svg");
     if (isFav) {
@@ -114,11 +154,13 @@ const noCheckIcon = `
   }
 
   function initFavorites() {
-    const buttons = Array.from(document.querySelectorAll<HTMLElement>("[data-fav-btn]"));
+    const buttons = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-fav-btn]"),
+    );
     buttons.forEach(updateButton);
 
-    buttons.forEach(btn => {
-      btn.addEventListener("click", e => {
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", (e) => {
         const id = Number(btn.dataset.sheetId);
         if (!Number.isInteger(id)) return;
         e.preventDefault();
