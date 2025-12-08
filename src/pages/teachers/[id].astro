@@ -256,17 +256,17 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
   class="hidden fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
 >
   <div
-    class="rating-modal relative w-full max-w-2xl rounded-3xl bg-global-card border border-global-border/50 p-6 shadow-2xl"
+    class="rating-modal relative w-full max-w-2xl mx-4 rounded-3xl bg-global-card p-8 shadow-2xl animate-fade-in"
   >
     <button
       type="button"
       id="close-rating-modal"
-      class="absolute right-4 top-4 text-global-text-muted hover:text-global-primary"
+      class="absolute right-5 top-5 text-2xl text-global-text-muted hover:text-global-primary transition-colors"
       aria-label="Cerrar"
     >
       ✕
     </button>
-    <h3 class="text-2xl font-semibold mb-4">
+    <h3 class="text-2xl font-semibold mb-6">
       Calificar a {detail.teacher.full_name}
     </h3>
     <TeacherRatingForm
@@ -288,9 +288,25 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
     display: block !important;
   }
   .rating-modal .teacher-rating {
-    border: none;
+    /* Mantener el borde del card pero quitar padding y background duplicado */
     background: transparent;
     padding: 0;
+  }
+
+  /* Animación suave de aparición del modal */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
   }
 </style>
 

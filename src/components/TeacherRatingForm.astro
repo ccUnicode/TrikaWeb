@@ -19,7 +19,7 @@ const fields = [
 ---
 
 <div
-  class="teacher-rating space-y-3 rounded-2xl border border-global-border/40 bg-global-surface p-4"
+  class="teacher-rating space-y-3 rounded-2xl border border-global-border bg-global-surface p-4"
   data-teacher-rating
   data-teacher-id={teacherId}
 >
@@ -63,13 +63,13 @@ const fields = [
             <select
               id={`${field.name}-${teacherId}`}
               name={field.name}
-              class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm text-global-text"
+              class="mt-1 w-full rounded-xl border-0 bg-global-bg/40 px-3 py-2 text-sm text-global-text focus:outline-none focus:ring-2 focus:ring-global-primary/60 transition-all"
             >
               <option value="" selected>
                 Selecciona
               </option>
               {Array.from({ length: 5 }).map((_, idx) => (
-                <option value={idx + 1} class="text-black">
+                <option value={idx + 1} class="bg-global-card text-global-text">
                   {idx + 1}
                 </option>
               ))}
@@ -84,18 +84,18 @@ const fields = [
         id={`comment-${teacherId}`}
         name="comment"
         rows={3}
-        class="mt-1 w-full rounded-xl border border-global-border bg-black/10 px-3 py-2 text-sm"
+        class="mt-1 w-full rounded-xl border-0 bg-global-bg/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-global-primary/60 transition-all"
         placeholder="Cuenta tu experiencia"></textarea>
     </label>
-    <div class="flex items-center gap-3">
+    <div class="flex flex-col items-center gap-2">
       <button
         type="submit"
-        class="rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black"
+        class="w-full rounded-xl bg-global-primary mt-4 px-6 py-3 text-base font-semibold text-black hover:bg-global-primary-hover transition-colors"
         data-submit
       >
-        Enviar
+        Enviar Calificación
       </button>
-      <span data-status class="text-xs text-global-text-muted"></span>
+      <span data-status class="text-sm text-global-text-muted"></span>
     </div>
   </form>
 </div>
