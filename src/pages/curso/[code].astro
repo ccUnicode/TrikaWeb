@@ -70,6 +70,21 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
       </p>
     </header>
 
+    <div class="flex gap-4 border-b border-global-border mb-8">
+      <a
+        href={`/curso/${course.code}`}
+        class="px-4 py-2 text-sm font-medium border-b-2 border-global-primary text-global-text"
+      >
+        Planchas
+      </a>
+      <a
+        href={`/curso/${course.code}/profesores`}
+        class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-global-text-muted hover:text-global-text transition-colors"
+      >
+        Profesores
+      </a>
+    </div>
+
     {
       course.sheets.length === 0 ? (
         <p class="rounded-2xl border border-dashed border-global-border/60 bg-global-surface p-6 text-center text-global-text-muted">
