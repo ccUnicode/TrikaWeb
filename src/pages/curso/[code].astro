@@ -9,14 +9,59 @@ const course = await getCourseByCode(code);
 if (!course) {
   return Astro.redirect("/cursos");
 }
+
+// Group sheets by exam_type
+const sheetsByType: Record<string, typeof course.sheets> = {};
+course.sheets.forEach((sheet) => {
+  const type = sheet.exam_type || "Otros";
+  if (!sheetsByType[type]) {
+    sheetsByType[type] = [];
+  }
+  sheetsByType[type].push(sheet);
+});
+
+// Define exam type order and labels
+const examTypeConfig: Record<string, string> = {
+  PC1: "Práctica Calificada 1",
+  PC2: "Práctica Calificada 2",
+  PC3: "Práctica Calificada 3",
+  PC4: "Práctica Calificada 4",
+  PC5: "Práctica Calificada 5",
+  EP: "Examen Parcial",
+  EF: "Examen Final",
+  M1: "Monografía 1",
+  M2: "Monografía 2",
+  L: "Laboratorios",
+  Otros: "Otros Exámenes",
+};
+
+// Sort types in logical order
+const typeOrder = [
+  "PC1",
+  "PC2",
+  "PC3",
+  "PC4",
+  "PC5",
+  "EP",
+  "EF",
+  "M1",
+  "M2",
+  "L",
+  "Otros",
+];
+const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
+  const indexA = typeOrder.indexOf(a);
+  const indexB = typeOrder.indexOf(b);
+  if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+  if (indexA === -1) return 1;
+  if (indexB === -1) return -1;
+  return indexA - indexB;
+});
 ---
 
 <Layout title={`Curso ${course.code}`}>
-  <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
-    <header class="space-y-2 border-b border-global-border/50 pb-6">
-      <p class="text-sm uppercase tracking-[0.3em] text-global-text-muted">
-        Curso
-      </p>
+  <main class="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-10">
+    <header class="flex items-center justify-between mb-8">
       <h1 class="text-3xl font-bold text-global-text">
         {course.code} - {course.name}
       </h1>
@@ -31,12 +76,289 @@ if (!course) {
           Aun no hay planchas para este curso.
         </p>
       ) : (
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {course.sheets.map((sheet) => (
-            <CardExam sheet={sheet} />
-          ))}
-        </div>
+        <>
+          {/* Sticky tabs navigation */}
+          <nav
+            id="exam-tabs"
+            class="sticky top-16 z-40 bg-global-bg border-b border-global-border mb-8 -mx-4 sm:-mx-6 lg:-mx-12 px-4 sm:px-6 lg:px-12"
+          >
+            <div class="flex gap-2 overflow-x-auto scrollbar-hide py-3">
+              {sortedTypes.map((type) => (
+                <button
+                  data-tab={type}
+                  class="exam-tab whitespace-nowrap px-4 py-2 rounded-lg text-sm text-global-text font-medium transition-colors hover:bg-global-surface"
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          {/* Sections for each exam type */}
+          {sortedTypes.map((type, typeIndex) => {
+            const sheets = sheetsByType[type];
+            const sectionTitle = examTypeConfig[type] || type;
+
+            return (
+              <section
+                id={`section-${type}`}
+                class="mb-8 scroll-mt-32 bg-global-surface rounded-2xl p-6 sm:p-8"
+                data-exam-type={type}
+              >
+                <div class="flex items-center justify-between mb-6">
+                  <h2 class="text-2xl font-semibold text-global-text">
+                    {sectionTitle}
+                  </h2>
+                  <select
+                    class="sort-dropdown px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted hover:border-global-primary transition-colors cursor-pointer"
+                    data-section={type}
+                  >
+                    <option value="cycle-desc">Ordenar por ciclo ▼</option>
+                    <option value="cycle-asc">Ordenar por ciclo ▲</option>
+                  </select>
+                </div>
+
+                <div class="flex gap-4 items-center">
+                  {/* Left arrow */}
+                  <button
+                    class={`carousel-prev hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0`}
+                    data-carousel={type}
+                    aria-label="Anterior"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                  </button>
+
+                  {/* Cards carousel */}
+                  <div class="flex-1 overflow-hidden">
+                    <div
+                      class={`carousel-container-${type} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-500`}
+                    >
+                      {sheets.map((sheet, index) => {
+                        const courseCode = sheet.course_code ?? "N/A";
+                        return (
+                          <article
+                            class={`carousel-item-${type} w-full relative`}
+                            data-index={index}
+                            data-cycle={sheet.cycle || ""}
+                            style={index >= 3 ? "display: none;" : ""}
+                          >
+                            {courseCode !== "N/A" && (
+                              <a
+                                href={`/curso/${courseCode}`}
+                                class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black hover:bg-global-primary-hover transition-colors"
+                                onclick="event.stopPropagation();"
+                              >
+                                {courseCode}
+                              </a>
+                            )}
+                            <CardExam sheet={sheet} />
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Right arrow */}
+                  <button
+                    class={`carousel-next hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0`}
+                    data-carousel={type}
+                    aria-label="Siguiente"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                </div>
+              </section>
+            );
+          })}
+        </>
       )
     }
   </main>
 </Layout>
+
+<script define:vars={{ sortedTypes }}>
+  // Tab navigation
+  function setupTabs() {
+    const tabs = document.querySelectorAll(".exam-tab");
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        const type = tab.getAttribute("data-tab");
+        const section = document.getElementById(`section-${type}`);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      });
+    });
+
+    // Highlight active tab based on scroll
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const type = entry.target.getAttribute("data-exam-type");
+            tabs.forEach((t) =>
+              t.classList.remove("bg-global-primary", "text-black"),
+            );
+            tabs.forEach((t) => {
+              if (t.getAttribute("data-tab") === type) {
+                t.classList.add("bg-global-primary", "text-black");
+              }
+            });
+          }
+        });
+      },
+      { threshold: 0.5 },
+    );
+
+    document.querySelectorAll("[data-exam-type]").forEach((section) => {
+      observer.observe(section);
+    });
+  }
+
+  // Sorting functionality
+  function setupSorting() {
+    const dropdowns = document.querySelectorAll(".sort-dropdown");
+
+    dropdowns.forEach((dropdown) => {
+      dropdown.addEventListener("change", (e) => {
+        const target = e.target;
+        const section = target.getAttribute("data-section");
+        const order = target.value;
+        const container = document.querySelector(
+          `.carousel-container-${section}`,
+        );
+
+        if (!container) return;
+
+        const items = Array.from(container.children);
+
+        items.sort((a, b) => {
+          const cycleA = a.getAttribute("data-cycle") || "";
+          const cycleB = b.getAttribute("data-cycle") || "";
+
+          if (order === "cycle-asc") {
+            return cycleA.localeCompare(cycleB);
+          } else {
+            return cycleB.localeCompare(cycleA);
+          }
+        });
+
+        // Reorder DOM
+        items.forEach((item) => container.appendChild(item));
+
+        // Reset carousel view
+        resetCarousel(section || "");
+      });
+    });
+  }
+
+  // Carousel functionality
+  function setupCarousel(type, totalItems) {
+    let currentIndex = 0;
+    const itemsPerPage = 3;
+    const maxIndex = Math.max(0, totalItems - itemsPerPage);
+
+    const prevBtn = document.querySelector(
+      `.carousel-prev[data-carousel="${type}"]`,
+    );
+    const nextBtn = document.querySelector(
+      `.carousel-next[data-carousel="${type}"]`,
+    );
+    const items = document.querySelectorAll(`.carousel-item-${type}`);
+
+    if (!prevBtn || !nextBtn || items.length === 0) return;
+
+    function updateCarousel() {
+      items.forEach((item, index) => {
+        const htmlItem = item;
+        if (index >= currentIndex && index < currentIndex + itemsPerPage) {
+          htmlItem.style.display = "";
+        } else {
+          htmlItem.style.display = "none";
+        }
+      });
+
+      // Disable buttons at boundaries
+      prevBtn.classList.toggle("opacity-50", currentIndex === 0);
+      prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
+      nextBtn.classList.toggle("opacity-50", currentIndex >= maxIndex);
+      nextBtn.classList.toggle("cursor-not-allowed", currentIndex >= maxIndex);
+    }
+
+    prevBtn.addEventListener("click", () => {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateCarousel();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (currentIndex < maxIndex) {
+        currentIndex++;
+        updateCarousel();
+      }
+    });
+
+    updateCarousel();
+  }
+
+  function resetCarousel(type) {
+    const items = document.querySelectorAll(`.carousel-item-${type}`);
+    items.forEach((item, index) => {
+      const htmlItem = item;
+      if (index < 3) {
+        htmlItem.style.display = "";
+      } else {
+        htmlItem.style.display = "none";
+      }
+    });
+  }
+
+  // Initialize on page load
+  document.addEventListener("DOMContentLoaded", () => {
+    setupTabs();
+    setupSorting();
+
+    // Setup carousel for each exam type
+    sortedTypes.forEach((type) => {
+      const items = document.querySelectorAll(`.carousel-item-${type}`);
+      setupCarousel(type, items.length);
+    });
+  });
+</script>
+
+<style>
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+</style>

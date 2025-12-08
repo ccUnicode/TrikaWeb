@@ -142,9 +142,13 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                         style={index >= 3 ? "display: none;" : ""}
                       >
                         {courseCode !== "N/A" && (
-                          <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
+                          <a
+                            href={`/curso/${courseCode}`}
+                            class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black hover:bg-global-primary-hover transition-colors"
+                            onclick="event.stopPropagation();"
+                          >
                             {courseCode}
-                          </span>
+                          </a>
                         )}
                         <CardExam sheet={sheet} />
                       </article>
@@ -247,9 +251,13 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                         style={index >= 3 ? "display: none;" : ""}
                       >
                         {courseCode !== "N/A" && (
-                          <span class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black">
+                          <a
+                            href={`/curso/${courseCode}`}
+                            class="absolute top-2 left-2 z-10 inline-flex items-center rounded-full bg-global-primary px-2.5 py-0.5 text-xs font-semibold text-black hover:bg-global-primary-hover transition-colors"
+                            onclick="event.stopPropagation();"
+                          >
                             {courseCode}
-                          </span>
+                          </a>
                         )}
                         <CardExam sheet={sheet} />
                       </article>
@@ -365,10 +373,17 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       });
 
       // Disable buttons at boundaries
-      prevBtn.classList.toggle("opacity-50", currentIndex === 0);
-      prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
-      nextBtn.classList.toggle("opacity-50", currentIndex >= maxIndex);
-      nextBtn.classList.toggle("cursor-not-allowed", currentIndex >= maxIndex);
+      if (prevBtn) {
+        prevBtn.classList.toggle("opacity-50", currentIndex === 0);
+        prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
+      }
+      if (nextBtn) {
+        nextBtn.classList.toggle("opacity-50", currentIndex >= maxIndex);
+        nextBtn.classList.toggle(
+          "cursor-not-allowed",
+          currentIndex >= maxIndex,
+        );
+      }
     }
 
     prevBtn.addEventListener("click", () => {
