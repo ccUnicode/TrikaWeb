@@ -67,9 +67,12 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 ---
 
 <Layout title={`Profesor ${detail.teacher.full_name}`}>
-  <main class="mx-auto max-w-7xl px-4 py-10 text-global-text">
+  <main class="mx-auto max-w-7xl px-2 sm:px-4 py-10 text-global-text">
     <!-- Contenedor principal con fondo #171A1F -->
-    <div class="rounded-3xl p-10 shadow-2xl" style="background-color: #171A1F;">
+    <div
+      class="rounded-3xl p-4 sm:p-10 shadow-2xl"
+      style="background-color: #171A1F;"
+    >
       <div class="grid gap-6 lg:grid-cols-3">
         <!-- Columna izquierda: avatar, nombre, score y CTA -->
         <section

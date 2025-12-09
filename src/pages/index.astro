@@ -14,7 +14,7 @@ import {
 const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopSheetsByViews(6),
   getTopSheetsByDifficulty(6),
-  getTopTeachers(6, 1),
+  getTopTeachers(6, 5),
 ]);
 ---
 
@@ -69,7 +69,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
     <section
       id="planchas"
-      class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-4 sm:px-10 py-16"
+      class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-9 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16"
     >
       <div class="flex w-full flex-col md:flex-row items-center gap-8">
         <div class="w-full md:w-[118px] text-center md:text-left">
@@ -331,17 +331,75 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
             Aun no hay calificaciones de profesores.
           </p>
         ) : (
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-6">
-            {topTeachers.map((teacher) => (
-              <TeacherCard
-                name={teacher.full_name}
-                role={teacher.courses?.[0]?.code ?? "Profesor"}
-                rating={teacher.avg_overall ?? 0}
-                avatarSrc={teacher.avatar_url ?? undefined}
-                href={`/teachers/${teacher.id}`}
-                buttonLabel="Calificar"
-              />
-            ))}
+          <div class="w-full mt-6">
+            <div class="flex gap-4 items-center">
+              <!-- Left arrow -->
+              <button
+                id="prev-teachers"
+                class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+                aria-label="Anterior"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+
+              <!-- Cards grid -->
+              <div class="flex-1">
+                <div
+                  id="carousel-teachers"
+                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full transition-all duration-500"
+                >
+                  {topTeachers.map((teacher, index) => (
+                    <article
+                      class="carousel-item-teachers"
+                      data-index={index}
+                      style={index >= 3 ? "display: none;" : ""}
+                    >
+                      <TeacherCard
+                        name={teacher.full_name}
+                        role={teacher.courses?.[0]?.code ?? "Profesor"}
+                        rating={teacher.avg_overall ?? 0}
+                        avatarSrc={teacher.avatar_url ?? undefined}
+                        href={`/teachers/${teacher.id}`}
+                        buttonLabel="Calificar"
+                      />
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <!-- Right arrow -->
+              <button
+                id="next-teachers"
+                class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+                aria-label="Siguiente"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
         )
       }
@@ -350,24 +408,52 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 </Layout>
 
 <script>
-  // Carousel functionality
+  // Carousel functionality with touch support
   function setupCarousel(
     prevBtnId: string,
     nextBtnId: string,
     itemClass: string,
     totalItems: number,
+    carouselId: string,
   ) {
     let currentIndex = 0;
-    const itemsPerPage = 3;
-    const maxIndex = Math.max(0, totalItems - itemsPerPage);
+    const isMobile = () => window.innerWidth < 1024;
+    const getItemsPerPage = () => isMobile() ? 1 : 3;
+    const getMaxIndex = () => Math.max(0, totalItems - getItemsPerPage());
 
     const prevBtn = document.getElementById(prevBtnId);
     const nextBtn = document.getElementById(nextBtnId);
     const items = document.querySelectorAll(`.${itemClass}`);
+    const carousel = document.getElementById(carouselId);
 
-    if (!prevBtn || !nextBtn || items.length === 0) return;
+    if (items.length === 0) return;
+
+    // Create dot indicators for mobile
+    let dotsContainer: HTMLElement | null = null;
+    if (carousel) {
+      dotsContainer = document.createElement('div');
+      dotsContainer.className = 'flex justify-center gap-2 mt-4 lg:hidden';
+      for (let i = 0; i < totalItems; i++) {
+        const dot = document.createElement('button');
+        dot.className = 'w-2 h-2 rounded-full bg-global-border transition-colors';
+        dot.setAttribute('aria-label', `Ir a item ${i + 1}`);
+        dot.addEventListener('click', () => {
+          currentIndex = i;
+          updateCarousel();
+        });
+        dotsContainer.appendChild(dot);
+      }
+      carousel.parentElement?.appendChild(dotsContainer);
+    }
 
     function updateCarousel() {
+      const itemsPerPage = getItemsPerPage();
+      const maxIndex = getMaxIndex();
+      
+      // Clamp currentIndex
+      if (currentIndex > maxIndex) currentIndex = maxIndex;
+      if (currentIndex < 0) currentIndex = 0;
+
       items.forEach((item, index) => {
         const htmlItem = item as HTMLElement;
         if (index >= currentIndex && index < currentIndex + itemsPerPage) {
@@ -377,7 +463,18 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         }
       });
 
-      // Disable buttons at boundaries
+      // Update dots
+      if (dotsContainer) {
+        const dots = dotsContainer.querySelectorAll('button');
+        dots.forEach((dot, index) => {
+          if (isMobile()) {
+            dot.classList.toggle('bg-global-primary', index === currentIndex);
+            dot.classList.toggle('bg-global-border', index !== currentIndex);
+          }
+        });
+      }
+
+      // Disable buttons at boundaries (desktop)
       if (prevBtn) {
         prevBtn.classList.toggle("opacity-50", currentIndex === 0);
         prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
@@ -391,18 +488,52 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       }
     }
 
-    prevBtn.addEventListener("click", () => {
+    // Arrow button handlers
+    prevBtn?.addEventListener("click", () => {
       if (currentIndex > 0) {
         currentIndex--;
         updateCarousel();
       }
     });
 
-    nextBtn.addEventListener("click", () => {
-      if (currentIndex < maxIndex) {
+    nextBtn?.addEventListener("click", () => {
+      if (currentIndex < getMaxIndex()) {
         currentIndex++;
         updateCarousel();
       }
+    });
+
+    // Touch/swipe support
+    if (carousel) {
+      let touchStartX = 0;
+      let touchEndX = 0;
+      const minSwipeDistance = 50;
+
+      carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+
+      carousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const swipeDistance = touchEndX - touchStartX;
+
+        if (Math.abs(swipeDistance) > minSwipeDistance) {
+          if (swipeDistance < 0 && currentIndex < getMaxIndex()) {
+            // Swipe left - next
+            currentIndex++;
+            updateCarousel();
+          } else if (swipeDistance > 0 && currentIndex > 0) {
+            // Swipe right - prev
+            currentIndex--;
+            updateCarousel();
+          }
+        }
+      }, { passive: true });
+    }
+
+    // Handle resize
+    window.addEventListener('resize', () => {
+      updateCarousel();
     });
 
     updateCarousel();
@@ -420,6 +551,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       "next-popular",
       "carousel-item-popular",
       popularItems.length,
+      "carousel-popular",
     );
 
     setupCarousel(
@@ -427,6 +559,16 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       "next-difficult",
       "carousel-item-difficult",
       difficultItems.length,
+      "carousel-difficult",
+    );
+
+    const teacherItems = document.querySelectorAll(".carousel-item-teachers");
+    setupCarousel(
+      "prev-teachers",
+      "next-teachers",
+      "carousel-item-teachers",
+      teacherItems.length,
+      "carousel-teachers",
     );
   });
 </script>
