@@ -32,7 +32,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         <h1
           class="max-w-[383px] text-3xl md:text-[40px] leading-tight font-bold text-global-text text-center md:text-left"
         >
-          ¿Planchas y reseñas de profes?<br />
+          ¿Planchas y reseñas?<br />
           Todo en un solo lugar.
         </h1>
         <p
@@ -331,6 +331,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
               <TeacherCard
                 name={teacher.full_name}
                 role={teacher.courses?.[0]?.code ?? "Profesor"}
+                courses={teacher.courses?.map((c) => c.code) ?? []}
                 rating={teacher.avg_overall ?? 0}
                 avatarSrc={teacher.avatar_url ?? undefined}
                 href={`/teachers/${teacher.id}`}

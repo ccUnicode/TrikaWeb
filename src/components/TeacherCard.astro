@@ -16,6 +16,7 @@ export interface Props {
   openId?: string; // optional button id to integrate with modals
   modality?: string;
   variant?: "compact" | "detailed"; // New prop for layout variant
+  courses?: string[];
 }
 
 const {
@@ -32,6 +33,7 @@ const {
   openId,
   modality,
   variant = "compact",
+  courses,
 } = Astro.props as Props;
 
 const safeRating = Math.max(0, Math.min(5, Math.round(rating)));
@@ -65,8 +67,8 @@ const wrapperClass =
             {role}
           </p>
         ) : (
-          <p class="text-sm md:text-base font-medium text-global-text-muted flex items-center justify-center gap-2">
-            {role}
+          <p class="text-sm md:text-base font-medium text-global-text-muted flex items-center justify-center gap-2 flex-wrap text-center px-4">
+            {courses && courses.length > 0 ? courses.join(" • ") : role}
             {modality && modality.includes("T") && (
               <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-200">
                 Teoría
@@ -137,8 +139,8 @@ const wrapperClass =
             {role}
           </p>
         ) : (
-          <p class="text-sm md:text-base font-medium text-global-text-muted flex items-center justify-center gap-2">
-            {role}
+          <p class="text-sm md:text-base font-medium text-global-text-muted flex items-center justify-center gap-2 flex-wrap text-center px-4">
+            {courses && courses.length > 0 ? courses.join(" • ") : role}
             {modality && modality.includes("T") && (
               <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-200">
                 Teoría

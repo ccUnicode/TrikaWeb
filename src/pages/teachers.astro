@@ -64,6 +64,7 @@ const teachers = await getTeachers();
               <TeacherCard
                 name={teacher.full_name}
                 role={teacher.courses?.[0]?.code ?? "Profesor"}
+                courses={teacher.courses?.map((c) => c.code) ?? []}
                 modality={teacher.courses?.[0]?.modality ?? undefined}
                 rating={teacher.avg_overall ?? 0}
                 avatarSrc={teacher.avatar_url || "/img/fallback_teacher.jpeg"}
