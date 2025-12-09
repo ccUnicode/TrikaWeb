@@ -8,46 +8,162 @@ const courses: CourseSummary[] = await getCourses();
 ---
 
 <Layout title="Cursos">
-  <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10">
-    <header class="mb-8">
-      <p class="text-sm uppercase tracking-[0.2em] text-global-text-muted">
-        Explorar
-      </p>
-      <h1 class="text-3xl font-bold text-global-text">Todos los cursos</h1>
-      <p class="text-global-text-muted mt-2">
-        Elige un curso para ver sus planchas, estadísticas y profesores
-        relacionados.
-      </p>
+  <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
+    <header
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
+      <div>
+        <h1 class="text-3xl font-bold text-global-text">Cursos</h1>
+        <p class="text-global-text-muted mt-2">
+          Explorar cursos para ver planchas y profesores relacionados.
+        </p>
+      </div>
+
+      <div class="relative w-full md:w-96">
+        <label for="search-course" class="sr-only">Buscar curso</label>
+        <input
+          type="search"
+          id="search-course"
+          placeholder="Buscar por código o nombre..."
+          class="w-full rounded-full bg-global-surface border border-global-border px-4 py-2.5 text-global-text placeholder:text-global-text-muted focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary"
+          autocomplete="off"
+        />
+        <svg
+          class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-global-text-muted"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
     </header>
 
     {
       courses.length === 0 ? (
-        <p class="rounded-xl border border-dashed border-global-border bg-global-surface p-6 text-center text-global-text-muted">
-          Aún no hay cursos registrados. Vuelve pronto.
+        <p class="text-center text-global-text-muted py-10">
+          Aún no hay cursos registrados.
         </p>
       ) : (
-        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          id="courses-grid"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {courses.map((course) => (
-            <li class="rounded-2xl border border-transparent bg-global-surface px-6 py-5 shadow-sm transition hover:border-global-primary/40 hover:shadow-lg">
-              <p class="text-sm font-semibold text-global-primary tracking-[0.2em]">
-                {course.code}
-              </p>
-              <h2 class="text-xl font-semibold text-global-text mb-3">
-                {course.name}
-              </h2>
-              <p class="text-sm text-global-text-muted">
-                {course.sheetCount} planchas registradas
-              </p>
+            <article
+              class="course-item"
+              data-name={course.name}
+              data-code={course.code}
+            >
               <a
                 href={`/curso/${course.code}`}
-                class="mt-4 inline-flex items-center justify-center rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover"
+                class="group flex h-full flex-col justify-between rounded-2xl border border-transparent bg-global-surface p-6 shadow-sm transition-all hover:border-global-primary/40 hover:shadow-lg hover:-translate-y-1"
               >
-                Ver planchas
+                <div>
+                  <div class="flex items-start justify-between gap-3">
+                    <h2 class="text-lg font-bold text-global-text group-hover:text-global-primary transition-colors leading-tight">
+                      {course.name}
+                    </h2>
+                    <span class="shrink-0 text-sm font-semibold text-global-primary tracking-[0.2em]">
+                      {course.code}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="mt-6 flex items-center justify-between border-t border-global-border-subtle pt-4 text-sm text-global-text-muted">
+                  <div class="flex items-center gap-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <span>
+                      {course.sheetCount}{" "}
+                      {course.sheetCount === 1 ? "plancha" : "planchas"}
+                    </span>
+                  </div>
+
+                  <svg
+                    class="h-5 w-5 text-global-primary transition-transform group-hover:translate-x-1"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M17 8l4 4m0 0l-4 4m4-4H3"
+                    />
+                  </svg>
+                </div>
               </a>
-            </li>
+            </article>
           ))}
-        </ul>
+        </div>
       )
     }
+
+    <p id="no-results" class="hidden text-center text-global-text-muted py-10">
+      No se encontraron cursos que coincidan con tu búsqueda.
+    </p>
   </main>
 </Layout>
+
+<script>
+  const normalize = (value = "") =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+  const input = document.getElementById("search-course");
+  const grid = document.getElementById("courses-grid");
+  const noResults = document.getElementById("no-results");
+  const items = Array.from(document.querySelectorAll(".course-item"));
+
+  if (input && grid) {
+    input.addEventListener("input", (e) => {
+      const target = e.target;
+      const term = normalize(
+        target && "value" in target ? String(target.value) : "",
+      );
+      let visibleCount = 0;
+
+      items.forEach((item) => {
+        const el = item as HTMLElement;
+        const name = normalize(el.dataset.name || "");
+        const code = normalize(el.dataset.code || "");
+        const matches = !term || name.includes(term) || code.includes(term);
+        el.classList.toggle("hidden", !matches);
+        if (matches) visibleCount++;
+      });
+
+      if (visibleCount === 0) {
+        grid.classList.add("hidden");
+        noResults?.classList.remove("hidden");
+      } else {
+        grid.classList.remove("hidden");
+        // Aseguramos que la cuadrícula retome su diseño original
+        if (grid.classList.contains("hidden")) {
+          grid.classList.remove("hidden");
+        }
+        noResults?.classList.add("hidden");
+      }
+    });
+  }
+</script>
