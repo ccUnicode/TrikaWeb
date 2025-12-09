@@ -316,7 +316,10 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       <div
         class="flex w-full items-start justify-between flex-wrap gap-4 px-2 sm:px-0"
       >
-        <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
+        <div class="space-y-1">
+          <h2 class="text-[32px] leading-10 font-semibold">Profesores</h2>
+          <p class="text-global-text-muted">Mejor calificados</p>
+        </div>
         <a
           href="/teachers"
           class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
@@ -432,7 +435,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
     let dotsContainer: HTMLElement | null = null;
     if (carousel) {
       dotsContainer = document.createElement('div');
-      dotsContainer.className = 'flex justify-center gap-2 mt-6';
+      dotsContainer.className = 'flex lg:hidden justify-center gap-2 mt-6';
       for (let i = 0; i < totalItems; i++) {
         const dot = document.createElement('button');
         dot.className = 'w-2.5 h-2.5 rounded-full border border-global-border transition-all duration-300';

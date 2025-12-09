@@ -181,11 +181,14 @@ function getYouTubeId(url: string) {
             )
           }
           {
-            solutionUrl && (
+            (solutionUrl ||
+              (sheet.solution_kind === "video" &&
+                sheet.solution_video_url)) && (
               <button
                 id="view-solution-btn"
                 data-solution-url={solutionUrl}
-                data-solution-type="pdf"
+                data-video-url={sheet.solution_video_url}
+                data-solution-type={sheet.solution_kind}
                 data-sheet-id={sheet.id}
                 type="button"
                 class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors cursor-pointer"
@@ -250,7 +253,10 @@ function getYouTubeId(url: string) {
         >
           {
             examUrl ? (
-              <div class="relative w-full overflow-hidden rounded-xl bg-black/40 shadow-lg min-h-[500px] sm:aspect-[3/4] sm:min-h-0">
+              <div
+                id="viewer-container"
+                class="relative w-full overflow-hidden rounded-xl bg-black/40 shadow-lg min-h-[500px] sm:aspect-[3/4] sm:min-h-0"
+              >
                 <iframe
                   id="pdf-viewer-iframe"
                   src={`${examUrl}#toolbar=0&navpanes=0&view=FitH`}
@@ -267,66 +273,6 @@ function getYouTubeId(url: string) {
             )
           }
         </div>
-
-        <!-- Solucionario en Video -->
-        {
-          sheet.solution_kind === "video" && sheet.solution_video_url && (
-            <div class="rounded-2xl border border-global-border/40 bg-global-surface/60 p-4 sm:p-6 space-y-4 max-w-4xl mx-auto">
-              <h3 class="text-xl font-semibold text-global-text flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="text-red-500"
-                >
-                  <>
-                    <polygon points="23 7 16 12 23 17 23 7" />
-                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                  </>
-                </svg>
-                Solucionario en Video
-              </h3>
-
-              <div
-                class="video-player-container relative aspect-video w-full overflow-hidden rounded-xl bg-black shadow-lg group cursor-pointer"
-                data-video-url={sheet.solution_video_url}
-              >
-                {/* Thumbnail Image or Fallback */}
-                <img
-                  src={
-                    thumbUrl ||
-                    `https://img.youtube.com/vi/${getYouTubeId(sheet.solution_video_url)}/maxresdefault.jpg`
-                  }
-                  alt="Video Thumbnail"
-                  class="absolute inset-0 h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
-                  onerror="this.src='https://img.youtube.com/vi/${getYouTubeId(sheet.solution_video_url)}/hqdefault.jpg'"
-                />
-
-                {/* Play Button Overlay */}
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <div class="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/90 text-white shadow-xl transition-transform group-hover:scale-110">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="32"
-                      height="32"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      stroke="none"
-                    >
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        }
       </div>
 
       <div
@@ -380,60 +326,50 @@ function getYouTubeId(url: string) {
     return match && match[2].length === 11 ? match[2] : null;
   }
 
-  function initVideoPlayers() {
-    const containers = document.querySelectorAll(".video-player-container");
-    containers.forEach((container) => {
-      container.addEventListener("click", () => {
-        const url = container.getAttribute("data-video-url");
-        if (!url) return;
-
-        const videoId = getYouTubeId(url);
-        if (!videoId) return;
-
-        const iframe = document.createElement("iframe");
-        iframe.setAttribute(
-          "src",
-          `https://www.youtube.com/embed/${videoId}?autoplay=1`,
-        );
-        iframe.setAttribute(
-          "class",
-          "absolute inset-0 h-full w-full rounded-xl border-0",
-        );
-        iframe.setAttribute(
-          "allow",
-          "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
-        );
-        iframe.setAttribute("allowfullscreen", "true");
-
-        container.innerHTML = "";
-        container.appendChild(iframe);
-        container.classList.remove("cursor-pointer", "group");
-      });
-    });
-  }
-
-  document.addEventListener("astro:page-load", initVideoPlayers);
-  document.addEventListener("DOMContentLoaded", initVideoPlayers);
-
   // Handle solution/exam viewer switching
   function initViewerSwitcher() {
     const iframe = document.getElementById(
       "pdf-viewer-iframe",
     ) as HTMLIFrameElement;
+    const container = document.getElementById("viewer-container");
     const solutionBtn = document.getElementById("view-solution-btn");
     const examBtn = document.getElementById("view-exam-btn");
 
-    if (!iframe) return;
+    if (!iframe || !container) return;
+
+    // Helper classes
+    const pdfClasses = ["sm:aspect-[3/4]", "min-h-[500px]", "sm:min-h-0"];
+    const videoClasses = ["aspect-video"];
 
     // Handle "Ver solucionario" button
     if (solutionBtn) {
       solutionBtn.addEventListener("click", () => {
+        const solutionType = solutionBtn.getAttribute("data-solution-type");
         const solutionUrl = solutionBtn.getAttribute("data-solution-url");
+        const videoUrl = solutionBtn.getAttribute("data-video-url");
 
-        if (!solutionUrl) return;
-
-        // Change iframe src to solution PDF
-        iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
+        if (solutionType === "video" && videoUrl) {
+          const videoId = getYouTubeId(videoUrl);
+          if (videoId) {
+            iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+            iframe.setAttribute(
+              "allow",
+              "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
+            );
+            // Switch container to video mode
+            container.classList.remove(...pdfClasses);
+            container.classList.add(...videoClasses);
+          }
+        } else if (solutionUrl) {
+          // Change iframe src to solution PDF
+          iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
+          iframe.removeAttribute("allow");
+          // Ensure container is in PDF mode
+          container.classList.remove(...videoClasses);
+          container.classList.add(...pdfClasses);
+        } else {
+          return;
+        }
 
         // Toggle button visibility - use inline-flex when showing
         solutionBtn.classList.add("hidden");
@@ -454,6 +390,11 @@ function getYouTubeId(url: string) {
 
         // Change iframe src back to exam PDF
         iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
+        iframe.removeAttribute("allow");
+
+        // Ensure container is in PDF mode
+        container.classList.remove(...videoClasses);
+        container.classList.add(...pdfClasses);
 
         // Toggle button visibility - use inline-flex when showing
         examBtn.classList.add("hidden");
