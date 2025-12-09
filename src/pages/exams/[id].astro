@@ -487,7 +487,17 @@ function getYouTubeId(url: string) {
 </script>
 
 <script define:vars={{ sheetId }}>
-  import { ensureDeviceId } from "../../lib/client/device";
+  // Inlined ensureDeviceId to avoid module import issues with define:vars
+  const DEVICE_STORAGE_KEY = "tw_device_id";
+  function ensureDeviceId() {
+    if (typeof window === "undefined") return "";
+    let current = window.localStorage.getItem(DEVICE_STORAGE_KEY);
+    if (!current) {
+      current = crypto.randomUUID();
+      window.localStorage.setItem(DEVICE_STORAGE_KEY, current);
+    }
+    return current;
+  }
 
   const SHEET_ID = sheetId;
 

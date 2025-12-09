@@ -150,10 +150,11 @@ export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   }));
 }
 
-export async function getTopSheetsByViews(limit = 6) {
+export async function getTopSheetsByViews(limit = 6, minViews = 5) {
   const { data } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
+    .gte('view_count', minViews)
     .order('view_count', { ascending: false })
     .limit(limit);
   return (data || []).map((sheet: any) => ({
