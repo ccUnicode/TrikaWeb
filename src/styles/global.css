@@ -204,4 +204,22 @@
   .teacher-scroll::-webkit-scrollbar-thumb:vertical {
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.02);
   }
+
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
 }
