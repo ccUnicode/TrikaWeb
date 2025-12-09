@@ -1,56 +1,49 @@
 ---
-import "../../styles/global.css";
-import SiteHeader from "../../components/SiteHeader.astro";
-
-// (Luego Rol B usará /api/admin/upload, aquí solo hacemos el formulario)
+import Layout from "../../layouts/Layout.astro";
 ---
 
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <title>Admin – Subir material | TrikaWeb</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-  </head>
-
-  <body class="min-h-screen bg-[#050505] text-white">
-    <SiteHeader />
-
-    <!-- Separación bajo el header -->
-    <div class="h-8"></div>
-
-    <main class="mx-auto w-full max-w-[1100px] px-4 pb-10">
-      <section
-        class="rounded-3xl bg-[#171A1F] p-6 sm:p-8 shadow-2xl ring-1 ring-black/30"
-      >
-        <header class="mb-6">
-          <h1 class="text-2xl font-semibold">Panel de subida de material</h1>
-          <p class="mt-1 text-sm text-gray-300">
-            Aquí podrás subir PDFs de planchas y solucionarios para que luego se
-            vean en la web.
+<Layout title="Admin – Subir material | TrikaWeb">
+  <div class="min-h-screen py-8">
+    <div class="mx-auto w-full max-w-3xl px-4">
+      <!-- Header Section -->
+      <div class="mb-8 flex flex-row items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-global-text">Panel de subida</h1>
+          <p class="mt-1 text-sm text-global-text-muted">
+            Sube PDFs de planchas y solucionarios
           </p>
-          <div class="mt-4 flex justify-end">
-            <form action="/api/admin/logout" method="POST">
-              <button
-                type="submit"
-                class="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
-              >
-                Cerrar Sesión
-              </button>
-            </form>
-          </div>
-        </header>
+        </div>
+        <form action="/api/admin/logout" method="POST">
+          <button
+            type="submit"
+            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+          >
+            Cerrar Sesión
+          </button>
+        </form>
+      </div>
 
-        <!-- FORMULARIO PRINCIPAL -->
+      <!-- Upload Form Card -->
+      <section
+        class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
+      >
+        <h2 class="text-lg font-semibold text-global-text mb-4">
+          Subir archivo
+        </h2>
+
         <form
           method="POST"
           action="/api/admin/upload"
           enctype="multipart/form-data"
-          class="space-y-5"
+          class="space-y-4"
         >
-          <!-- Datos de la plancha -->
+          <!-- Row 1: Course Code & Cycle -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="block text-sm font-medium mb-1" for="course-code">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="course-code"
+              >
                 Código de curso
               </label>
               <input
@@ -58,13 +51,15 @@ import SiteHeader from "../../components/SiteHeader.astro";
                 name="course_code"
                 type="text"
                 required
-                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
                 placeholder="Ej: BMA02"
               />
             </div>
-
             <div>
-              <label class="block text-sm font-medium mb-1" for="cycle">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="cycle"
+              >
                 Ciclo
               </label>
               <input
@@ -72,15 +67,19 @@ import SiteHeader from "../../components/SiteHeader.astro";
                 name="cycle"
                 type="text"
                 required
-                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
                 placeholder="Ej: 2024-II"
               />
             </div>
           </div>
 
+          <!-- Row 2: Exam Type & Teacher -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="block text-sm font-medium mb-1" for="exam-type">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="exam-type"
+              >
                 Evaluación
               </label>
               <input
@@ -88,49 +87,67 @@ import SiteHeader from "../../components/SiteHeader.astro";
                 name="exam_type"
                 type="text"
                 required
-                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
                 placeholder="Ej: PC1, Parcial, Final"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1" for="teacher-hint">
-                Docente (opcional)
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="teacher-hint"
+              >
+                Docente <span class="text-global-text-muted">(opcional)</span>
               </label>
               <input
                 id="teacher-hint"
                 name="teacher_hint"
                 type="text"
-                class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-                placeholder="Prof. Arámbulo, Todos los profesores, etc."
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                placeholder="Prof. Arámbulo, etc."
               />
             </div>
           </div>
 
-          <!-- Tipo de recurso -->
-          <div>
-            <label class="block text-sm font-medium mb-1" for="resource-kind">
-              Tipo de recurso
-            </label>
-            <select
-              id="resource-kind"
-              name="resource_kind"
-              class="w-full rounded-xl border border-gray-700 bg-[#101010] px-3 py-2 text-sm outline-none focus:border-[#22C55E]"
-            >
-              <option value="PLANCHA">Plancha</option>
-              <option value="SOLUCIONARIO"
-                >Solucionario (adjunta a una plancha existente)</option
-              >
-            </select>
-            <p class="mt-1 text-xs text-gray-400">
-              Para un solucionario usa exactamente el mismo <code>código</code>,
-              ciclo y tipo de examen de la plancha ya creada.
-            </p>
-          </div>
-          <div class="">
-            <!-- Archivo PDF -->
+          <!-- Row 3: Resource Type & File -->
+          <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="block text-sm font-medium mb-1" for="file">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="resource-kind"
+              >
+                Tipo de recurso
+              </label>
+              <select
+                id="resource-kind"
+                name="resource_kind"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer"
+              >
+                <option value="PLANCHA">Plancha (examen)</option>
+                <option value="SOLUCIONARIO">Solucionario</option>
+              </select>
+            </div>
+            <div>
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="file"
+              >
                 Archivo PDF
+              </label>
+              <label
+                for="file"
+                class="flex items-center gap-3 w-full rounded-xl border border-global-border bg-global-bg px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
+              >
+                <span
+                  class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
+                >
+                  Seleccionar
+                </span>
+                <span
+                  id="file-name"
+                  class="text-sm text-global-text-muted truncate"
+                >
+                  Sin archivo
+                </span>
               </label>
               <input
                 id="file"
@@ -138,34 +155,217 @@ import SiteHeader from "../../components/SiteHeader.astro";
                 type="file"
                 accept="application/pdf"
                 required
-                class="w-full text-sm text-gray-200 file:mr-3 file:rounded-lg file:border-0 file:bg-[#22C55E] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black hover:file:bg-emerald-400"
+                class="hidden"
               />
-              <p class="mt-1 text-xs text-gray-400">
-                Para planchas se registrará en <code>exam_storage_path</code>.
-                Para solucionarios se actualizará <code
-                  >solution_storage_path</code
-                > del sheet existente.
-              </p>
-            </div>
-
-            <!-- Botón -->
-            <div class="pt-2">
-              <button
-                type="submit"
-                class="inline-flex items-center justify-center rounded-full bg-[#22C55E] px-8 py-2.5 text-sm font-semibold text-black shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22C55E]"
-              >
-                Subir archivo
-              </button>
             </div>
           </div>
+
+          <p class="text-xs text-global-text-muted">
+            Para solucionarios, usa los mismos campos de la plancha existente.
+          </p>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-global-primary-hover cursor-pointer"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              ></path>
+            </svg>
+            Subir archivo
+          </button>
         </form>
       </section>
-    </main>
 
-    <footer
-      class="mt-auto w-full bg-black/80 py-3 text-center text-sm text-white"
-    >
-      © 2024 TrikaWeb. Todos los derechos reservados.
-    </footer>
-  </body>
-</html>
+      <!-- Drive Sync Card -->
+      <section
+        class="rounded-2xl bg-global-surface border border-global-border p-6"
+      >
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
+        >
+          <div>
+            <h2 class="text-lg font-semibold text-global-text">
+              Sincronización con Drive
+            </h2>
+            <p class="mt-0.5 text-sm text-global-text-muted">
+              Importa automáticamente desde Google Drive
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 justify-center">
+          <button
+            id="sync-exams-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              class="w-4 h-4 text-global-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              ></path>
+            </svg>
+            Sincronizar Exámenes
+          </button>
+          <button
+            id="sync-solutions-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              class="w-4 h-4 text-global-primary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Sincronizar Solucionarios
+          </button>
+          <button
+            id="sync-all-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl bg-global-primary px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            Sincronizar Todo
+          </button>
+        </div>
+
+        <!-- Status Display -->
+        <div id="sync-status" class="mt-4 hidden">
+          <div class="flex items-center gap-2 text-sm">
+            <div
+              id="sync-spinner"
+              class="animate-spin h-4 w-4 border-2 border-global-primary border-t-transparent rounded-full"
+            >
+            </div>
+            <span id="sync-message" class="text-global-text-muted"
+              >Iniciando sincronización...</span
+            >
+          </div>
+        </div>
+
+        <!-- Results Display -->
+        <div id="sync-results" class="mt-4 hidden">
+          <pre
+            class="text-xs text-global-text-muted bg-global-bg p-3 rounded-lg overflow-x-auto max-h-48 overflow-y-auto border border-global-border">
+          </pre>
+        </div>
+
+        <p class="mt-4 text-xs text-global-text-muted">
+          También puedes ejecutar desde terminal: <code
+            class="bg-global-bg px-1.5 py-0.5 rounded border border-global-border"
+            >npm run drive:sync-solutions</code
+          >
+        </p>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const syncExamsBtn = document.getElementById("sync-exams-btn");
+    const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
+    const syncAllBtn = document.getElementById("sync-all-btn");
+    const syncStatus = document.getElementById("sync-status");
+    const syncMessage = document.getElementById("sync-message");
+    const syncResults = document.getElementById("sync-results");
+    const syncResultsPre = syncResults?.querySelector("pre");
+
+    async function runSync(type: string) {
+      // Disable all buttons
+      [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
+        btn?.setAttribute("disabled", "true");
+      });
+
+      // Show status
+      syncStatus?.classList.remove("hidden");
+      syncResults?.classList.add("hidden");
+      document.getElementById("sync-spinner")?.classList.remove("hidden");
+      if (syncMessage) syncMessage.textContent = `Sincronizando ${type}...`;
+
+      try {
+        const res = await fetch("/api/admin/drive-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type }),
+        });
+
+        const data = await res.json();
+
+        if (syncResultsPre) {
+          syncResultsPre.textContent = JSON.stringify(data, null, 2);
+        }
+        syncResults?.classList.remove("hidden");
+
+        if (data.ok) {
+          if (syncMessage)
+            syncMessage.textContent = "✅ Sincronización completada";
+        } else {
+          if (syncMessage)
+            syncMessage.textContent = `⚠️ ${data.error || "Error desconocido"}`;
+        }
+      } catch (err) {
+        if (syncMessage) syncMessage.textContent = `❌ Error de red: ${err}`;
+      } finally {
+        // Re-enable buttons
+        [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
+          btn?.removeAttribute("disabled");
+        });
+        // Hide spinner
+        setTimeout(() => {
+          document.getElementById("sync-spinner")?.classList.add("hidden");
+        }, 500);
+      }
+    }
+
+    syncExamsBtn?.addEventListener("click", () => runSync("exams"));
+    syncSolutionsBtn?.addEventListener("click", () => runSync("solutions"));
+    syncAllBtn?.addEventListener("click", () => runSync("all"));
+
+    // Update file name display when file is selected
+    const fileInput = document.getElementById("file") as HTMLInputElement;
+    const fileName = document.getElementById("file-name");
+    fileInput?.addEventListener("change", () => {
+      if (fileInput.files && fileInput.files.length > 0) {
+        if (fileName) fileName.textContent = fileInput.files[0].name;
+      } else {
+        if (fileName) fileName.textContent = "Sin archivos seleccionados";
+      }
+    });
+  </script>
+</Layout>
