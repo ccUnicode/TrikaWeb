@@ -375,8 +375,11 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
   // Carousel functionality
   function setupCarousel(type, totalItems) {
     let currentIndex = 0;
-    const itemsPerPage = 3;
-    const maxIndex = Math.max(0, totalItems - itemsPerPage);
+
+    // Responsive configuration
+    const isMobile = () => window.innerWidth < 1024;
+    const getItemsPerPage = () => (isMobile() ? 1 : 3);
+    const getMaxIndex = () => Math.max(0, totalItems - getItemsPerPage());
 
     const prevBtn = document.querySelector(
       `.carousel-prev[data-carousel="${type}"]`,
@@ -385,10 +388,19 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
       `.carousel-next[data-carousel="${type}"]`,
     );
     const items = document.querySelectorAll(`.carousel-item-${type}`);
+    // Container for adding swipe listener
+    const container = document.querySelector(`.carousel-container-${type}`);
 
-    if (!prevBtn || !nextBtn || items.length === 0) return;
+    if (items.length === 0) return;
 
     function updateCarousel() {
+      const itemsPerPage = getItemsPerPage();
+      const maxIndex = getMaxIndex();
+
+      // Clamp currentIndex
+      if (currentIndex > maxIndex) currentIndex = maxIndex;
+      if (currentIndex < 0) currentIndex = 0;
+
       items.forEach((item, index) => {
         const htmlItem = item;
         if (index >= currentIndex && index < currentIndex + itemsPerPage) {
@@ -398,25 +410,77 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
         }
       });
 
-      // Disable buttons at boundaries
-      prevBtn.classList.toggle("opacity-50", currentIndex === 0);
-      prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
-      nextBtn.classList.toggle("opacity-50", currentIndex >= maxIndex);
-      nextBtn.classList.toggle("cursor-not-allowed", currentIndex >= maxIndex);
+      // Disable buttons at boundaries (only relevant for desktop visibility)
+      if (prevBtn) {
+        prevBtn.classList.toggle("opacity-50", currentIndex === 0);
+        prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
+      }
+      if (nextBtn) {
+        nextBtn.classList.toggle("opacity-50", currentIndex >= maxIndex);
+        nextBtn.classList.toggle(
+          "cursor-not-allowed",
+          currentIndex >= maxIndex,
+        );
+      }
     }
 
-    prevBtn.addEventListener("click", () => {
-      if (currentIndex > 0) {
-        currentIndex--;
-        updateCarousel();
-      }
-    });
+    if (prevBtn) {
+      prevBtn.addEventListener("click", () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          updateCarousel();
+        }
+      });
+    }
 
-    nextBtn.addEventListener("click", () => {
-      if (currentIndex < maxIndex) {
-        currentIndex++;
-        updateCarousel();
-      }
+    if (nextBtn) {
+      nextBtn.addEventListener("click", () => {
+        if (currentIndex < getMaxIndex()) {
+          currentIndex++;
+          updateCarousel();
+        }
+      });
+    }
+
+    // Touch/swipe support
+    if (container) {
+      let touchStartX = 0;
+      let touchEndX = 0;
+      const minSwipeDistance = 50;
+
+      container.addEventListener(
+        "touchstart",
+        (e) => {
+          touchStartX = e.changedTouches[0].screenX;
+        },
+        { passive: true },
+      );
+
+      container.addEventListener(
+        "touchend",
+        (e) => {
+          touchEndX = e.changedTouches[0].screenX;
+          const swipeDistance = touchEndX - touchStartX;
+
+          if (Math.abs(swipeDistance) > minSwipeDistance) {
+            if (swipeDistance < 0 && currentIndex < getMaxIndex()) {
+              // Swipe left - next
+              currentIndex++;
+              updateCarousel();
+            } else if (swipeDistance > 0 && currentIndex > 0) {
+              // Swipe right - prev
+              currentIndex--;
+              updateCarousel();
+            }
+          }
+        },
+        { passive: true },
+      );
+    }
+
+    // Handle resize
+    window.addEventListener("resize", () => {
+      updateCarousel();
     });
 
     updateCarousel();
