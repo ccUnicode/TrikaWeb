@@ -10,11 +10,13 @@ export const GET: APIRoute = async ({ params, request }) => {
   const id = Number(params.id);
   const supa = admin();
   const url = new URL(request.url);
-  const streamMode = url.searchParams.get("mode") === "stream";
+  const mode = url.searchParams.get("mode");
+  const streamMode = mode === "stream" || mode === "download";
+
 
   const { data: sheet } = await supa
     .from("sheets")
-    .select("exam_storage_path")
+    .select("exam_storage_path, exam_type, cycle, courses:course_id(code)")
     .eq("id", id)
     .single();
 
@@ -27,12 +29,18 @@ export const GET: APIRoute = async ({ params, request }) => {
       return new Response("Download error", { status: 500 });
     }
     const buffer = Buffer.from(await data.arrayBuffer());
-    const filename = sheet.exam_storage_path.split("/").pop() || "plancha.pdf";
+
+    const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
+    const courseCode = course?.code || "plancha";
+    const examType = sheet.exam_type?.replace(/\s+/g, "-") || "examen";
+    const cycle = sheet.cycle?.replace(/\s+/g, "-") || "";
+    const filename = `${courseCode}-${examType}-${cycle}.pdf`.replace(/--+/g, "-");
+    const disposition = mode === "download" ? "attachment" : "inline";
     return new Response(buffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${filename}"`,
+        "Content-Disposition": `${disposition}; filename="${filename}"`,
         "Cache-Control": "private, max-age=600",
       },
     });

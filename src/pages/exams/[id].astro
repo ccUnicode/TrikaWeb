@@ -3,7 +3,6 @@ export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
-import DownloadButton from "../../components/DownloadButton.astro";
 import { supabaseAdmin } from "../../lib/supabase.server";
 
 const sheetId = Number(Astro.params.id);
@@ -80,62 +79,139 @@ function getYouTubeId(url: string) {
 
 <Layout title={headerTitle}>
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
-    <header class="space-y-3 border-b border-global-border/50 pb-6">
-      <p class="text-sm uppercase tracking-[0.3em] text-global-text-muted">
-        Plancha
-      </p>
-      <h1 class="text-3xl font-bold text-global-text">
-        {courseCode} - {courseName}
-      </h1>
+    <header class="space-y-4 border-b border-global-border/50 pb-6">
+      <!-- Main header grid: title & info on left, buttons on right -->
       <div
-        class="flex flex-wrap items-center gap-3 text-sm text-global-text-muted"
+        class="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 lg:gap-8 items-start"
       >
-        <span
-          class="rounded-full bg-global-surface px-3 py-1 font-semibold text-global-text"
-        >
-          {sheet.exam_type} - {sheet.cycle}
-        </span>
-        {
-          sheet.view_count !== null && (
-            <span>
-              Vistas: <strong>{sheet.view_count}</strong>
-            </span>
-          )
-        }
-        {
-          sheet.rating_count !== null && (
-            <span>
-              Votos: <strong>{sheet.rating_count}</strong>
-            </span>
-          )
-        }
-      </div>
-      <p class="text-base text-global-text-muted">{description}</p>
-
-      <div class="flex flex-wrap gap-3">
-        <DownloadButton sheetId={sheet.id} downloadUrl={examUrl || undefined} />
-        {
-          solutionUrl && (
-            <button
-              id="view-solution-btn"
-              data-solution-url={solutionUrl}
-              data-solution-type="pdf"
-              type="button"
-              class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary transition-colors"
+        <!-- Left side: Title and metadata -->
+        <div class="space-y-3">
+          <h1 class="text-3xl font-bold text-global-text">
+            {courseCode} - {courseName}
+          </h1>
+          <div
+            class="flex flex-wrap items-center gap-3 text-sm text-global-text-muted"
+          >
+            <span
+              class="rounded-full bg-global-surface px-3 py-1 font-semibold text-global-text"
             >
-              Ver solucionario
-            </button>
-          )
-        }
-        <button
-          id="view-exam-btn"
-          data-exam-url={examUrl}
-          type="button"
-          style="display: none;"
-          class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary transition-colors"
-        >
-          Ver examen
-        </button>
+              {sheet.exam_type} - {sheet.cycle}
+            </span>
+            {
+              sheet.view_count !== null && (
+                <span>
+                  Vistas: <strong>{sheet.view_count}</strong>
+                </span>
+              )
+            }
+            {
+              sheet.rating_count !== null && (
+                <span>
+                  Votos: <strong>{sheet.rating_count}</strong>
+                </span>
+              )
+            }
+          </div>
+          {
+            sheet.teacher_hint &&
+              sheet.teacher_hint.toLowerCase() !== "todos los profesores" &&
+              sheet.teacher_hint.toLowerCase() !== "todos" && (
+                <p class="text-sm text-global-text-muted">
+                  <span class="text-global-text/70">Profesor:</span>{" "}
+                  {sheet.teacher_hint}
+                </p>
+              )
+          }
+        </div>
+
+        <!-- Right side: Action buttons -->
+        <div class="flex flex-wrap gap-3 lg:flex-col lg:items-end">
+          {
+            examUrl && (
+              <a
+                href={`/api/sheets/${sheet.id}/file?mode=download`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-global-text transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Descargar examen
+              </a>
+            )
+          }
+          {
+            solutionUrl && (
+              <button
+                id="view-solution-btn"
+                data-solution-url={solutionUrl}
+                data-solution-type="pdf"
+                data-sheet-id={sheet.id}
+                type="button"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-global-text transition-colors cursor-pointer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+                <span>Ver solucionario</span>
+              </button>
+            )
+          }
+          <button
+            id="view-exam-btn"
+            data-exam-url={examUrl}
+            type="button"
+            class="hidden items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-global-text transition-colors cursor-pointer"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+              ></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Ver examen</span>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -231,7 +307,7 @@ function getYouTubeId(url: string) {
       >
         <div class="space-y-2">
           <p class="text-xs uppercase tracking-[0.2em] text-global-text-muted">
-            Evaluacion
+            Evaluacion:
           </p>
           <p class="text-xl font-semibold text-global-text">
             {sheet.exam_type}
@@ -304,7 +380,9 @@ function getYouTubeId(url: string) {
 
   // Handle solution/exam viewer switching
   function initViewerSwitcher() {
-    const iframe = document.getElementById("pdf-viewer-iframe");
+    const iframe = document.getElementById(
+      "pdf-viewer-iframe",
+    ) as HTMLIFrameElement;
     const solutionBtn = document.getElementById("view-solution-btn");
     const examBtn = document.getElementById("view-exam-btn");
 
@@ -314,16 +392,19 @@ function getYouTubeId(url: string) {
     if (solutionBtn) {
       solutionBtn.addEventListener("click", () => {
         const solutionUrl = solutionBtn.getAttribute("data-solution-url");
-        const solutionType = solutionBtn.getAttribute("data-solution-type");
 
         if (!solutionUrl) return;
 
         // Change iframe src to solution PDF
         iframe.src = `${solutionUrl}#toolbar=0&navpanes=0`;
 
-        // Toggle button visibility
+        // Toggle button visibility - use inline-flex when showing
         solutionBtn.classList.add("hidden");
-        if (examBtn) examBtn.classList.remove("hidden");
+        solutionBtn.classList.remove("inline-flex");
+        if (examBtn) {
+          examBtn.classList.remove("hidden");
+          examBtn.classList.add("inline-flex");
+        }
       });
     }
 
@@ -337,9 +418,13 @@ function getYouTubeId(url: string) {
         // Change iframe src back to exam PDF
         iframe.src = `${examUrl}#toolbar=0&navpanes=0`;
 
-        // Toggle button visibility
+        // Toggle button visibility - use inline-flex when showing
         examBtn.classList.add("hidden");
-        if (solutionBtn) solutionBtn.classList.remove("hidden");
+        examBtn.classList.remove("inline-flex");
+        if (solutionBtn) {
+          solutionBtn.classList.remove("hidden");
+          solutionBtn.classList.add("inline-flex");
+        }
       });
     }
   }
@@ -348,8 +433,9 @@ function getYouTubeId(url: string) {
   document.addEventListener("DOMContentLoaded", initViewerSwitcher);
 </script>
 
-<script type="module">
+<script>
   import { ensureDeviceId } from "../../lib/client/device";
+
   const SHEET_ID = { sheetId };
 
   const registerView = () => {
@@ -386,7 +472,7 @@ function getYouTubeId(url: string) {
   }
 </script>
 
-<script type="module">
+<script>
   import { ensureDeviceId } from "../../lib/client/device";
 
   const highlight = (widget, score) => {
@@ -461,7 +547,9 @@ function getYouTubeId(url: string) {
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initRatings, { once: true });
+    document.addEventListener("DOMContentLoaded", initRatings, {
+      once: true,
+    });
   } else {
     initRatings();
   }
