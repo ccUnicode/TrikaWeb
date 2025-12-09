@@ -5,33 +5,47 @@ export interface Props {
   count: number | null;
 }
 const { sheetId, avg, count } = Astro.props as Props;
-const displayAvg = typeof avg === 'number' ? avg.toFixed(2) : '-';
+const displayAvg = typeof avg === "number" ? avg.toFixed(2) : "-";
 const displayCount = count ?? 0;
 ---
+
 <div
-  class="sheet-rating space-y-1 rounded-xl bg-global-surface px-6 py-3"
+  class="sheet-rating space-y-2"
   data-rating-widget
   data-sheet-id={sheetId}
-  data-current-rating={typeof avg === 'number' ? avg : ''}
+  data-current-rating={typeof avg === "number" ? avg : ""}
 >
   <div class="flex items-center justify-between">
-    <p class="text-sm font-semibold text-global-text">Dificultad promedio</p>
-    <span class="text-lg font-bold text-global-primary" data-rating-value>{displayAvg}</span>
+    <p class="text-sm text-global-text-muted">
+      Dificultad: <span class="font-bold text-global-primary" data-rating-value
+        >{displayAvg}</span
+      >
+    </p>
+    <p class="text-xs text-global-text-muted">
+      <span data-rating-count>{displayCount}</span> votos
+    </p>
   </div>
-  <div class="flex items-center gap-2" role="radiogroup" aria-label="Calificar dificultad">
-    {Array.from({ length: 5 }).map((_, index) => (
-      <button
-        type="button"
-        class="rating-star h-8 w-8 rounded-full border border-global-border text-base text-global-text-muted transition hover:border-global-primary cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-global-primary/70"
-        data-score={index + 1}
-        aria-label={`${index + 1} estrellas`}
-      >&#9733;</button>
-    ))}
+  <div
+    class="flex items-center justify-center gap-2"
+    role="radiogroup"
+    aria-label="Calificar dificultad"
+  >
+    <span class="text-xs text-global-text-muted">Fácil</span>
+    {
+      Array.from({ length: 5 }).map((_, index) => (
+        <button
+          type="button"
+          class="rating-star h-8 w-8 rounded-full border border-global-border text-base text-global-text-muted transition hover:border-global-primary cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-global-primary/70"
+          data-score={index + 1}
+          aria-label={`${index + 1} estrellas`}
+        >
+          &#9733;
+        </button>
+      ))
+    }
+    <span class="text-xs text-global-text-muted">Difícil</span>
   </div>
-  <p class="text-xs text-global-text-muted">
-    <span data-rating-count>{displayCount}</span> votos
-    <span data-rating-status class="ml-2 text-[11px] text-global-primary"></span>
-  </p>
+  <p class="text-xs text-global-text-muted text-center" data-rating-status></p>
 </div>
 
 <!-- JS de rating se inyecta desde la página para asegurar montaje -->

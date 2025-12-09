@@ -219,14 +219,14 @@ function getYouTubeId(url: string) {
       <div class="space-y-6">
         <!-- Visor de Plancha (PDF) -->
         <div
-          class="rounded-2xl border border-global-border-subtle bg-global-surface/60 p-2 sm:p-4 max-w-4xl mx-auto"
+          class="rounded-2xl border border-global-border-subtle bg-global-surface p-2 sm:p-4 max-w-4xl mx-auto"
         >
           {
             examUrl ? (
-              <div class="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/40 shadow-lg">
+              <div class="relative w-full overflow-hidden rounded-xl bg-black/40 shadow-lg min-h-[500px] sm:aspect-[3/4] sm:min-h-0">
                 <iframe
                   id="pdf-viewer-iframe"
-                  src={`${examUrl}#toolbar=0&navpanes=0`}
+                  src={`${examUrl}#toolbar=0&navpanes=0&view=FitH`}
                   data-exam-url={examUrl}
                   class="absolute inset-0 h-full w-full rounded-xl border-0"
                   loading="lazy"
@@ -303,31 +303,41 @@ function getYouTubeId(url: string) {
       </div>
 
       <div
-        class="space-y-4 rounded-2xl border border-global-border-subtle bg-global-surface/60 p-4 sm:p-6 lg:flex lg:items-center lg:justify-between lg:gap-6 max-w-4xl mx-auto"
+        class="rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 max-w-4xl mx-auto"
       >
-        <div class="space-y-2">
-          <p class="text-xs uppercase tracking-[0.2em] text-global-text-muted">
-            Evaluacion:
-          </p>
-          <p class="text-xl font-semibold text-global-text">
-            {sheet.exam_type}
-          </p>
-          <p class="text-sm text-global-text-muted">Ciclo: {sheet.cycle}</p>
+        <div class="space-y-4">
+          <!-- Header: Evaluación y Ciclo -->
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-global-text-muted">
+              Evaluación: <span class="text-xl font-bold text-global-text"
+                >{sheet.exam_type}</span
+              >
+            </p>
+            <p class="text-sm text-global-text-muted">
+              Ciclo: <span class="text-xl font-bold text-global-text"
+                >{sheet.cycle}</span
+              >
+            </p>
+          </div>
           {
-            sheet.teacher_hint && (
-              <p class="text-sm text-global-text-muted">
-                Profesor: {sheet.teacher_hint}
-              </p>
-            )
+            sheet.teacher_hint &&
+              sheet.teacher_hint.toLowerCase() !== "todos los profesores" &&
+              sheet.teacher_hint.toLowerCase() !== "todos" && (
+                <p class="text-sm text-global-text-muted">
+                  Profesor:{" "}
+                  <span class="text-global-text">{sheet.teacher_hint}</span>
+                </p>
+              )
           }
-        </div>
 
-        <div class="lg:ml-auto lg:min-w-[280px]">
-          <SheetRating
-            sheetId={sheet.id}
-            avg={sheet.avg_difficulty}
-            count={sheet.rating_count}
-          />
+          <!-- Derecha: Widget de votación -->
+          <div class="rounded-xl bg-global-card p-4">
+            <SheetRating
+              sheetId={sheet.id}
+              avg={sheet.avg_difficulty}
+              count={sheet.rating_count}
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -396,7 +406,7 @@ function getYouTubeId(url: string) {
         if (!solutionUrl) return;
 
         // Change iframe src to solution PDF
-        iframe.src = `${solutionUrl}#toolbar=0&navpanes=0`;
+        iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
 
         // Toggle button visibility - use inline-flex when showing
         solutionBtn.classList.add("hidden");
@@ -416,7 +426,7 @@ function getYouTubeId(url: string) {
         if (!examUrl) return;
 
         // Change iframe src back to exam PDF
-        iframe.src = `${examUrl}#toolbar=0&navpanes=0`;
+        iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
 
         // Toggle button visibility - use inline-flex when showing
         examBtn.classList.add("hidden");
@@ -480,10 +490,10 @@ function getYouTubeId(url: string) {
       const val = Number(btn.dataset.score);
       const active = val <= score;
       btn.classList.toggle("bg-global-primary", active);
+      btn.classList.toggle("border-transparent", active);
       btn.classList.toggle("text-black", active);
       btn.classList.toggle("text-global-text-muted", !active);
-      btn.classList.toggle("ring-2", active);
-      btn.classList.toggle("ring-global-primary/70", active);
+      btn.classList.toggle("border-global-border", !active);
     });
   };
 
