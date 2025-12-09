@@ -125,14 +125,41 @@ function getYouTubeId(url: string) {
         </div>
 
         <!-- Right side: Action buttons -->
-        <div class="flex flex-wrap gap-3 lg:flex-col lg:items-end">
+        <div class="flex flex-wrap gap-3 items-center">
+          <!-- Save/Favorite Button -->
+          <button
+            id="favorite-btn"
+            data-sheet-id={sheet.id}
+            type="button"
+            class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-global-border hover:border-global-primary px-4 py-2 text-sm font-semibold text-global-text transition-all group"
+            title="Guardar plancha"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="favorite-icon transition-all"
+            >
+              <path
+                d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+              ></path>
+            </svg>
+            <span class="favorite-text">Guardar</span>
+          </button>
+
           {
             examUrl && (
               <a
                 href={`/api/sheets/${sheet.id}/file?mode=download`}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-global-text transition-colors"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -161,7 +188,7 @@ function getYouTubeId(url: string) {
                 data-solution-type="pdf"
                 data-sheet-id={sheet.id}
                 type="button"
-                class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-global-text transition-colors cursor-pointer"
+                class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors cursor-pointer"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -188,7 +215,7 @@ function getYouTubeId(url: string) {
             id="view-exam-btn"
             data-exam-url={examUrl}
             type="button"
-            class="hidden items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-global-text transition-colors cursor-pointer"
+            class="hidden items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors cursor-pointer"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -444,9 +471,84 @@ function getYouTubeId(url: string) {
 </script>
 
 <script>
+  // Favorite/Save functionality
+  function getFavorites() {
+    try {
+      const stored = localStorage.getItem("trikaweb:favorites");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function toggleFavorite(id: number) {
+    const favs = getFavorites();
+    const index = favs.indexOf(id);
+    if (index >= 0) {
+      favs.splice(index, 1);
+    } else {
+      favs.push(id);
+    }
+    localStorage.setItem("trikaweb:favorites", JSON.stringify(favs));
+    window.dispatchEvent(
+      new CustomEvent("favorites:updated", {
+        detail: { id, active: index === -1 },
+      }),
+    );
+    return index === -1; // returns true if now favorited
+  }
+
+  function initFavoriteButton() {
+    const btn = document.getElementById("favorite-btn");
+    if (!btn) return;
+
+    const sheetId = Number(btn.getAttribute("data-sheet-id"));
+    if (!sheetId) return;
+
+    const icon = btn.querySelector(".favorite-icon");
+    const text = btn.querySelector(".favorite-text");
+
+    // Update UI based on current state
+    function updateUI(isFavorited: boolean) {
+      // btn is guaranteed to be non-null here due to early return check
+      if (isFavorited) {
+        icon?.setAttribute("fill", "currentColor");
+        icon?.classList.add("text-red-500");
+        if (text) text.textContent = "Guardado";
+        btn!.classList.add("border-red-500", "text-red-500");
+        btn!.classList.remove("border-global-border", "text-global-text");
+      } else {
+        icon?.setAttribute("fill", "none");
+        icon?.classList.remove("text-red-500");
+        if (text) text.textContent = "Guardar";
+        btn!.classList.remove("border-red-500", "text-red-500");
+        btn!.classList.add("border-global-border", "text-global-text");
+      }
+    }
+
+    // Check initial state
+    const favs = getFavorites();
+    updateUI(favs.includes(sheetId));
+
+    // Handle click
+    btn.addEventListener("click", () => {
+      const nowFavorited = toggleFavorite(sheetId);
+      updateUI(nowFavorited);
+
+      // Add a little animation
+      btn.classList.add("scale-110");
+      setTimeout(() => btn.classList.remove("scale-110"), 200);
+    });
+  }
+
+  document.addEventListener("astro:page-load", initFavoriteButton);
+  document.addEventListener("DOMContentLoaded", initFavoriteButton);
+</script>
+
+<script define:vars={{ sheetId }}>
   import { ensureDeviceId } from "../../lib/client/device";
 
-  const SHEET_ID = { sheetId };
+  const SHEET_ID = sheetId;
 
   const registerView = () => {
     const payload = JSON.stringify({
@@ -485,9 +587,9 @@ function getYouTubeId(url: string) {
 <script>
   import { ensureDeviceId } from "../../lib/client/device";
 
-  const highlight = (widget, score) => {
+  const highlight = (widget: Element, score: number) => {
     widget.querySelectorAll("[data-score]").forEach((btn) => {
-      const val = Number(btn.dataset.score);
+      const val = Number((btn as HTMLElement).dataset.score);
       const active = val <= score;
       btn.classList.toggle("bg-global-primary", active);
       btn.classList.toggle("border-transparent", active);
@@ -510,7 +612,7 @@ function getYouTubeId(url: string) {
         btn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const score = Number(btn.dataset.score);
+          const score = Number((btn as HTMLElement).dataset.score);
           if (!Number.isFinite(score) || !sheetId) return;
           highlight(widget, score);
           widget.classList.add("opacity-80", "pointer-events-none");
