@@ -120,9 +120,9 @@ import Layout from "../../layouts/Layout.astro";
               <select
                 id="resource-kind"
                 name="resource_kind"
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer"
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer"
               >
-                <option value="PLANCHA">Plancha (examen)</option>
+                <option value="PLANCHA">Plancha</option>
                 <option value="SOLUCIONARIO">Solucionario</option>
               </select>
             </div>
@@ -135,7 +135,7 @@ import Layout from "../../layouts/Layout.astro";
               </label>
               <label
                 for="file"
-                class="flex items-center gap-3 w-full rounded-xl border border-global-border bg-global-bg px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
+                class="flex justify-between items-center gap-3 w-full rounded-xl border border-global-border bg-global-card px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
               >
                 <span
                   class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
@@ -287,12 +287,17 @@ import Layout from "../../layouts/Layout.astro";
           </pre>
         </div>
 
-        <p class="mt-4 text-xs text-global-text-muted">
-          También puedes ejecutar desde terminal: <code
-            class="bg-global-bg px-1.5 py-0.5 rounded border border-global-border"
-            >npm run drive:sync-solutions</code
-          >
-        </p>
+        <div
+          class="mt-4 rounded-lg bg-global-bg/50 border border-global-border p-3"
+        >
+          <p class="text-xs text-global-text-muted">
+            <strong class="text-global-text">Nota:</strong> La sincronización se
+            ejecuta localmente en tu computadora. Usa el comando: <code
+              class="bg-global-card px-1.5 py-0.5 rounded border border-global-border"
+              >npm run drive:sync-solutions</code
+            >
+          </p>
+        </div>
       </section>
     </div>
   </div>

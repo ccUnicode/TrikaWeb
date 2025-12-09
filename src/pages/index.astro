@@ -186,7 +186,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           </button>
 
           <!-- Right title -->
-          <div class="hidden lg:block min-w-[110px] flex-shrink-0">
+          <div class=" text-center hidden lg:block min-w-[110px] flex-shrink-0">
             <h3 class="text-[20px] leading-6 font-medium">
               Planchas<br />Populares
             </h3>
@@ -295,7 +295,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           </button>
 
           <!-- Right title -->
-          <div class="hidden lg:block min-w-[110px] flex-shrink-0">
+          <div class="text-center hidden lg:block min-w-[110px] flex-shrink-0">
             <h3 class="text-[20px] leading-6 font-medium">
               Planchas<br />Difíciles
             </h3>
@@ -428,14 +428,14 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
     if (items.length === 0) return;
 
-    // Create dot indicators for mobile
+    // Create dot indicators
     let dotsContainer: HTMLElement | null = null;
     if (carousel) {
       dotsContainer = document.createElement('div');
-      dotsContainer.className = 'flex justify-center gap-2 mt-4 lg:hidden';
+      dotsContainer.className = 'flex justify-center gap-2 mt-6';
       for (let i = 0; i < totalItems; i++) {
         const dot = document.createElement('button');
-        dot.className = 'w-2 h-2 rounded-full bg-global-border transition-colors';
+        dot.className = 'w-2.5 h-2.5 rounded-full border border-global-border transition-all duration-300';
         dot.setAttribute('aria-label', `Ir a item ${i + 1}`);
         dot.addEventListener('click', () => {
           currentIndex = i;
@@ -463,13 +463,18 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         }
       });
 
-      // Update dots
+      // Update dots - all visible, active one is green
       if (dotsContainer) {
         const dots = dotsContainer.querySelectorAll('button');
         dots.forEach((dot, index) => {
-          if (isMobile()) {
-            dot.classList.toggle('bg-global-primary', index === currentIndex);
-            dot.classList.toggle('bg-global-border', index !== currentIndex);
+          const isActive = index === currentIndex;
+          
+          if (isActive) {
+            dot.classList.add('bg-global-primary', 'border-global-primary', 'w-3', 'h-3');
+            dot.classList.remove('w-2.5', 'h-2.5');
+          } else {
+            dot.classList.remove('bg-global-primary', 'border-global-primary', 'w-3', 'h-3');
+            dot.classList.add('w-2.5', 'h-2.5');
           }
         });
       }
