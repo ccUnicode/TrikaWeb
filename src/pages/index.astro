@@ -14,7 +14,7 @@ import {
 const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopSheetsByViews(6),
   getTopSheetsByDifficulty(6),
-  getTopTeachers(6, 5),
+  getTopTeachers(6, 1),
 ]);
 ---
 

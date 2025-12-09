@@ -29,57 +29,90 @@ labTeachers.sort(sortByRating);
 <Layout title={`Profesores - ${course.code}`}>
   <main class="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-12 py-10">
     <header
-      class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8"
+      class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10"
     >
       <div>
-        <h1 class="text-3xl font-bold text-global-text">
-          {course.code} - {course.name}
+        <span
+          class="inline-block text-sm font-bold tracking-[0.2em] text-global-primary mb-2"
+        >
+          {course.code}
+        </span>
+        <h1
+          class="text-4xl md:text-5xl font-bold text-global-text tracking-tight"
+        >
+          {course.name}
         </h1>
-        <p class="text-sm text-global-text-muted mt-1">
-          {teachersData.length} profesores encontrados
-        </p>
       </div>
 
-      <div class="relative w-full md:w-80">
-        <label for="search-teacher" class="sr-only"
-          >Ingresa el nombre del profesor...</label
+      <div class="flex flex-col items-end gap-4">
+        <div
+          class="inline-flex p-1 bg-global-surface rounded-lg border border-global-border"
         >
-        <input
-          type="search"
-          id="search-teacher"
-          placeholder="Ingresa el nombre del profesor..."
-          class="w-full rounded-lg bg-global-surface border border-global-border px-4 py-2.5 text-global-text placeholder:text-global-text-muted focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary"
-          autocomplete="off"
-        />
-        <svg
-          class="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-global-text-muted"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
+          <a
+            href={`/curso/${course.code}`}
+            class="p-1.5 rounded-md text-global-text-muted hover:text-global-text hover:bg-global-bg/50 transition-all"
+            aria-label="Planchas"
+            title="Planchas"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              ></path>
+            </svg>
+          </a>
+          <a
+            href={`/curso/${course.code}/profesores`}
+            class="p-1.5 rounded-md bg-global-primary text-black shadow-sm transition-all"
+            aria-label="Profesores"
+            title="Profesores"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+              ></path>
+            </svg>
+          </a>
+        </div>
+
+        <div class="flex items-center gap-2 text-global-text-muted">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-5 w-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
             stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+            ></path>
+          </svg>
+          <span class="text-base">
+            {teachersData.length} profesores
+          </span>
+        </div>
       </div>
     </header>
-
-    <div class="flex gap-4 border-b border-global-border mb-8">
-      <a
-        href={`/curso/${course.code}`}
-        class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-global-text-muted hover:text-global-text transition-colors"
-      >
-        Planchas
-      </a>
-      <a
-        href={`/curso/${course.code}/profesores`}
-        class="px-4 py-2 text-sm font-medium border-b-2 border-global-primary text-global-text"
-      >
-        Profesores
-      </a>
-    </div>
 
     <div class="space-y-10" id="teachers-container">
       {/* SECTION: TEORÍA */}
@@ -88,7 +121,22 @@ labTeachers.sort(sortByRating);
           <section class="modality-section">
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-2xl font-semibold text-global-text flex items-center gap-2">
-                Teoría <span class="text-global-text-muted text-lg">📖</span>
+                Teoría
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-6 h-6 text-global-text-muted"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <>
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                  </>
+                </svg>
               </h2>
               <div class="px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted">
                 Ordenar por calificación ▼
@@ -100,9 +148,12 @@ labTeachers.sort(sortByRating);
                  Let's stick to Grid for MVP stability as implementing a full carousel logic might be complex without more JS. 
                  Actually, user asked for carousel. I will copy carousel logic from [code].astro later or keep it as grid for now to verify data. 
                  Let's use a responsive grid which transforms to carousel on mobile/tablet effectively. */}
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+              <div class="flex flex-wrap justify-center gap-6 w-full">
                 {theoryTeachers.map(({ teacher }) => (
-                  <article class="teacher-item" data-name={teacher.full_name}>
+                  <article
+                    class="teacher-item w-full max-w-[350px]"
+                    data-name={teacher.full_name}
+                  >
                     <TeacherCard
                       name={teacher.full_name}
                       role={teacher.bio || "Docente"}
@@ -128,15 +179,30 @@ labTeachers.sort(sortByRating);
           <section class="modality-section">
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-2xl font-semibold text-global-text flex items-center gap-2">
-                Práctica <span class="text-global-text-muted text-lg">✏️</span>
+                Práctica
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-6 h-6 text-global-text-muted"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+                </svg>
               </h2>
               <div class="px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted">
                 Ordenar por calificación ▼
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+            <div class="flex flex-wrap justify-center gap-6 w-full">
               {practiceTeachers.map(({ teacher }) => (
-                <article class="teacher-item" data-name={teacher.full_name}>
+                <article
+                  class="teacher-item w-full max-w-[350px]"
+                  data-name={teacher.full_name}
+                >
                   <TeacherCard
                     name={teacher.full_name}
                     role={teacher.bio || "Docente"}
@@ -162,15 +228,35 @@ labTeachers.sort(sortByRating);
             <div class="flex items-center justify-between mb-6">
               <h2 class="text-2xl font-semibold text-global-text flex items-center gap-2">
                 Laboratorio{" "}
-                <span class="text-global-text-muted text-lg">🧪</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-6 h-6 text-global-text-muted"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <>
+                    <path d="M10 2v7.31" />
+                    <path d="M14 2v7.31" />
+                    <path d="M8.5 2h7" />
+                    <path d="M14 9.3a6.5 6.5 0 1 1-4 0" />
+                    <path d="M5.52 16h12.96" />
+                  </>
+                </svg>
               </h2>
               <div class="px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted">
                 Ordenar por calificación ▼
               </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+            <div class="flex flex-wrap justify-center gap-6 w-full">
               {labTeachers.map(({ teacher }) => (
-                <article class="teacher-item" data-name={teacher.full_name}>
+                <article
+                  class="teacher-item w-full max-w-[350px]"
+                  data-name={teacher.full_name}
+                >
                   <TeacherCard
                     name={teacher.full_name}
                     role={teacher.bio || "Docente"}
@@ -206,50 +292,53 @@ labTeachers.sort(sortByRating);
         No se encontraron profesores que coincidan con tu búsqueda.
       </p>
     </div>
+
+    <script>
+      const normalize = (value = "") =>
+        value
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+
+      const input = document.getElementById("search-teacher");
+      const items = Array.from(document.querySelectorAll(".teacher-item"));
+      const noResults = document.getElementById("no-results");
+      const sections = Array.from(
+        document.querySelectorAll(".modality-section"),
+      );
+
+      if (input) {
+        input.addEventListener("input", (e) => {
+          // @ts-ignore
+          const term = normalize(e.target.value);
+          let globalMatchCount = 0;
+
+          sections.forEach((section) => {
+            const sectionItems = Array.from(
+              section.querySelectorAll(".teacher-item"),
+            );
+            let sectionMatchCount = 0;
+
+            sectionItems.forEach((item) => {
+              // @ts-ignore
+              const name = normalize(item.dataset.name || "");
+              const matches = !term || name.includes(term);
+              item.classList.toggle("hidden", !matches);
+              if (matches) sectionMatchCount++;
+            });
+
+            // Show/Hide entire section if no matches
+            section.classList.toggle("hidden", sectionMatchCount === 0);
+            globalMatchCount += sectionMatchCount;
+          });
+
+          if (noResults) {
+            noResults.classList.toggle("hidden", globalMatchCount > 0);
+          }
+        });
+      }
+    </script>
   </main>
 </Layout>
-
-<script>
-  const normalize = (value = "") =>
-    value
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .trim();
-
-  const input = document.getElementById("search-teacher");
-  const items = Array.from(document.querySelectorAll(".teacher-item"));
-  const noResults = document.getElementById("no-results");
-  const sections = Array.from(document.querySelectorAll(".modality-section"));
-
-  if (input) {
-    input.addEventListener("input", (e) => {
-      // @ts-ignore
-      const term = normalize(e.target.value);
-      let globalMatchCount = 0;
-
-      sections.forEach((section) => {
-        const sectionItems = Array.from(
-          section.querySelectorAll(".teacher-item"),
-        );
-        let sectionMatchCount = 0;
-
-        sectionItems.forEach((item) => {
-          // @ts-ignore
-          const name = normalize(item.dataset.name || "");
-          const matches = !term || name.includes(term);
-          item.classList.toggle("hidden", !matches);
-          if (matches) sectionMatchCount++;
-        });
-
-        // Show/Hide entire section if no matches
-        section.classList.toggle("hidden", sectionMatchCount === 0);
-        globalMatchCount += sectionMatchCount;
-      });
-
-      if (noResults) {
-        noResults.classList.toggle("hidden", globalMatchCount > 0);
-      }
-    });
-  }
-</script>
+```

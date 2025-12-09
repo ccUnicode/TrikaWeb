@@ -232,12 +232,21 @@ async function syncExams(courseMap: Map<string, number>, tmpDir: string) {
                 // Check if exists in DB (sheets table)
                 const { data: existing } = await supabase
                     .from('sheets')
-                    .select('id')
+                    .select('id, thumb_storage_path')
                     .eq('exam_storage_path', examStoragePath)
                     .maybeSingle();
 
                 if (existing) {
-                    console.log(`      [SKIP] Already exists: ${examStoragePath}`);
+                    if (!existing.thumb_storage_path) {
+                        const thumbStoragePath = examStoragePath.replace(/\.pdf$/i, '.jpg');
+                        console.log(`      [UPDATE] Backfilling thumbnail for: ${examStoragePath}`);
+                        await supabase
+                            .from('sheets')
+                            .update({ thumb_storage_path: thumbStoragePath })
+                            .eq('id', existing.id);
+                    } else {
+                        console.log(`      [SKIP] Already exists: ${examStoragePath}`);
+                    }
                     skippedCount++;
                     continue;
                 }
@@ -253,6 +262,9 @@ async function syncExams(courseMap: Map<string, number>, tmpDir: string) {
                     // 2. Upload to Supabase Storage
                     await uploadToSupabaseStorage(localFilePath, examStoragePath, 'exams');
 
+                    // Derive thumbnail path (assume .jpg)
+                    const thumbStoragePath = examStoragePath.replace(/\.pdf$/i, '.jpg');
+
                     // 3. Insert into DB
                     const { error: insertError } = await supabase
                         .from('sheets')
@@ -263,6 +275,7 @@ async function syncExams(courseMap: Map<string, number>, tmpDir: string) {
                             exam_storage_path: examStoragePath,
                             solution_kind: null,
                             solution_storage_path: null,
+                            thumb_storage_path: thumbStoragePath,
                         });
 
                     if (insertError) throw insertError;

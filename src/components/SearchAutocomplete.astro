@@ -37,19 +37,25 @@ const listId = `${id}-suggestions`;
     id={inputId}
     type="search"
     placeholder={placeholder}
-    class="w-full rounded-full border border-[#75D32D] bg-global-bg px-5 py-3 pr-10 text-sm text-global-text placeholder-global-text-muted shadow-sm focus:border-[#75D32D] focus:outline-none focus:ring-1 focus:ring-[#75D32D]"
+    class="w-full rounded-2xl bg-global-surface border border-global-border px-6 py-4 pr-12 text-global-text placeholder:text-global-text-muted focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary shadow-sm transition-all"
     autocomplete="off"
     aria-autocomplete="list"
     aria-controls={listId}
     aria-expanded="false"
   />
 
-  <button
-    id={clearId}
-    type="button"
-    class="absolute right-3 top-1/2 -translate-y-1/2 text-global-text-muted hover:text-global-text hidden"
-    aria-label="Limpiar búsqueda">×</button
+  <svg
+    class="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-global-text-muted pointer-events-none"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
   >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+  </svg>
 
   <ul
     id={listId}
