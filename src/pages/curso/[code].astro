@@ -101,7 +101,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
               {sortedTypes.map((type) => (
                 <button
                   data-tab={type}
-                  class="exam-tab whitespace-nowrap px-4 py-2 rounded-lg text-sm text-global-text font-medium transition-colors hover:bg-global-surface"
+                  class="exam-tab whitespace-nowrap px-4 py-2 rounded-lg text-sm text-global-text font-medium transition-colors hover:bg-global-primary hover:text-black"
                 >
                   {type}
                 </button>
@@ -220,38 +220,29 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
   function setupTabs() {
     const tabs = document.querySelectorAll(".exam-tab");
 
+    if (!tabs.length) return;
+
+    // Set first tab as active initially
+    tabs[0].classList.add("bg-global-primary", "text-black");
+
     tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         const type = tab.getAttribute("data-tab");
+
+        // Remove active class from all tabs
+        tabs.forEach((t) => {
+          t.classList.remove("bg-global-primary", "text-black");
+        });
+
+        // Add active class to clicked tab
+        tab.classList.add("bg-global-primary", "text-black");
+
+        // Scroll to section
         const section = document.getElementById(`section-${type}`);
         if (section) {
           section.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       });
-    });
-
-    // Highlight active tab based on scroll
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const type = entry.target.getAttribute("data-exam-type");
-            tabs.forEach((t) =>
-              t.classList.remove("bg-global-primary", "text-black"),
-            );
-            tabs.forEach((t) => {
-              if (t.getAttribute("data-tab") === type) {
-                t.classList.add("bg-global-primary", "text-black");
-              }
-            });
-          }
-        });
-      },
-      { threshold: 0.5 },
-    );
-
-    document.querySelectorAll("[data-exam-type]").forEach((section) => {
-      observer.observe(section);
     });
   }
 
