@@ -8,28 +8,109 @@ import IconHome from "./icons/IconHome.astro";
   class="sticky top-0 z-50 w-full bg-global-surface shadow border-b border-global-border"
 >
   <div
-    class="mx-auto flex max-w-[1200px] items-center justify-between px-2 sm:px-4 py-2"
+    class="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-3"
   >
-    <div class="flex w-[188px] items-center justify-between">
-      <a href="/" aria-label="Volver al inicio">
-        <img src="/img/logo.png" alt="TrikaWeb" class="h-auto w-auto" />
+    <div class="flex items-center">
+      <a href="/" aria-label="Volver al inicio" class="flex-shrink-0">
+        <img src="/img/logo.png" alt="TrikaWeb" class="h-8 w-auto md:h-10" />
       </a>
     </div>
 
-    <nav class="flex items-center gap-4">
+    <!-- Desktop Menu -->
+    <nav class="hidden md:flex items-center gap-6">
       <a
-        class="text-[20px] leading-7 font-medium hover:text-global-primary hidden sm:block"
+        class="text-lg font-medium text-global-text hover:text-global-primary transition-colors"
         href="/cursos">Cursos</a
       >
       <a
-        class="text-[20px] leading-7 font-medium hover:text-global-primary hidden sm:block"
+        class="text-lg font-medium text-global-text hover:text-global-primary transition-colors"
         href="/teachers">Profesores</a
       >
-      {/* <ThemeToggle /> */}
-      <a
-        class="rounded-xl p-2 hover:bg-global-surface text-global-text hover:text-red-500 transition-colors"
-        aria-label="Mis Guardados"
-        href="/saved"
+
+      <div
+        class="flex items-center gap-2 border-l border-global-border pl-6 ml-2"
+      >
+        <a
+          class="rounded-xl p-2 hover:bg-global-card/50 text-global-text hover:text-red-500 transition-colors"
+          aria-label="Mis Guardados"
+          href="/saved"
+          title="Mis Guardados"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-heart"
+            ><path
+              d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+            ></path></svg
+          >
+        </a>
+        <a
+          class="rounded-xl p-2 hover:bg-global-card/50 text-global-text hover:text-global-primary transition-colors"
+          aria-label="Inicio"
+          href="/"
+          title="Inicio"
+        >
+          <IconHome class="text-current" size={22} />
+        </a>
+      </div>
+    </nav>
+
+    <!-- Mobile Menu Button -->
+    <button
+      id="mobile-menu-btn"
+      class="md:hidden p-2 text-global-text rounded-md hover:bg-global-card/50 transition-colors focus:outline-none"
+      aria-label="Abrir menú"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><line x1="3" y1="12" x2="21" y2="12"></line><line
+          x1="3"
+          y1="6"
+          x2="21"
+          y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg
+      >
+    </button>
+  </div>
+
+  <!-- Mobile Menu Overlay -->
+  <div
+    id="mobile-menu-overlay"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm hidden md:hidden"
+    aria-hidden="true"
+  >
+  </div>
+
+  <!-- Mobile Drawer -->
+  <div
+    id="mobile-menu-drawer"
+    class="fixed inset-y-0 right-0 z-50 w-64 bg-global-surface shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out md:hidden flex flex-col border-l border-global-border"
+  >
+    <div
+      class="flex items-center justify-between p-4 border-b border-global-border"
+    >
+      <div class="flex items-center">
+        <img src="/img/logo.png" alt="TrikaWeb" class="h-8 w-auto" />
+      </div>
+      <button
+        id="close-menu-btn"
+        class="p-2 text-global-text hover:bg-global-card/50 rounded-md transition-colors focus:outline-none"
+        aria-label="Cerrar menú"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -41,19 +122,59 @@ import IconHome from "./icons/IconHome.astro";
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
-          class="lucide lucide-heart"
-          ><path
-            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
-          ></path></svg
+          ><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg
         >
+      </button>
+    </div>
+
+    <nav class="flex flex-col py-2">
+      <a
+        href="/cursos"
+        class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
+      >
+        Cursos
       </a>
       <a
-        class="rounded-xl p-2 hover:bg-global-surface"
-        aria-label="Inicio"
-        href="/"
+        href="/teachers"
+        class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
       >
-        <IconHome class="text-global-text" size={24} title="Inicio" />
+        Profesores
+      </a>
+      <a
+        href="/saved"
+        class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
+      >
+        Guardados
+      </a>
+      <a
+        href="/"
+        class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
+      >
+        Inicio
       </a>
     </nav>
   </div>
 </header>
+
+<script>
+  const openBtn = document.getElementById("mobile-menu-btn");
+  const closeBtn = document.getElementById("close-menu-btn");
+  const drawer = document.getElementById("mobile-menu-drawer");
+  const overlay = document.getElementById("mobile-menu-overlay");
+
+  function openMenu() {
+    drawer?.classList.remove("translate-x-full");
+    overlay?.classList.remove("hidden");
+    document.body.style.overflow = "hidden"; // Prevent scrolling
+  }
+
+  function closeMenu() {
+    drawer?.classList.add("translate-x-full");
+    overlay?.classList.add("hidden");
+    document.body.style.overflow = ""; // Restore scrolling
+  }
+
+  if (openBtn) openBtn.addEventListener("click", openMenu);
+  if (closeBtn) closeBtn.addEventListener("click", closeMenu);
+  if (overlay) overlay.addEventListener("click", closeMenu);
+</script>
