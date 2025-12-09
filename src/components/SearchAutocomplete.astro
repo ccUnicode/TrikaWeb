@@ -37,7 +37,7 @@ const listId = `${id}-suggestions`;
     id={inputId}
     type="search"
     placeholder={placeholder}
-    class="w-full rounded-2xl bg-global-surface border border-global-border px-6 py-4 pr-12 text-global-text placeholder:text-global-text-muted focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary shadow-sm transition-all"
+    class="w-full rounded-full bg-global-surface border border-global-border px-6 py-4 pr-12 text-global-text placeholder:text-global-text-muted focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary shadow-sm transition-all"
     autocomplete="off"
     aria-autocomplete="list"
     aria-controls={listId}
@@ -64,6 +64,15 @@ const listId = `${id}-suggestions`;
   >
   </ul>
 </div>
+
+<style>
+  /* Remove default clear button in WebKit browsers */
+  input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
+</style>
 
 <script type="module">
   function setup(root) {
