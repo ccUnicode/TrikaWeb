@@ -1,40 +1,53 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import type { CourseSummary } from '../lib/data';
-import { getCourses } from '../lib/data';
+export const prerender = false;
+import Layout from "../layouts/Layout.astro";
+import type { CourseSummary } from "../lib/data";
+import { getCourses } from "../lib/data";
 
 const courses: CourseSummary[] = await getCourses();
 ---
+
 <Layout title="Cursos">
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10">
     <header class="mb-8">
-      <p class="text-sm uppercase tracking-[0.2em] text-global-text-muted">Explorar</p>
+      <p class="text-sm uppercase tracking-[0.2em] text-global-text-muted">
+        Explorar
+      </p>
       <h1 class="text-3xl font-bold text-global-text">Todos los cursos</h1>
       <p class="text-global-text-muted mt-2">
-        Elige un curso para ver sus planchas, estadísticas y profesores relacionados.
+        Elige un curso para ver sus planchas, estadísticas y profesores
+        relacionados.
       </p>
     </header>
 
-    {courses.length === 0 ? (
-      <p class="rounded-xl border border-dashed border-global-border bg-global-surface p-6 text-center text-global-text-muted">
-        Aún no hay cursos registrados. Vuelve pronto.
-      </p>
-    ) : (
-      <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {courses.map(course => (
-          <li class="rounded-2xl border border-transparent bg-global-surface px-6 py-5 shadow-sm transition hover:border-global-primary/40 hover:shadow-lg">
-            <p class="text-sm font-semibold text-global-primary tracking-[0.2em]">{course.code}</p>
-            <h2 class="text-xl font-semibold text-global-text mb-3">{course.name}</h2>
-            <p class="text-sm text-global-text-muted">{course.sheetCount} planchas registradas</p>
-            <a
-              href={`/curso/${course.code}`}
-              class="mt-4 inline-flex items-center justify-center rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover"
-            >
-              Ver planchas
-            </a>
-          </li>
-        ))}
-      </ul>
-    )}
+    {
+      courses.length === 0 ? (
+        <p class="rounded-xl border border-dashed border-global-border bg-global-surface p-6 text-center text-global-text-muted">
+          Aún no hay cursos registrados. Vuelve pronto.
+        </p>
+      ) : (
+        <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {courses.map((course) => (
+            <li class="rounded-2xl border border-transparent bg-global-surface px-6 py-5 shadow-sm transition hover:border-global-primary/40 hover:shadow-lg">
+              <p class="text-sm font-semibold text-global-primary tracking-[0.2em]">
+                {course.code}
+              </p>
+              <h2 class="text-xl font-semibold text-global-text mb-3">
+                {course.name}
+              </h2>
+              <p class="text-sm text-global-text-muted">
+                {course.sheetCount} planchas registradas
+              </p>
+              <a
+                href={`/curso/${course.code}`}
+                class="mt-4 inline-flex items-center justify-center rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover"
+              >
+                Ver planchas
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
   </main>
 </Layout>

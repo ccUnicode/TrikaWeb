@@ -166,3 +166,27 @@ create table if not exists write_limits (
   last_at timestamptz not null default now(),
   count_1h int not null default 0
 );
+
+-- ========================================
+-- PERMISOS (GRANTs) para roles de Supabase
+-- ========================================
+-- El rol 'anon' es usado por usuarios no autenticados (anon key)
+-- El rol 'authenticated' es para usuarios logueados
+
+-- Permisos de lectura
+GRANT SELECT ON courses TO anon, authenticated;
+GRANT SELECT ON sheets TO anon, authenticated;
+GRANT SELECT ON teachers TO anon, authenticated;
+GRANT SELECT ON courses_teachers TO anon, authenticated;
+GRANT SELECT ON sheet_ratings TO anon, authenticated;
+GRANT SELECT ON sheet_views TO anon, authenticated;
+GRANT SELECT ON teacher_ratings TO anon, authenticated;
+
+-- Permisos de escritura para ratings y views (necesarios para votar)
+GRANT INSERT ON sheet_ratings TO anon, authenticated;
+GRANT INSERT ON sheet_views TO anon, authenticated;
+GRANT INSERT ON teacher_ratings TO anon, authenticated;
+GRANT INSERT, UPDATE ON write_limits TO anon, authenticated;
+
+-- Permisos para usar secuencias (necesario para INSERT con bigserial)
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
