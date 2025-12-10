@@ -19,7 +19,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   const { score } = body;
   if (!score || score < 1 || score > 5) {
     return new Response(
-      JSON.stringify({ error: 'score debe ser 1-5' }), 
+      JSON.stringify({ error: 'score debe ser 1-5' }),
       { status: 400 }
     );
   }
@@ -66,9 +66,28 @@ export const POST: APIRoute = async ({ params, request }) => {
       })
       .eq('sheet_id', sheetId)
       .eq('device_id', deviceId);
-    
+
     error = result.error;
   } else {
+    // Verificar límite de votos por IP para esta plancha (Anti-spam)
+    const { count, error: countError } = await supa
+      .from('sheet_ratings')
+      .select('id', { count: 'exact', head: true })
+      .eq('sheet_id', sheetId)
+      .eq('ip_hash', ipHash);
+
+    if (countError) {
+      console.error('Error verificando count IP:', countError);
+      return new Response(JSON.stringify({ error: 'Error interno verificando seguridad' }), { status: 500 });
+    }
+
+    if (count !== null && count >= 3) {
+      return new Response(
+        JSON.stringify({ error: 'Se ha alcanzado el límite de votos desde esta red para esta plancha.' }),
+        { status: 429 }
+      );
+    }
+
     // Si es primera vez, INSERTAR
     const result = await supa
       .from('sheet_ratings')
@@ -79,14 +98,14 @@ export const POST: APIRoute = async ({ params, request }) => {
         ip_hash: ipHash,
         created_at: new Date().toISOString()
       });
-    
+
     error = result.error;
   }
 
   if (error) {
     console.error('Error al guardar rating:', error);
     return new Response(
-      JSON.stringify({ error: 'Error al guardar', details: error.message }), 
+      JSON.stringify({ error: 'Error al guardar', details: error.message }),
       { status: 500 }
     );
   }

@@ -17,12 +17,12 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   const { overall, difficulty, didactic, resources, responsability, grading, comment } = body;
-  
+
   if (!overall || !difficulty || !didactic || !resources || !responsability || !grading) {
     return new Response(
-      JSON.stringify({ 
-        error: 'Faltan calificaciones (overall, difficulty, didactic, resources, responsability, grading)' 
-      }), 
+      JSON.stringify({
+        error: 'Faltan calificaciones (overall, difficulty, didactic, resources, responsability, grading)'
+      }),
       { status: 400 }
     );
   }
@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   const ratings = [overall, difficulty, didactic, resources, responsability, grading];
   if (ratings.some(r => r < 1 || r > 5)) {
     return new Response(
-      JSON.stringify({ error: 'Todas las calificaciones deben ser 1-5' }), 
+      JSON.stringify({ error: 'Todas las calificaciones deben ser 1-5' }),
       { status: 400 }
     );
   }
@@ -83,9 +83,28 @@ export const POST: APIRoute = async ({ params, request }) => {
       })
       .eq('teacher_id', teacherId)
       .eq('device_id', deviceId);
-    
+
     error = result.error;
   } else {
+    // Verificar límite de votos por IP para este profesor (Anti-spam)
+    const { count, error: countError } = await supa
+      .from('teacher_ratings')
+      .select('id', { count: 'exact', head: true })
+      .eq('teacher_id', teacherId)
+      .eq('ip_hash', ipHash);
+
+    if (countError) {
+      console.error('Error verificando count IP:', countError);
+      return new Response(JSON.stringify({ error: 'Error interno verificando seguridad' }), { status: 500 });
+    }
+
+    if (count !== null && count >= 3) {
+      return new Response(
+        JSON.stringify({ error: 'Se ha alcanzado el límite de votos desde esta red para este profesor.' }),
+        { status: 429 }
+      );
+    }
+
     // Insertar
     const result = await supa
       .from('teacher_ratings')
@@ -103,14 +122,14 @@ export const POST: APIRoute = async ({ params, request }) => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
-    
+
     error = result.error;
   }
 
   if (error) {
     console.error('Error al guardar rating:', error);
     return new Response(
-      JSON.stringify({ error: 'Error al guardar', details: error.message }), 
+      JSON.stringify({ error: 'Error al guardar', details: error.message }),
       { status: 500 }
     );
   }
