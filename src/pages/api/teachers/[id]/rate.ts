@@ -2,6 +2,10 @@ export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabase.server';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+// @ts-ignore
+import moderationConfig from "../../../../../config/moderation.json";
+
+const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
 export const POST: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
@@ -17,6 +21,20 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   const { overall, difficulty, didactic, resources, responsability, grading, comment } = body;
+
+  // check for bad words
+  if (comment) {
+    const commentLower = comment.toLowerCase();
+    const foundBadWord = bannedWords.find((word: string) => commentLower.includes(word));
+    if (foundBadWord) {
+      return new Response(
+        JSON.stringify({
+          error: 'Tu comentario contiene lenguaje inapropiado y no puede ser publicado.'
+        }),
+        { status: 400 }
+      );
+    }
+  }
 
   if (!overall || !difficulty || !didactic || !resources || !responsability || !grading) {
     return new Response(
