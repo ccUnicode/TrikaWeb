@@ -212,13 +212,9 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                           {formatScore(review.overall)}
                         </span>
                       </header>
-                      {review.comment ? (
+                      {review.comment && (
                         <p class="text-sm text-global-text-muted leading-relaxed text-justify max-h-24 overflow-y-auto teacher-scroll pr-1">
                           {review.comment}
-                        </p>
-                      ) : (
-                        <p class="text-xs text-global-text-muted italic">
-                          Sin comentario.
                         </p>
                       )}
                     </article>
