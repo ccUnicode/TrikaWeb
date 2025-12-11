@@ -1,0 +1,412 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Moderar Comentarios | TrikaWeb Admin">
+    <div class="min-h-screen py-8">
+        <div class="mx-auto w-full max-w-3xl px-4">
+            <!-- Header Section -->
+            <div class="mb-8 flex flex-row items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-global-text">
+                        Moderar Comentarios
+                    </h1>
+                    <p class="mt-1 text-sm text-global-text-muted">
+                        Aprueba o rechaza comentarios de profesores
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <a
+                        href="/admin/upload"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        ← Panel de subida
+                    </a>
+                    <form action="/api/admin/logout" method="POST">
+                        <button
+                            type="submit"
+                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+                        >
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Auth Form (shown if not authenticated) -->
+            <section
+                id="auth-section"
+                class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
+            >
+                <h2 class="text-lg font-semibold text-global-text mb-4">
+                    Autenticación requerida
+                </h2>
+                <div class="flex gap-3">
+                    <input
+                        id="admin-pass"
+                        type="password"
+                        placeholder="Contraseña de administrador"
+                        class="flex-1 rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                    />
+                    <button
+                        id="auth-btn"
+                        type="button"
+                        class="rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
+                    >
+                        Ingresar
+                    </button>
+                </div>
+                <p id="auth-error" class="mt-2 text-sm text-red-400 hidden"></p>
+            </section>
+
+            <!-- Comments Section (hidden until authenticated) -->
+            <section id="comments-section" class="hidden">
+                <!-- Stats -->
+                <div class="mb-4 flex items-center justify-between">
+                    <p class="text-sm text-global-text-muted">
+                        <span
+                            id="pending-count"
+                            class="font-semibold text-global-text">0</span
+                        > comentarios pendientes
+                    </p>
+                    <button
+                        id="refresh-btn"
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+                    >
+                        <svg
+                            class="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                            ></path>
+                        </svg>
+                        Actualizar
+                    </button>
+                </div>
+
+                <!-- Comments List -->
+                <div id="comments-list" class="space-y-4">
+                    <!-- Comments will be inserted here -->
+                </div>
+
+                <!-- Empty State -->
+                <div
+                    id="empty-state"
+                    class="hidden rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+                >
+                    <svg
+                        class="mx-auto w-12 h-12 text-global-text-muted mb-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="1.5"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                    </svg>
+                    <p class="text-global-text font-medium">¡Todo limpio!</p>
+                    <p class="text-sm text-global-text-muted mt-1">
+                        No hay comentarios pendientes de moderación
+                    </p>
+                </div>
+
+                <!-- Loading State -->
+                <div
+                    id="loading-state"
+                    class="hidden rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+                >
+                    <div
+                        class="animate-spin h-8 w-8 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-3"
+                    >
+                    </div>
+                    <p class="text-sm text-global-text-muted">
+                        Cargando comentarios...
+                    </p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        let adminPass = "";
+
+        const authSection = document.getElementById("auth-section");
+        const commentsSection = document.getElementById("comments-section");
+        const adminPassInput = document.getElementById(
+            "admin-pass",
+        ) as HTMLInputElement;
+        const authBtn = document.getElementById("auth-btn");
+        const authError = document.getElementById("auth-error");
+        const commentsList = document.getElementById("comments-list");
+        const emptyState = document.getElementById("empty-state");
+        const loadingState = document.getElementById("loading-state");
+        const pendingCount = document.getElementById("pending-count");
+        const refreshBtn = document.getElementById("refresh-btn");
+
+        interface PendingComment {
+            id: number;
+            grading: number;
+            comment: string;
+            created_at: string;
+            teacher_id: string;
+            teachers: {
+                id: string;
+                full_name: string;
+            } | null;
+        }
+
+        async function loadComments() {
+            if (!adminPass) return;
+
+            loadingState?.classList.remove("hidden");
+            emptyState?.classList.add("hidden");
+            if (commentsList) commentsList.innerHTML = "";
+
+            try {
+                const res = await fetch("/api/admin/pending-comments", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ admin_pass: adminPass }),
+                });
+
+                const data = await res.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || "Error desconocido");
+                }
+
+                const comments: PendingComment[] = data.comments ?? [];
+
+                if (pendingCount)
+                    pendingCount.textContent = String(comments.length);
+
+                if (comments.length === 0) {
+                    emptyState?.classList.remove("hidden");
+                } else {
+                    renderComments(comments);
+                }
+            } catch (err: any) {
+                if (authError) {
+                    authError.textContent = err.message;
+                    authError.classList.remove("hidden");
+                }
+            } finally {
+                loadingState?.classList.add("hidden");
+            }
+        }
+
+        function renderComments(comments: PendingComment[]) {
+            if (!commentsList) return;
+
+            commentsList.innerHTML = comments
+                .map((c) => {
+                    const teacherName =
+                        c.teachers?.full_name ?? "Profesor desconocido";
+                    const date = new Date(c.created_at).toLocaleDateString(
+                        "es-PE",
+                        {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        },
+                    );
+                    const stars =
+                        "★".repeat(c.grading) + "☆".repeat(5 - c.grading);
+
+                    return `
+          <div class="rounded-2xl bg-global-surface border border-global-border p-5" data-comment-id="${c.id}">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+              <div>
+                <a href="/teachers/${c.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
+                  ${teacherName}
+                </a>
+                <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <span class="text-yellow-400 text-sm">${stars}</span>
+                <span class="text-xs text-global-text-muted">(${c.grading}/5)</span>
+              </div>
+            </div>
+            <p class="text-sm text-global-text bg-global-bg rounded-lg p-3 border border-global-border mb-4">
+              ${c.comment ? escapeHtml(c.comment) : '<span class="text-global-text-muted italic">Sin comentario</span>'}
+            </p>
+            <div class="flex gap-2 justify-end">
+              <button
+                type="button"
+                onclick="rejectComment(${c.id})"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Rechazar
+              </button>
+              <button
+                type="button"
+                onclick="approveComment(${c.id})"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Aprobar
+              </button>
+            </div>
+          </div>
+        `;
+                })
+                .join("");
+        }
+
+        function escapeHtml(text: string): string {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        (window as any).approveComment = async function (id: number) {
+            const card = document.querySelector(`[data-comment-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/approve-comment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        admin_pass: adminPass,
+                        rating_id: id,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    card?.remove();
+                    updateCount(-1);
+                } else {
+                    alert("Error: " + (data.error ?? "No se pudo aprobar"));
+                    if (card)
+                        card.classList.remove(
+                            "opacity-50",
+                            "pointer-events-none",
+                        );
+                }
+            } catch {
+                alert("Error de red");
+                if (card)
+                    card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        (window as any).rejectComment = async function (id: number) {
+            if (!confirm("¿Eliminar este comentario permanentemente?")) return;
+
+            const card = document.querySelector(`[data-comment-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/hide-comment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        admin_pass: adminPass,
+                        rating_id: id,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    card?.remove();
+                    updateCount(-1);
+                } else {
+                    alert("Error: " + (data.error ?? "No se pudo rechazar"));
+                    if (card)
+                        card.classList.remove(
+                            "opacity-50",
+                            "pointer-events-none",
+                        );
+                }
+            } catch {
+                alert("Error de red");
+                if (card)
+                    card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        function updateCount(delta: number) {
+            if (!pendingCount) return;
+            const current = parseInt(pendingCount.textContent ?? "0", 10);
+            const newCount = Math.max(0, current + delta);
+            pendingCount.textContent = String(newCount);
+
+            if (newCount === 0) {
+                emptyState?.classList.remove("hidden");
+            }
+        }
+
+        authBtn?.addEventListener("click", async () => {
+            const pass = adminPassInput?.value?.trim();
+            if (!pass) {
+                if (authError) {
+                    authError.textContent = "Ingresa la contraseña";
+                    authError.classList.remove("hidden");
+                }
+                return;
+            }
+
+            adminPass = pass;
+
+            // Test authentication
+            try {
+                const res = await fetch("/api/admin/pending-comments", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ admin_pass: adminPass }),
+                });
+
+                const data = await res.json();
+
+                if (!data.ok) {
+                    if (authError) {
+                        authError.textContent =
+                            data.error ?? "Autenticación fallida";
+                        authError.classList.remove("hidden");
+                    }
+                    adminPass = "";
+                    return;
+                }
+
+                // Success - show comments
+                authSection?.classList.add("hidden");
+                commentsSection?.classList.remove("hidden");
+                loadComments();
+            } catch {
+                if (authError) {
+                    authError.textContent = "Error de conexión";
+                    authError.classList.remove("hidden");
+                }
+            }
+        });
+
+        adminPassInput?.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+                authBtn?.click();
+            }
+        });
+
+        refreshBtn?.addEventListener("click", () => loadComments());
+    </script>
+</Layout>

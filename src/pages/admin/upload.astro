@@ -13,14 +13,22 @@ import Layout from "../../layouts/Layout.astro";
             Sube PDFs de planchas y solucionarios
           </p>
         </div>
-        <form action="/api/admin/logout" method="POST">
-          <button
-            type="submit"
-            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+        <div class="flex flex-row gap-4">
+          <a
+            href="/admin/moderation"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
           >
-            Cerrar Sesión
-          </button>
-        </form>
+            Moderar comentarios
+          </a>
+          <form action="/api/admin/logout" method="POST">
+            <button
+              type="submit"
+              class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+            >
+              Cerrar Sesión
+            </button>
+          </form>
+        </div>
       </div>
 
       <!-- Upload Form Card -->
@@ -291,8 +299,8 @@ import Layout from "../../layouts/Layout.astro";
           class="mt-4 rounded-lg bg-global-bg/50 border border-global-border p-3"
         >
           <p class="text-xs text-global-text-muted">
-            <strong class="text-global-text">Nota:</strong> La sincronización se
-            ejecuta localmente en tu computadora. Usa el comando: <code
+            <strong class="text-global-text">Nota:</strong> La sincronización se ejecuta
+            localmente en tu computadora. Usa el comando: <code
               class="bg-global-card px-1.5 py-0.5 rounded border border-global-border"
               >npm run drive:sync-solutions</code
             >
