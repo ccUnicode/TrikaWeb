@@ -156,7 +156,14 @@ function getYouTubeId(url: string) {
           {
             examUrl && (
               <a
+                id="action-download-btn"
                 href={`/api/sheets/${sheet.id}/file?mode=download`}
+                data-exam-href={`/api/sheets/${sheet.id}/file?mode=download`}
+                data-solution-href={
+                  sheet.solution_kind === "pdf" && sheet.solution_storage_path
+                    ? `/api/sheets/${sheet.id}/file?mode=download&type=solution`
+                    : ""
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 class="inline-flex items-center justify-center gap-2 rounded-full bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors"
@@ -176,7 +183,7 @@ function getYouTubeId(url: string) {
                   <polyline points="7 10 12 15 17 10" />
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
-                Descargar examen
+                <span id="action-download-text">Descargar examen</span>
               </a>
             )
           }
@@ -214,6 +221,7 @@ function getYouTubeId(url: string) {
               </button>
             )
           }
+
           <button
             id="view-exam-btn"
             data-exam-url={examUrl}
@@ -334,6 +342,10 @@ function getYouTubeId(url: string) {
     const container = document.getElementById("viewer-container");
     const solutionBtn = document.getElementById("view-solution-btn");
     const examBtn = document.getElementById("view-exam-btn");
+    const downloadBtn = document.getElementById(
+      "action-download-btn",
+    ) as HTMLAnchorElement;
+    const downloadText = document.getElementById("action-download-text");
 
     if (!iframe || !container) return;
 
@@ -347,6 +359,27 @@ function getYouTubeId(url: string) {
         const solutionType = solutionBtn.getAttribute("data-solution-type");
         const solutionUrl = solutionBtn.getAttribute("data-solution-url");
         const videoUrl = solutionBtn.getAttribute("data-video-url");
+
+        // Update download button logic
+        if (downloadBtn && downloadText) {
+          if (solutionType === "pdf") {
+            const solHref = downloadBtn.dataset.solutionHref;
+            if (solHref) {
+              downloadBtn.href = solHref;
+              downloadText.textContent = "Descargar sol.";
+              downloadBtn.classList.remove("hidden");
+              downloadBtn.classList.add("inline-flex");
+            } else {
+              // If pdf but no download link (should handle graceful or fallback)
+              downloadBtn.classList.add("hidden");
+              downloadBtn.classList.remove("inline-flex");
+            }
+          } else {
+            // For video, hide download button
+            downloadBtn.classList.add("hidden");
+            downloadBtn.classList.remove("inline-flex");
+          }
+        }
 
         if (solutionType === "video" && videoUrl) {
           const videoId = getYouTubeId(videoUrl);
@@ -385,6 +418,17 @@ function getYouTubeId(url: string) {
     if (examBtn) {
       examBtn.addEventListener("click", () => {
         const examUrl = examBtn.getAttribute("data-exam-url");
+
+        // Reset download button
+        if (downloadBtn && downloadText) {
+          const examHref = downloadBtn.dataset.examHref;
+          if (examHref) {
+            downloadBtn.href = examHref;
+            downloadText.textContent = "Descargar examen";
+            downloadBtn.classList.remove("hidden");
+            downloadBtn.classList.add("inline-flex");
+          }
+        }
 
         if (!examUrl) return;
 
