@@ -390,6 +390,7 @@ export async function getTeacherDetail(
     )
     .eq('teacher_id', teacherId)
     .eq('is_hidden', false)
+    .neq('comment', null)
     .order('created_at', { ascending: false })
     .range(from, to);
 
