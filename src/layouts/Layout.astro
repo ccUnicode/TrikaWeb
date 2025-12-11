@@ -77,34 +77,8 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 			})}
 		/>
 
-		<!-- Theme initialization script (must run before body renders to prevent FOUC) -->
+		<!-- Theme initialization: Dark mode only -->
 		<script is:inline>
-			// Force dark mode always
-			// TODO: Uncomment below to restore light/dark mode toggle
-			/*
-			// Check for saved theme preference or default to system preference
-			const theme = (() => {
-				if (
-					typeof localStorage !== "undefined" &&
-					localStorage.getItem("theme")
-				) {
-					return localStorage.getItem("theme");
-				}
-				if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-					return "dark";
-				}
-				return "light";
-			})();
-
-			// Apply theme immediately
-			if (theme === "dark") {
-				document.documentElement.classList.add("dark");
-			} else {
-				document.documentElement.classList.remove("dark");
-			}
-			*/
-
-			// Always use dark mode
 			document.documentElement.classList.add("dark");
 		</script>
 	</head>

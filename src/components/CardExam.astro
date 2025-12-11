@@ -1,6 +1,6 @@
 ---
 import type { SheetSummary } from "../lib/data";
-import { supabaseAdmin } from "../lib/supabase.server";
+import { supabaseAdmin } from "../lib/supabaseAdmin";
 
 /* 1. Definimos las "props" (las variables) que la tarjeta va a recibir */
 export interface Props {
@@ -32,7 +32,7 @@ if (sheet?.thumb_storage_path) {
       ? sheet.thumb_storage_path.replace("thumbnails/", "")
       : sheet.thumb_storage_path;
 
-    const supa = supabaseAdmin();
+    const supa = supabaseAdmin;
     const { data } = await supa.storage
       .from("thumbnails")
       .createSignedUrl(storagePath, 3600);

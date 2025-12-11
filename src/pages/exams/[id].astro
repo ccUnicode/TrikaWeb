@@ -3,14 +3,14 @@ export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
-import { supabaseAdmin } from "../../lib/supabase.server";
+import { supabaseAdmin } from "../../lib/supabaseAdmin";
 
 const sheetId = Number(Astro.params.id);
 if (!sheetId) {
   return Astro.redirect("/cursos");
 }
 
-const supa = supabaseAdmin();
+const supa = supabaseAdmin;
 const { data: sheet, error } = await supa
   .from("sheets")
   .select(

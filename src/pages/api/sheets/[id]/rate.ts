@@ -1,6 +1,6 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../lib/supabase.server';
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
 export const POST: APIRoute = async ({ params, request }) => {
@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
 
-  const supa = supabaseAdmin();
+  const supa = supabaseAdmin;
 
   const rateLimit = await enforceIpRateLimit(supa, ipHash);
   if (!rateLimit.allowed) {

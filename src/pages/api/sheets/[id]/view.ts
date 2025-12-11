@@ -1,6 +1,6 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../lib/supabase.server';
+import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
 export const POST: APIRoute = async ({ params, request }) => {
@@ -29,7 +29,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
 
-  const supa = supabaseAdmin();
+  const supa = supabaseAdmin;
 
   const rate = await enforceIpRateLimit(supa, ipHash, 120);
   if (!rate.allowed) {
@@ -55,7 +55,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (error) {
     console.error('Error al guardar view:', error);
     return new Response(
-      JSON.stringify({ error: 'Error al guardar', details: error.message }), 
+      JSON.stringify({ error: 'Error al guardar', details: error.message }),
       { status: 500 }
     );
   }
