@@ -141,6 +141,11 @@
     color: rgb(var(--global-text-muted));
   }
 
+  /* 🎨 SVG Fill colors */
+  .fill-global-primary {
+    fill: rgb(var(--global-primary));
+  }
+
   /* 🧱 Borders */
   .border-global-border {
     border-color: rgb(var(--global-border));

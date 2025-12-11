@@ -654,6 +654,17 @@ function getYouTubeId(url: string) {
             }, 250);
           }
         });
+
+        // Add hover effect
+        btn.addEventListener("mouseenter", () => {
+          const score = Number((btn as HTMLElement).dataset.score);
+          highlight(widget, score);
+        });
+      });
+
+      // Reset to current rating on mouse leave from widget
+      widget.addEventListener("mouseleave", () => {
+        highlight(widget, Math.round(initial));
       });
     });
   };
