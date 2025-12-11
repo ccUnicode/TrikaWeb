@@ -9,165 +9,330 @@ const { teacherId, avg, count, showSummary = true } = Astro.props as Props;
 const displayAvg = typeof avg === "number" ? avg.toFixed(2) : "-";
 const displayCount = count ?? 0;
 const fields = [
-  { name: "overall", label: "General" },
-  { name: "difficulty", label: "Dificultad" },
-  { name: "didactic", label: "Didactica" },
-  { name: "resources", label: "Recursos" },
-  { name: "responsability", label: "Responsabilidad" },
-  { name: "grading", label: "Justicia al evaluar" },
+  {
+    name: "difficulty",
+    label: "Dificultad",
+    description: "Nivel de exigencia en exámenes y tareas.",
+    low: "Fácil",
+    high: "Difícil",
+  },
+  {
+    name: "didactic",
+    label: "Didáctica",
+    description: "Capacidad para explicar y hacerse entender.",
+    low: "Confuso",
+    high: "Claro",
+  },
+  {
+    name: "resources",
+    label: "Recursos",
+    description: "Materiales (diapos, libros, etc).",
+    low: "Poco",
+    high: "Mucho",
+  },
+  {
+    name: "responsability",
+    label: "Responsabilidad",
+    description: "Puntualidad y cumplimiento.",
+    low: "Tardón",
+    high: "Puntual",
+  },
+  {
+    name: "grading",
+    label: "Justo al calificar",
+    description: "¿Qué tan justo es calificando?",
+    low: "Injusto",
+    high: "Justo",
+  },
 ];
 ---
 
 <div
-  class="teacher-rating space-y-3 rounded-2xl border border-global-border bg-global-surface p-4"
+  class="teacher-rating space-y-2 rounded-3xl border border-global-border bg-global-surface px-4 py-4 sm:px-8 sm:py-6"
   data-teacher-rating
   data-teacher-id={teacherId}
 >
-  <form class="space-y-3" data-rating-form>
+  <form class="space-y-4" data-rating-form>
     {
       showSummary && (
-        <p class="text-sm text-global-text-muted">
-          Califica de 1 a 5 cada criterio. Promedio actual:
-          <span
-            data-teacher-rating-value
-            class="text-global-primary font-semibold ml-1"
-          >
-            {displayAvg}
-          </span>
-          (<span data-teacher-rating-count>{displayCount}</span> votos)
-        </p>
+        <div class="text-center space-y-1 mb-6">
+          <p class="text-lg font-medium text-global-text">Tu opinión importa</p>
+          <p class="text-sm text-global-text-muted">
+            Promedio actual:
+            <span class="text-global-primary font-bold">{displayAvg}</span>
+            en {displayCount} votos
+          </p>
+        </div>
       )
     }
+
+    <!-- Hidden inputs to store values -->
     {
-      !showSummary && (
-        <span class="hidden" data-teacher-rating-value>
-          {displayAvg}
-        </span>
-      )
+      fields.map((f) => (
+        <input
+          type="hidden"
+          name={f.name}
+          id={`input-${f.name}-${teacherId}`}
+          value=""
+        />
+      ))
     }
-    {
-      !showSummary && (
-        <span class="hidden" data-teacher-rating-count>
-          {displayCount}
-        </span>
-      )
-    }
-    <div class="grid gap-3 sm:grid-cols-2">
+
+    <div class="grid gap-x-8 gap-y-4 md:grid-cols-2">
       {
         fields.map((field) => (
-          <label
-            class="text-sm text-global-text"
-            for={`${field.name}-${teacherId}`}
-          >
-            {field.label}
-            <select
-              id={`${field.name}-${teacherId}`}
-              name={field.name}
-              class="mt-1 w-full rounded-xl border-0 bg-global-bg/40 px-3 py-2 text-sm text-global-text focus:outline-none focus:ring-2 focus:ring-global-primary/60 transition-all"
-            >
-              <option value="" selected>
-                Selecciona
-              </option>
-              {Array.from({ length: 5 }).map((_, idx) => (
-                <option value={idx + 1} class="bg-global-card text-global-text">
-                  {idx + 1}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div class="space-y-1 group" data-star-group={field.name}>
+            <div class="flex items-baseline justify-between gap-4">
+              <label class="font-medium text-global-text text-[15px] shrink-0">
+                {field.label}
+              </label>
+              <span class="text-xs text-global-text-muted hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity text-right">
+                {field.description}
+              </span>
+            </div>
+
+            <div class="bg-global-bg/30 rounded-2xl py-2 px-3 border border-transparent group-hover:border-global-border-subtle transition-colors">
+              <div class="flex items-center justify-between sm:justify-center gap-0.5 sm:gap-3 w-full">
+                <span class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider w-auto sm:w-12 text-left leading-tight">
+                  {field.low}
+                </span>
+
+                <div class="flex justify-center gap-0.5 sm:gap-1">
+                  {Array.from({ length: 5 }).map((_, idx) => {
+                    const val = idx + 1;
+                    return (
+                      <button
+                        type="button"
+                        class="star-btn w-6 h-6 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl hover:bg-global-bg transition-all focus:outline-none focus:ring-2 focus:ring-global-primary/50"
+                        data-value={val}
+                        data-field={field.name}
+                        aria-label={`${val} estrellas`}
+                      >
+                        <svg
+                          class="w-4 h-4 sm:w-7 sm:h-7 pointer-events-none transition-transform duration-200 star-inactive"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                        >
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <span class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider w-auto sm:w-12 text-right leading-tight">
+                  {field.high}
+                </span>
+              </div>
+            </div>
+          </div>
         ))
       }
     </div>
-    <label class="text-sm text-global-text" for={`comment-${teacherId}`}>
-      Comentario (opcional)
-      <textarea
-        id={`comment-${teacherId}`}
-        name="comment"
-        rows={3}
-        class="mt-1 w-full rounded-xl border-0 bg-global-bg/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-global-primary/60 transition-all"
-        placeholder="Cuenta tu experiencia"></textarea>
-    </label>
-    <div class="flex flex-col items-center gap-2">
+
+    <div class="pt-4 border-t border-global-border-subtle/50">
+      <label class="block space-y-2" for={`comment-${teacherId}`}>
+        <span class="font-medium text-global-text text-[15px]"
+          >Comentario (opcional)</span
+        >
+        <textarea
+          id={`comment-${teacherId}`}
+          name="comment"
+          rows={3}
+          class="w-full rounded-2xl border border-global-border-subtle bg-global-bg/50 px-4 py-3 text-sm text-global-text placeholder:text-global-text-muted/50 focus:border-global-primary focus:bg-global-bg focus:outline-none focus:ring-1 focus:ring-global-primary transition-all resize-none"
+          placeholder="Comparte tu experiencia con este profesor..."></textarea>
+      </label>
+    </div>
+
+    <div class="flex flex-col items-center gap-3">
       <button
         type="submit"
-        class="w-full rounded-xl bg-global-primary mt-4 px-6 py-3 text-base font-semibold text-black hover:bg-global-primary-hover transition-colors"
+        class="relative w-full rounded-2xl bg-global-primary px-6 py-4 text-base font-bold text-black hover:bg-global-primary-hover hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg shadow-global-primary/10"
         data-submit
       >
-        Enviar Calificación
+        <span class="relative z-10">Enviar Calificación</span>
       </button>
-      <span data-status class="text-sm text-global-text-muted"></span>
+      <span
+        data-status
+        class="text-xs font-medium text-global-text-muted h-4 block transition-colors duration-300"
+      ></span>
     </div>
   </form>
 </div>
 
+<style>
+  /* Star Animation States */
+  .star-inactive {
+    color: rgba(180, 189, 201, 0.3); /* #B4BDC9 at 30% opacity */
+  }
+
+  /* Active/Filled State */
+  .star-btn.active svg {
+    fill: #22c55e;
+    color: #22c55e;
+    transform: scale(1.1);
+  }
+
+  /* Hover preview from group parent */
+  .group[data-star-group]:hover .star-btn svg {
+    /* Base state when hovering group but not specific star: handled by JS mostly */
+  }
+</style>
+
 <script>
+  /* import { ensureDeviceId } from "../lib/client/device"; */
+  // Mocking ensureDeviceId if not found, or standard import
   import { ensureDeviceId } from "../lib/client/device";
 
-  const init = (widget) => {
+  const init = (widget: HTMLElement) => {
     if (widget.dataset.bound === "true") return;
     widget.dataset.bound = "true";
-    const form = widget.querySelector("[data-rating-form]");
-    const status = widget.querySelector("[data-status]");
-    const avgEl = widget.querySelector("[data-teacher-rating-value]");
-    const countEl = widget.querySelector("[data-teacher-rating-count]");
+    const form = widget.querySelector("[data-rating-form]") as HTMLFormElement;
+    const status = widget.querySelector("[data-status]") as HTMLElement;
     const teacherId = widget.dataset.teacherId;
 
-    form?.addEventListener("submit", async (event) => {
+    // --- Star Rating Logic ---
+    const starGroups = widget.querySelectorAll("[data-star-group]");
+
+    starGroups.forEach((group) => {
+      const g = group as HTMLElement;
+      const fieldName = g.dataset.starGroup;
+      const input = widget.querySelector(
+        `#input-${fieldName}-${teacherId}`,
+      ) as HTMLInputElement;
+      const buttons = g.querySelectorAll(".star-btn");
+
+      let currentValue = 0;
+
+      // Helper to update visual state
+      const updateStars = (val: number) => {
+        buttons.forEach((b, idx) => {
+          const btn = b as HTMLButtonElement;
+          const btnVal = idx + 1;
+          if (btnVal <= val) {
+            btn.classList.add("active");
+          } else {
+            btn.classList.remove("active");
+          }
+        });
+      };
+
+      // Handle Click
+      buttons.forEach((b) => {
+        const btn = b as HTMLButtonElement;
+        btn.addEventListener("click", () => {
+          const val = Number(btn.dataset.value);
+          if (currentValue === val) {
+            // Optional/No-op
+          } else {
+            currentValue = val;
+          }
+          if (input) input.value = (currentValue || "").toString();
+          updateStars(currentValue);
+
+          const svg = btn.querySelector("svg");
+          if (svg) {
+            svg.style.transform = "scale(0.8)";
+            setTimeout(() => (svg.style.transform = ""), 150);
+          }
+        });
+
+        // Handle Hover Preview
+        btn.addEventListener("mouseenter", () => {
+          const val = Number(btn.dataset.value);
+          updateStars(val);
+        });
+      });
+
+      // Reset on mouse leave group
+      g.querySelector("div.relative")?.addEventListener("mouseleave", () => {
+        updateStars(currentValue);
+      });
+    });
+    // -------------------------
+
+    form?.addEventListener("submit", async (event: SubmitEvent) => {
       event.preventDefault();
       const formData = new FormData(form);
-      const payload = {};
+      const payload: Record<string, any> = {};
       formData.forEach((value, key) => {
         payload[key] = value;
       });
+
       const missing = [
-        "overall",
         "difficulty",
         "didactic",
         "resources",
         "responsability",
         "grading",
       ].some((field) => !payload[field]);
+
       if (missing) {
-        status.textContent = "Completa todas las calificaciones";
-        status.classList.add("text-red-400");
+        if (status) {
+          status.textContent = "Por favor, completa todas las estrellas.";
+          status.classList.add("text-red-400");
+          status.classList.remove("text-global-text-muted");
+        }
         return;
       }
+
       payload.device_id = ensureDeviceId();
-      widget.classList.add("opacity-70");
+      widget.classList.add("opacity-50", "pointer-events-none");
+      if (status) {
+        status.textContent = "Enviando...";
+        status.classList.remove("text-red-400");
+      }
+
       try {
         const response = await fetch(`/api/teachers/${teacherId}/rate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
+
         if (!response.ok) {
           const error = await response.json().catch(() => ({}));
-          status.textContent = error?.error ?? "Error al guardar";
-          status.classList.add("text-red-400");
+          if (status) {
+            status.textContent = error?.error ?? "Error al guardar";
+            status.classList.add("text-red-400");
+            status.classList.remove("text-global-text-muted");
+          }
           return;
         }
-        const result = await response.json();
-        if (result?.stats) {
-          avgEl.textContent = Number(
-            result.stats.avg_overall ?? payload.overall,
-          ).toFixed(2);
-          if (countEl && result.stats.rating_count != null) {
-            countEl.textContent = result.stats.rating_count;
-          }
+
+        // Success
+        if (status) {
+          status.textContent =
+            "¡Gracias! Tu reseña está pendiente de aprobación.";
+          status.classList.remove("text-red-400");
+          status.classList.add("text-global-primary");
         }
-        status.textContent = "Gracias por calificar!";
-        status.classList.remove("text-red-400");
+
+        form.reset();
+        // Reset stars visually
+        starGroups.forEach((group) => {
+          const g = group as HTMLElement;
+          g.querySelectorAll(".star-btn").forEach((b) =>
+            b.classList.remove("active"),
+          );
+        });
       } catch (err) {
         console.error(err);
-        status.textContent = "Error inesperado";
-        status.classList.add("text-red-400");
+        if (status) {
+          status.textContent = "Error de conexión";
+          status.classList.add("text-red-400");
+        }
       } finally {
-        widget.classList.remove("opacity-70");
+        widget.classList.remove("opacity-50", "pointer-events-none");
       }
     });
   };
 
   if (typeof window !== "undefined") {
-    document.querySelectorAll("[data-teacher-rating]").forEach(init);
+    document
+      .querySelectorAll("[data-teacher-rating]")
+      .forEach((el) => init(el as HTMLElement));
   }
 </script>

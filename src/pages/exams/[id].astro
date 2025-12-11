@@ -542,11 +542,16 @@ function getYouTubeId(url: string) {
     widget.querySelectorAll("[data-score]").forEach((btn) => {
       const val = Number((btn as HTMLElement).dataset.score);
       const active = val <= score;
-      btn.classList.toggle("bg-global-primary", active);
-      btn.classList.toggle("border-transparent", active);
-      btn.classList.toggle("text-black", active);
-      btn.classList.toggle("text-global-text-muted", !active);
-      btn.classList.toggle("border-global-border", !active);
+      const svg = btn.querySelector("svg");
+      if (svg) {
+        if (active) {
+          svg.classList.remove("star-inactive");
+          svg.classList.add("fill-global-primary", "text-global-primary");
+        } else {
+          svg.classList.add("star-inactive");
+          svg.classList.remove("fill-global-primary", "text-global-primary");
+        }
+      }
     });
   };
 

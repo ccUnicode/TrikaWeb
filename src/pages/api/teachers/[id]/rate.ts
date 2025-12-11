@@ -20,7 +20,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const { overall, difficulty, didactic, resources, responsability, grading, comment } = body;
+  const { difficulty, didactic, resources, responsability, grading, comment } = body;
 
   // check for bad words
   if (comment) {
@@ -36,22 +36,25 @@ export const POST: APIRoute = async ({ params, request }) => {
     }
   }
 
-  if (!overall || !difficulty || !didactic || !resources || !responsability || !grading) {
+  if (!difficulty || !didactic || !resources || !responsability || !grading) {
     return new Response(
       JSON.stringify({
-        error: 'Faltan calificaciones (overall, difficulty, didactic, resources, responsability, grading)'
+        error: 'Faltan calificaciones (difficulty, didactic, resources, responsability, grading)'
       }),
       { status: 400 }
     );
   }
 
-  const ratings = [overall, difficulty, didactic, resources, responsability, grading];
+  const ratings = [difficulty, didactic, resources, responsability, grading];
   if (ratings.some(r => r < 1 || r > 5)) {
     return new Response(
       JSON.stringify({ error: 'Todas las calificaciones deben ser 1-5' }),
       { status: 400 }
     );
   }
+
+  // Calculate overall automatically
+  const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
   const deviceId = getDeviceId(body);
   if (!deviceId) {
@@ -84,6 +87,7 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   let error;
 
+  // IMPORTANT: is_hidden is always true on write to enforce moderation
   if (existing) {
     // Actualizar
     const result = await supa
@@ -97,6 +101,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
+        is_hidden: true, // Forces re-moderation on update
         updated_at: new Date().toISOString()
       })
       .eq('teacher_id', teacherId)
@@ -137,6 +142,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
+        is_hidden: true, // Hidden by default
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });

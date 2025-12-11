@@ -25,27 +25,58 @@ const displayCount = count ?? 0;
       <span data-rating-count>{displayCount}</span> votos
     </p>
   </div>
+
   <div
-    class="flex items-center justify-center gap-2"
-    role="radiogroup"
-    aria-label="Calificar dificultad"
+    class="bg-global-bg/30 rounded-2xl py-2 px-3 border border-transparent transition-colors"
   >
-    <span class="text-xs text-global-text-muted">Fácil</span>
-    {
-      Array.from({ length: 5 }).map((_, index) => (
-        <button
-          type="button"
-          class="rating-star h-8 w-8 rounded-full border border-global-border text-base text-global-text-muted transition hover:border-global-primary cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-global-primary/70"
-          data-score={index + 1}
-          aria-label={`${index + 1} estrellas`}
-        >
-          &#9733;
-        </button>
-      ))
-    }
-    <span class="text-xs text-global-text-muted">Difícil</span>
+    <div
+      class="flex items-center justify-between sm:justify-center gap-0.5 sm:gap-3 w-full"
+    >
+      <span
+        class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider w-auto sm:w-12 text-left leading-tight"
+      >
+        Fácil
+      </span>
+
+      <div class="flex justify-center gap-0.5 sm:gap-1">
+        {
+          Array.from({ length: 5 }).map((_, idx) => {
+            const val = idx + 1;
+            return (
+              <button
+                type="button"
+                class="star-btn w-6 h-6 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl hover:bg-global-bg transition-all focus:outline-none focus:ring-2 focus:ring-global-primary/50"
+                data-score={val}
+                aria-label={`${val} estrellas`}
+              >
+                <svg
+                  class="w-4 h-4 sm:w-7 sm:h-7 pointer-events-none transition-transform duration-200 star-inactive"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </button>
+            );
+          })
+        }
+      </div>
+
+      <span
+        class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider w-auto sm:w-12 text-right leading-tight"
+      >
+        Difícil
+      </span>
+    </div>
   </div>
+
   <p class="text-xs text-global-text-muted text-center" data-rating-status></p>
 </div>
 
-<!-- JS de rating se inyecta desde la página para asegurar montaje -->
+<style>
+  .star-inactive {
+    color: rgba(180, 189, 201, 0.3);
+  }
+</style>
