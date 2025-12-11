@@ -138,9 +138,10 @@ labTeachers.sort(sortByRating);
                   </>
                 </svg>
               </h2>
-              <div class="px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted">
-                Ordenar por calificación ▼
-              </div>
+              <select class="sort-teacher-dropdown px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted hover:border-global-primary transition-colors cursor-pointer outline-none">
+                <option value="rating-desc">Mayor calificación</option>
+                <option value="rating-asc">Menor calificación</option>
+              </select>
             </div>
 
             <div class="flex items-center gap-4">
@@ -153,6 +154,7 @@ labTeachers.sort(sortByRating);
                   <article
                     class="teacher-item w-full max-w-[350px]"
                     data-name={teacher.full_name}
+                    data-rating={teacher.avg_overall ?? 0}
                   >
                     <TeacherCard
                       name={teacher.full_name}
@@ -193,15 +195,17 @@ labTeachers.sort(sortByRating);
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
                 </svg>
               </h2>
-              <div class="px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted">
-                Ordenar por calificación ▼
-              </div>
+              <select class="sort-teacher-dropdown px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted hover:border-global-primary transition-colors cursor-pointer outline-none">
+                <option value="rating-desc">Mayor calificación</option>
+                <option value="rating-asc">Menor calificación</option>
+              </select>
             </div>
             <div class="flex flex-wrap justify-center gap-6 w-full">
               {practiceTeachers.map(({ teacher }) => (
                 <article
                   class="teacher-item w-full max-w-[350px]"
                   data-name={teacher.full_name}
+                  data-rating={teacher.avg_overall ?? 0}
                 >
                   <TeacherCard
                     name={teacher.full_name}
@@ -247,15 +251,17 @@ labTeachers.sort(sortByRating);
                   </>
                 </svg>
               </h2>
-              <div class="px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted">
-                Ordenar por calificación ▼
-              </div>
+              <select class="sort-teacher-dropdown px-3 py-1.5 text-sm bg-global-card border border-global-border rounded-lg text-global-text-muted hover:border-global-primary transition-colors cursor-pointer outline-none">
+                <option value="rating-desc">Mayor calificación</option>
+                <option value="rating-asc">Menor calificación</option>
+              </select>
             </div>
             <div class="flex flex-wrap justify-center gap-6 w-full">
               {labTeachers.map(({ teacher }) => (
                 <article
                   class="teacher-item w-full max-w-[350px]"
                   data-name={teacher.full_name}
+                  data-rating={teacher.avg_overall ?? 0}
                 >
                   <TeacherCard
                     name={teacher.full_name}
@@ -294,6 +300,40 @@ labTeachers.sort(sortByRating);
     </div>
 
     <script>
+      // Sorting Logic
+      function setupSorting() {
+        const dropdowns = document.querySelectorAll(".sort-teacher-dropdown");
+
+        dropdowns.forEach((dropdown) => {
+          dropdown.addEventListener("change", (e) => {
+            const select = e.target as HTMLSelectElement;
+            const container = select
+              .closest(".modality-section")
+              ?.querySelector(".flex.flex-wrap");
+
+            if (!container) return;
+
+            const items = Array.from(container.children) as HTMLElement[];
+            const order = select.value;
+
+            items.sort((a, b) => {
+              const ratingA = parseFloat(a.dataset.rating || "0");
+              const ratingB = parseFloat(b.dataset.rating || "0");
+
+              if (order === "rating-desc") {
+                return ratingB - ratingA;
+              } else {
+                return ratingA - ratingB;
+              }
+            });
+
+            // Reorder in DOM
+            items.forEach((item) => container.appendChild(item));
+          });
+        });
+      }
+
+      // Search Logic
       const normalize = (value = "") =>
         value
           .toLowerCase()
@@ -338,6 +378,11 @@ labTeachers.sort(sortByRating);
           }
         });
       }
+
+      // Init sorting
+      document.addEventListener("DOMContentLoaded", setupSorting);
+      // Support View Transitions if enabled later
+      document.addEventListener("astro:page-load", setupSorting);
     </script>
   </main>
 </Layout>
