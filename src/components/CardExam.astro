@@ -44,14 +44,24 @@ if (sheet?.thumb_storage_path) {
 
 /* 2. Definimos los iconos (los metemos aqui) */
 const checkIcon = `
-<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-primary">
-  <span class="block h-1.5 w-2.5 rounded-sm border-b-[3px] border-l-[3px] border-global-text" style="transform: rotate(-45deg) translate(-1px, -1px);"></span>
-</span>
+<div class="group relative flex items-center justify-center">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-green-500">
+    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd" />
+  </svg>
+  <span class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-20">
+    Tiene solucionario
+  </span>
+</div>
 `;
 const noCheckIcon = `
-<span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-global-border">
-  <span class="block h-0.5 w-2.5 rounded-full bg-white/50"></span>
-</span>
+<div class="group relative flex items-center justify-center">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-7 h-7 text-gray-500">
+    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm3 10.5a.75.75 0 000-1.5H9a.75.75 0 000 1.5h6z" clip-rule="evenodd" />
+  </svg>
+  <span class="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg z-20">
+    No tiene solucionario
+  </span>
+</div>
 `;
 ---
 
