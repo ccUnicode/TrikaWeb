@@ -160,6 +160,40 @@ const fields = [
       ></span>
     </div>
   </form>
+
+  <!-- Success State (hidden by default) -->
+  <div data-success-state class="hidden text-center space-y-6 py-8">
+    <div class="space-y-3">
+      <div
+        class="w-16 h-16 mx-auto rounded-full bg-global-primary/20 flex items-center justify-center"
+      >
+        <svg
+          class="w-8 h-8 text-global-primary"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M5 13l4 4L19 7"></path>
+        </svg>
+      </div>
+      <h3 class="text-2xl font-bold text-global-text">
+        ¡Gracias por calificar!
+      </h3>
+      <p class="text-global-text-muted">
+        Tu reseña está pendiente de aprobación.
+      </p>
+    </div>
+
+    <div class="bg-global-bg/30 rounded-2xl p-6 space-y-2">
+      <p class="text-sm text-global-text-muted">Nuevo promedio</p>
+      <p class="text-4xl font-bold text-global-primary" data-success-avg>-</p>
+      <p class="text-xs text-global-text-muted" data-success-count>0 votos</p>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -256,7 +290,20 @@ const fields = [
       const formData = new FormData(form);
       const payload: Record<string, any> = {};
       formData.forEach((value, key) => {
-        payload[key] = value;
+        // Convert rating fields to numbers
+        if (
+          [
+            "difficulty",
+            "didactic",
+            "resources",
+            "responsability",
+            "grading",
+          ].includes(key)
+        ) {
+          payload[key] = Number(value);
+        } else {
+          payload[key] = value;
+        }
       });
 
       const missing = [
@@ -300,22 +347,38 @@ const fields = [
           return;
         }
 
-        // Success
-        if (status) {
-          status.textContent =
-            "¡Gracias! Tu reseña está pendiente de aprobación.";
-          status.classList.remove("text-red-400");
-          status.classList.add("text-global-primary");
-        }
+        // Success - Show success state and hide form
+        const result = await response.json();
+        const successState = widget.querySelector("[data-success-state]");
+        const successAvg = widget.querySelector("[data-success-avg]");
+        const successCount = widget.querySelector("[data-success-count]");
 
-        form.reset();
-        // Reset stars visually
-        starGroups.forEach((group) => {
-          const g = group as HTMLElement;
-          g.querySelectorAll(".star-btn").forEach((b) =>
-            b.classList.remove("active"),
-          );
-        });
+        if (successState && successAvg && successCount) {
+          // Update success state with new stats
+          const newAvg = result?.stats?.avg_overall ?? 0;
+          const newCount = result?.stats?.rating_count ?? 0;
+          successAvg.textContent = Number(newAvg).toFixed(1);
+          successCount.textContent = `${newCount} ${newCount === 1 ? "voto" : "votos"}`;
+
+          // Hide form and show success state
+          form.classList.add("hidden");
+          successState.classList.remove("hidden");
+        } else {
+          // Fallback to old behavior
+          if (status) {
+            status.textContent =
+              "¡Gracias! Tu reseña está pendiente de aprobación.";
+            status.classList.remove("text-red-400");
+            status.classList.add("text-global-primary");
+          }
+          form.reset();
+          starGroups.forEach((group) => {
+            const g = group as HTMLElement;
+            g.querySelectorAll(".star-btn").forEach((b) =>
+              b.classList.remove("active"),
+            );
+          });
+        }
       } catch (err) {
         console.error(err);
         if (status) {

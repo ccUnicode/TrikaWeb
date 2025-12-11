@@ -252,10 +252,10 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 
 <div
   id="rating-modal"
-  class="hidden fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+  class="hidden fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6 mt-8"
 >
   <div
-    class="rating-modal relative w-full max-w-4xl mx-4 rounded-3xl bg-global-card p-6 sm:p-8 shadow-2xl animate-fade-in"
+    class="rating-modal relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-global-card p-6 sm:p-8 shadow-2xl animate-fade-in"
   >
     <button
       type="button"
