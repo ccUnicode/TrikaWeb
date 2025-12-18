@@ -3,7 +3,7 @@ import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
-  site: 'https://trikaweb.vercel.app',
+  site: 'https://trikaweb.ccunicode.org',
   output: 'server',
   adapter: vercel(),
   vite: {
