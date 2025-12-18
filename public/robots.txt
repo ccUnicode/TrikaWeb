@@ -7,4 +7,4 @@ Disallow: /api/admin/
 Disallow: /admin/
 
 # Sitemap
-Sitemap: https://trikaweb.vercel.app/sitemap.xml
+Sitemap: https://trikaweb.ccunicode.org/sitemap.xml
