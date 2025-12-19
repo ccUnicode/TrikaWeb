@@ -7,7 +7,16 @@ export default defineConfig({
   site: 'https://trikaweb.ccunicode.org',
   output: 'server',
   adapter: vercel(),
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      customPages: [
+        'https://trikaweb.ccunicode.org/',
+        'https://trikaweb.ccunicode.org/cursos',
+        'https://trikaweb.ccunicode.org/profesores',
+        'https://trikaweb.ccunicode.org/saved',
+      ],
+    }),
+  ],
   vite: {
     plugins: [tailwindcss()],
   },
