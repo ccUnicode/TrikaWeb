@@ -30,8 +30,8 @@ test.describe('Navigation', () => {
 
   test('Can navigate to Profesores page from header', async ({ page }) => {
     await page.goto('/');
-    await page.click('a[href="/teachers"]');
-    await expect(page).toHaveURL('/teachers');
+    await page.click('a[href="/profesores"]');
+    await expect(page).toHaveURL('/profesores');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Profesores');
   });
 
@@ -90,12 +90,12 @@ test.describe('Cursos Page', () => {
 
 test.describe('Teachers Page', () => {
   test('Teachers page displays teacher cards', async ({ page }) => {
-    await page.goto('/teachers');
+    await page.goto('/profesores');
     await expect(page.locator('#teachers-grid')).toBeVisible();
   });
 
   test('Search input exists and is functional', async ({ page }) => {
-    await page.goto('/teachers');
+    await page.goto('/profesores');
     const searchInput = page.locator('#search-teacher');
     await expect(searchInput).toBeVisible();
 
@@ -135,7 +135,7 @@ test.describe('SEO & Accessibility', () => {
   });
 
   test('All pages have proper title tags', async ({ page }) => {
-    const pages = ['/', '/cursos', '/teachers', '/saved'];
+    const pages = ['/', '/cursos', '/profesores', '/saved'];
 
     for (const pagePath of pages) {
       await page.goto(pagePath);

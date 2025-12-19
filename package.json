@@ -12,6 +12,7 @@
     "drive:sync-solutions": "ts-node scripts/upload-from-drive.ts --type=solutions"
   },
   "dependencies": {
+    "@astrojs/sitemap": "^3.6.0",
     "@astrojs/vercel": "^9.0.2",
     "@supabase/supabase-js": "^2.81.1",
     "@tailwindcss/vite": "^4.1.15",

@@ -10,13 +10,13 @@ const page = Number(Astro.url.searchParams.get("page") ?? 1);
 const pageSize = Number(Astro.url.searchParams.get("pageSize") ?? 5);
 
 if (!teacherId) {
-  return Astro.redirect("/teachers");
+  return Astro.redirect("/profesores");
 }
 
 const detail = await getTeacherDetail(teacherId, page, pageSize);
 
 if (!detail) {
-  return Astro.redirect("/teachers");
+  return Astro.redirect("/profesores");
 }
 
 const statsItems = [
@@ -227,7 +227,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                 <div class="flex items-center justify-between text-sm text-global-text-muted">
                   <a
                     class={`px-3 py-2 rounded-lg border ${page > 1 ? "border-global-border hover:border-global-primary" : "border-transparent opacity-50 pointer-events-none"}`}
-                    href={`/teachers/${teacherId}?page=${Math.max(1, page - 1)}&pageSize=${pageSize}`}
+                    href={`/profesores/${teacherId}?page=${Math.max(1, page - 1)}&pageSize=${pageSize}`}
                   >
                     ← Anterior
                   </a>
@@ -236,7 +236,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                   </span>
                   <a
                     class={`px-3 py-2 rounded-lg border ${page < detail.pagination.totalPages ? "border-global-border hover:border-global-primary" : "border-transparent opacity-50 pointer-events-none"}`}
-                    href={`/teachers/${teacherId}?page=${Math.min(detail.pagination.totalPages, page + 1)}&pageSize=${pageSize}`}
+                    href={`/profesores/${teacherId}?page=${Math.min(detail.pagination.totalPages, page + 1)}&pageSize=${pageSize}`}
                   >
                     Siguiente →
                   </a>

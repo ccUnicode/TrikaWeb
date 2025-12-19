@@ -7,7 +7,10 @@ import { getTeachers } from "../lib/data";
 const teachers = await getTeachers();
 ---
 
-<Layout title="Profesores">
+<Layout
+  title="Profesores - TrikaWeb"
+  description="Encuentra y califica a los profesores de la UNI. Revisa reseñas y calificaciones de otros estudiantes."
+>
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
     <header
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"
@@ -68,7 +71,7 @@ const teachers = await getTeachers();
                 modality={teacher.courses?.[0]?.modality ?? undefined}
                 rating={teacher.avg_overall ?? 0}
                 avatarSrc={teacher.avatar_url || "/img/fallback_teacher.jpeg"}
-                href={`/teachers/${teacher.id}`}
+                href={`/profesores/${teacher.id}`}
                 buttonLabel="Ver perfil"
               />
             </article>

@@ -7,7 +7,10 @@ import { getCourses } from "../lib/data";
 const courses: CourseSummary[] = await getCourses();
 ---
 
-<Layout title="Cursos">
+<Layout
+  title="Cursos - TrikaWeb"
+  description="Explora todos los cursos de la UNI. Encuentra planchas, exámenes pasados y profesores por curso."
+>
   <main class="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-12 py-10 space-y-8">
     <header
       class="flex flex-col md:flex-row md:items-center justify-between gap-4"

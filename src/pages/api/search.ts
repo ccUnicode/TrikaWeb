@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ request }) => {
             ...results.teachers.map(t => ({
                 text: t.full_name,
                 type: "profesor",
-                url: `/teachers/${t.id}`
+                url: `/profesores/${t.id}`
             })),
             ...results.sheets.map(s => ({
                 text: `${s.course_code} ${s.exam_type} ${s.cycle}`,

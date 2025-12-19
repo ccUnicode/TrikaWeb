@@ -1,7 +1,7 @@
 {
     "headers": [
         {
-            "source": "/sitemap.xml",
+            "source": "/sitemap-index.xml",
             "headers": [
                 {
                     "key": "Content-Type",
@@ -21,6 +21,20 @@
                     "value": "text/plain; charset=utf-8"
                 }
             ]
+        }
+    ],
+    "redirects": [
+        {
+            "source": "/teachers",
+            "destination": "/profesores",
+            "permanent": true,
+            "statusCode": 308
+        },
+        {
+            "source": "/teachers/:id",
+            "destination": "/profesores/:id",
+            "permanent": true,
+            "statusCode": 308
         }
     ]
 }

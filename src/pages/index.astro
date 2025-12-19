@@ -325,7 +325,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           <p class="text-global-text-muted">Mejor calificados</p>
         </div>
         <a
-          href="/teachers"
+          href="/profesores"
           class="inline-flex items-center justify-center rounded-full border border-global-border px-4 py-2 text-sm font-semibold text-global-text hover:border-global-primary"
         >
           Ver todos
@@ -378,7 +378,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                         role={teacher.courses?.[0]?.code ?? "Profesor"}
                         rating={teacher.avg_overall ?? 0}
                         avatarSrc={teacher.avatar_url ?? undefined}
-                        href={`/teachers/${teacher.id}`}
+                        href={`/profesores/${teacher.id}`}
                         buttonLabel="Calificar"
                       />
                     </article>
