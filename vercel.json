@@ -27,13 +27,11 @@
         {
             "source": "/teachers",
             "destination": "/profesores",
-            "permanent": true,
             "statusCode": 308
         },
         {
             "source": "/teachers/:id",
             "destination": "/profesores/:id",
-            "permanent": true,
             "statusCode": 308
         }
     ]
