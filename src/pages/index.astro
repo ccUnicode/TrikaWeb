@@ -13,7 +13,7 @@ import {
 
 const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopSheetsByViews(6),
-  getTopSheetsByDifficulty(6),
+  getTopSheetsByDifficulty(6, 1),
   getTopTeachers(6, 1),
 ]);
 ---
@@ -93,12 +93,12 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       </div>
 
       <!-- Más visitadas section -->
-      <div class="w-full mt-8">
+      <div class="w-full">
         <div class="flex gap-4 items-center">
           <!-- Left arrow -->
           <button
             id="prev-popular"
-            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0 cursor-pointer"
             aria-label="Anterior"
           >
             <svg
@@ -128,7 +128,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
             <div
               id="carousel-popular"
-              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full transition-all duration-500"
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full transition-all duration-500 min-h-[15rem]"
             >
               {
                 planchasPopulares.length === 0 ? (
@@ -171,7 +171,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           <!-- Right arrow -->
           <button
             id="next-popular"
-            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0 cursor-pointer"
             aria-label="Siguiente"
           >
             <svg
@@ -202,12 +202,12 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       </div>
 
       <!-- Más difíciles section -->
-      <div class="w-full mt-8">
+      <div class="w-full">
         <div class="flex gap-4 items-center">
           <!-- Left arrow -->
           <button
             id="prev-difficult"
-            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0 cursor-pointer"
             aria-label="Anterior"
           >
             <svg
@@ -237,7 +237,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
             <div
               id="carousel-difficult"
-              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 transition-all duration-500"
+              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full transition-all duration-500 min-h-[15rem]"
             >
               {
                 planchasDificiles.length === 0 ? (
@@ -280,7 +280,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           <!-- Right arrow -->
           <button
             id="next-difficult"
-            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+            class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0 cursor-pointer"
             aria-label="Siguiente"
           >
             <svg
@@ -343,7 +343,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
               <!-- Left arrow -->
               <button
                 id="prev-teachers"
-                class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+                class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0 cursor-pointer"
                 aria-label="Anterior"
               >
                 <svg
@@ -389,7 +389,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
               <!-- Right arrow -->
               <button
                 id="next-teachers"
-                class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0"
+                class="hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0 cursor-pointer"
                 aria-label="Siguiente"
               >
                 <svg

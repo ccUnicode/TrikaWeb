@@ -134,7 +134,7 @@ const listId = `${id}-suggestions`;
         <li role="option" data-index="${i}" data-value="${s.text}" data-type="${s.type}" data-url="${s.url || ""}" class="px-4 py-3 hover:bg-global-surface cursor-pointer">
           <div class="flex items-center justify-between">
             <span class="truncate">${s.text}</span>
-            <small class="text-xs text-global-text-muted ml-3">${s.type}</small>
+            <small class="text-xs text-global-text-muted ml-3 capitalize">${s.type}</small>
           </div>
         </li>
       `,
