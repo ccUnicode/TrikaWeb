@@ -10,6 +10,12 @@ import Layout from "../layouts/Layout.astro";
   <main class="mx-auto max-w-[1200px] px-4 py-10 min-h-screen">
     <header class="mb-8 flex items-center justify-between">
       <h1 class="text-3xl font-bold text-global-text">Mis Guardados</h1>
+      <span
+        id="reload-msg"
+        class="hidden text-sm text-global-text-muted font-medium animate-pulse"
+      >
+        Recarga para actualizar
+      </span>
     </header>
 
     <div id="loading" class="py-12 text-center text-global-text-muted">
@@ -175,19 +181,45 @@ import Layout from "../layouts/Layout.astro";
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
+
         const target = e.currentTarget;
-        const id = Number(target?.dataset.removeId);
+        if (!(target instanceof HTMLElement)) return;
+
+        const id = Number(target.dataset.removeId);
         if (!Number.isInteger(id)) return;
+
         toggleFavorite(id);
-        target?.closest("article")?.remove();
-        if (grid.children.length === 0) {
-          emptyState?.classList.remove("hidden");
-          grid.classList.add("hidden");
+
+        // Visual toggle instead of removal
+        const svg = target.querySelector("svg");
+        const isCurrentlyRed = target.classList.contains("text-red-500");
+
+        if (isCurrentlyRed) {
+          // Unliking: turn gray/white
+          target.classList.remove("text-red-500");
+          target.classList.add("text-white/50", "hover:text-white");
+          if (svg) {
+            svg.setAttribute("fill", "none");
+            svg.setAttribute("stroke", "currentColor");
+          }
+          // Show reload message if not already shown
+          const msg = document.getElementById("reload-msg");
+          if (msg) msg.classList.remove("hidden");
+        } else {
+          // Re-liking: turn red
+          target.classList.remove("text-white/50", "hover:text-white");
+          target.classList.add("text-red-500");
+          if (svg) {
+            svg.setAttribute("fill", "currentColor");
+            svg.setAttribute("stroke", "currentColor");
+          }
         }
       });
     });
   }
 
   loadSaved();
-  window.addEventListener("favorites:updated", loadSaved);
+  // Only reload if the tab is focused and user returns, or similar external triggers.
+  // We do NOT want to auto-reload on 'favorites:updated' because that would clear the un-liked items immediately.
+  // window.addEventListener("favorites:updated", loadSaved);
 </script>

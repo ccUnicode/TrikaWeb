@@ -82,13 +82,29 @@ const fields = [
       {
         fields.map((field) => (
           <div class="space-y-1 group" data-star-group={field.name}>
-            <div class="flex items-baseline justify-between gap-4">
+            <div class="flex items-center gap-2">
               <label class="font-medium text-global-text text-[15px] shrink-0">
                 {field.label}
               </label>
-              <span class="text-xs text-global-text-muted hidden sm:inline-block opacity-0 group-hover:opacity-100 transition-opacity text-right">
-                {field.description}
-              </span>
+              <div class="relative group/info cursor-help">
+                <svg
+                  class="w-4 h-4 text-global-text-muted hover:text-global-primary transition-colors"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-global-surface border border-global-border rounded-lg text-xs text-center text-global-text shadow-xl opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all z-20 pointer-events-none">
+                  {field.description}
+                  <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-global-border" />
+                </div>
+              </div>
             </div>
 
             <div class="bg-global-bg/30 rounded-2xl py-2 px-3 border border-transparent group-hover:border-global-border-subtle transition-colors">
@@ -183,15 +199,7 @@ const fields = [
       <h3 class="text-2xl font-bold text-global-text">
         ¡Gracias por calificar!
       </h3>
-      <p class="text-global-text-muted">
-        Tu reseña está pendiente de aprobación.
-      </p>
-    </div>
-
-    <div class="bg-global-bg/30 rounded-2xl p-6 space-y-2">
-      <p class="text-sm text-global-text-muted">Nuevo promedio</p>
-      <p class="text-4xl font-bold text-global-primary" data-success-avg>-</p>
-      <p class="text-xs text-global-text-muted" data-success-count>0 votos</p>
+      <p class="text-global-text-muted">Tu calificación ha sido registrada.</p>
     </div>
   </div>
 </div>
@@ -279,7 +287,7 @@ const fields = [
       });
 
       // Reset on mouse leave group
-      g.querySelector("div.relative")?.addEventListener("mouseleave", () => {
+      g.addEventListener("mouseleave", () => {
         updateStars(currentValue);
       });
     });
@@ -348,36 +356,24 @@ const fields = [
         }
 
         // Success - Show success state and hide form
+        // Success - Reload page to update main stats
         const result = await response.json();
         const successState = widget.querySelector("[data-success-state]");
-        const successAvg = widget.querySelector("[data-success-avg]");
-        const successCount = widget.querySelector("[data-success-count]");
 
-        if (successState && successAvg && successCount) {
-          // Update success state with new stats
-          const newAvg = result?.stats?.avg_overall ?? 0;
-          const newCount = result?.stats?.rating_count ?? 0;
-          successAvg.textContent = Number(newAvg).toFixed(1);
-          successCount.textContent = `${newCount} ${newCount === 1 ? "voto" : "votos"}`;
+        if (status) {
+          status.textContent = "¡Enviado! Actualizando...";
+          status.classList.remove("text-red-400");
+          status.classList.add("text-green-500");
+        }
 
-          // Hide form and show success state
+        // Short delay to show success message then reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+
+        if (successState) {
           form.classList.add("hidden");
           successState.classList.remove("hidden");
-        } else {
-          // Fallback to old behavior
-          if (status) {
-            status.textContent =
-              "¡Gracias! Tu reseña está pendiente de aprobación.";
-            status.classList.remove("text-red-400");
-            status.classList.add("text-global-primary");
-          }
-          form.reset();
-          starGroups.forEach((group) => {
-            const g = group as HTMLElement;
-            g.querySelectorAll(".star-btn").forEach((b) =>
-              b.classList.remove("active"),
-            );
-          });
         }
       } catch (err) {
         console.error(err);
