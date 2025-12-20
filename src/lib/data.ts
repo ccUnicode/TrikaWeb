@@ -194,7 +194,7 @@ export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
 export async function getTopTeachers(limit = 6, minRatings = 3): Promise<TeacherSummary[]> {
   const { data } = await supabaseClient
     .from('teachers')
-    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (code,name) )')
+    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name) )')
     .gte('rating_count', minRatings)
     .order('avg_overall', { ascending: false })
     .limit(limit);
