@@ -20,11 +20,31 @@ if (!detail) {
 }
 
 const statsItems = [
-  { label: "Didáctica", value: detail.stats.avg_didactic },
-  { label: "Dificultad", value: detail.stats.avg_difficulty },
-  { label: "Material", value: detail.stats.avg_resources },
-  { label: "Responsabilidad", value: detail.stats.avg_responsability },
-  { label: "Calif. justa", value: detail.stats.avg_grading },
+  {
+    label: "Didáctica",
+    value: detail.stats.avg_didactic,
+    description: "Capacidad para explicar y hacerse entender.",
+  },
+  {
+    label: "Dificultad",
+    value: detail.stats.avg_difficulty,
+    description: "Nivel de exigencia en exámenes y tareas.",
+  },
+  {
+    label: "Material",
+    value: detail.stats.avg_resources,
+    description: "Avance de cursos usando presentaciones, libros, etc.",
+  },
+  {
+    label: "Responsabilidad",
+    value: detail.stats.avg_responsability,
+    description: "Puntualidad en llegar y subir notas.",
+  },
+  {
+    label: "Calif. justa",
+    value: detail.stats.avg_grading,
+    description: "¿Qué tan justo es calificando?",
+  },
 ];
 
 const formatScore = (n: number | null) =>
@@ -134,7 +154,28 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
               {
                 statsItems.map((item) => (
                   <div class="flex items-center gap-3">
-                    <span class="min-w-[120px]">{item.label}</span>
+                    <div class="min-w-[130px] flex items-center gap-2">
+                      <span>{item.label}</span>
+                      <div class="relative group/info cursor-help">
+                        <svg
+                          class="w-4 h-4 text-global-text-muted hover:text-global-primary transition-colors"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        <div class="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 p-2 bg-global-surface border border-global-border rounded-lg text-xs text-center text-global-text shadow-xl opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all z-20 pointer-events-none">
+                          {item.description}
+                          <div class="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-global-border" />
+                        </div>
+                      </div>
+                    </div>
                     <div
                       class="flex-1 h-8 rounded-md border border-global-border-subtle relative overflow-hidden"
                       style="background-color: rgba(42, 50, 64, 0.3);"
