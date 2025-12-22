@@ -12,6 +12,7 @@
     "drive:sync-solutions": "ts-node scripts/upload-from-drive.ts --type=solutions"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.6",
     "@astrojs/sitemap": "^3.6.0",
     "@astrojs/vercel": "^9.0.2",
     "@supabase/supabase-js": "^2.81.1",
@@ -22,7 +23,8 @@
     "googleapis": "^167.0.0",
     "pdfjs-dist": "^5.4.296",
     "tailwindcss": "^4.1.15",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0"

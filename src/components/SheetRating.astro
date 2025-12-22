@@ -73,6 +73,16 @@ const displayCount = count ?? 0;
   </div>
 
   <p class="text-xs text-global-text-muted text-center" data-rating-status></p>
+
+  <!-- Botón para quitar voto (oculto por defecto) -->
+  <button
+    type="button"
+    id="remove-vote-btn"
+    data-remove-vote
+    class="hidden w-full text-xs text-global-text-muted hover:text-red-400 underline underline-offset-2 transition-colors cursor-pointer py-1"
+  >
+    Quitar mi voto
+  </button>
 </div>
 
 <style>

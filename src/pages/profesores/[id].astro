@@ -134,6 +134,20 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
           >
             Califica al profesor
           </button>
+          <!-- Botón para eliminar calificación (oculto por defecto) -->
+          <button
+            id="delete-rating-btn"
+            type="button"
+            data-teacher-id={detail.teacher.id}
+            class="hidden rounded-2xl border border-red-500/50 text-red-400 font-medium text-center py-2 text-sm hover:bg-red-500/10 transition cursor-pointer"
+          >
+            Eliminar mi calificación
+          </button>
+          <p
+            id="rating-status-msg"
+            class="text-xs text-center text-global-text-muted"
+          >
+          </p>
         </section>
 
         <!-- Columna centro: descripción y estadísticas -->
@@ -366,4 +380,97 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeModal();
   });
+</script>
+
+<script>
+  import { ensureDeviceId } from "../../lib/client/device";
+
+  const initDeleteRating = async () => {
+    const deleteBtn = document.getElementById(
+      "delete-rating-btn",
+    ) as HTMLButtonElement | null;
+    const statusMsg = document.getElementById("rating-status-msg");
+
+    if (!deleteBtn) return;
+
+    const teacherId = deleteBtn.dataset.teacherId;
+    if (!teacherId) return;
+
+    const deviceId = ensureDeviceId();
+
+    // Verificar si el usuario ya votó
+    try {
+      const response = await fetch(
+        `/api/profesores/${teacherId}/rate?device_id=${deviceId}`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        if (data.hasVoted) {
+          deleteBtn.classList.remove("hidden");
+        }
+      }
+    } catch (err) {
+      console.error("Error verificando votación:", err);
+    }
+
+    // Handler para eliminar calificación
+    deleteBtn.addEventListener("click", async () => {
+      if (
+        !confirm(
+          "¿Estás seguro de que quieres eliminar tu calificación? Esta acción no se puede deshacer.",
+        )
+      ) {
+        return;
+      }
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = "Eliminando...";
+
+      try {
+        const response = await fetch(`/api/profesores/${teacherId}/rate`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id: deviceId }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          if (statusMsg) {
+            statusMsg.textContent = error?.error ?? "Error al eliminar";
+            statusMsg.classList.add("text-red-400");
+          }
+          deleteBtn.disabled = false;
+          deleteBtn.textContent = "Eliminar mi calificación";
+          return;
+        }
+
+        if (statusMsg) {
+          statusMsg.textContent = "¡Calificación eliminada! Recargando...";
+          statusMsg.classList.remove("text-red-400");
+          statusMsg.classList.add("text-green-500");
+        }
+
+        // Recargar la página para actualizar estadísticas
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (err) {
+        console.error("Error eliminando calificación:", err);
+        if (statusMsg) {
+          statusMsg.textContent = "Error de conexión";
+          statusMsg.classList.add("text-red-400");
+        }
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = "Eliminar mi calificación";
+      }
+    });
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initDeleteRating, {
+      once: true,
+    });
+  } else {
+    initDeleteRating();
+  }
 </script>

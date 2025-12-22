@@ -129,3 +129,72 @@ export const POST: APIRoute = async ({ params, request }) => {
     { status: 200 }
   );
 };
+
+// DELETE handler para quitar voto
+export const DELETE: APIRoute = async ({ params, request }) => {
+  const sheetId = Number(params.id);
+  if (!sheetId) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  }
+
+  const deviceId = getDeviceId(body);
+  if (!deviceId) {
+    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  }
+
+  const supa = supabaseAdmin;
+
+  // Verificar si existe el voto antes de eliminarlo
+  const { data: existing } = await supa
+    .from('sheet_ratings')
+    .select('id')
+    .eq('sheet_id', sheetId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  if (!existing) {
+    return new Response(JSON.stringify({ error: 'No hay voto para eliminar' }), { status: 404 });
+  }
+
+  // Eliminar el voto
+  const { error } = await supa
+    .from('sheet_ratings')
+    .delete()
+    .eq('sheet_id', sheetId)
+    .eq('device_id', deviceId);
+
+  if (error) {
+    console.error('Error al eliminar rating:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error al eliminar', details: error.message }),
+      { status: 500 }
+    );
+  }
+
+  // Obtener estadísticas actualizadas
+  let responseStats: { avg_difficulty: number | null; rating_count: number } | null = null;
+  const { data: stats } = await supa
+    .from('sheets')
+    .select('avg_difficulty, rating_count')
+    .eq('id', sheetId)
+    .single();
+
+  if (stats) {
+    responseStats = {
+      avg_difficulty: stats.avg_difficulty,
+      rating_count: stats.rating_count ?? 0
+    };
+  }
+
+  return new Response(
+    JSON.stringify({ success: true, deleted: true, stats: responseStats }),
+    { status: 200 }
+  );
+};

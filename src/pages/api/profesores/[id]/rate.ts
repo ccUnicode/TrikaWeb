@@ -169,3 +169,96 @@ export const POST: APIRoute = async ({ params, request }) => {
     { status: 200 }
   );
 };
+
+// GET handler para verificar si el usuario ya votó
+export const GET: APIRoute = async ({ params, request }) => {
+  const teacherId = Number(params.id);
+  if (!teacherId) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const url = new URL(request.url);
+  const deviceId = url.searchParams.get('device_id');
+
+  if (!deviceId) {
+    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  }
+
+  const supa = supabaseAdmin;
+
+  const { data: existing } = await supa
+    .from('teacher_ratings')
+    .select('id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at')
+    .eq('teacher_id', teacherId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  return new Response(
+    JSON.stringify({
+      hasVoted: !!existing,
+      rating: existing || null
+    }),
+    { status: 200 }
+  );
+};
+
+// DELETE handler para quitar calificación
+export const DELETE: APIRoute = async ({ params, request }) => {
+  const teacherId = Number(params.id);
+  if (!teacherId) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  }
+
+  const deviceId = getDeviceId(body);
+  if (!deviceId) {
+    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  }
+
+  const supa = supabaseAdmin;
+
+  // Verificar si existe la calificación antes de eliminarla
+  const { data: existing } = await supa
+    .from('teacher_ratings')
+    .select('id')
+    .eq('teacher_id', teacherId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  if (!existing) {
+    return new Response(JSON.stringify({ error: 'No hay calificación para eliminar' }), { status: 404 });
+  }
+
+  // Eliminar la calificación
+  const { error } = await supa
+    .from('teacher_ratings')
+    .delete()
+    .eq('teacher_id', teacherId)
+    .eq('device_id', deviceId);
+
+  if (error) {
+    console.error('Error al eliminar calificación:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error al eliminar', details: error.message }),
+      { status: 500 }
+    );
+  }
+
+  // Obtener estadísticas actualizadas
+  const { data: stats } = await supa
+    .from('teachers')
+    .select('avg_overall, rating_count')
+    .eq('id', teacherId)
+    .single();
+
+  return new Response(
+    JSON.stringify({ success: true, deleted: true, stats }),
+    { status: 200 }
+  );
+};

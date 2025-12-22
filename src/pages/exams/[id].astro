@@ -605,8 +605,95 @@ function getYouTubeId(url: string) {
       const valueEl = widget.querySelector("[data-rating-value]");
       const countEl = widget.querySelector("[data-rating-count]");
       const statusEl = widget.querySelector("[data-rating-status]");
+      const removeBtn = widget.querySelector(
+        "[data-remove-vote]",
+      ) as HTMLButtonElement | null;
       const initial = Number(widget.getAttribute("data-current-rating") || 0);
+
+      // Estado del usuario (si ya votó)
+      let userVoted = false;
+      let currentUserScore = 0;
+
       highlight(widget, Math.round(initial));
+
+      // Función para mostrar/ocultar botón de quitar voto
+      const updateRemoveButton = (show: boolean) => {
+        if (removeBtn) {
+          if (show) {
+            removeBtn.classList.remove("hidden");
+          } else {
+            removeBtn.classList.add("hidden");
+          }
+        }
+      };
+
+      // Handler para quitar voto
+      if (removeBtn) {
+        removeBtn.addEventListener("click", async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (!sheetId) return;
+
+          widget.classList.add("opacity-80", "pointer-events-none");
+
+          try {
+            const deviceId = ensureDeviceId();
+            const response = await fetch(`/api/sheets/${sheetId}/rate`, {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ device_id: deviceId }),
+            });
+
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({}));
+              if (statusEl) {
+                statusEl.textContent = error?.error ?? "Error al quitar voto";
+                statusEl.classList.add("text-red-400");
+              }
+              return;
+            }
+
+            const result = await response.json();
+            const avg = result?.stats?.avg_difficulty ?? 0;
+            const count = result?.stats?.rating_count ?? 0;
+
+            if (valueEl)
+              valueEl.textContent = count > 0 ? Number(avg).toFixed(2) : "-";
+            if (countEl) countEl.textContent = count;
+
+            // Resetear estrellas
+            highlight(widget, count > 0 ? Math.round(avg) : 0);
+
+            // Actualizar estado
+            userVoted = false;
+            currentUserScore = 0;
+
+            if (statusEl) {
+              statusEl.textContent = "Voto eliminado";
+              statusEl.classList.remove("text-red-400");
+            }
+
+            // Ocultar botón de quitar voto
+            updateRemoveButton(false);
+
+            // Limpiar mensaje después de un tiempo
+            setTimeout(() => {
+              if (statusEl) statusEl.textContent = "";
+            }, 2000);
+          } catch (err) {
+            console.error(err);
+            if (statusEl) {
+              statusEl.textContent = "Error inesperado";
+              statusEl.classList.add("text-red-400");
+            }
+          } finally {
+            setTimeout(() => {
+              widget.classList.remove("opacity-80", "pointer-events-none");
+            }, 250);
+          }
+        });
+      }
 
       widget.querySelectorAll("[data-score]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
@@ -638,10 +725,18 @@ function getYouTubeId(url: string) {
             if (countEl) countEl.textContent = count;
             // Mantenemos resaltado el voto del usuario para que vea el cambio
             highlight(widget, score);
+
+            // Actualizar estado del usuario
+            userVoted = true;
+            currentUserScore = score;
+
             if (statusEl) {
               statusEl.textContent = "Voto guardado";
               statusEl.classList.remove("text-red-400");
             }
+
+            // Mostrar botón de quitar voto
+            updateRemoveButton(true);
           } catch (err) {
             console.error(err);
             if (statusEl) {
@@ -664,7 +759,11 @@ function getYouTubeId(url: string) {
 
       // Reset to current rating on mouse leave from widget
       widget.addEventListener("mouseleave", () => {
-        highlight(widget, Math.round(initial));
+        if (userVoted) {
+          highlight(widget, currentUserScore);
+        } else {
+          highlight(widget, Math.round(initial));
+        }
       });
     });
   };
