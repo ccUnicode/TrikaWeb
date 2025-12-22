@@ -67,6 +67,45 @@ import Layout from "../../layouts/Layout.astro";
 
             <!-- Ratings Section (hidden until authenticated) -->
             <section id="ratings-section" class="hidden space-y-4">
+                <!-- Search Bar -->
+                <div class="flex gap-3">
+                    <div class="relative flex-1">
+                        <svg
+                            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-global-text-muted"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            ></path>
+                        </svg>
+                        <input
+                            id="search-input"
+                            type="text"
+                            placeholder="Buscar por profesor o comentario..."
+                            class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                        />
+                    </div>
+                    <button
+                        id="search-btn"
+                        type="button"
+                        class="rounded-xl bg-global-primary px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
+                    >
+                        Buscar
+                    </button>
+                    <button
+                        id="clear-search-btn"
+                        type="button"
+                        class="hidden rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+                    >
+                        Limpiar
+                    </button>
+                </div>
+
                 <!-- Stats & Controls -->
                 <div class="flex items-center justify-between flex-wrap gap-3">
                     <p class="text-sm text-global-text-muted">
@@ -174,6 +213,7 @@ import Layout from "../../layouts/Layout.astro";
     <script>
         let adminPass = "";
         let currentPage = 1;
+        let currentSearch = "";
         const pageSize = 15;
 
         const authSection = document.getElementById("auth-section");
@@ -196,6 +236,11 @@ import Layout from "../../layouts/Layout.astro";
             "next-btn",
         ) as HTMLButtonElement;
         const pageInfo = document.getElementById("page-info");
+        const searchInput = document.getElementById(
+            "search-input",
+        ) as HTMLInputElement;
+        const searchBtn = document.getElementById("search-btn");
+        const clearSearchBtn = document.getElementById("clear-search-btn");
 
         interface Rating {
             id: number;
@@ -214,14 +259,22 @@ import Layout from "../../layouts/Layout.astro";
             } | null;
         }
 
-        async function loadRatings(page: number = 1) {
+        async function loadRatings(page: number = 1, search: string = "") {
             if (!adminPass) return;
 
             currentPage = page;
+            currentSearch = search;
             loadingState?.classList.remove("hidden");
             emptyState?.classList.add("hidden");
             pagination?.classList.add("hidden");
             if (ratingsList) ratingsList.innerHTML = "";
+
+            // Show/hide clear button
+            if (search) {
+                clearSearchBtn?.classList.remove("hidden");
+            } else {
+                clearSearchBtn?.classList.add("hidden");
+            }
 
             try {
                 const res = await fetch("/api/admin/all-ratings", {
@@ -231,6 +284,7 @@ import Layout from "../../layouts/Layout.astro";
                         admin_pass: adminPass,
                         page,
                         pageSize,
+                        search,
                     }),
                 });
 
@@ -298,13 +352,27 @@ import Layout from "../../layouts/Layout.astro";
                         "★".repeat(Math.round(r.overall)) +
                         "☆".repeat(5 - Math.round(r.overall));
 
+                    // Check if rating is new (less than 24 hours old)
+                    const createdDate = new Date(r.created_at);
+                    const now = new Date();
+                    const hoursDiff =
+                        (now.getTime() - createdDate.getTime()) /
+                        (1000 * 60 * 60);
+                    const isNew = hoursDiff < 24;
+                    const newBadge = isNew
+                        ? '<span class="ml-2 px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Nuevo</span>'
+                        : "";
+
                     return `
-          <div class="rounded-2xl bg-global-surface border border-global-border p-5" data-rating-id="${r.id}">
+          <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${isNew ? "ring-1 ring-green-500/30" : ""}" data-rating-id="${r.id}">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
               <div>
-                <a href="/profesores/${r.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
-                  ${escapeHtml(teacherName)}
-                </a>
+                <div class="flex items-center">
+                  <a href="/profesores/${r.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
+                    ${escapeHtml(teacherName)}
+                  </a>
+                  ${newBadge}
+                </div>
                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
               </div>
               <div class="flex items-center gap-3">
@@ -478,8 +546,29 @@ import Layout from "../../layouts/Layout.astro";
             }
         });
 
-        refreshBtn?.addEventListener("click", () => loadRatings(currentPage));
-        prevBtn?.addEventListener("click", () => loadRatings(currentPage - 1));
-        nextBtn?.addEventListener("click", () => loadRatings(currentPage + 1));
+        refreshBtn?.addEventListener("click", () =>
+            loadRatings(currentPage, currentSearch),
+        );
+        prevBtn?.addEventListener("click", () =>
+            loadRatings(currentPage - 1, currentSearch),
+        );
+        nextBtn?.addEventListener("click", () =>
+            loadRatings(currentPage + 1, currentSearch),
+        );
+
+        // Search functionality
+        const doSearch = () => {
+            const query = searchInput?.value?.trim() || "";
+            loadRatings(1, query);
+        };
+
+        searchBtn?.addEventListener("click", doSearch);
+        searchInput?.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") doSearch();
+        });
+        clearSearchBtn?.addEventListener("click", () => {
+            if (searchInput) searchInput.value = "";
+            loadRatings(1, "");
+        });
     </script>
 </Layout>

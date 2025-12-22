@@ -18,6 +18,7 @@ export const POST: APIRoute = async ({ request }) => {
     const page = Number(body?.page ?? 1);
     const pageSize = Number(body?.pageSize ?? 20);
     const teacherFilter = body?.teacher_id ? Number(body.teacher_id) : null;
+    const searchQuery = String(body?.search ?? "").trim().toLowerCase();
 
     if (!adminPass) {
         return new Response(
@@ -76,6 +77,16 @@ export const POST: APIRoute = async ({ request }) => {
         );
     }
 
+    // Filtrar por búsqueda de texto (nombre del profesor)
+    let filteredRatings = ratings ?? [];
+    if (searchQuery && filteredRatings.length > 0) {
+        filteredRatings = filteredRatings.filter((r: any) => {
+            const teacherName = (r.teachers?.full_name ?? "").toLowerCase();
+            const comment = (r.comment ?? "").toLowerCase();
+            return teacherName.includes(searchQuery) || comment.includes(searchQuery);
+        });
+    }
+
     // Obtener el conteo total
     const { count: totalCount } = await supabaseAdmin
         .from("teacher_ratings")
@@ -85,12 +96,12 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(
         JSON.stringify({
             ok: true,
-            ratings: ratings ?? [],
+            ratings: filteredRatings,
             pagination: {
                 page,
                 pageSize,
-                total: totalCount ?? 0,
-                totalPages: Math.ceil((totalCount ?? 0) / pageSize),
+                total: searchQuery ? filteredRatings.length : (totalCount ?? 0),
+                totalPages: searchQuery ? 1 : Math.ceil((totalCount ?? 0) / pageSize),
             },
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
