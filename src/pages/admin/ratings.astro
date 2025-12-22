@@ -2,31 +2,31 @@
 import Layout from "../../layouts/Layout.astro";
 ---
 
-<Layout title="Moderar Comentarios | TrikaWeb Admin">
+<Layout title="Gestionar Calificaciones | TrikaWeb Admin">
     <div class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-3xl px-4">
+        <div class="mx-auto w-full max-w-4xl px-4">
             <!-- Header Section -->
             <div class="mb-8 flex flex-row items-center justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-global-text">
-                        Moderar Comentarios
+                        Gestionar Calificaciones
                     </h1>
                     <p class="mt-1 text-sm text-global-text-muted">
-                        Aprueba o rechaza comentarios de profesores
+                        Elimina calificaciones y comentarios de profesores
                     </p>
                 </div>
                 <div class="flex gap-2">
                     <a
-                        href="/admin/ratings"
+                        href="/admin/moderation"
                         class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
                     >
-                        Calificaciones
+                        ← Moderación
                     </a>
                     <a
                         href="/admin/upload"
                         class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
                     >
-                        ← Panel de subida
+                        Panel de subida
                     </a>
                     <form action="/api/admin/logout" method="POST">
                         <button
@@ -65,41 +65,67 @@ import Layout from "../../layouts/Layout.astro";
                 <p id="auth-error" class="mt-2 text-sm text-red-400 hidden"></p>
             </section>
 
-            <!-- Comments Section (hidden until authenticated) -->
-            <section id="comments-section" class="hidden">
-                <!-- Stats -->
-                <div class="mb-4 flex items-center justify-between">
+            <!-- Ratings Section (hidden until authenticated) -->
+            <section id="ratings-section" class="hidden space-y-4">
+                <!-- Stats & Controls -->
+                <div class="flex items-center justify-between flex-wrap gap-3">
                     <p class="text-sm text-global-text-muted">
                         <span
-                            id="pending-count"
+                            id="total-count"
                             class="font-semibold text-global-text">0</span
-                        > comentarios pendientes
+                        > calificaciones visibles
                     </p>
-                    <button
-                        id="refresh-btn"
-                        type="button"
-                        class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
-                    >
-                        <svg
-                            class="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                    <div class="flex gap-2">
+                        <button
+                            id="refresh-btn"
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
                         >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            ></path>
-                        </svg>
-                        Actualizar
-                    </button>
+                            <svg
+                                class="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                ></path>
+                            </svg>
+                            Actualizar
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Comments List -->
-                <div id="comments-list" class="space-y-4">
-                    <!-- Comments will be inserted here -->
+                <!-- Ratings List -->
+                <div id="ratings-list" class="space-y-4">
+                    <!-- Ratings will be inserted here -->
+                </div>
+
+                <!-- Pagination -->
+                <div
+                    id="pagination"
+                    class="hidden flex items-center justify-center gap-4 py-4"
+                >
+                    <button
+                        id="prev-btn"
+                        type="button"
+                        class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        ← Anterior
+                    </button>
+                    <span id="page-info" class="text-sm text-global-text-muted"
+                        >Página 1 de 1</span
+                    >
+                    <button
+                        id="next-btn"
+                        type="button"
+                        class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        Siguiente →
+                    </button>
                 </div>
 
                 <!-- Empty State -->
@@ -120,9 +146,11 @@ import Layout from "../../layouts/Layout.astro";
                             d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                         ></path>
                     </svg>
-                    <p class="text-global-text font-medium">¡Todo limpio!</p>
+                    <p class="text-global-text font-medium">
+                        No hay calificaciones
+                    </p>
                     <p class="text-sm text-global-text-muted mt-1">
-                        No hay comentarios pendientes de moderación
+                        No se encontraron calificaciones visibles
                     </p>
                 </div>
 
@@ -136,7 +164,7 @@ import Layout from "../../layouts/Layout.astro";
                     >
                     </div>
                     <p class="text-sm text-global-text-muted">
-                        Cargando comentarios...
+                        Cargando calificaciones...
                     </p>
                 </div>
             </section>
@@ -145,44 +173,65 @@ import Layout from "../../layouts/Layout.astro";
 
     <script>
         let adminPass = "";
+        let currentPage = 1;
+        const pageSize = 15;
 
         const authSection = document.getElementById("auth-section");
-        const commentsSection = document.getElementById("comments-section");
+        const ratingsSection = document.getElementById("ratings-section");
         const adminPassInput = document.getElementById(
             "admin-pass",
         ) as HTMLInputElement;
         const authBtn = document.getElementById("auth-btn");
         const authError = document.getElementById("auth-error");
-        const commentsList = document.getElementById("comments-list");
+        const ratingsList = document.getElementById("ratings-list");
         const emptyState = document.getElementById("empty-state");
         const loadingState = document.getElementById("loading-state");
-        const pendingCount = document.getElementById("pending-count");
+        const totalCount = document.getElementById("total-count");
         const refreshBtn = document.getElementById("refresh-btn");
+        const pagination = document.getElementById("pagination");
+        const prevBtn = document.getElementById(
+            "prev-btn",
+        ) as HTMLButtonElement;
+        const nextBtn = document.getElementById(
+            "next-btn",
+        ) as HTMLButtonElement;
+        const pageInfo = document.getElementById("page-info");
 
-        interface PendingComment {
+        interface Rating {
             id: number;
+            overall: number;
+            difficulty: number;
+            didactic: number;
+            resources: number;
+            responsability: number;
             grading: number;
-            comment: string;
+            comment: string | null;
             created_at: string;
-            teacher_id: string;
+            teacher_id: number;
             teachers: {
-                id: string;
+                id: number;
                 full_name: string;
             } | null;
         }
 
-        async function loadComments() {
+        async function loadRatings(page: number = 1) {
             if (!adminPass) return;
 
+            currentPage = page;
             loadingState?.classList.remove("hidden");
             emptyState?.classList.add("hidden");
-            if (commentsList) commentsList.innerHTML = "";
+            pagination?.classList.add("hidden");
+            if (ratingsList) ratingsList.innerHTML = "";
 
             try {
-                const res = await fetch("/api/admin/pending-comments", {
+                const res = await fetch("/api/admin/all-ratings", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ admin_pass: adminPass }),
+                    body: JSON.stringify({
+                        admin_pass: adminPass,
+                        page,
+                        pageSize,
+                    }),
                 });
 
                 const data = await res.json();
@@ -191,15 +240,32 @@ import Layout from "../../layouts/Layout.astro";
                     throw new Error(data.error || "Error desconocido");
                 }
 
-                const comments: PendingComment[] = data.comments ?? [];
+                const ratings: Rating[] = data.ratings ?? [];
+                const paginationData = data.pagination;
 
-                if (pendingCount)
-                    pendingCount.textContent = String(comments.length);
+                if (totalCount)
+                    totalCount.textContent = String(paginationData.total);
 
-                if (comments.length === 0) {
+                if (ratings.length === 0) {
                     emptyState?.classList.remove("hidden");
                 } else {
-                    renderComments(comments);
+                    renderRatings(ratings);
+
+                    // Update pagination
+                    if (paginationData.totalPages > 1) {
+                        pagination?.classList.remove("hidden");
+                        if (pageInfo) {
+                            pageInfo.textContent = `Página ${paginationData.page} de ${paginationData.totalPages}`;
+                        }
+                        if (prevBtn) {
+                            prevBtn.disabled = paginationData.page <= 1;
+                        }
+                        if (nextBtn) {
+                            nextBtn.disabled =
+                                paginationData.page >=
+                                paginationData.totalPages;
+                        }
+                    }
                 }
             } catch (err: any) {
                 if (authError) {
@@ -211,14 +277,14 @@ import Layout from "../../layouts/Layout.astro";
             }
         }
 
-        function renderComments(comments: PendingComment[]) {
-            if (!commentsList) return;
+        function renderRatings(ratings: Rating[]) {
+            if (!ratingsList) return;
 
-            commentsList.innerHTML = comments
-                .map((c) => {
+            ratingsList.innerHTML = ratings
+                .map((r) => {
                     const teacherName =
-                        c.teachers?.full_name ?? "Profesor desconocido";
-                    const date = new Date(c.created_at).toLocaleDateString(
+                        r.teachers?.full_name ?? "Profesor desconocido";
+                    const date = new Date(r.created_at).toLocaleDateString(
                         "es-PE",
                         {
                             day: "numeric",
@@ -228,46 +294,69 @@ import Layout from "../../layouts/Layout.astro";
                             minute: "2-digit",
                         },
                     );
-                    const stars =
-                        "★".repeat(c.grading) + "☆".repeat(5 - c.grading);
+                    const overallStars =
+                        "★".repeat(Math.round(r.overall)) +
+                        "☆".repeat(5 - Math.round(r.overall));
 
                     return `
-          <div class="rounded-2xl bg-global-surface border border-global-border p-5" data-comment-id="${c.id}">
+          <div class="rounded-2xl bg-global-surface border border-global-border p-5" data-rating-id="${r.id}">
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
               <div>
-                <a href="/profesores/${c.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
-                  ${teacherName}
+                <a href="/profesores/${r.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
+                  ${escapeHtml(teacherName)}
                 </a>
                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-yellow-400 text-sm">${stars}</span>
-                <span class="text-xs text-global-text-muted">(${c.grading}/5)</span>
+                <span class="text-yellow-400 text-sm">${overallStars}</span>
+                <span class="text-xs text-global-text-muted">(${r.overall.toFixed(1)}/5)</span>
               </div>
             </div>
+            
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-5 gap-2 text-xs text-center mb-3">
+              <div class="bg-global-bg rounded-lg p-2">
+                <p class="text-global-text-muted">Dificultad</p>
+                <p class="font-semibold text-global-text">${r.difficulty}</p>
+              </div>
+              <div class="bg-global-bg rounded-lg p-2">
+                <p class="text-global-text-muted">Didáctica</p>
+                <p class="font-semibold text-global-text">${r.didactic}</p>
+              </div>
+              <div class="bg-global-bg rounded-lg p-2">
+                <p class="text-global-text-muted">Recursos</p>
+                <p class="font-semibold text-global-text">${r.resources}</p>
+              </div>
+              <div class="bg-global-bg rounded-lg p-2">
+                <p class="text-global-text-muted">Resp.</p>
+                <p class="font-semibold text-global-text">${r.responsability}</p>
+              </div>
+              <div class="bg-global-bg rounded-lg p-2">
+                <p class="text-global-text-muted">Calif.</p>
+                <p class="font-semibold text-global-text">${r.grading}</p>
+              </div>
+            </div>
+            
+            ${
+                r.comment
+                    ? `
             <p class="text-sm text-global-text bg-global-bg rounded-lg p-3 border border-global-border mb-4">
-              ${c.comment ? escapeHtml(c.comment) : '<span class="text-global-text-muted italic">Sin comentario</span>'}
+              ${escapeHtml(r.comment)}
             </p>
+            `
+                    : '<p class="text-sm text-global-text-muted italic mb-4">Sin comentario</p>'
+            }
+            
             <div class="flex gap-2 justify-end">
               <button
                 type="button"
-                onclick="rejectComment(${c.id})"
+                onclick="deleteRating(${r.id})"
                 class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                 </svg>
-                Rechazar
-              </button>
-              <button
-                type="button"
-                onclick="approveComment(${c.id})"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Aprobar
+                Eliminar
               </button>
             </div>
           </div>
@@ -282,12 +371,19 @@ import Layout from "../../layouts/Layout.astro";
             return div.innerHTML;
         }
 
-        (window as any).approveComment = async function (id: number) {
-            const card = document.querySelector(`[data-comment-id="${id}"]`);
+        (window as any).deleteRating = async function (id: number) {
+            if (
+                !confirm(
+                    "¿Estás seguro de que quieres ELIMINAR esta calificación permanentemente? Esta acción no se puede deshacer.",
+                )
+            )
+                return;
+
+            const card = document.querySelector(`[data-rating-id="${id}"]`);
             if (card) card.classList.add("opacity-50", "pointer-events-none");
 
             try {
-                const res = await fetch("/api/admin/approve-comment", {
+                const res = await fetch("/api/admin/delete-rating", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -302,43 +398,7 @@ import Layout from "../../layouts/Layout.astro";
                     card?.remove();
                     updateCount(-1);
                 } else {
-                    alert("Error: " + (data.error ?? "No se pudo aprobar"));
-                    if (card)
-                        card.classList.remove(
-                            "opacity-50",
-                            "pointer-events-none",
-                        );
-                }
-            } catch {
-                alert("Error de red");
-                if (card)
-                    card.classList.remove("opacity-50", "pointer-events-none");
-            }
-        };
-
-        (window as any).rejectComment = async function (id: number) {
-            if (!confirm("¿Eliminar este comentario permanentemente?")) return;
-
-            const card = document.querySelector(`[data-comment-id="${id}"]`);
-            if (card) card.classList.add("opacity-50", "pointer-events-none");
-
-            try {
-                const res = await fetch("/api/admin/hide-comment", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        admin_pass: adminPass,
-                        rating_id: id,
-                    }),
-                });
-
-                const data = await res.json();
-
-                if (data.ok) {
-                    card?.remove();
-                    updateCount(-1);
-                } else {
-                    alert("Error: " + (data.error ?? "No se pudo rechazar"));
+                    alert("Error: " + (data.error ?? "No se pudo eliminar"));
                     if (card)
                         card.classList.remove(
                             "opacity-50",
@@ -353,13 +413,14 @@ import Layout from "../../layouts/Layout.astro";
         };
 
         function updateCount(delta: number) {
-            if (!pendingCount) return;
-            const current = parseInt(pendingCount.textContent ?? "0", 10);
+            if (!totalCount) return;
+            const current = parseInt(totalCount.textContent ?? "0", 10);
             const newCount = Math.max(0, current + delta);
-            pendingCount.textContent = String(newCount);
+            totalCount.textContent = String(newCount);
 
             if (newCount === 0) {
                 emptyState?.classList.remove("hidden");
+                pagination?.classList.add("hidden");
             }
         }
 
@@ -377,10 +438,14 @@ import Layout from "../../layouts/Layout.astro";
 
             // Test authentication
             try {
-                const res = await fetch("/api/admin/pending-comments", {
+                const res = await fetch("/api/admin/all-ratings", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ admin_pass: adminPass }),
+                    body: JSON.stringify({
+                        admin_pass: adminPass,
+                        page: 1,
+                        pageSize,
+                    }),
                 });
 
                 const data = await res.json();
@@ -395,10 +460,10 @@ import Layout from "../../layouts/Layout.astro";
                     return;
                 }
 
-                // Success - show comments
+                // Success - show ratings
                 authSection?.classList.add("hidden");
-                commentsSection?.classList.remove("hidden");
-                loadComments();
+                ratingsSection?.classList.remove("hidden");
+                loadRatings(1);
             } catch {
                 if (authError) {
                     authError.textContent = "Error de conexión";
@@ -413,6 +478,8 @@ import Layout from "../../layouts/Layout.astro";
             }
         });
 
-        refreshBtn?.addEventListener("click", () => loadComments());
+        refreshBtn?.addEventListener("click", () => loadRatings(currentPage));
+        prevBtn?.addEventListener("click", () => loadRatings(currentPage - 1));
+        nextBtn?.addEventListener("click", () => loadRatings(currentPage + 1));
     </script>
 </Layout>
