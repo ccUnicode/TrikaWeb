@@ -1,0 +1,603 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { getCourses } from "../../lib/data";
+
+const courses = await getCourses();
+---
+
+<Layout title="Gestionar Profesores | TrikaWeb Admin">
+    <div class="min-h-screen py-8">
+        <div class="mx-auto w-full max-w-5xl px-4">
+            <!-- Header Section -->
+            <div
+                class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap"
+            >
+                <div>
+                    <h1 class="text-2xl font-bold text-global-text">
+                        Gestionar Profesores
+                    </h1>
+                    <p class="mt-1 text-sm text-global-text-muted">
+                        Agrega y administra la visibilidad de profesores
+                    </p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <a
+                        href="/admin/upload"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Panel de subida
+                    </a>
+                    <a
+                        href="/admin/ratings"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Calificaciones
+                    </a>
+                    <a
+                        href="/admin/moderation"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Moderación
+                    </a>
+                    <form action="/api/admin/logout" method="POST">
+                        <button
+                            type="submit"
+                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+                        >
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Teachers Section -->
+            <section id="teachers-section" class="space-y-6">
+                <!-- Add Teacher Form -->
+                <div
+                    class="rounded-2xl bg-global-surface border border-global-border p-6"
+                >
+                    <h2 class="text-lg font-semibold text-global-text mb-4">
+                        Agregar nuevo profesor
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-global-text-muted mb-1.5"
+                                    for="teacher-name"
+                                >
+                                    Nombre completo *
+                                </label>
+                                <input
+                                    id="teacher-name"
+                                    type="text"
+                                    placeholder="Ej: Juan Pérez García"
+                                    class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-global-text-muted mb-1.5"
+                                    for="teacher-courses"
+                                >
+                                    Cursos (opcional)
+                                </label>
+                                <select
+                                    id="teacher-courses"
+                                    multiple
+                                    class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors min-h-[80px]"
+                                >
+                                    {
+                                        courses.map((c) => (
+                                            <option value={c.id}>
+                                                {c.code} - {c.name}
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                                <p class="text-xs text-global-text-muted mt-1">
+                                    Ctrl+Click para seleccionar múltiples
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                                for="teacher-bio"
+                            >
+                                Biografía (opcional)
+                            </label>
+                            <textarea
+                                id="teacher-bio"
+                                rows="2"
+                                placeholder="Breve descripción del profesor..."
+                                class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors resize-none"
+                            ></textarea>
+                        </div>
+                        <div class="flex gap-3 items-center">
+                            <button
+                                id="add-teacher-btn"
+                                type="button"
+                                class="rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer inline-flex items-center gap-2"
+                            >
+                                <svg
+                                    class="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Agregar Profesor
+                            </button>
+                            <span id="add-feedback" class="text-sm hidden"
+                            ></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Teachers List -->
+                <div
+                    class="rounded-2xl bg-global-surface border border-global-border p-6"
+                >
+                    <div
+                        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
+                    >
+                        <h2 class="text-lg font-semibold text-global-text">
+                            Lista de profesores
+                        </h2>
+                        <div class="flex gap-2">
+                            <div class="relative flex-1 sm:w-64">
+                                <svg
+                                    class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-global-text-muted"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                    ></path>
+                                </svg>
+                                <input
+                                    id="search-input"
+                                    type="text"
+                                    placeholder="Buscar profesor..."
+                                    class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                                />
+                            </div>
+                            <button
+                                id="refresh-btn"
+                                type="button"
+                                class="rounded-lg border border-global-border bg-global-card px-3 py-2 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+                            >
+                                <svg
+                                    class="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                    ></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="text-sm text-global-text-muted mb-4">
+                        <span
+                            id="total-count"
+                            class="font-semibold text-global-text">0</span
+                        > profesores en total
+                        <span class="mx-2">|</span>
+                        <span
+                            id="visible-count"
+                            class="font-semibold text-green-400">0</span
+                        > visibles
+                        <span class="mx-2">|</span>
+                        <span
+                            id="hidden-count"
+                            class="font-semibold text-yellow-400">0</span
+                        > ocultos
+                    </p>
+
+                    <!-- Teachers Grid -->
+                    <div
+                        id="teachers-list"
+                        class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    >
+                        <!-- Teachers will be inserted here -->
+                    </div>
+
+                    <!-- Pagination -->
+                    <div
+                        id="pagination"
+                        class="hidden flex items-center justify-center gap-4 py-4 mt-4"
+                    >
+                        <button
+                            id="prev-btn"
+                            type="button"
+                            class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            ← Anterior
+                        </button>
+                        <span
+                            id="page-info"
+                            class="text-sm text-global-text-muted"
+                            >Página 1 de 1</span
+                        >
+                        <button
+                            id="next-btn"
+                            type="button"
+                            class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                            Siguiente →
+                        </button>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div
+                        id="empty-state"
+                        class="hidden rounded-2xl bg-global-bg border border-global-border p-8 text-center"
+                    >
+                        <svg
+                            class="mx-auto w-12 h-12 text-global-text-muted mb-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.5"
+                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                            ></path>
+                        </svg>
+                        <p class="text-global-text font-medium">
+                            No hay profesores
+                        </p>
+                        <p class="text-sm text-global-text-muted mt-1">
+                            Agrega un profesor usando el formulario de arriba
+                        </p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div
+                        id="loading-state"
+                        class="rounded-2xl bg-global-bg border border-global-border p-8 text-center"
+                    >
+                        <div
+                            class="animate-spin h-8 w-8 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-3"
+                        >
+                        </div>
+                        <p class="text-sm text-global-text-muted">
+                            Cargando profesores...
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentSearch = "";
+        const pageSize = 18;
+        let allTeachers: Teacher[] = [];
+
+        const teachersList = document.getElementById("teachers-list");
+        const emptyState = document.getElementById("empty-state");
+        const loadingState = document.getElementById("loading-state");
+        const totalCount = document.getElementById("total-count");
+        const visibleCount = document.getElementById("visible-count");
+        const hiddenCount = document.getElementById("hidden-count");
+        const refreshBtn = document.getElementById("refresh-btn");
+        const pagination = document.getElementById("pagination");
+        const prevBtn = document.getElementById(
+            "prev-btn",
+        ) as HTMLButtonElement;
+        const nextBtn = document.getElementById(
+            "next-btn",
+        ) as HTMLButtonElement;
+        const pageInfo = document.getElementById("page-info");
+        const searchInput = document.getElementById(
+            "search-input",
+        ) as HTMLInputElement;
+        const addTeacherBtn = document.getElementById("add-teacher-btn");
+        const teacherNameInput = document.getElementById(
+            "teacher-name",
+        ) as HTMLInputElement;
+        const teacherBioInput = document.getElementById(
+            "teacher-bio",
+        ) as HTMLTextAreaElement;
+        const teacherCoursesSelect = document.getElementById(
+            "teacher-courses",
+        ) as HTMLSelectElement;
+        const addFeedback = document.getElementById("add-feedback");
+
+        interface Teacher {
+            id: number;
+            full_name: string;
+            bio: string;
+            avg_overall: number | null;
+            rating_count: number;
+            avatar_url: string | null;
+            is_hidden: boolean;
+            courses: { id: number; code: string; name: string }[];
+        }
+
+        async function loadTeachers(page: number = 1, search: string = "") {
+            currentPage = page;
+            currentSearch = search;
+            loadingState?.classList.remove("hidden");
+            emptyState?.classList.add("hidden");
+            pagination?.classList.add("hidden");
+            if (teachersList) teachersList.innerHTML = "";
+
+            try {
+                const res = await fetch("/api/admin/teachers", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        page,
+                        pageSize,
+                        search,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (!data.ok) {
+                    throw new Error(data.error || "Error desconocido");
+                }
+
+                allTeachers = data.teachers ?? [];
+                const paginationData = data.pagination;
+
+                // Update counts
+                const visible = allTeachers.filter((t) => !t.is_hidden).length;
+                const hidden = allTeachers.filter((t) => t.is_hidden).length;
+                if (totalCount)
+                    totalCount.textContent = String(paginationData.total);
+                if (visibleCount) visibleCount.textContent = String(visible);
+                if (hiddenCount) hiddenCount.textContent = String(hidden);
+
+                if (allTeachers.length === 0) {
+                    emptyState?.classList.remove("hidden");
+                } else {
+                    renderTeachers(allTeachers);
+
+                    // Update pagination
+                    if (paginationData.totalPages > 1) {
+                        pagination?.classList.remove("hidden");
+                        if (pageInfo) {
+                            pageInfo.textContent = `Página ${paginationData.page} de ${paginationData.totalPages}`;
+                        }
+                        if (prevBtn)
+                            prevBtn.disabled = paginationData.page <= 1;
+                        if (nextBtn)
+                            nextBtn.disabled =
+                                paginationData.page >=
+                                paginationData.totalPages;
+                    }
+                }
+            } catch (err: any) {
+                console.error("Error loading teachers:", err);
+                if (teachersList) {
+                    teachersList.innerHTML = `<div class="col-span-full text-center text-red-400 p-4">${err.message}</div>`;
+                }
+            } finally {
+                loadingState?.classList.add("hidden");
+            }
+        }
+
+        function renderTeachers(teachers: Teacher[]) {
+            if (!teachersList) return;
+
+            teachersList.innerHTML = teachers
+                .map((t) => {
+                    const stars =
+                        t.avg_overall !== null
+                            ? "★".repeat(Math.round(t.avg_overall)) +
+                              "☆".repeat(5 - Math.round(t.avg_overall))
+                            : "Sin valorar";
+                    const starsColor =
+                        t.avg_overall !== null
+                            ? "text-yellow-400"
+                            : "text-global-text-muted";
+                    const isHidden = t.is_hidden;
+                    const statusClass = isHidden
+                        ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                        : "bg-green-500/10 border-green-500/30 text-green-400";
+                    const statusText = isHidden ? "Oculto" : "Visible";
+                    const toggleText = isHidden ? "Mostrar" : "Ocultar";
+                    const toggleClass = isHidden
+                        ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
+                        : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30";
+                    const courseCodes =
+                        t.courses.map((c) => c.code).join(", ") || "Sin cursos";
+
+                    return `
+                        <div class="rounded-xl bg-global-bg border border-global-border p-4 ${isHidden ? "opacity-70" : ""}" data-teacher-id="${t.id}">
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <div class="flex-1 min-w-0">
+                                    <a href="/profesores/${t.id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition truncate block">
+                                        ${escapeHtml(t.full_name)}
+                                    </a>
+                                    <p class="text-xs text-global-text-muted truncate">${escapeHtml(courseCodes)}</p>
+                                </div>
+                                <span class="inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border ${statusClass}">
+                                    ${statusText}
+                                </span>
+                            </div>
+                            <p class="text-xs ${starsColor} mb-2">${stars} <span class="text-global-text-muted">(${t.rating_count})</span></p>
+                            ${t.bio ? `<p class="text-xs text-global-text-muted line-clamp-2 mb-3">${escapeHtml(t.bio)}</p>` : '<p class="text-xs text-global-text-muted italic mb-3">Sin biografía</p>'}
+                            <button
+                                type="button"
+                                onclick="toggleTeacher(${t.id}, ${!isHidden})"
+                                class="w-full rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${toggleClass}"
+                            >
+                                ${toggleText}
+                            </button>
+                        </div>
+                    `;
+                })
+                .join("");
+        }
+
+        function escapeHtml(text: string): string {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        (window as any).toggleTeacher = async function (
+            id: number,
+            hide: boolean,
+        ) {
+            const card = document.querySelector(`[data-teacher-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/toggle-teacher", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        teacher_id: id,
+                        is_hidden: hide,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    loadTeachers(currentPage, currentSearch);
+                } else {
+                    alert("Error: " + (data.error ?? "No se pudo actualizar"));
+                    if (card)
+                        card.classList.remove(
+                            "opacity-50",
+                            "pointer-events-none",
+                        );
+                }
+            } catch {
+                alert("Error de red");
+                if (card)
+                    card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        async function addTeacher() {
+            const name = teacherNameInput?.value?.trim();
+            const bio = teacherBioInput?.value?.trim() || "";
+            const selectedOptions = Array.from(
+                teacherCoursesSelect?.selectedOptions || [],
+            );
+            const courseIds = selectedOptions.map((opt) => Number(opt.value));
+
+            if (!name || name.length < 2) {
+                showFeedback(
+                    "El nombre es requerido (mínimo 2 caracteres)",
+                    "error",
+                );
+                return;
+            }
+
+            addTeacherBtn?.classList.add("opacity-50", "pointer-events-none");
+            showFeedback("Agregando...", "info");
+
+            try {
+                const res = await fetch("/api/admin/add-teacher", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        full_name: name,
+                        bio,
+                        course_ids: courseIds,
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (data.ok) {
+                    showFeedback(
+                        `✓ Profesor "${data.teacher.full_name}" agregado`,
+                        "success",
+                    );
+                    teacherNameInput.value = "";
+                    teacherBioInput.value = "";
+                    teacherCoursesSelect.selectedIndex = -1;
+                    loadTeachers(1, "");
+                } else {
+                    showFeedback(data.error ?? "Error al agregar", "error");
+                }
+            } catch {
+                showFeedback("Error de conexión", "error");
+            } finally {
+                addTeacherBtn?.classList.remove(
+                    "opacity-50",
+                    "pointer-events-none",
+                );
+            }
+        }
+
+        function showFeedback(
+            message: string,
+            type: "success" | "error" | "info",
+        ) {
+            if (!addFeedback) return;
+            addFeedback.textContent = message;
+            addFeedback.classList.remove(
+                "hidden",
+                "text-green-400",
+                "text-red-400",
+                "text-global-text-muted",
+            );
+            if (type === "success") addFeedback.classList.add("text-green-400");
+            else if (type === "error")
+                addFeedback.classList.add("text-red-400");
+            else addFeedback.classList.add("text-global-text-muted");
+
+            if (type !== "info") {
+                setTimeout(() => addFeedback.classList.add("hidden"), 4000);
+            }
+        }
+
+        // Navigation & Search
+        refreshBtn?.addEventListener("click", () =>
+            loadTeachers(currentPage, currentSearch),
+        );
+        prevBtn?.addEventListener("click", () =>
+            loadTeachers(currentPage - 1, currentSearch),
+        );
+        nextBtn?.addEventListener("click", () =>
+            loadTeachers(currentPage + 1, currentSearch),
+        );
+
+        let searchTimeout: number;
+        searchInput?.addEventListener("input", () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                loadTeachers(1, searchInput.value.trim());
+            }, 400);
+        });
+
+        addTeacherBtn?.addEventListener("click", addTeacher);
+
+        // Load teachers on page load
+        loadTeachers(1);
+    </script>
+</Layout>

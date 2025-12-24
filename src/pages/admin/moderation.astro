@@ -17,6 +17,12 @@ import Layout from "../../layouts/Layout.astro";
                 </div>
                 <div class="flex gap-2">
                     <a
+                        href="/admin/teachers"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Profesores
+                    </a>
+                    <a
                         href="/admin/ratings"
                         class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
                     >
@@ -39,34 +45,8 @@ import Layout from "../../layouts/Layout.astro";
                 </div>
             </div>
 
-            <!-- Auth Form (shown if not authenticated) -->
-            <section
-                id="auth-section"
-                class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
-            >
-                <h2 class="text-lg font-semibold text-global-text mb-4">
-                    Autenticación requerida
-                </h2>
-                <div class="flex gap-3">
-                    <input
-                        id="admin-pass"
-                        type="password"
-                        placeholder="Contraseña de administrador"
-                        class="flex-1 rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-                    />
-                    <button
-                        id="auth-btn"
-                        type="button"
-                        class="rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
-                    >
-                        Ingresar
-                    </button>
-                </div>
-                <p id="auth-error" class="mt-2 text-sm text-red-400 hidden"></p>
-            </section>
-
-            <!-- Comments Section (hidden until authenticated) -->
-            <section id="comments-section" class="hidden">
+            <!-- Comments Section -->
+            <section id="comments-section">
                 <!-- Stats -->
                 <div class="mb-4 flex items-center justify-between">
                     <p class="text-sm text-global-text-muted">
@@ -129,7 +109,7 @@ import Layout from "../../layouts/Layout.astro";
                 <!-- Loading State -->
                 <div
                     id="loading-state"
-                    class="hidden rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+                    class="rounded-2xl bg-global-surface border border-global-border p-8 text-center"
                 >
                     <div
                         class="animate-spin h-8 w-8 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-3"
@@ -144,15 +124,6 @@ import Layout from "../../layouts/Layout.astro";
     </div>
 
     <script>
-        let adminPass = "";
-
-        const authSection = document.getElementById("auth-section");
-        const commentsSection = document.getElementById("comments-section");
-        const adminPassInput = document.getElementById(
-            "admin-pass",
-        ) as HTMLInputElement;
-        const authBtn = document.getElementById("auth-btn");
-        const authError = document.getElementById("auth-error");
         const commentsList = document.getElementById("comments-list");
         const emptyState = document.getElementById("empty-state");
         const loadingState = document.getElementById("loading-state");
@@ -172,8 +143,6 @@ import Layout from "../../layouts/Layout.astro";
         }
 
         async function loadComments() {
-            if (!adminPass) return;
-
             loadingState?.classList.remove("hidden");
             emptyState?.classList.add("hidden");
             if (commentsList) commentsList.innerHTML = "";
@@ -182,7 +151,8 @@ import Layout from "../../layouts/Layout.astro";
                 const res = await fetch("/api/admin/pending-comments", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ admin_pass: adminPass }),
+                    credentials: "include",
+                    body: JSON.stringify({}),
                 });
 
                 const data = await res.json();
@@ -202,9 +172,9 @@ import Layout from "../../layouts/Layout.astro";
                     renderComments(comments);
                 }
             } catch (err: any) {
-                if (authError) {
-                    authError.textContent = err.message;
-                    authError.classList.remove("hidden");
+                console.error("Error loading comments:", err);
+                if (commentsList) {
+                    commentsList.innerHTML = `<div class="text-center text-red-400 p-4">${err.message}</div>`;
                 }
             } finally {
                 loadingState?.classList.add("hidden");
@@ -290,8 +260,8 @@ import Layout from "../../layouts/Layout.astro";
                 const res = await fetch("/api/admin/approve-comment", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    credentials: "include",
                     body: JSON.stringify({
-                        admin_pass: adminPass,
                         rating_id: id,
                     }),
                 });
@@ -326,8 +296,8 @@ import Layout from "../../layouts/Layout.astro";
                 const res = await fetch("/api/admin/hide-comment", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    credentials: "include",
                     body: JSON.stringify({
-                        admin_pass: adminPass,
                         rating_id: id,
                     }),
                 });
@@ -363,56 +333,9 @@ import Layout from "../../layouts/Layout.astro";
             }
         }
 
-        authBtn?.addEventListener("click", async () => {
-            const pass = adminPassInput?.value?.trim();
-            if (!pass) {
-                if (authError) {
-                    authError.textContent = "Ingresa la contraseña";
-                    authError.classList.remove("hidden");
-                }
-                return;
-            }
-
-            adminPass = pass;
-
-            // Test authentication
-            try {
-                const res = await fetch("/api/admin/pending-comments", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ admin_pass: adminPass }),
-                });
-
-                const data = await res.json();
-
-                if (!data.ok) {
-                    if (authError) {
-                        authError.textContent =
-                            data.error ?? "Autenticación fallida";
-                        authError.classList.remove("hidden");
-                    }
-                    adminPass = "";
-                    return;
-                }
-
-                // Success - show comments
-                authSection?.classList.add("hidden");
-                commentsSection?.classList.remove("hidden");
-                loadComments();
-            } catch {
-                if (authError) {
-                    authError.textContent = "Error de conexión";
-                    authError.classList.remove("hidden");
-                }
-            }
-        });
-
-        adminPassInput?.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") {
-                authBtn?.click();
-            }
-        });
-
         refreshBtn?.addEventListener("click", () => loadComments());
+
+        // Load comments on page load
+        loadComments();
     </script>
 </Layout>
