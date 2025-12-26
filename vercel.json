@@ -25,6 +25,17 @@
     ],
     "redirects": [
         {
+            "source": "/(.*)",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "trikaweb.vercel.app"
+                }
+            ],
+            "destination": "https://trikaweb.ccunicode.org/$1",
+            "permanent": true
+        },
+        {
             "source": "/teachers",
             "destination": "/profesores",
             "statusCode": 308
