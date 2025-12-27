@@ -7,13 +7,17 @@ export default defineConfig({
   site: 'https://trikaweb.ccunicode.org',
   output: 'server',
   adapter: vercel(),
+  trailingSlash: 'never',
   integrations: [
     sitemap({
+      filter: (page) =>
+        !page.includes('/admin/') &&
+        !page.includes('/saved') &&
+        !page.includes('/api/'),
       customPages: [
         'https://trikaweb.ccunicode.org/',
         'https://trikaweb.ccunicode.org/cursos',
         'https://trikaweb.ccunicode.org/profesores',
-        'https://trikaweb.ccunicode.org/saved',
       ],
     }),
   ],
