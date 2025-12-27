@@ -195,6 +195,7 @@ export async function getTopTeachers(limit = 6, minRatings = 3): Promise<Teacher
   const { data } = await supabaseClient
     .from('teachers')
     .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name) )')
+    .eq('is_hidden', false)
     .gte('rating_count', minRatings)
     .order('avg_overall', { ascending: false })
     .limit(limit);
@@ -205,6 +206,7 @@ export async function getTeachers(): Promise<TeacherSummary[]> {
   const { data } = await supabaseClient
     .from('teachers')
     .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name) )')
+    .eq('is_hidden', false)
     .order('full_name');
   return formatTeacherSummary(data);
 }
@@ -221,6 +223,7 @@ export async function getTeachersByCourseCode(code: string): Promise<{ teacher: 
   const { data } = await supabaseClient
     .from('teachers')
     .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers!inner ( modality, course_id )')
+    .eq('is_hidden', false)
     .eq('courses_teachers.course_id', course.id);
 
   if (!data) return [];
@@ -466,6 +469,7 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
       .select(
         'id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (code,name) )'
       )
+      .eq('is_hidden', false)
       .or(`full_name.ilike.${pattern},bio.ilike.${pattern}`)
       .limit(safeLimit * 2),
   ]);

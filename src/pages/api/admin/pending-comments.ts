@@ -2,30 +2,14 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { validateAdminSession } from "../../../lib/adminAuth";
 
-export const POST: APIRoute = async ({ request }) => {
-    let body: any;
-    try {
-        body = await request.json();
-    } catch {
-        return new Response(JSON.stringify({ ok: false, error: "JSON inválido" }), {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-        });
-    }
-
-    const adminPass = String(body?.admin_pass ?? "");
-
-    if (!adminPass) {
+export const POST: APIRoute = async ({ cookies }) => {
+    // Validate session from cookie
+    const isValid = await validateAdminSession(cookies);
+    if (!isValid) {
         return new Response(
-            JSON.stringify({ ok: false, error: "Falta admin_pass" }),
-            { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-    }
-
-    if (adminPass !== (import.meta.env.ADMIN_PASS as string)) {
-        return new Response(
-            JSON.stringify({ ok: false, error: "Clave de administrador incorrecta" }),
+            JSON.stringify({ ok: false, error: "Sesión inválida" }),
             { status: 401, headers: { "Content-Type": "application/json" } }
         );
     }
