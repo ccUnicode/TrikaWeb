@@ -10,6 +10,7 @@ export default defineConfig({
   trailingSlash: 'never',
   integrations: [
     sitemap({
+      entryLimit: 45000,
       filter: (page) =>
         !page.includes('/admin/') &&
         !page.includes('/saved') &&
