@@ -8,7 +8,7 @@ export async function GET(context: APIContext): Promise<Response> {
 
     // Static pages
     const staticPages = [
-        { loc: site, priority: '1.0', changefreq: 'daily' },
+        { loc: `${site}/`, priority: '1.0', changefreq: 'daily' },
         { loc: `${site}/cursos`, priority: '0.9', changefreq: 'weekly' },
         { loc: `${site}/profesores`, priority: '0.9', changefreq: 'weekly' },
     ];
