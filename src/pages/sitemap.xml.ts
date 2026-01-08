@@ -5,12 +5,13 @@ export const prerender = false;
 
 export async function GET(context: APIContext): Promise<Response> {
     const site = 'https://trikaweb.ccunicode.org';
+    const today = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     // Static pages
     const staticPages = [
-        { loc: `${site}/`, priority: '1.0', changefreq: 'daily' },
-        { loc: `${site}/cursos`, priority: '0.9', changefreq: 'weekly' },
-        { loc: `${site}/profesores`, priority: '0.9', changefreq: 'weekly' },
+        { loc: `${site}/`, priority: '1.0', changefreq: 'daily', lastmod: today },
+        { loc: `${site}/cursos`, priority: '0.9', changefreq: 'weekly', lastmod: today },
+        { loc: `${site}/profesores`, priority: '0.9', changefreq: 'weekly', lastmod: today },
     ];
 
     // Get all courses
@@ -23,6 +24,7 @@ export async function GET(context: APIContext): Promise<Response> {
         loc: `${site}/curso/${course.code}`,
         priority: '0.8',
         changefreq: 'weekly',
+        lastmod: today,
     }));
 
     // Get all visible teachers
@@ -36,16 +38,18 @@ export async function GET(context: APIContext): Promise<Response> {
         loc: `${site}/profesores/${teacher.id}`,
         priority: '0.7',
         changefreq: 'weekly',
+        lastmod: today,
     }));
 
     // Combine all pages
     const allPages = [...staticPages, ...coursePages, ...teacherPages];
 
-    // Generate XML
+    // Generate XML with lastmod for better Google indexing
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allPages.map(page => `  <url>
     <loc>${page.loc}</loc>
+    <lastmod>${page.lastmod}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
   </url>`).join('\n')}
