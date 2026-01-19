@@ -176,6 +176,14 @@
     color: rgb(var(--global-primary-hover));
   }
 
+  .hover\:border-global-primary:hover {
+    border-color: rgb(var(--global-primary));
+  }
+
+  .hover\:text-global-text:hover {
+    color: rgb(var(--global-text));
+  }
+
   /* 📝 Text utilities */
   .text-justify {
     text-align: justify;
