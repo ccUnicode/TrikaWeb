@@ -18,11 +18,19 @@ import IconHome from "./icons/IconHome.astro";
     <!-- Desktop Menu -->
     <nav class="hidden md:flex items-center gap-6">
       <a
-        class="text-lg font-medium text-global-text hover:text-global-primary transition-colors"
+        class={`text-lg font-medium transition-colors ${
+          Astro.url.pathname === "/cursos"
+            ? "text-global-primary"
+            : "text-global-text hover:text-global-primary"
+        }`}
         href="/cursos">Cursos</a
       >
       <a
-        class="text-lg font-medium text-global-text hover:text-global-primary transition-colors"
+        class={`text-lg font-medium transition-colors ${
+          Astro.url.pathname === "/profesores"
+            ? "text-global-primary"
+            : "text-global-text hover:text-global-primary"
+        }`}
         href="/profesores">Profesores</a
       >
 

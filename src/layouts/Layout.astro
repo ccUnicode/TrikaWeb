@@ -96,9 +96,11 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 			document.documentElement.classList.add("dark");
 		</script>
 	</head>
-	<body class="bg-global-bg text-global-text antialiased">
+	<body
+		class="bg-global-bg text-global-text antialiased flex flex-col min-h-screen"
+	>
 		<SiteHeader />
-		<main class="pt-16">
+		<main class="pt-16 flex-grow">
 			<slot />
 		</main>
 		<footer

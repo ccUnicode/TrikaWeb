@@ -46,6 +46,10 @@ const teachers = await getTeachers();
       </div>
     </header>
 
+    <div id="pagination-container" class="flex justify-center gap-2 mb-6">
+      <!-- Los botones de paginación se generarán dinámicamente -->
+    </div>
+
     {
       teachers.length === 0 ? (
         <p class="text-center text-global-text-muted py-10">
@@ -54,7 +58,7 @@ const teachers = await getTeachers();
       ) : (
         <div
           id="teachers-grid"
-          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[480px] content-start"
         >
           {teachers.map((teacher) => (
             <article
@@ -94,35 +98,171 @@ const teachers = await getTeachers();
       .replace(/[\u0300-\u036f]/g, "")
       .trim();
 
-  const input = document.getElementById("search-teacher");
+  const input = document.getElementById("search-teacher") as HTMLInputElement;
   const grid = document.getElementById("teachers-grid");
   const noResults = document.getElementById("no-results");
-  const items = Array.from(document.querySelectorAll(".teacher-item"));
+  const paginationContainer = document.getElementById("pagination-container");
+  const items = Array.from(
+    document.querySelectorAll(".teacher-item"),
+  ) as HTMLElement[];
+
+  const ITEMS_PER_PAGE = 6; // 2 filas x 3 columnas
+  let currentPage = 1;
+
+  function updatePagination(filteredItems: HTMLElement[]) {
+    if (!paginationContainer) return;
+
+    const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+    paginationContainer.innerHTML = "";
+
+    if (filteredItems.length <= ITEMS_PER_PAGE) {
+      paginationContainer.classList.add("hidden");
+      return;
+    }
+    paginationContainer.classList.remove("hidden");
+
+    const createButton = (
+      label: string,
+      page: number,
+      active: boolean = false,
+      disabled: boolean = false,
+      isArrow: boolean = false,
+    ) => {
+      const button = document.createElement("button");
+      button.innerHTML = label;
+      button.disabled = disabled;
+
+      if (isArrow) {
+        button.className = `flex items-center justify-center p-1 transition-colors ${
+          disabled
+            ? "text-global-text/20 cursor-not-allowed"
+            : "text-global-text hover:text-global-primary cursor-pointer"
+        }`;
+      } else {
+        button.className = `px-3 py-1 rounded-md text-sm font-medium transition-all ${
+          disabled
+            ? "opacity-30 cursor-not-allowed"
+            : active
+              ? "bg-global-primary text-white shadow-sm"
+              : "bg-global-surface border border-global-border text-global-text hover:border-global-primary/50"
+        }`;
+      }
+
+      if (!disabled) {
+        button.addEventListener("click", () => {
+          currentPage = page;
+          const currentFilteredItems = getFilteredItems();
+          applyPagination(currentFilteredItems);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      }
+      return button;
+    };
+
+    // Botón Anterior
+    paginationContainer.appendChild(
+      createButton(
+        `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    `,
+        currentPage - 1,
+        false,
+        currentPage === 1,
+        true,
+      ),
+    );
+
+    // Lógica de páginas a mostrar
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    if (startPage > 1) {
+      paginationContainer.appendChild(createButton("1", 1));
+      if (startPage > 2) {
+        const dots = document.createElement("span");
+        dots.textContent = "...";
+        dots.className = "text-global-text-muted px-1 self-end";
+        paginationContainer.appendChild(dots);
+      }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      paginationContainer.appendChild(
+        createButton(i.toString(), i, i === currentPage),
+      );
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        const dots = document.createElement("span");
+        dots.textContent = "...";
+        dots.className = "text-global-text-muted px-1 self-end";
+        paginationContainer.appendChild(dots);
+      }
+      paginationContainer.appendChild(
+        createButton(totalPages.toString(), totalPages),
+      );
+    }
+
+    // Botón Siguiente
+    paginationContainer.appendChild(
+      createButton(
+        `
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    `,
+        currentPage + 1,
+        false,
+        currentPage === totalPages,
+        true,
+      ),
+    );
+  }
+
+  function applyPagination(filteredItems: HTMLElement[]) {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    items.forEach((item) => {
+      item.classList.add("hidden");
+    });
+
+    filteredItems.slice(startIndex, endIndex).forEach((item) => {
+      item.classList.remove("hidden");
+    });
+
+    updatePagination(filteredItems);
+  }
+
+  function getFilteredItems() {
+    const term = normalize(input?.value || "");
+    return items.filter((item) => {
+      const name = normalize(item.dataset.name || "");
+      const courses = normalize(item.dataset.courses || "");
+      return !term || name.includes(term) || courses.includes(term);
+    });
+  }
 
   if (input && grid) {
-    input.addEventListener("input", (e) => {
-      const target = e.target;
-      const term = normalize(
-        target && "value" in target ? String(target.value) : "",
-      );
-      let visibleCount = 0;
+    input.addEventListener("input", () => {
+      currentPage = 1;
+      const filteredItems = getFilteredItems();
 
-      items.forEach((item) => {
-        const el = item as HTMLElement;
-        const name = normalize(el.dataset.name || "");
-        const courses = normalize(el.dataset.courses || "");
-        const matches = !term || name.includes(term) || courses.includes(term);
-        el.classList.toggle("hidden", !matches);
-        if (matches) visibleCount++;
-      });
-
-      if (visibleCount === 0) {
+      if (filteredItems.length === 0) {
         grid.classList.add("hidden");
         noResults?.classList.remove("hidden");
+        if (paginationContainer) paginationContainer.innerHTML = "";
       } else {
         grid.classList.remove("hidden");
         noResults?.classList.add("hidden");
+        applyPagination(filteredItems);
       }
     });
+
+    // Initial load
+    applyPagination(items);
   }
 </script>
