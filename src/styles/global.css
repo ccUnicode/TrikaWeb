@@ -24,6 +24,8 @@
     /* #22C55E */
     --global-primary-hover: 81 166 36;
     /* #51A624 */
+    --global-primary-soft: 134 239 172;
+    /* #86EFAC */
   }
 
   .dark {
@@ -46,6 +48,8 @@
     /* #22C55E */
     --global-primary-hover: 81 166 36;
     /* #51A624 */
+    --global-primary-soft: 134 239 172;
+    /* #86EFAC */
   }
 
   html {
@@ -141,6 +145,10 @@
     color: rgb(var(--global-text-muted));
   }
 
+  .text-global-primary-soft {
+    color: rgb(var(--global-primary-soft));
+  }
+
   /* 🎨 SVG Fill colors */
   .fill-global-primary {
     fill: rgb(var(--global-primary));
@@ -174,6 +182,10 @@
 
   .hover\:text-global-primary-hover:hover {
     color: rgb(var(--global-primary-hover));
+  }
+
+  .hover\:text-global-primary-soft:hover {
+    color: rgb(var(--global-primary-soft));
   }
 
   .hover\:border-global-primary:hover {

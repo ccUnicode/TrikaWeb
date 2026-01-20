@@ -42,8 +42,8 @@ const stars = Array.from({ length: 5 });
 // Different wrapper classes based on variant
 const wrapperClass =
   variant === "detailed"
-    ? `h-full bg-global-card rounded-xl p-6 flex flex-col items-center gap-4 text-center${extraClass ? " " + extraClass : ""}`
-    : `h-full bg-global-card rounded-xl px-2 lg:px-0 py-6 flex flex-col items-center gap-4 text-center${extraClass ? " " + extraClass : ""}`;
+    ? `h-full bg-global-card rounded-xl p-6 flex flex-col items-center gap-4 text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:border-global-primary/30 border border-transparent${extraClass ? " " + extraClass : ""}`
+    : `h-full bg-global-card rounded-xl px-2 lg:px-0 py-6 flex flex-col items-center gap-4 text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-lg hover:border-global-primary/30 border border-transparent${extraClass ? " " + extraClass : ""}`;
 ---
 
 {
