@@ -91,20 +91,91 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
     <header
       class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10"
     >
-      <div>
-        <span
-          class="inline-block text-sm font-bold tracking-[0.2em] text-global-primary mb-2"
-        >
-          {course.code}
-        </span>
-        <h1
-          class="text-4xl md:text-5xl font-bold text-global-text tracking-tight"
-        >
-          {course.name}
-        </h1>
+      <!-- Curso header: Nombre y botones al lado en móvil -->
+      <div class="flex items-start justify-between w-full md:w-auto gap-4">
+        <div>
+          <span
+            class="inline-block text-xs sm:text-sm font-bold tracking-[0.2em] text-global-primary mb-1 sm:mb-2"
+          >
+            {course.code}
+          </span>
+          <h1
+            class="text-3xl sm:text-4xl md:text-5xl font-bold text-global-text tracking-tight"
+          >
+            {course.name}
+          </h1>
+        </div>
+
+        <!-- Acciones en móvil (Planchas / Profesores) -->
+        <div class="flex md:hidden flex-col items-end gap-3 shrink-0 pt-7">
+          <div
+            class="inline-flex p-1 bg-global-surface rounded-lg border border-global-border"
+          >
+            <a
+              href={`/curso/${course.code}`}
+              class="p-1.5 rounded-md bg-global-primary text-black shadow-sm transition-all"
+              aria-label="Planchas"
+              title="Planchas"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                ></path>
+              </svg>
+            </a>
+            <a
+              href={`/curso/${course.code}/profesores`}
+              class="p-1.5 rounded-md text-global-text-muted hover:text-global-text transition-all"
+              aria-label="Profesores"
+              title="Profesores"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                ></path>
+              </svg>
+            </a>
+          </div>
+          <div class="flex items-center gap-1.5 text-global-text-muted text-xs">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              ></path>
+            </svg>
+            <span>{course.sheetCount} planchas</span>
+          </div>
+        </div>
       </div>
 
-      <div class="flex flex-col items-end gap-4">
+      <!-- Acciones en Desktop -->
+      <div class="hidden md:flex flex-col items-end gap-4">
         <div
           class="inline-flex p-1 bg-global-surface rounded-lg border border-global-border"
         >
@@ -225,7 +296,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
                 <div class="flex gap-4 items-center">
                   {/* Left arrow */}
                   <button
-                    class={`carousel-prev hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0`}
+                    class={`carousel-prev hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors shrink-0`}
                     data-carousel={type}
                     aria-label="Anterior"
                   >
@@ -276,7 +347,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
 
                   {/* Right arrow */}
                   <button
-                    class={`carousel-next hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors flex-shrink-0`}
+                    class={`carousel-next hidden lg:flex items-center justify-center w-8 h-8 rounded-full bg-global-card/50 hover:bg-global-border transition-colors shrink-0`}
                     data-carousel={type}
                     aria-label="Siguiente"
                   >
