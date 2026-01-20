@@ -18,18 +18,18 @@ import IconHome from "./icons/IconHome.astro";
     <!-- Desktop Menu -->
     <nav class="hidden md:flex items-center gap-6">
       <a
-        class={`text-lg font-medium transition-colors ${
+        class={`text-lg font-medium transition-colors hover:text-global-primary-soft ${
           Astro.url.pathname === "/cursos"
             ? "text-global-primary"
-            : "text-global-text hover:text-global-primary"
+            : "text-global-text"
         }`}
         href="/cursos">Cursos</a
       >
       <a
-        class={`text-lg font-medium transition-colors ${
+        class={`text-lg font-medium transition-colors hover:text-global-primary-soft ${
           Astro.url.pathname === "/profesores"
             ? "text-global-primary"
-            : "text-global-text hover:text-global-primary"
+            : "text-global-text"
         }`}
         href="/profesores">Profesores</a
       >
@@ -60,7 +60,7 @@ import IconHome from "./icons/IconHome.astro";
           >
         </a>
         <a
-          class="rounded-xl p-2 hover:bg-global-card/50 text-global-text hover:text-global-primary transition-colors"
+          class="rounded-xl p-2 hover:bg-global-card/50 text-global-text hover:text-global-primary-soft transition-colors"
           aria-label="Inicio"
           href="/"
           title="Inicio"
