@@ -18,7 +18,8 @@ TrikaWeb/
 │   └── lib/              # Utilidades y clientes de servicios (Supabase, Helpers)
 ├── public/               # Assets estáticos públicos
 ├── supabase/             # Scripts SQL para la base de datos y seeds
-└── tests/                # Tests automatizados (Playwright/Unit)
+└── supabase/             # Scripts SQL para la base de datos y seeds
+
 ```
 
 ## 🗄️ Base de Datos (Supabase - PostgreSQL)
