@@ -1,66 +1,156 @@
-# Arquitectura del Proyecto
+﻿# Arquitectura del Proyecto
 
-Este documento describe la estructura técnica, la base de datos y las APIs de TrikaWeb.
+## Objetivo
 
-## 📁 Estructura de Carpetas
+TrikaWeb centraliza recursos académicos (planchas y solucionarios) y permite a
+estudiantes calificar planchas y profesores con controles anti-spam.
 
-```
-TrikaWeb/
-├── src/
-│   ├── components/       # Componentes de UI reutilizables (Botones, Tarjetas, Headers)
-│   ├── layouts/          # Plantillas de diseño generales (LayoutBase, etc.)
-│   ├── pages/            # Rutas de la aplicación (File-based routing de Astro)
-│   │   ├── api/          # Endpoints de Backend (API Routes)
-│   │   │   ├── sheets/   # Lógica relacionada a exámenes (votos, descargas)
-│   │   │   └── teachers/ # Lógica relacionada a profesores (calificaciones)
-│   │   ├── curso/        # Páginas dinámicas de cursos
-│   │   └── index.astro   # Página de inicio
-│   └── lib/              # Utilidades y clientes de servicios (Supabase, Helpers)
-├── public/               # Assets estáticos públicos
-├── supabase/             # Scripts SQL para la base de datos y seeds
-└── supabase/             # Scripts SQL para la base de datos y seeds
+## Stack Técnico
+
+| Capa | Tecnología |
+|------|------------|
+| **Frontend** | Astro + Tailwind CSS |
+| **Backend** | Astro API Routes (`src/pages/api`) |
+| **Base de datos** | Supabase (PostgreSQL) |
+| **Storage** | Supabase Storage (buckets) |
+| **Deploy** | Vercel (`@astrojs/vercel` adapter) |
+
+## Estructura del Proyecto
 
 ```
+src/
+├── components/      # UI reutilizable (Cards, Modals, SearchBar...)
+├── layouts/         # Layout base de páginas
+├── lib/             # Lógica de acceso a datos y utilidades
+│   ├── data.ts      # Funciones de consulta (getCourses, searchEntities...)
+│   ├── supabase.client.ts   # Cliente público de Supabase
+│   └── supabase.admin.ts    # Cliente admin (Service Key)
+├── pages/
+│   ├── admin/       # Vistas de administración
+│   ├── api/         # Endpoints HTTP (ver api.md)
+│   ├── curso/       # Rutas dinámicas /curso/[code]
+│   ├── exams/       # Detalle de planchas /exams/[id]
+│   └── profesores/  # Listado y detalle de profesores
+└── styles/          # Estilos globales
 
-## 🗄️ Base de Datos (Supabase - PostgreSQL)
+supabase/
+├── schema.sql              # Definición de tablas
+├── function_triggers.sql   # Triggers para métricas derivadas
+└── migrations/             # Migraciones incrementales
+```
 
-La base de datos relacional gestiona la información académica y las interacciones de los usuarios.
+## Diagramas de Flujo
+
+Para diagramas visuales detallados, ver [`flujos.md`](flujos.md):
+- Arquitectura general del sistema
+- Flujo de consultas y calificaciones
+- Modelo de datos (ER)
+- Sistema anti-spam
+
+## Flujo de Datos
+
+```mermaid
+flowchart LR
+    subgraph Cliente
+        UI[Astro Pages]
+        JS[JavaScript]
+    end
+    
+    subgraph Servidor
+        API[API Routes]
+        DATA[data.ts]
+    end
+    
+    subgraph Supabase
+        DB[(PostgreSQL)]
+        STORE[(Storage)]
+    end
+    
+    UI --> DATA
+    JS --> API
+    API --> DATA
+    DATA --> DB
+    API --> STORE
+```
+
+1. **Frontend** consulta datos vía `src/lib/data.ts` (cliente público de Supabase).
+2. **Operaciones sensibles** (subida de archivos, ratings, moderación) pasan por API.
+3. **Endpoints admin** usan `supabaseAdmin` (Service Key) y validación de sesión.
+4. **Archivos PDF** se guardan en buckets `exams` y `solutions`.
+
+## Modelo de Datos
 
 ### Tablas Principales
-- **`courses`**: Catálogo de cursos disponibles.
-- **`teachers`**: Registro de profesores.
-- **`sheets`**: Metadatos de los exámenes (tipo, ciclo, archivos).
-- **`sheet_ratings`**: Votos de dificultad de los usuarios.
-- **`sheet_views`**: Registro de vistas/descargas.
-- **`teacher_ratings`**: Evaluaciones detalladas de profesores.
-- **`courses_teachers`**: Tabla pivote para la relación muchos-a-muchos entre cursos y profesores.
 
-### Storage Buckets
-- **`exams`**: Almacenamiento seguro (privado) para PDFs de exámenes.
-- **`solutions`**: Almacenamiento seguro (privado) para solucionarios.
-- **`thumbnails`**: Imágenes públicas (opcional).
+| Tabla | Descripción |
+|-------|-------------|
+| `courses` | Cursos (`code`, `name`, `credits`) |
+| `teachers` | Docentes (`full_name`, `bio`, `avg_overall`, `is_hidden`) |
+| `courses_teachers` | Relación N:M cursos ↔ docentes |
+| `sheets` | Planchas y solucionarios (metadata + paths) |
+| `sheet_ratings` | Votos de dificultad por plancha |
+| `sheet_views` | Eventos de vista/descarga |
+| `teacher_ratings` | Calificaciones de profesores |
+| `write_limits` | Control de rate-limit por IP |
 
-## 📡 API Endpoints
+### Diagrama ER
 
-La comunicación entre el frontend y el backend se realiza a través de Astro API Routes.
+Ver diagrama completo en [`flujos.md#modelo-de-datos-er-simplificado`](flujos.md#modelo-de-datos-er-simplificado).
 
-### Exámenes
-- `POST /api/sheets/:id/rate`: Registrar voto de dificultad.
-- `POST /api/sheets/:id/view`: Registrar vista de un examen.
-- `GET /api/sheets/:id/file`: Obtener URL firmada para descarga de examen.
-- `GET /api/sheets/:id/solution`: Obtener URL firmada para descarga de solucionario.
+```mermaid
+erDiagram
+    COURSES ||--o{ SHEETS : has
+    COURSES ||--o{ COURSES_TEACHERS : participates
+    TEACHERS ||--o{ COURSES_TEACHERS : teaches
+    TEACHERS ||--o{ TEACHER_RATINGS : receives
+    SHEETS ||--o{ SHEET_RATINGS : receives
+    SHEETS ||--o{ SHEET_VIEWS : tracks
+```
 
-### Profesores
-- `POST /api/teachers/:id/rate`: Enviar calificación completa de un profesor.
+## Triggers y Cálculos Derivados
 
-### Administración
-- `POST /api/admin/hide-comment`: Ocultar comentarios inapropiados (Moderación).
-- `POST /api/admin/upload`: Endpoint para carga de archivos (requiere `ADMIN_PASS`).
+Definidos en `supabase/function_triggers.sql`:
 
-## 🔒 Seguridad Implementada
+| Trigger | Tabla origen | Efecto |
+|---------|--------------|--------|
+| `refresh_sheet_stats` | `sheet_ratings` | Recalcula `avg_difficulty` y `rating_count` en `sheets` |
+| `refresh_view_count` | `sheet_views` | Recalcula `view_count` en `sheets` |
+| `refresh_teacher_stats` | `teacher_ratings` | Recalcula `avg_overall` y `rating_count` en `teachers` |
 
-- **IP Hashing**: Las direcciones IP se almacenan hasheadas con "salt" para proteger la privacidad del usuario.
-- **Device Fingerprinting**: Se utiliza un ID de dispositivo único para limitar a un voto por recurso por usuario.
-- **Service Role Key**: Las operaciones sensibles se realizan solo en el servidor usando la Service Key de Supabase.
-- **Validación de Datos**: Todos los inputs (votos 1-5, textos) son validados antes de procesarse.
-- **Integridad Referencial**: Uso de Foreign Keys en la BD para asegurar la consistencia de los datos.
+## Seguridad
+
+### Identificación de Usuarios
+
+```mermaid
+flowchart LR
+    IP[IP Address] --> HASH["IP_SALT + SHA256"]
+    HASH --> STORED[ip_hash en DB]
+    DEVICE[device_id] --> UNIQUE["UNIQUE constraint"]
+```
+
+- **`ip_hash`**: IP hasheada con `IP_SALT` (nunca se guarda IP en claro).
+- **`device_id`**: UUID generado en cliente para limitar votos duplicados.
+- **Rate limiting**: Tabla `write_limits` por IP en endpoints de escritura.
+
+### Autenticación Admin
+
+- Cookie de sesión (`admin_session`) validada con Supabase Auth.
+- Service key (`SUPABASE_SERVICE_KEY`) solo en servidor.
+
+## Storage Buckets
+
+| Bucket | Contenido | Acceso |
+|--------|-----------|--------|
+| `exams` | PDFs de planchas | Signed URLs (tiempo limitado) |
+| `solutions` | PDFs de solucionarios | Signed URLs |
+| `thumbnails` | Miniaturas (opcional) | Público |
+
+## Variables de Entorno Críticas
+
+| Variable | Uso |
+|----------|-----|
+| `SUPABASE_SERVICE_KEY` | Operaciones admin (nunca exponer en cliente) |
+| `IP_SALT` | Hasheo de IPs para rate limiting |
+| `ADMIN_PASS` | Validación de uploads |
+
+Ver configuración completa en [`setup.md`](setup.md).

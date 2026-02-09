@@ -1,71 +1,42 @@
-# TrikaWeb 📚
+﻿# TrikaWeb
 
-> Plataforma colaborativa para compartir exámenes pasados, solucionarios y reseñas de profesores universitarios.
+Plataforma colaborativa para compartir examenes pasados, solucionarios y
+calificaciones de profesores universitarios.
 
-TrikaWeb nace con la misión de centralizar y democratizar el acceso a recursos académicos, permitiendo a los estudiantes prepararse mejor y tomar decisiones informadas sobre sus cursos.
+## Stack
 
----
+- Frontend: Astro + Tailwind CSS
+- Backend: Astro API Routes (output server)
+- Base de datos y auth: Supabase (PostgreSQL)
+- Deploy: Vercel
 
-## 🛠️ Stack Tecnológico
-
-Construido con herramientas modernas para asegurar rendimiento y escalabilidad:
-
-- **Frontend**: [Astro](https://astro.build/) + [TailwindCSS](https://tailwindcss.com/)
-- **Backend**: API Routes de Astro (Node.js)
-- **Base de Datos & Auth**: [Supabase](https://supabase.com/) (PostgreSQL)
-- **Infraestructura**: Vercel (Deployment)
-
----
-
-## 🚀 Guía de Instalación
-
-Sigue estos pasos para levantar el entorno de desarrollo en tu máquina local.
+## Inicio rapido
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/trikaweb.git
-cd trikaweb
-
-# 2. Instalar dependencias
 npm install
-
-# 3. Configurar variables de entorno
-# Crea tu archivo .env basado en el ejemplo
 cp .env.example .env
+npm run dev
 ```
 
-> **Nota**: Para saber qué valores poner en el `.env` y configurar la base de datos, revisa la [Guía de Configuración](./docs/setup.md).
+Aplicacion local: `http://localhost:4321`
 
----
+## Documentacion
 
-## ⚡ Uso Básico (Quickstart)
+La documentacion completa esta en `docs/`:
 
-Una vez instaladas las dependencias y configurado el entorno:
+- `docs/README.md`: indice general
+- `docs/funcionalidades.md`: alcance funcional
+- `docs/arquitectura.md`: arquitectura tecnica y base de datos
+- `docs/flujos.md`: diagramas visuales de flujos del sistema
+- `docs/setup.md`: instalacion y configuracion local
+- `docs/api.md`: referencia de endpoints
+- `docs/deploy.md`: despliegue y checklist de release
 
-1. **Inicia el servidor de desarrollo**:
-   ```bash
-   npm run dev
-   ```
+## Scripts
 
-2. **Abre tu navegador**:
-   Visita [http://localhost:4321](http://localhost:4321) para ver la aplicación en funcionamiento.
-
----
-
-## 📖 Documentación
-
-Toda la documentación detallada del proyecto se ha movido a la carpeta `/docs` para mantener este README limpio y ordenado.
-
-- **[🗺️ Funcionalidades](./docs/funcionalidades.md)**: Explora qué hace TrikaWeb, sus características principales y el roadmap.
-- **[🏗️ Arquitectura](./docs/arquitectura.md)**: Entiende la estructura de carpetas, el esquema de base de datos y los endpoints de la API.
-- **[⚙️ Guía de Configuración](./docs/setup.md)**: Instrucciones detalladas sobre variables de entorno, setup de Supabase y convenciones de código.
-
----
-
-## 📄 Licencia y Créditos
-
-**Autor**: Equipo de Desarrollo TrikaWeb.
-
-Este proyecto es de uso interno académico. El código fuente está disponible para colaboración bajo los términos establecidos por los administradores del proyecto.
-
-Hecho con ❤️ por estudiantes, para estudiantes.
+- `npm run dev`: entorno local
+- `npm run build`: build de produccion
+- `npm run preview`: vista previa de build
+- `npm run drive:sync`: sync completo desde Google Drive
+- `npm run drive:sync-exams`: sync solo examenes
+- `npm run drive:sync-solutions`: sync solo solucionarios

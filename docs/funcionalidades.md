@@ -1,29 +1,61 @@
-# Funcionalidades de TrikaWeb
+﻿# Funcionalidades de TrikaWeb
 
-TrikaWeb está diseñado para facilitar el intercambio de recursos académicos. A continuación se detallan las funcionalidades clave del sistema.
+## Modulo academico
 
-## 🎯 Funcionalidades Principales
+- Listado de cursos y detalle por codigo (`/curso/[code]`).
+- Visualizacion de planchas por curso y ciclo.
+- Visualizacion de ranking de planchas por dificultad y vistas.
+- Descarga o visualizacion de PDF de planchas y solucionarios.
 
-- **Repositorio de Exámenes Pasados**: Acceso a archivos PDF de exámenes de ciclos anteriores.
-- **Solucionarios**: Disponibilidad de solucionarios en formato PDF o enlaces a videos explicativos.
-- **Sistema de Calificación**: 
-  - Votación de dificultad para exámenes (escala 1-5 estrellas).
-  - Reseñas detalladas y calificaciones para profesores.
-- **Rankings**: Visualización de exámenes más visitados y descargados.
-- **Seguridad y Anti-spam**: Implementación de *device fingerprinting* para asegurar un voto por usuario.
+## Modulo de profesores
 
-## 🔮 Roadmap (Hoja de Ruta)
+- Listado de profesores visibles.
+- Vista de detalle de profesor con estadisticas y reseñas paginadas.
+- Calificacion por dimensiones:
+  - `difficulty`
+  - `didactic`
+  - `resources`
+  - `responsability`
+  - `grading`
+- Calculo de `overall` automatico en backend.
 
-### v1.0 (Actual)
-- [x] Sistema de votación de exámenes.
-- [x] Descarga de recursos (exámenes y solucionarios).
-- [x] Calificación de profesores.
-- [ ] Frontend completo (En proceso de pulido).
-- [ ] Panel de administración básico.
+## Sistema de ratings y anti-spam
 
-### v2.0 (Futuro)
-- [ ] Autenticación de usuarios completa.
-- [ ] Sistema de comentarios en los exámenes.
-- [ ] Rate limiting avanzado para evitar abusos.
-- [ ] Búsqueda avanzada por texto.
-- [ ] Filtros personalizados para búsquedas más precisas.
+- Un voto por `device_id` para planchas y profesores.
+- Limite por IP hasheada para evitar abuso.
+- Votacion editable y eliminable por el mismo cliente.
+
+## Busqueda
+
+- Endpoint de autocomplete (`/api/search`) sobre cursos, profesores y planchas.
+- Matching por texto en codigo, nombre, ciclo, exam_type y comentario.
+
+## Administracion
+
+- Login/logout de administrador.
+- Carga de planchas/solucionarios via `multipart/form-data`.
+- Moderacion de comentarios:
+  - listar pendientes
+  - aprobar
+  - ocultar
+  - eliminar
+- Gestion de profesores:
+  - listar (incluyendo ocultos)
+  - ocultar/mostrar
+  - crear profesor y asociar cursos
+
+## Sincronizacion externa
+
+- Scripts CLI para sincronizar Google Drive -> Supabase Storage:
+  - `npm run drive:sync`
+  - `npm run drive:sync-exams`
+  - `npm run drive:sync-solutions`
+
+## Alcance actual y proximo
+
+Estado actual cubre flujo principal de consulta, descarga, calificacion y moderacion.
+Como siguientes pasos recomendados:
+
+- CI con pruebas automatizadas de API.
+- Documentar contrato de errores estandar (schema comun).
+- Endurecer endpoint `/api/admin/drive-sync` para usar la misma sesion admin.

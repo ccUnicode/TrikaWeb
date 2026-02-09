@@ -1,69 +1,68 @@
-# Guía de Configuración y Desarrollo
+﻿# Setup y Configuracion
 
-Esta guía detalla los pasos para configurar el entorno de desarrollo, las variables de entorno necesarias y los flujos de trabajo recomendados.
+## Requisitos
 
-## 🛠️ Requisitos Previos
+- Node.js 18+
+- npm
+- Proyecto de Supabase (DB + Storage)
 
-- **Node.js**: v18 o superior.
-- **Git**: Para control de versiones.
-- **Cuenta en Supabase**: Para la base de datos y autenticación.
+## Instalacion local
 
-## ⚙️ Configuración de Variables de Entorno
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
 
-El proyecto utiliza un archivo `.env` para manejar credenciales sensibles. **Nunca** debes subir este archivo al repositorio.
+Servidor local: `http://localhost:4321`
 
-1. Copia el archivo de ejemplo:
-   ```bash
-   cp .env.example .env
-   ```
+## Variables de entorno
 
-2. Configura las siguientes variables en tu archivo `.env`:
+Fuente base: `.env.example`
 
-   **Backend (Server Only - Privado)**:
-   - `SUPABASE_URL`: URL de tu proyecto Supabase.
-   - `SUPABASE_SERVICE_KEY`: Key con permisos de administración (Service Role). Úsala con precaución.
-   - `IP_SALT`: Una cadena aleatoria usada para hashear las IPs de los usuarios.
-   - `ADMIN_PASS`: Contraseña para acceder a funciones administrativas (ej. uploads).
+### Servidor (privadas)
 
-   **Frontend (Client - Público)**:
-   - `PUBLIC_SUPABASE_URL`: La misma URL de tu proyecto.
-   - `PUBLIC_SUPABASE_ANON_KEY`: Key pública (Anon) para consultas desde el cliente.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY`
+- `IP_SALT`
+- `ADMIN_PASS`
+- `GOOGLE_APPLICATION_CREDENTIALS` (si usas sync Drive)
+- `DRIVE_EXAMS_FOLDER_ID` (si usas sync Drive)
+- `DRIVE_SOLUTIONS_FOLDER_ID` (si usas sync Drive)
 
-## 🚀 Base de Datos (Supabase)
+### Cliente (publicas)
 
-Para replicar el esquema de la base de datos en tu entorno local o nuevo proyecto:
+- `PUBLIC_SUPABASE_URL`
+- `PUBLIC_SUPABASE_ANON_KEY`
 
-1. Ve al "SQL Editor" en tu dashboard de Supabase.
-2. Ejecuta el contenido de `supabase/schema.sql` para crear las tablas y políticas de seguridad.
-3. Ejecuta `supabase/function_triggers.sql` si existen triggers o funciones almacenadas.
-4. Para poblar la base de datos con datos de prueba, ejecuta `supabase/seed.sql`.
+## Base de datos
 
-## 📦 Scripts y Comandos
+Ejecutar en SQL Editor de Supabase, en este orden:
 
-| Comando | Descripción |
-|---------|-------------|
-| `npm install` | Instala todas las dependencias del proyecto. |
-| `npm run dev` | Inicia el servidor de desarrollo local en `http://localhost:4321`. |
-| `npm run build` | Compila el proyecto para producción. |
-| `npm run preview` | Vista previa de la build de producción localmente. |
-| `npm run drive:sync` | Sincroniza archivos desde Google Drive (si está configurado). |
+1. `supabase/schema.sql`
+2. `supabase/function_triggers.sql`
+3. `supabase/migrations/add_teacher_visibility.sql`
+4. `supabase/seed.sql` (opcional)
 
-## 🤝 Convenciones de Código y Contribución
+## Storage buckets
 
-### Estilo de Commits
-Seguimos la convención de **Conventional Commits**:
-- `feat(scope)`: Nueva funcionalidad.
-- `fix(scope)`: Corrección de errores.
-- `docs`: Cambios en documentación.
-- `style`: Cambios de formato (espacios, puntos y comas).
-- `refactor`: Refactorización de código sin cambios en lógica.
+Crear buckets:
 
-### Flujo de Trabajo (Git Flow simplificado)
-1. **Main**: Rama de producción. Estable.
-2. **Feat Branches**: Crea una rama `feat/nombre-feature` para nuevos desarrollos.
-3. **Pull Request**: Abre un PR hacia `main` cuando termines tu tarea.
+- `exams`
+- `solutions`
+- `thumbnails` (opcional)
 
-## 👮 Administración y Moderación
+## Scripts disponibles
 
-- La configuración de moderación (palabras prohibidas) se encuentra en `config/moderation.json`.
-- Para acciones administrativas como subir archivos, se utiliza el endpoint `/api/admin/upload` autenticado con `ADMIN_PASS`.
+- `npm run dev`
+- `npm run build`
+- `npm run preview`
+- `npm run drive:sync`
+- `npm run drive:sync-exams`
+- `npm run drive:sync-solutions`
+
+## Notas operativas
+
+- `SUPABASE_SERVICE_KEY` no debe exponerse en cliente.
+- Si ejecutas scripts de Drive, valida acceso al archivo JSON de cuenta de servicio.
+- El endpoint `api/admin/upload` requiere `admin_pass` en el formulario.
