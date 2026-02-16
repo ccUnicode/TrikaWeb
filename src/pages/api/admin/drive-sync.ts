@@ -8,11 +8,12 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
+import { validateAdminSession } from "../../../lib/adminAuth";
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-    // Check admin session
-    const adminPass = cookies.get("admin_pass")?.value;
-    if (adminPass !== import.meta.env.ADMIN_PASS) {
+    // Check admin session via cookie
+    const isAdmin = await validateAdminSession(cookies);
+    if (!isAdmin) {
         return new Response(
             JSON.stringify({ ok: false, error: "No autorizado. Inicia sesión como admin." }),
             { status: 401, headers: { "Content-Type": "application/json" } }

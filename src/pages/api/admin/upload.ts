@@ -4,6 +4,7 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { validateAdminSession } from "../../../lib/adminAuth";
 import { Buffer } from "node:buffer";
 
 export const GET: APIRoute = () => {
@@ -13,7 +14,16 @@ export const GET: APIRoute = () => {
   );
 };
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, cookies }) => {
+  // Validate admin session via cookie
+  const isAdmin = await validateAdminSession(cookies);
+  if (!isAdmin) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "No autorizado. Inicia sesión como admin." }),
+      { status: 401, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   const contentType = request.headers.get("content-type") || "";
   if (
     !contentType.startsWith("multipart/form-data") &&
@@ -29,7 +39,6 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const formData = await request.formData();
-  const adminPass = String(formData.get("admin_pass") ?? "").trim();
   const courseCodeInput = String(formData.get("course_code") ?? "")
     .trim()
     .toUpperCase();
@@ -41,13 +50,6 @@ export const POST: APIRoute = async ({ request }) => {
     .trim()
     .toUpperCase();
   const file = formData.get("file") as File | null;
-
-  if (adminPass !== (import.meta.env.ADMIN_PASS as string)) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Clave de administrador incorrecta" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
-    );
-  }
 
   if (!courseCodeInput && !courseIdInput) {
     return new Response(
