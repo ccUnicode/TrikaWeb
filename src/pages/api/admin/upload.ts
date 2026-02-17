@@ -1,11 +1,12 @@
 // src/pages/api/admin/upload.ts
+// Registers sheet metadata in the DB after the file has already been
+// uploaded directly to Supabase Storage by the browser.
 
 export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
-import { Buffer } from "node:buffer";
 
 export const GET: APIRoute = () => {
   return new Response(
@@ -24,46 +25,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  const contentType = request.headers.get("content-type") || "";
-  if (
-    !contentType.startsWith("multipart/form-data") &&
-    !contentType.startsWith("application/x-www-form-urlencoded")
-  ) {
+  // Parse JSON body (metadata only, no file)
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
     return new Response(
-      JSON.stringify({
-        ok: false,
-        error: `Content-Type inválido: ${contentType}`,
-      }),
+      JSON.stringify({ ok: false, error: "Body JSON inválido" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  const formData = await request.formData();
-  const courseCodeInput = String(formData.get("course_code") ?? "")
-    .trim()
-    .toUpperCase();
-  const courseIdInput = String(formData.get("course_id") ?? "").trim();
-  const examType = String(formData.get("exam_type") ?? "").trim();
-  const cycle = String(formData.get("cycle") ?? "").trim();
-  const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
-  const resourceKind = String(formData.get("resource_kind") ?? "")
-    .trim()
-    .toUpperCase();
-  const file = formData.get("file") as File | null;
+  const courseId = Number(body.course_id);
+  const cycle = String(body.cycle ?? "").trim();
+  const examType = String(body.exam_type ?? "").trim();
+  const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
+  const storagePath = String(body.storage_path ?? "").trim();
+  const teacherHint = String(body.teacher_hint ?? "").trim();
 
-  if (!courseCodeInput && !courseIdInput) {
+  if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
     return new Response(
-      JSON.stringify({
-        ok: false,
-        error: "Falta course_code (o course_id legacy)",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-
-  if (!examType || !cycle || !resourceKind || !file) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Faltan campos o archivo" }),
+      JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -76,81 +58,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   try {
-    let courseId: number | null = null;
-    let normalizedCode: string | null = null;
-
-    if (courseCodeInput) {
-      const { data: course, error: courseError } = await supabaseAdmin
-        .from("courses")
-        .select("id, code")
-        .ilike("code", courseCodeInput)
-        .single();
-
-      if (courseError || !course) {
-        return new Response(
-          JSON.stringify({ ok: false, error: "course_code no encontrado" }),
-          { status: 404, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      courseId = course.id;
-      normalizedCode = (course.code ?? courseCodeInput).toUpperCase();
-    } else if (courseIdInput) {
-      const parsed = Number(courseIdInput);
-      if (Number.isNaN(parsed)) {
-        return new Response(
-          JSON.stringify({ ok: false, error: "course_id inválido" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      const { data: course, error: courseError } = await supabaseAdmin
-        .from("courses")
-        .select("id, code")
-        .eq("id", parsed)
-        .single();
-      if (courseError || !course) {
-        return new Response(
-          JSON.stringify({ ok: false, error: "course_id no encontrado" }),
-          { status: 404, headers: { "Content-Type": "application/json" } }
-        );
-      }
-      courseId = course.id;
-      normalizedCode = (course.code ?? "").toUpperCase() || `COURSE_${course.id}`;
-    }
-
-    if (!courseId || !normalizedCode) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "No se pudo resolver el curso" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
-
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
-
-    const safeCycle = cycle.replace(/[^a-zA-Z0-9-_]/g, "_");
-    const safeExam = examType.replace(/[^a-zA-Z0-9-_]/g, "_");
-    const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
-
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from(bucket)
-      .upload(path, fileBuffer, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error("Error al subir a Storage:", uploadError);
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Error al subir el archivo a Storage",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
+    // Check existing sheet
     const { data: existingSheet, error: lookupError } = await supabaseAdmin
       .from("sheets")
       .select("id")
@@ -158,6 +66,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .eq("cycle", cycle)
       .eq("exam_type", examType)
       .maybeSingle();
+
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);
       return new Response(
@@ -171,13 +80,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         course_id: courseId,
         cycle,
         exam_type: examType,
-        exam_storage_path: path,
+        exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
       };
 
       if (existingSheet) {
         const updatePayload: Record<string, unknown> = {
-          exam_storage_path: path,
+          exam_storage_path: storagePath,
         };
         if (teacherHint) {
           updatePayload.teacher_hint = teacherHint;
@@ -229,7 +138,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .from("sheets")
         .update({
           solution_kind: "pdf",
-          solution_storage_path: path,
+          solution_storage_path: storagePath,
         })
         .eq("id", existingSheet.id);
 
@@ -251,8 +160,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       JSON.stringify({
         ok: true,
         message: `${action} guardado correctamente`,
-        bucket,
-        path,
+        path: storagePath,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );

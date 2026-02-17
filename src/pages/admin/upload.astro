@@ -51,12 +51,7 @@ import Layout from "../../layouts/Layout.astro";
           Subir archivo
         </h2>
 
-        <form
-          method="POST"
-          action="/api/admin/upload"
-          enctype="multipart/form-data"
-          class="space-y-4"
-        >
+        <form id="upload-form" class="space-y-4">
           <!-- Row 1: Course Code & Cycle -->
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
@@ -184,10 +179,35 @@ import Layout from "../../layouts/Layout.astro";
             Para solucionarios, usa los mismos campos de la plancha existente.
           </p>
 
+          <!-- Upload Status -->
+          <div id="upload-status" class="hidden">
+            <div class="flex items-center gap-2 text-sm">
+              <div
+                id="upload-spinner"
+                class="animate-spin h-4 w-4 border-2 border-global-primary border-t-transparent rounded-full"
+              >
+              </div>
+              <span id="upload-message" class="text-global-text-muted"
+                >Preparando subida...</span
+              >
+            </div>
+            <div
+              class="mt-2 w-full bg-global-border rounded-full h-1.5 overflow-hidden"
+            >
+              <div
+                id="upload-progress"
+                class="h-full bg-global-primary rounded-full transition-all duration-300"
+                style="width: 0%"
+              >
+              </div>
+            </div>
+          </div>
+
           <!-- Submit Button -->
           <button
+            id="upload-submit-btn"
             type="submit"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-global-primary-hover cursor-pointer"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg
               class="w-4 h-4"
@@ -384,12 +404,145 @@ import Layout from "../../layouts/Layout.astro";
 
     // Update file name display when file is selected
     const fileInput = document.getElementById("file") as HTMLInputElement;
-    const fileName = document.getElementById("file-name");
+    const fileNameEl = document.getElementById("file-name");
     fileInput?.addEventListener("change", () => {
       if (fileInput.files && fileInput.files.length > 0) {
-        if (fileName) fileName.textContent = fileInput.files[0].name;
+        if (fileNameEl) fileNameEl.textContent = fileInput.files[0].name;
       } else {
-        if (fileName) fileName.textContent = "Sin archivos seleccionados";
+        if (fileNameEl) fileNameEl.textContent = "Sin archivos seleccionados";
+      }
+    });
+
+    // ── Two-Step Upload (bypasses Vercel 4.5MB limit) ──────────────
+    const uploadForm = document.getElementById(
+      "upload-form",
+    ) as HTMLFormElement;
+    const uploadStatus = document.getElementById("upload-status");
+    const uploadSpinner = document.getElementById("upload-spinner");
+    const uploadMessage = document.getElementById("upload-message");
+    const uploadProgress = document.getElementById(
+      "upload-progress",
+    ) as HTMLDivElement;
+    const submitBtn = document.getElementById(
+      "upload-submit-btn",
+    ) as HTMLButtonElement;
+
+    function setUploadUI(msg: string, pct: number, showSpinner = true) {
+      uploadStatus?.classList.remove("hidden");
+      if (uploadMessage) uploadMessage.textContent = msg;
+      if (uploadProgress) uploadProgress.style.width = `${pct}%`;
+      if (showSpinner) {
+        uploadSpinner?.classList.remove("hidden");
+      } else {
+        uploadSpinner?.classList.add("hidden");
+      }
+    }
+
+    function resetUploadUI() {
+      uploadStatus?.classList.add("hidden");
+      if (uploadProgress) uploadProgress.style.width = "0%";
+      submitBtn?.removeAttribute("disabled");
+    }
+
+    uploadForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(uploadForm);
+      const courseCode = String(formData.get("course_code") ?? "").trim();
+      const cycle = String(formData.get("cycle") ?? "").trim();
+      const examType = String(formData.get("exam_type") ?? "").trim();
+      const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
+      const resourceKind = String(formData.get("resource_kind") ?? "").trim();
+      const file = (formData.get("file") as File) || null;
+
+      if (
+        !courseCode ||
+        !cycle ||
+        !examType ||
+        !resourceKind ||
+        !file ||
+        file.size === 0
+      ) {
+        alert("Por favor completa todos los campos y selecciona un archivo.");
+        return;
+      }
+
+      submitBtn?.setAttribute("disabled", "true");
+
+      try {
+        // Step 1: Get signed upload URL
+        setUploadUI("Obteniendo URL de subida...", 10);
+
+        const urlRes = await fetch("/api/admin/upload-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            course_code: courseCode,
+            cycle,
+            exam_type: examType,
+            resource_kind: resourceKind,
+          }),
+        });
+
+        const urlData = await urlRes.json();
+        if (!urlData.ok) {
+          setUploadUI(`❌ ${urlData.error}`, 0, false);
+          submitBtn?.removeAttribute("disabled");
+          return;
+        }
+
+        // Step 2: Upload PDF directly to Supabase Storage
+        setUploadUI("Subiendo archivo a Storage...", 40);
+
+        const uploadRes = await fetch(urlData.signedUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/pdf" },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text();
+          console.error("Storage upload failed:", errText);
+          setUploadUI("❌ Error al subir el archivo a Storage", 40, false);
+          submitBtn?.removeAttribute("disabled");
+          return;
+        }
+
+        // Step 3: Register metadata in DB
+        setUploadUI("Registrando en la base de datos...", 80);
+
+        const regRes = await fetch("/api/admin/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            course_id: urlData.courseId,
+            cycle,
+            exam_type: examType,
+            resource_kind: resourceKind,
+            storage_path: urlData.path,
+            teacher_hint: teacherHint,
+          }),
+        });
+
+        const regData = await regRes.json();
+
+        if (!regData.ok) {
+          setUploadUI(`⚠️ Archivo subido, pero: ${regData.error}`, 80, false);
+          submitBtn?.removeAttribute("disabled");
+          return;
+        }
+
+        // Success!
+        setUploadUI(`✅ ${regData.message}`, 100, false);
+        uploadForm.reset();
+        if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+
+        // Auto-hide success message after 4 seconds
+        setTimeout(() => resetUploadUI(), 4000);
+      } catch (err) {
+        console.error("Upload error:", err);
+        setUploadUI(`❌ Error de red: ${err}`, 0, false);
+        submitBtn?.removeAttribute("disabled");
       }
     });
   </script>
