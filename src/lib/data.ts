@@ -94,6 +94,7 @@ export async function getCourses(): Promise<CourseSummary[]> {
   const { data, error } = await supabaseClient
     .from('courses')
     .select('id, code, name, sheets(count)')
+    .eq('is_hidden', false)
     .order('name', { ascending: true });
 
   if (error || !data) return [];
@@ -112,6 +113,7 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
     .from('courses')
     .select('id, code, name, sheets:sheets (*)')
     .eq('code', normalized)
+    .eq('is_hidden', false)
     .single();
 
   if (error || !course) return null;
@@ -462,6 +464,7 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
     supabaseClient
       .from('courses')
       .select('id, code, name, sheets(count)')
+      .eq('is_hidden', false)
       .or(`code.ilike.${pattern},name.ilike.${pattern}`)
       .limit(safeLimit * 2),
     supabaseClient
