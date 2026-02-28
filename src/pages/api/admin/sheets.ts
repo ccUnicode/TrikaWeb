@@ -24,19 +24,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const { page = 1, pageSize = 20, course = '', q = '' } = body;
 
         const safePage = Math.max(1, Math.floor(Number(page) || 1));
-        const safeSize = Math.min(50, Math.max(1, Math.floor(Number(pageSize) || 20)));
+        const safeSize = Math.min(100, Math.max(1, Math.floor(Number(pageSize) || 20)));
         const from = (safePage - 1) * safeSize;
         const to = from + safeSize - 1;
 
         let courseIds: number[] | null = null;
 
+        // 1. Resolve Course IDs if filter provided
         if (String(course || '').trim()) {
             const coursePattern = `%${String(course).trim()}%`;
             const { data: courseRows, error: courseError } = await supabaseAdmin
                 .from('courses')
                 .select('id')
-                .or(`code.ilike.${coursePattern},name.ilike.${coursePattern}`)
-                .limit(50);
+                .or(`code.ilike.${coursePattern},name.ilike.${coursePattern}`);
 
             if (courseError) {
                 console.error('Error fetching courses for sheet filter:', courseError);
@@ -46,9 +46,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 });
             }
 
-            courseIds = (courseRows || []).map((c: any) => Number(c.id)).filter((n: any) => Number.isFinite(n));
+            courseIds = (courseRows || []).map((c: any) => Number(c.id));
 
-            if (!courseIds.length) {
+            // If user searched for a course but none found, return empty early
+            if (courseIds.length === 0) {
                 return new Response(
                     JSON.stringify({
                         ok: true,
@@ -61,26 +62,46 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             }
         }
 
-        let query = supabaseAdmin
+        // 2. Build Base Query for Filtering
+        const buildBaseQuery = () => {
+            let query = supabaseAdmin.from('sheets').select('*');
+            if (courseIds) {
+                query = query.in('course_id', courseIds);
+            }
+            if (String(q || '').trim()) {
+                const pattern = `%${String(q).trim()}%`;
+                query = query.or(`exam_type.ilike.${pattern},cycle.ilike.${pattern},teacher_hint.ilike.${pattern}`);
+            }
+            return query;
+        };
+
+        // 3. Get TOTAL counts for visible and hidden (filtered)
+        const [visibleTotalRes, hiddenTotalRes] = await Promise.all([
+            buildBaseQuery().eq('is_hidden', false).select('*', { count: 'exact', head: true }),
+            buildBaseQuery().eq('is_hidden', true).select('*', { count: 'exact', head: true })
+        ]);
+
+        const visibleTotal = visibleTotalRes.count ?? 0;
+        const hiddenTotal = hiddenTotalRes.count ?? 0;
+        const total = visibleTotal + hiddenTotal;
+
+        // 4. Fetch the actual page of data
+        let mainQuery = supabaseAdmin
             .from('sheets')
-            .select(
-                'id, exam_type, cycle, teacher_hint, avg_difficulty, rating_count, view_count, solution_kind, thumb_storage_path, is_hidden, courses:course_id (code,name)',
-                { count: 'exact' }
-            )
+            .select('id, exam_type, cycle, teacher_hint, avg_difficulty, rating_count, view_count, solution_kind, thumb_storage_path, is_hidden, courses:course_id (code,name)')
             .order('cycle', { ascending: false })
             .order('exam_type', { ascending: true })
             .range(from, to);
 
         if (courseIds) {
-            query = query.in('course_id', courseIds);
+            mainQuery = mainQuery.in('course_id', courseIds);
         }
-
         if (String(q || '').trim()) {
             const pattern = `%${String(q).trim()}%`;
-            query = query.or(`exam_type.ilike.${pattern},cycle.ilike.${pattern},teacher_hint.ilike.${pattern}`);
+            mainQuery = mainQuery.or(`exam_type.ilike.${pattern},cycle.ilike.${pattern},teacher_hint.ilike.${pattern}`);
         }
 
-        const { data, count, error } = await query;
+        const { data, error } = await mainQuery;
 
         if (error) {
             console.error('Error fetching sheets:', error);
@@ -91,7 +112,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
 
         const sheets = (data || []).map((s: any) => {
-            const course = Array.isArray(s.courses) ? s.courses[0] : s.courses;
+            const courseData = Array.isArray(s.courses) ? s.courses[0] : s.courses;
             return {
                 id: s.id,
                 exam_type: s.exam_type,
@@ -103,22 +124,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 solution_kind: s.solution_kind ?? null,
                 thumb_storage_path: s.thumb_storage_path ?? null,
                 is_hidden: s.is_hidden ?? false,
-                course_code: course?.code ?? null,
-                course_name: course?.name ?? null,
+                course_code: courseData?.code ?? null,
+                course_name: courseData?.name ?? null,
             };
         });
 
-        const visibleCount = sheets.filter((s: any) => !s.is_hidden).length;
-        const hiddenCount = sheets.filter((s: any) => s.is_hidden).length;
-
-        const total = count ?? 0;
         const totalPages = total > 0 ? Math.ceil(total / safeSize) : 0;
 
         return new Response(
             JSON.stringify({
                 ok: true,
                 sheets,
-                counts: { visible: visibleCount, hidden: hiddenCount },
+                counts: { visible: visibleTotal, hidden: hiddenTotal },
                 pagination: { page: safePage, pageSize: safeSize, total, totalPages },
             }),
             { status: 200, headers: { 'Content-Type': 'application/json' } }
