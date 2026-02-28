@@ -1,0 +1,296 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout title="Gestionar Planchas | TrikaWeb Admin">
+    <div class="min-h-screen py-8">
+        <div class="mx-auto w-full max-w-5xl px-4">
+            <div class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap">
+                <div>
+                    <h1 class="text-2xl font-bold text-global-text">Gestionar Planchas</h1>
+                    <p class="mt-1 text-sm text-global-text-muted">
+                        Oculta o muestra planchas sin borrarlas
+                    </p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <a
+                        href="/admin/courses"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Cursos
+                    </a>
+                    <a
+                        href="/admin/teachers"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Profesores
+                    </a>
+                    <a
+                        href="/admin/upload"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Panel de subida
+                    </a>
+                    <a
+                        href="/admin/ratings"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Calificaciones
+                    </a>
+                    <a
+                        href="/admin/moderation"
+                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+                    >
+                        Moderación
+                    </a>
+                    <form action="/api/admin/logout" method="POST">
+                        <button
+                            type="submit"
+                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+                        >
+                            Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <section class="rounded-2xl bg-global-surface border border-global-border p-6">
+                <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-global-text">Planchas</h2>
+                        <p class="text-sm text-global-text-muted">
+                            <span id="visible-count" class="font-semibold text-global-text">0</span> visibles ·
+                            <span id="hidden-count" class="font-semibold text-global-text">0</span> ocultas
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <input
+                            id="sheets-course"
+                            type="text"
+                            class="w-full sm:w-[260px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                            placeholder="Curso (código o nombre)"
+                        />
+                        <input
+                            id="sheets-q"
+                            type="text"
+                            class="w-full sm:w-[260px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                            placeholder="Filtrar por ciclo, evaluación, docente..."
+                        />
+                        <button
+                            id="sheets-refresh"
+                            type="button"
+                            class="rounded-xl bg-global-card border border-global-border px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+                        >
+                            Recargar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="sheets-list" class="space-y-3"></div>
+                <div id="sheets-pagination" class="mt-6 flex items-center justify-between gap-3"></div>
+            </section>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    type AdminSheet = {
+        id: number;
+        exam_type: string;
+        cycle: string;
+        teacher_hint: string | null;
+        avg_difficulty: number | null;
+        rating_count: number;
+        view_count: number;
+        solution_kind: string | null;
+        thumb_storage_path: string | null;
+        is_hidden: boolean;
+        course_code: string | null;
+        course_name: string | null;
+    };
+
+    const listEl = document.getElementById("sheets-list") as HTMLDivElement;
+    const paginationEl = document.getElementById("sheets-pagination") as HTMLDivElement;
+    const courseInput = document.getElementById("sheets-course") as HTMLInputElement;
+    const qInput = document.getElementById("sheets-q") as HTMLInputElement;
+    const refreshBtn = document.getElementById("sheets-refresh") as HTMLButtonElement;
+    const visibleCountEl = document.getElementById("visible-count") as HTMLSpanElement;
+    const hiddenCountEl = document.getElementById("hidden-count") as HTMLSpanElement;
+
+    let page = 1;
+    const pageSize = 20;
+
+    const escapeHtml = (value: string) =>
+        String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+
+    async function loadSheets(nextPage: number = 1) {
+        page = nextPage;
+        listEl.innerHTML = "<div class='text-sm text-global-text-muted'>Cargando...</div>";
+        paginationEl.innerHTML = "";
+
+        const course = (courseInput?.value || "").trim();
+        const q = (qInput?.value || "").trim();
+
+        const res = await fetch("/api/admin/sheets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ page, pageSize, course, q }),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
+            listEl.innerHTML =
+                "<div class='text-sm text-red-400'>No se pudo cargar planchas</div>";
+            return;
+        }
+
+        if (visibleCountEl) visibleCountEl.textContent = String(data?.counts?.visible ?? 0);
+        if (hiddenCountEl) hiddenCountEl.textContent = String(data?.counts?.hidden ?? 0);
+
+        const sheets: AdminSheet[] = data.sheets || [];
+
+        if (!sheets.length) {
+            listEl.innerHTML =
+                "<div class='text-sm text-global-text-muted'>No hay planchas para mostrar.</div>";
+        } else {
+            listEl.innerHTML = sheets
+                .map((s) => {
+                    const courseLabel = s.course_code
+                        ? `${escapeHtml(s.course_code)}${s.course_name ? ` - ${escapeHtml(s.course_name)}` : ""}`
+                        : "Curso";
+                    const meta = `${escapeHtml(s.exam_type || "")}${s.cycle ? ` · ${escapeHtml(s.cycle)}` : ""}`.trim();
+                    const hint = s.teacher_hint ? escapeHtml(s.teacher_hint) : "";
+                    const badgeClass = s.is_hidden
+                        ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                        : "bg-green-500/10 border-green-500/30 text-green-400";
+                    const toggleClass = s.is_hidden
+                        ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
+                        : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30";
+                    const toggleLabel = s.is_hidden ? "Mostrar" : "Ocultar";
+
+                    return `
+                        <div class="rounded-xl bg-global-bg border border-global-border p-4 ${s.is_hidden ? "opacity-70" : ""}" data-sheet-id="${s.id}">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm text-global-text-muted truncate">${courseLabel}</div>
+                                    <div class="text-base font-semibold text-global-text truncate">${meta}</div>
+                                    ${hint ? `<div class="text-xs text-global-text-muted truncate mt-1">${hint}</div>` : ""}
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <span class="inline-flex items-center justify-center w-[70px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${badgeClass}">
+                                        ${s.is_hidden ? "Oculta" : "Visible"}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="toggle-sheet-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${toggleClass}"
+                                        data-sheet-id="${s.id}"
+                                        data-next-hidden="${s.is_hidden ? "false" : "true"}"
+                                    >
+                                        ${toggleLabel}
+                                    </button>
+                                    <a
+                                        href="/exams/${s.id}"
+                                        class="rounded-lg bg-global-card border border-global-border px-3 py-1.5 text-xs font-medium text-global-text transition hover:bg-global-border"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Ver
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("");
+
+            document.querySelectorAll('.toggle-sheet-btn').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const b = btn as HTMLButtonElement;
+                    const sheetId = Number(b.getAttribute('data-sheet-id'));
+                    const nextHidden = b.getAttribute('data-next-hidden') === 'true';
+
+                    b.disabled = true;
+                    try {
+                        const res = await fetch('/api/admin/toggle-sheet', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ sheet_id: sheetId, is_hidden: nextHidden }),
+                        });
+                        const out = await res.json().catch(() => null);
+                        if (!res.ok || !out?.ok) {
+                            throw new Error(out?.error || 'No se pudo actualizar');
+                        }
+                        await loadSheets(page);
+                    } catch (e) {
+                        console.error(e);
+                        b.disabled = false;
+                        alert(e instanceof Error ? e.message : 'Error desconocido');
+                    }
+                });
+            });
+        }
+
+        const totalPages = Number(data?.pagination?.totalPages || 0);
+
+        if (totalPages > 1) {
+            const prevDisabled = page <= 1;
+            const nextDisabled = page >= totalPages;
+
+            paginationEl.innerHTML = `
+                <div class="text-sm text-global-text-muted">Página ${page} de ${totalPages}</div>
+                <div class="flex gap-2">
+                    <button
+                        ${prevDisabled ? "disabled" : ""}
+                        id="sheets-prev"
+                        class="rounded-lg bg-global-card border border-global-border px-3 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <button
+                        ${nextDisabled ? "disabled" : ""}
+                        id="sheets-next"
+                        class="rounded-lg bg-global-card border border-global-border px-3 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            `;
+
+            (document.getElementById("sheets-prev") as HTMLButtonElement)?.addEventListener(
+                "click",
+                () => {
+                    if (page > 1) loadSheets(page - 1);
+                },
+            );
+            (document.getElementById("sheets-next") as HTMLButtonElement)?.addEventListener(
+                "click",
+                () => {
+                    if (page < totalPages) loadSheets(page + 1);
+                },
+            );
+        }
+    }
+
+    let searchTimer: any;
+    const scheduleSearch = () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadSheets(1), 250);
+    };
+
+    courseInput?.addEventListener("input", scheduleSearch);
+    qInput?.addEventListener("input", scheduleSearch);
+
+    refreshBtn?.addEventListener("click", () => loadSheets(page));
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadSheets(1);
+    });
+</script>

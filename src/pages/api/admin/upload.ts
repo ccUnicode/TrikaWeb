@@ -41,6 +41,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const examType = String(body.exam_type ?? "").trim();
   const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
   const storagePath = String(body.storage_path ?? "").trim();
+  const thumbStoragePath = String(body.thumb_storage_path ?? "").trim() || null;
   const teacherHint = String(body.teacher_hint ?? "").trim();
 
   if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
@@ -82,6 +83,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         exam_type: examType,
         exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
+        thumb_storage_path: thumbStoragePath,
+        is_hidden: false,
       };
 
       if (existingSheet) {
@@ -90,6 +93,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         };
         if (teacherHint) {
           updatePayload.teacher_hint = teacherHint;
+        }
+        if (thumbStoragePath) {
+          updatePayload.thumb_storage_path = thumbStoragePath;
         }
 
         const { error: updateError } = await supabaseAdmin

@@ -71,7 +71,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
     const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
 
-    // Generate signed upload URL
+    // Generate signed upload URL for the main file
     const { data: signedData, error: signedError } = await supabaseAdmin.storage
         .from(bucket)
         .createSignedUploadUrl(path);
@@ -87,6 +87,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
     }
 
+    // Optional: Generate signed upload URL for thumbnail if it's a Plancha
+    let thumbSignedUrl: string | undefined = undefined;
+    let thumbPath: string | undefined = undefined;
+
+    if (resourceKind === "PLANCHA") {
+        thumbPath = `${normalizedCode}/${safeExam}/${safeCycle}.jpg`;
+        const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
+            .from("thumbnails")
+            .createSignedUploadUrl(thumbPath);
+
+        if (!thumbError && thumbData) {
+            thumbSignedUrl = thumbData.signedUrl;
+        } else {
+            console.error("Error creating signed upload URL for thumbnail:", thumbError);
+            // Non-fatal, we can still upload the PDF even if thumb url fails
+        }
+    }
+
     return new Response(
         JSON.stringify({
             ok: true,
@@ -95,6 +113,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             path,
             bucket,
             courseId,
+            thumbSignedUrl,
+            thumbPath
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
     );

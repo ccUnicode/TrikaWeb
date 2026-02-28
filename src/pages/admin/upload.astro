@@ -21,6 +21,12 @@ import Layout from "../../layouts/Layout.astro";
             Cursos
           </a>
           <a
+            href="/admin/sheets"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+          >
+            Planchas
+          </a>
+          <a
             href="/admin/teachers"
             class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
           >
@@ -433,6 +439,50 @@ import Layout from "../../layouts/Layout.astro";
       "upload-submit-btn",
     ) as HTMLButtonElement;
 
+    // Load PDF.js dynamically
+    async function loadPdfJs() {
+        if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
+        return new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+            script.onload = () => {
+                const pdfjsLib = (window as any).pdfjsLib;
+                pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+                resolve(pdfjsLib);
+            };
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+    }
+
+    async function generatePdfThumbnail(file: File): Promise<Blob | null> {
+        try {
+            const pdfjsLib = await loadPdfJs();
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            const page = await pdf.getPage(1);
+            
+            // Adjust scale as needed for quality vs size (1.5 gives good resolution)
+            const viewport = page.getViewport({ scale: 1.5 });
+            
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return null;
+            
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            
+            return new Promise((resolve) => {
+                canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+            });
+        } catch (e) {
+            console.error("Error generating thumbnail:", e);
+            return null;
+        }
+    }
+
     function setUploadUI(msg: string, pct: number, showSpinner = true) {
       uploadStatus?.classList.remove("hidden");
       if (uploadMessage) uploadMessage.textContent = msg;
@@ -497,6 +547,13 @@ import Layout from "../../layouts/Layout.astro";
           return;
         }
 
+        // Step 1.5: Generate Thumbnail (if PLANCHA)
+        let thumbBlob: Blob | null = null;
+        if (resourceKind === "PLANCHA") {
+             setUploadUI("Generando miniatura de la 1ª página...", 20);
+             thumbBlob = await generatePdfThumbnail(file);
+        }
+
         // Step 2: Upload PDF directly to Supabase Storage
         setUploadUI("Subiendo archivo a Storage...", 40);
 
@@ -514,6 +571,21 @@ import Layout from "../../layouts/Layout.astro";
           return;
         }
 
+        // Step 2.5: Upload Thumbnail
+        if (thumbBlob && urlData.thumbSignedUrl) {
+            setUploadUI("Subiendo miniatura...", 60);
+            try {
+                await fetch(urlData.thumbSignedUrl, {
+                    method: "PUT",
+                    headers: { "Content-Type": "image/jpeg" },
+                    body: thumbBlob
+                });
+            } catch (thumbUploadErr) {
+                console.error("Thumb storage upload failed:", thumbUploadErr);
+                // Non-fatal, keep going
+            }
+        }
+
         // Step 3: Register metadata in DB
         setUploadUI("Registrando en la base de datos...", 80);
 
@@ -527,6 +599,7 @@ import Layout from "../../layouts/Layout.astro";
             resource_kind: resourceKind,
             storage_path: urlData.path,
             teacher_hint: teacherHint,
+            thumb_storage_path: urlData.thumbPath,
           }),
         });
 
