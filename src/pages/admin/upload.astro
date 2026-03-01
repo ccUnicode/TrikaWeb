@@ -71,16 +71,16 @@ import Layout from "../../layouts/Layout.astro";
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="course-code"
               >
-                Código de curso
+                Curso
               </label>
-              <input
+              <select
                 id="course-code"
                 name="course_code"
-                type="text"
                 required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-                placeholder="Ej: BMA02"
-              />
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer"
+              >
+                <option value="" disabled selected>Cargando cursos...</option>
+              </select>
             </div>
             <div>
               <label
@@ -94,7 +94,7 @@ import Layout from "../../layouts/Layout.astro";
                 name="cycle"
                 type="text"
                 required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 placeholder="Ej: 2024-II"
               />
             </div>
@@ -114,7 +114,7 @@ import Layout from "../../layouts/Layout.astro";
                 name="exam_type"
                 type="text"
                 required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 placeholder="Ej: PC1, Parcial, Final"
               />
             </div>
@@ -129,7 +129,7 @@ import Layout from "../../layouts/Layout.astro";
                 id="teacher-hint"
                 name="teacher_hint"
                 type="text"
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 placeholder="Prof. Arámbulo, etc."
               />
             </div>
@@ -438,6 +438,51 @@ import Layout from "../../layouts/Layout.astro";
     const submitBtn = document.getElementById(
       "upload-submit-btn",
     ) as HTMLButtonElement;
+
+    type CourseOption = { code: string; name: string };
+
+    const courseSelect = document.getElementById("course-code") as HTMLSelectElement;
+
+    async function loadCourseOptions() {
+      try {
+        const res = await fetch("/api/admin/course-options", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
+          courseSelect.innerHTML = `<option value="" disabled selected>No se pudieron cargar cursos</option>`;
+          return;
+        }
+
+        const courses: CourseOption[] = data.courses || [];
+
+        if (!courses.length) {
+          courseSelect.innerHTML = `<option value="" disabled selected>No hay cursos disponibles</option>`;
+          return;
+        }
+
+        courseSelect.innerHTML = `
+          <option value="" disabled selected>Selecciona un curso...</option>
+          ${courses
+            .map((c) => {
+              const label = `${c.code} - ${c.name}`;
+              return `<option value="${c.code}">${label}</option>`;
+            })
+            .join("")}
+        `;
+      } catch (e) {
+        console.error(e);
+        courseSelect.innerHTML = `<option value="" disabled selected>Error cargando cursos</option>`;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadCourseOptions();
+    });
+
 
     // Load PDF.js dynamically
     async function loadPdfJs() {
