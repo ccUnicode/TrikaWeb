@@ -70,7 +70,7 @@ import Layout from "../../layouts/Layout.astro";
                         <input
                             id="course-code"
                             type="text"
-                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                             placeholder="MAT01"
                             required
                         />
@@ -85,12 +85,25 @@ import Layout from "../../layouts/Layout.astro";
                         <input
                             id="course-name"
                             type="text"
-                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                             placeholder="Cálculo I"
                             required
                         />
                     </div>
-
+                    <div>
+                        <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="course-credits">
+                            Créditos
+                        </label>
+                        <input
+                            id="course-credits"
+                            type="number"
+                            min="1"
+                            step="1"
+                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+                            placeholder="4"
+                            required
+                        />
+                    </div>
                     <div class="sm:col-span-3 flex items-center gap-3">
                         <button
                             type="submit"
@@ -140,7 +153,7 @@ import Layout from "../../layouts/Layout.astro";
 </Layout>
 
 <script>
-    type Course = { id: number; code: string; name: string; is_hidden: boolean };
+    type Course = { id: number; code: string; name: string; credits: number; is_hidden: boolean };
 
     const listEl = document.getElementById("courses-list") as HTMLDivElement;
     const paginationEl = document.getElementById("courses-pagination") as HTMLDivElement;
@@ -154,6 +167,7 @@ import Layout from "../../layouts/Layout.astro";
     const addFeedback = document.getElementById("add-course-feedback") as HTMLSpanElement;
     const codeInput = document.getElementById("course-code") as HTMLInputElement;
     const nameInput = document.getElementById("course-name") as HTMLInputElement;
+    const creditsInput = document.getElementById("course-credits") as HTMLInputElement;
 
     let page = 1;
     let pageSize = 30;
@@ -213,6 +227,7 @@ import Layout from "../../layouts/Layout.astro";
                             <div class="min-w-0 flex-1">
                                 <div class="text-sm text-global-text-muted truncate">${escapeHtml(c.code)}</div>
                                 <div class="text-base font-semibold text-global-text truncate">${escapeHtml(c.name)}</div>
+                                <div class="text-xs text-global-text-muted">Créditos: ${c.credits}</div>
                             </div>
                             <div class="flex items-center gap-3 shrink-0">
                                 <span class="inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${c.is_hidden ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}">
@@ -306,6 +321,13 @@ import Layout from "../../layouts/Layout.astro";
 
         const code = (codeInput?.value || "").trim();
         const name = (nameInput?.value || "").trim();
+        const credits = Number((creditsInput?.value || "").trim());
+
+        if (!Number.isInteger(credits) || credits <= 0) {
+        setFeedback("Créditos inválidos (entero mayor a 0).", "error");
+        addBtn.disabled = false;
+        return;
+        }
 
         addBtn.disabled = true;
         setFeedback("Guardando...", "ok");
@@ -313,7 +335,7 @@ import Layout from "../../layouts/Layout.astro";
         const res = await fetch("/api/admin/add-course", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, name }),
+            body: JSON.stringify({ code, name, credits }),
         });
 
         const data = await res.json().catch(() => null);
@@ -329,6 +351,7 @@ import Layout from "../../layouts/Layout.astro";
         codeInput.value = "";
         nameInput.value = "";
         searchInput.value = "";
+        creditsInput.value = "";
         await loadCourses(1);
     });
 

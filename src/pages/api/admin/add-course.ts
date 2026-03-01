@@ -6,6 +6,10 @@ import { validateAdminSession } from '../../../lib/adminAuth';
 
 const normalizeCode = (value: unknown) => String(value ?? '').trim().toUpperCase();
 const normalizeName = (value: unknown) => String(value ?? '').trim();
+const normalizeCredits = (value: unknown) => {
+    const num = Number(value);
+    return Number.isInteger(num) ? num : NaN;
+};
 
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
@@ -29,6 +33,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         const code = normalizeCode(body.code);
         const name = normalizeName(body.name);
+        const credits = normalizeCredits(body.credits);
+
 
         if (!code || code.length < 2) {
             return new Response(JSON.stringify({ ok: false, error: 'El código es requerido (mínimo 2 caracteres)' }), {
@@ -39,6 +45,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (!name || name.length < 2) {
             return new Response(JSON.stringify({ ok: false, error: 'El nombre es requerido (mínimo 2 caracteres)' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (!Number.isInteger(credits) || credits <= 0) {
+            return new Response(JSON.stringify({ 
+                ok: false, 
+                error: 'Los créditos deben ser un número entero mayor a 0' 
+            }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -67,7 +83,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         const { data: course, error: insertError } = await supabaseAdmin
             .from('courses')
-            .insert({ code, name, is_hidden: false })
+            .insert({ code, name, credits, is_hidden: false })
             .select('id, code, name, is_hidden')
             .single();
 

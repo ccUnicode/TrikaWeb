@@ -30,7 +30,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         let query = supabaseAdmin
             .from('courses')
-            .select('id, code, name, is_hidden', { count: 'exact' })
+            .select('id, code, name, credits, is_hidden', { count: 'exact' })
             .order('name', { ascending: true });
 
         if (String(search || '').trim()) {
@@ -52,10 +52,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const totalPages = total > 0 ? Math.ceil(total / safeSize) : 0;
 
         const courses = (data || []).map((c: any) => ({
-            id: c.id,
-            code: c.code,
-            name: c.name,
-            is_hidden: c.is_hidden ?? false,
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        credits: c.credits ?? 0,
+        is_hidden: c.is_hidden ?? false,
         }));
 
         const visibleCount = courses.filter(c => !c.is_hidden).length;
