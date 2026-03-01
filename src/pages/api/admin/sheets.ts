@@ -62,30 +62,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             }
         }
 
-        // 2. Build Base Query for Filtering
-        const buildBaseQuery = () => {
-            let query = supabaseAdmin.from('sheets').select('*');
+        const applyFilters = (query: any) => {
+            let q2 = query;
             if (courseIds) {
-                query = query.in('course_id', courseIds);
+                q2 = q2.in('course_id', courseIds);
             }
             if (String(q || '').trim()) {
                 const pattern = `%${String(q).trim()}%`;
-                query = query.or(`exam_type.ilike.${pattern},cycle.ilike.${pattern},teacher_hint.ilike.${pattern}`);
+                q2 = q2.or(`exam_type.ilike.${pattern},cycle.ilike.${pattern},teacher_hint.ilike.${pattern}`);
             }
-            return query;
+            return q2;
         };
 
-        // 3. Get TOTAL counts for visible and hidden (filtered)
+        // 2. Get TOTAL counts for visible and hidden (filtered)
         const [visibleTotalRes, hiddenTotalRes] = await Promise.all([
-            buildBaseQuery().eq('is_hidden', false).select('*', { count: 'exact', head: true }),
-            buildBaseQuery().eq('is_hidden', true).select('*', { count: 'exact', head: true })
+            applyFilters(
+                supabaseAdmin.from('sheets').select('id', { count: 'exact', head: true })
+            ).eq('is_hidden', false),
+            applyFilters(
+                supabaseAdmin.from('sheets').select('id', { count: 'exact', head: true })
+            ).eq('is_hidden', true)
         ]);
 
         const visibleTotal = visibleTotalRes.count ?? 0;
         const hiddenTotal = hiddenTotalRes.count ?? 0;
         const total = visibleTotal + hiddenTotal;
 
-        // 4. Fetch the actual page of data
+        // 3. Fetch the actual page of data
         let mainQuery = supabaseAdmin
             .from('sheets')
             .select('id, exam_type, cycle, teacher_hint, avg_difficulty, rating_count, view_count, solution_kind, thumb_storage_path, is_hidden, courses:course_id (code,name)')
