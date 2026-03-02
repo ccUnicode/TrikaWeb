@@ -616,19 +616,26 @@ import Layout from "../../layouts/Layout.astro";
           return;
         }
 
-        // Step 2.5: Upload Thumbnail
-        if (thumbBlob && urlData.thumbSignedUrl) {
-            setUploadUI("Subiendo miniatura...", 60);
-            try {
-                await fetch(urlData.thumbSignedUrl, {
-                    method: "PUT",
-                    headers: { "Content-Type": "image/jpeg" },
-                    body: thumbBlob
-                });
-            } catch (thumbUploadErr) {
-                console.error("Thumb storage upload failed:", thumbUploadErr);
-                // Non-fatal, keep going
-            }
+        // Step 2.5: Upload Thumbnail (ONLY if we have blob AND signed url AND upload OK)
+        let uploadedThumbPath: string | null = null;
+
+        if (resourceKind === "PLANCHA" && thumbBlob && urlData.thumbSignedUrl && urlData.thumbPath) {
+          setUploadUI("Subiendo miniatura...", 60);
+
+          const thumbRes = await fetch(urlData.thumbSignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: thumbBlob,
+          });
+
+          if (!thumbRes.ok) {
+            const t = await thumbRes.text().catch(() => "");
+            console.error("Thumb upload failed:", thumbRes.status, t);
+            // No es fatal, pero NO guardes thumb_storage_path
+            uploadedThumbPath = null;
+          } else {
+            uploadedThumbPath = urlData.thumbPath;
+          }
         }
 
         // Step 3: Register metadata in DB
@@ -644,7 +651,8 @@ import Layout from "../../layouts/Layout.astro";
             resource_kind: resourceKind,
             storage_path: urlData.path,
             teacher_hint: teacherHint,
-            thumb_storage_path: urlData.thumbPath,
+            // ✅ Solo manda thumb si se subió realmente
+            thumb_storage_path: uploadedThumbPath,
           }),
         });
 
