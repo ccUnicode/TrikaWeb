@@ -5,9 +5,13 @@ import Layout from "../../layouts/Layout.astro";
 <Layout title="Gestionar Planchas | TrikaWeb Admin">
     <div class="min-h-screen py-8">
         <div class="mx-auto w-full max-w-5xl px-4">
-            <div class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap">
+            <div
+                class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap"
+            >
                 <div>
-                    <h1 class="text-2xl font-bold text-global-text">Gestionar Planchas</h1>
+                    <h1 class="text-2xl font-bold text-global-text">
+                        Gestionar Planchas
+                    </h1>
                     <p class="mt-1 text-sm text-global-text-muted">
                         Oculta o muestra planchas sin borrarlas
                     </p>
@@ -54,13 +58,25 @@ import Layout from "../../layouts/Layout.astro";
                 </div>
             </div>
 
-            <section class="rounded-2xl bg-global-surface border border-global-border p-6">
-                <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <section
+                class="rounded-2xl bg-global-surface border border-global-border p-6"
+            >
+                <div
+                    class="flex items-start justify-between gap-4 flex-wrap mb-4"
+                >
                     <div>
-                        <h2 class="text-lg font-semibold text-global-text">Planchas</h2>
+                        <h2 class="text-lg font-semibold text-global-text">
+                            Planchas
+                        </h2>
                         <p class="text-sm text-global-text-muted">
-                            <span id="visible-count" class="font-semibold text-global-text">0</span> visibles ·
-                            <span id="hidden-count" class="font-semibold text-global-text">0</span> ocultas
+                            <span
+                                id="visible-count"
+                                class="font-semibold text-global-text">0</span
+                            > visibles ·
+                            <span
+                                id="hidden-count"
+                                class="font-semibold text-global-text">0</span
+                            > ocultas
                         </p>
                     </div>
                     <div class="flex items-center gap-3 flex-wrap">
@@ -87,7 +103,11 @@ import Layout from "../../layouts/Layout.astro";
                 </div>
 
                 <div id="sheets-list" class="space-y-3"></div>
-                <div id="sheets-pagination" class="mt-6 flex items-center justify-between gap-3"></div>
+                <div
+                    id="sheets-pagination"
+                    class="mt-6 flex items-center justify-between gap-3"
+                >
+                </div>
             </section>
         </div>
     </div>
@@ -110,12 +130,22 @@ import Layout from "../../layouts/Layout.astro";
     };
 
     const listEl = document.getElementById("sheets-list") as HTMLDivElement;
-    const paginationEl = document.getElementById("sheets-pagination") as HTMLDivElement;
-    const courseInput = document.getElementById("sheets-course") as HTMLInputElement;
+    const paginationEl = document.getElementById(
+        "sheets-pagination",
+    ) as HTMLDivElement;
+    const courseInput = document.getElementById(
+        "sheets-course",
+    ) as HTMLInputElement;
     const qInput = document.getElementById("sheets-q") as HTMLInputElement;
-    const refreshBtn = document.getElementById("sheets-refresh") as HTMLButtonElement;
-    const visibleCountEl = document.getElementById("visible-count") as HTMLSpanElement;
-    const hiddenCountEl = document.getElementById("hidden-count") as HTMLSpanElement;
+    const refreshBtn = document.getElementById(
+        "sheets-refresh",
+    ) as HTMLButtonElement;
+    const visibleCountEl = document.getElementById(
+        "visible-count",
+    ) as HTMLSpanElement;
+    const hiddenCountEl = document.getElementById(
+        "hidden-count",
+    ) as HTMLSpanElement;
 
     let page = 1;
     const pageSize = 20;
@@ -130,7 +160,8 @@ import Layout from "../../layouts/Layout.astro";
 
     async function loadSheets(nextPage: number = 1) {
         page = nextPage;
-        listEl.innerHTML = "<div class='text-sm text-global-text-muted'>Cargando...</div>";
+        listEl.innerHTML =
+            "<div class='text-sm text-global-text-muted'>Cargando...</div>";
         paginationEl.innerHTML = "";
 
         const course = (courseInput?.value || "").trim();
@@ -151,8 +182,10 @@ import Layout from "../../layouts/Layout.astro";
             return;
         }
 
-        if (visibleCountEl) visibleCountEl.textContent = String(data?.counts?.visible ?? 0);
-        if (hiddenCountEl) hiddenCountEl.textContent = String(data?.counts?.hidden ?? 0);
+        if (visibleCountEl)
+            visibleCountEl.textContent = String(data?.counts?.visible ?? 0);
+        if (hiddenCountEl)
+            hiddenCountEl.textContent = String(data?.counts?.hidden ?? 0);
 
         const sheets: AdminSheet[] = data.sheets || [];
 
@@ -165,8 +198,11 @@ import Layout from "../../layouts/Layout.astro";
                     const courseLabel = s.course_code
                         ? `${escapeHtml(s.course_code)}${s.course_name ? ` - ${escapeHtml(s.course_name)}` : ""}`
                         : "Curso";
-                    const meta = `${escapeHtml(s.exam_type || "")}${s.cycle ? ` · ${escapeHtml(s.cycle)}` : ""}`.trim();
-                    const hint = s.teacher_hint ? escapeHtml(s.teacher_hint) : "";
+                    const meta =
+                        `${escapeHtml(s.exam_type || "")}${s.cycle ? ` · ${escapeHtml(s.cycle)}` : ""}`.trim();
+                    const hint = s.teacher_hint
+                        ? escapeHtml(s.teacher_hint)
+                        : "";
                     const badgeClass = s.is_hidden
                         ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
                         : "bg-green-500/10 border-green-500/30 text-green-400";
@@ -203,6 +239,14 @@ import Layout from "../../layouts/Layout.astro";
                                     >
                                         Ver
                                     </a>
+                                    <button
+                                        type="button"
+                                        class="delete-sheet-btn rounded-lg bg-red-600/20 border border-red-600/30 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+                                        data-sheet-id="${s.id}"
+                                        title="Eliminar permanentemente"
+                                    >
+                                        Eliminar
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -210,29 +254,79 @@ import Layout from "../../layouts/Layout.astro";
                 })
                 .join("");
 
-            document.querySelectorAll('.toggle-sheet-btn').forEach((btn) => {
-                btn.addEventListener('click', async () => {
+            document.querySelectorAll(".toggle-sheet-btn").forEach((btn) => {
+                btn.addEventListener("click", async () => {
                     const b = btn as HTMLButtonElement;
-                    const sheetId = Number(b.getAttribute('data-sheet-id'));
-                    const nextHidden = b.getAttribute('data-next-hidden') === 'true';
+                    const sheetId = Number(b.getAttribute("data-sheet-id"));
+                    const nextHidden =
+                        b.getAttribute("data-next-hidden") === "true";
 
                     b.disabled = true;
                     try {
-                        const res = await fetch('/api/admin/toggle-sheet', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ sheet_id: sheetId, is_hidden: nextHidden }),
+                        const res = await fetch("/api/admin/toggle-sheet", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({
+                                sheet_id: sheetId,
+                                is_hidden: nextHidden,
+                            }),
                         });
                         const out = await res.json().catch(() => null);
                         if (!res.ok || !out?.ok) {
-                            throw new Error(out?.error || 'No se pudo actualizar');
+                            throw new Error(
+                                out?.error || "No se pudo actualizar",
+                            );
                         }
                         await loadSheets(page);
                     } catch (e) {
                         console.error(e);
                         b.disabled = false;
-                        alert(e instanceof Error ? e.message : 'Error desconocido');
+                        alert(
+                            e instanceof Error
+                                ? e.message
+                                : "Error desconocido",
+                        );
+                    }
+                });
+            });
+
+            document.querySelectorAll(".delete-sheet-btn").forEach((btn) => {
+                btn.addEventListener("click", async () => {
+                    const b = btn as HTMLButtonElement;
+                    const sheetId = Number(b.getAttribute("data-sheet-id"));
+
+                    if (
+                        !confirm(
+                            "¿Estás seguro de que deseas eliminar esta plancha permanentemente? Esta acción no se puede deshacer.",
+                        )
+                    ) {
+                        return;
+                    }
+
+                    b.disabled = true;
+                    try {
+                        const res = await fetch("/api/admin/delete-sheet", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({ sheet_id: sheetId }),
+                        });
+                        const out = await res.json().catch(() => null);
+                        if (!res.ok || !out?.ok) {
+                            throw new Error(
+                                out?.error || "No se pudo eliminar la plancha",
+                            );
+                        }
+                        await loadSheets(page);
+                    } catch (e) {
+                        console.error(e);
+                        b.disabled = false;
+                        alert(
+                            e instanceof Error
+                                ? e.message
+                                : "Error desconocido",
+                        );
                     }
                 });
             });
@@ -264,18 +358,16 @@ import Layout from "../../layouts/Layout.astro";
                 </div>
             `;
 
-            (document.getElementById("sheets-prev") as HTMLButtonElement)?.addEventListener(
-                "click",
-                () => {
-                    if (page > 1) loadSheets(page - 1);
-                },
-            );
-            (document.getElementById("sheets-next") as HTMLButtonElement)?.addEventListener(
-                "click",
-                () => {
-                    if (page < totalPages) loadSheets(page + 1);
-                },
-            );
+            (
+                document.getElementById("sheets-prev") as HTMLButtonElement
+            )?.addEventListener("click", () => {
+                if (page > 1) loadSheets(page - 1);
+            });
+            (
+                document.getElementById("sheets-next") as HTMLButtonElement
+            )?.addEventListener("click", () => {
+                if (page < totalPages) loadSheets(page + 1);
+            });
         }
     }
 
