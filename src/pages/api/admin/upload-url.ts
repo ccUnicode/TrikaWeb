@@ -80,13 +80,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // Generate signed URL for Plancha
         const { data: pData, error: pError } = await supabaseAdmin.storage
             .from("exams")
-            .createSignedUploadUrl(path);
+            .createSignedUploadUrl(path, { upsert: true });
 
         // Generate signed URL for Solucionario
         solutionPath = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
         const { data: sData, error: sError } = await supabaseAdmin.storage
             .from("solutions")
-            .createSignedUploadUrl(solutionPath);
+            .createSignedUploadUrl(solutionPath, { upsert: true });
 
         if (pError || !pData || sError || !sData) {
             console.error("Error creating signed upload URLs for AMBOS:", pError, sError);
@@ -102,7 +102,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // Generate signed upload URL for the single file
         const { data: signedData, error: signedError } = await supabaseAdmin.storage
             .from(bucket)
-            .createSignedUploadUrl(path);
+            .createSignedUploadUrl(path, { upsert: true });
 
         if (signedError || !signedData) {
             console.error("Error creating signed upload URL:", signedError);
@@ -126,7 +126,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         thumbPath = `${normalizedCode}/${safeExam}/${safeCycle}.jpg`;
         const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
             .from("thumbnails")
-            .createSignedUploadUrl(thumbPath);
+            .createSignedUploadUrl(thumbPath, { upsert: true });
 
         if (!thumbError && thumbData) {
             thumbSignedUrl = thumbData.signedUrl;

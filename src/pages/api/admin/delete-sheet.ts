@@ -25,15 +25,44 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
+        // 1. Obtener los paths de almacenamiento antes de borrar el registro
+        const { data: sheetData, error: fetchError } = await supabaseAdmin
+            .from('sheets')
+            .select('exam_storage_path, solution_storage_path, thumb_storage_path')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !sheetData) {
+            console.error('Error fetching sheet data for deletion:', fetchError);
+            return new Response(JSON.stringify({ ok: false, error: 'La plancha no existe o ya fue eliminada' }), {
+                status: 404,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // 2. Eliminar de la base de datos
         const { error } = await supabaseAdmin.from('sheets').delete().eq('id', id);
 
         if (error) {
-            console.error('Error deleting sheet:', error);
-            return new Response(JSON.stringify({ ok: false, error: 'Error al eliminar plancha' }), {
+            console.error('Error deleting sheet from DB:', error);
+            return new Response(JSON.stringify({ ok: false, error: 'Error al eliminar registro de plancha' }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
+
+        // 3. Limpiar los archivos en Supabase Storage (para no dejar basura)
+        const storagePromises = [];
+        if (sheetData.exam_storage_path) {
+            storagePromises.push(supabaseAdmin.storage.from('exams').remove([sheetData.exam_storage_path]));
+        }
+        if (sheetData.solution_storage_path) {
+            storagePromises.push(supabaseAdmin.storage.from('solutions').remove([sheetData.solution_storage_path]));
+        }
+        if (sheetData.thumb_storage_path) {
+            storagePromises.push(supabaseAdmin.storage.from('thumbnails').remove([sheetData.thumb_storage_path]));
+        }
+        await Promise.allSettled(storagePromises);
 
         return new Response(JSON.stringify({ ok: true }), {
             status: 200,
