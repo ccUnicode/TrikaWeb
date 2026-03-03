@@ -25,7 +25,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        // 1. Obtener los paths de almacenamiento antes de borrar el registro
+        // Obtener los paths de almacenamiento antes de borrar el registro
         const { data: sheetData, error: fetchError } = await supabaseAdmin
             .from('sheets')
             .select('exam_storage_path, solution_storage_path, thumb_storage_path')
@@ -40,7 +40,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        // 2. Eliminar de la base de datos
+        // Eliminar de la base de datos
         const { error } = await supabaseAdmin.from('sheets').delete().eq('id', id);
 
         if (error) {
@@ -51,7 +51,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        // 3. Limpiar los archivos en Supabase Storage (para no dejar basura)
+        // Limpiar los archivos en Supabase Storage
         const storagePromises = [];
         if (sheetData.exam_storage_path) {
             storagePromises.push(supabaseAdmin.storage.from('exams').remove([sheetData.exam_storage_path]));

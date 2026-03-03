@@ -111,6 +111,39 @@ import Layout from "../../layouts/Layout.astro";
             </section>
         </div>
     </div>
+    <div
+        id="delete-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+    >
+        <div
+            class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300"
+        >
+            <h3 class="text-lg font-bold text-global-text mb-2">
+                ¿Eliminar plancha?
+            </h3>
+
+            <p
+                id="delete-modal-text"
+                class="text-global-text-muted text-sm mb-6"
+            >
+                Esta acción es permanente y no se puede deshacer.
+            </p>
+            <div class="flex justify-end gap-3">
+                <button
+                    id="cancel-delete-btn"
+                    class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
+                >
+                    Cancelar
+                </button>
+                <button
+                    id="confirm-delete-btn"
+                    class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium"
+                >
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
 </Layout>
 
 <script>
@@ -146,6 +179,64 @@ import Layout from "../../layouts/Layout.astro";
     const hiddenCountEl = document.getElementById(
         "hidden-count",
     ) as HTMLSpanElement;
+
+    const deleteModal = document.getElementById(
+        "delete-modal",
+    ) as HTMLDivElement;
+    const confirmDeleteBtn = document.getElementById(
+        "confirm-delete-btn",
+    ) as HTMLButtonElement;
+    const cancelDeleteBtn = document.getElementById(
+        "cancel-delete-btn",
+    ) as HTMLButtonElement;
+
+    let sheetIdToDelete: number | null = null;
+    let deleteBtnRef: HTMLButtonElement | null = null;
+
+    function showDeleteModal(sheetId: number, btn: HTMLButtonElement) {
+        sheetIdToDelete = sheetId;
+        deleteBtnRef = btn;
+        deleteModal.classList.remove("opacity-0", "pointer-events-none");
+        deleteModal.firstElementChild?.classList.remove("scale-95");
+        deleteModal.firstElementChild?.classList.add("scale-100");
+    }
+
+    function hideDeleteModal() {
+        deleteModal.classList.add("opacity-0", "pointer-events-none");
+        deleteModal.firstElementChild?.classList.remove("scale-100");
+        deleteModal.firstElementChild?.classList.add("scale-95");
+        sheetIdToDelete = null;
+        deleteBtnRef = null;
+    }
+
+    cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
+
+    confirmDeleteBtn?.addEventListener("click", async () => {
+        if (!sheetIdToDelete || !deleteBtnRef) return;
+
+        const b = deleteBtnRef;
+        const sheetId = sheetIdToDelete;
+        hideDeleteModal();
+
+        b.disabled = true;
+        try {
+            const res = await fetch("/api/admin/delete-sheet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ sheet_id: sheetId }),
+            });
+            const out = await res.json().catch(() => null);
+            if (!res.ok || !out?.ok) {
+                throw new Error(out?.error || "No se pudo eliminar la plancha");
+            }
+            await loadSheets(page);
+        } catch (e) {
+            console.error(e);
+            b.disabled = false;
+            alert(e instanceof Error ? e.message : "Error desconocido");
+        }
+    });
 
     let page = 1;
     const pageSize = 20;
@@ -292,42 +383,11 @@ import Layout from "../../layouts/Layout.astro";
             });
 
             document.querySelectorAll(".delete-sheet-btn").forEach((btn) => {
-                btn.addEventListener("click", async () => {
+                btn.addEventListener("click", () => {
                     const b = btn as HTMLButtonElement;
                     const sheetId = Number(b.getAttribute("data-sheet-id"));
 
-                    if (
-                        !confirm(
-                            "¿Estás seguro de que deseas eliminar esta plancha permanentemente? Esta acción no se puede deshacer.",
-                        )
-                    ) {
-                        return;
-                    }
-
-                    b.disabled = true;
-                    try {
-                        const res = await fetch("/api/admin/delete-sheet", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ sheet_id: sheetId }),
-                        });
-                        const out = await res.json().catch(() => null);
-                        if (!res.ok || !out?.ok) {
-                            throw new Error(
-                                out?.error || "No se pudo eliminar la plancha",
-                            );
-                        }
-                        await loadSheets(page);
-                    } catch (e) {
-                        console.error(e);
-                        b.disabled = false;
-                        alert(
-                            e instanceof Error
-                                ? e.message
-                                : "Error desconocido",
-                        );
-                    }
+                    showDeleteModal(sheetId, b);
                 });
             });
         }
