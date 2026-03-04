@@ -66,21 +66,50 @@ import Layout from "../../layouts/Layout.astro";
         <form id="upload-form" class="space-y-4">
           <!-- Row 1: Course Code & Cycle -->
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
+            <div class="relative" id="course-combobox-container">
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="course-code"
+                for="course-search"
               >
                 Curso
               </label>
-              <select
-                id="course-code"
-                name="course_code"
-                required
-                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer"
+              <div class="relative">
+                <input
+                  type="hidden"
+                  id="course-code"
+                  name="course_code"
+                  required
+                />
+                <input
+                  type="text"
+                  id="course-search"
+                  autocomplete="off"
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+                  placeholder="Cargando cursos..."
+                  required
+                />
+                <div
+                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="h-4 w-4 text-global-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+              <ul
+                id="course-dropdown"
+                class="absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
               >
-                <option value="" disabled selected>Cargando cursos...</option>
-              </select>
+              </ul>
             </div>
             <div>
               <label
@@ -466,10 +495,20 @@ import Layout from "../../layouts/Layout.astro";
     ) as HTMLButtonElement;
 
     type CourseOption = { code: string; name: string };
+    let allCourses: CourseOption[] = [];
 
-    const courseSelect = document.getElementById(
+    const courseSearchInput = document.getElementById(
+      "course-search",
+    ) as HTMLInputElement;
+    const courseCodeHidden = document.getElementById(
       "course-code",
-    ) as HTMLSelectElement;
+    ) as HTMLInputElement;
+    const courseDropdown = document.getElementById(
+      "course-dropdown",
+    ) as HTMLUListElement;
+    const courseComboboxContainer = document.getElementById(
+      "course-combobox-container",
+    );
 
     async function loadCourseOptions() {
       try {
@@ -481,31 +520,98 @@ import Layout from "../../layouts/Layout.astro";
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data?.ok) {
-          courseSelect.innerHTML = `<option value="" disabled selected>No se pudieron cargar cursos</option>`;
+          if (courseSearchInput)
+            courseSearchInput.placeholder = "No se pudieron cargar cursos";
           return;
         }
 
-        const courses: CourseOption[] = data.courses || [];
+        allCourses = data.courses || [];
 
-        if (!courses.length) {
-          courseSelect.innerHTML = `<option value="" disabled selected>No hay cursos disponibles</option>`;
+        if (!allCourses.length) {
+          if (courseSearchInput)
+            courseSearchInput.placeholder = "No hay cursos disponibles";
           return;
         }
 
-        courseSelect.innerHTML = `
-          <option value="" disabled selected>Selecciona un curso...</option>
-          ${courses
-            .map((c) => {
-              const label = `${c.code} - ${c.name}`;
-              return `<option value="${c.code}">${label}</option>`;
-            })
-            .join("")}
-        `;
+        if (courseSearchInput) {
+          courseSearchInput.placeholder = "Buscar curso (ej. Física, BFI01)...";
+          courseSearchInput.removeAttribute("disabled");
+        }
       } catch (e) {
         console.error(e);
-        courseSelect.innerHTML = `<option value="" disabled selected>Error cargando cursos</option>`;
+        if (courseSearchInput)
+          courseSearchInput.placeholder = "Error cargando cursos";
       }
     }
+
+    function renderCourseDropdown(coursesToRender: CourseOption[]) {
+      if (!courseDropdown) return;
+      if (coursesToRender.length === 0) {
+        courseDropdown.innerHTML = `<li class="px-4 py-3 text-sm text-global-text-muted text-center cursor-default">No se encontraron cursos.</li>`;
+        return;
+      }
+
+      courseDropdown.innerHTML = coursesToRender
+        .map((c) => {
+          const label = `${c.code} - ${c.name}`;
+          return `<li data-code="${c.code}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
+        })
+        .join("");
+
+      const items = courseDropdown.querySelectorAll("li[data-code]");
+      items.forEach((item) => {
+        item.addEventListener("click", () => {
+          const code = item.getAttribute("data-code") || "";
+          const label = item.getAttribute("data-label") || "";
+          if (courseCodeHidden) courseCodeHidden.value = code;
+          if (courseSearchInput) courseSearchInput.value = label;
+          courseDropdown.classList.add("hidden");
+        });
+      });
+    }
+
+    courseSearchInput?.addEventListener("input", (e) => {
+      const query = (e.target as HTMLInputElement).value.toLowerCase();
+      // Ocultar valor real si editan para forzar la selección válida
+      if (courseCodeHidden) courseCodeHidden.value = "";
+
+      const filtered = allCourses.filter(
+        (c) =>
+          c.code.toLowerCase().includes(query) ||
+          c.name.toLowerCase().includes(query),
+      );
+      renderCourseDropdown(filtered);
+      courseDropdown?.classList.remove("hidden");
+    });
+
+    courseSearchInput?.addEventListener("focus", () => {
+      courseSearchInput.select();
+      if (allCourses.length > 0) {
+        const query = courseSearchInput.value.toLowerCase();
+        const filtered = allCourses.filter(
+          (c) =>
+            c.code.toLowerCase().includes(query) ||
+            c.name.toLowerCase().includes(query),
+        );
+        renderCourseDropdown(filtered);
+        courseDropdown?.classList.remove("hidden");
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!courseComboboxContainer?.contains(e.target as Node)) {
+        courseDropdown?.classList.add("hidden");
+      }
+    });
+
+    // Enforce selection from list
+    courseSearchInput?.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (courseCodeHidden && !courseCodeHidden.value) {
+          courseSearchInput.value = "";
+        }
+      }, 150);
+    });
 
     document.addEventListener("DOMContentLoaded", () => {
       loadCourseOptions();
