@@ -26,7 +26,7 @@
     "pdf-to-base64": "^1.0.3",
     "pdf2pic": "^3.2.0",
     "pdfjs-dist": "^5.5.207",
-    "puppeteer": "^24.37.5",
+    "puppeteer": "^24.38.0",
     "tailwindcss": "^4.1.15",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"

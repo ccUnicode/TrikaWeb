@@ -59,8 +59,7 @@ async function downloadFromStorage(bucket, storagePath, outPath) {
   fs.writeFileSync(outPath, buffer);
 }
 
-async function renderFirstPageToJpg(pdfPath) {
-  const browser = await puppeteer.launch({ headless: "new" });
+async function renderFirstPageToJpg(browser, pdfPath) {
   const page = await browser.newPage();
 
   // Leer PDF y convertir a base64
@@ -121,7 +120,7 @@ async function renderFirstPageToJpg(pdfPath) {
     quality: 90
   });
 
-  await browser.close();
+  await page.close();
   return buffer;
 }
 
@@ -139,8 +138,11 @@ async function uploadThumb(buffer, thumbPath) {
 async function main() {
   console.log("Rebuilding missing thumbnails...");
 
-  // Trae sheets en “páginas” para no reventar memoria
-  let from = 0;
+  const browser = await puppeteer.launch({ headless: "new" });
+
+  try {
+    // Trae sheets en “páginas” para no reventar memoria
+    let from = 0;
   const pageSize = 200;
 
   while (true) {
@@ -175,7 +177,7 @@ async function main() {
         await downloadFromStorage("exams", examPath, tmpPdf);
 
         // 2) render
-        const jpgBuffer = await renderFirstPageToJpg(tmpPdf);
+        const jpgBuffer = await renderFirstPageToJpg(browser, tmpPdf);
 
         // 3) upload thumb
         await uploadThumb(jpgBuffer, thumbPath);
@@ -200,6 +202,9 @@ async function main() {
   }
 
   console.log("Done.");
+  } finally {
+    await browser.close();
+  }
 }
 
 main().catch((e) => {
