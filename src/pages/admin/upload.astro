@@ -426,7 +426,7 @@ import Layout from "../../layouts/Layout.astro";
       const trimmed = code.trim().toUpperCase();
 
       // Validar formato de código de curso (3 letras + 2 dígitos)
-      if (!/^[A-Z]{3}[0-9]{2}$/.test(trimmed)) {
+      if (!/^[A-Z]{2,4}[0-9]{2,3}$/.test(trimmed)) {
         teacherSelect.innerHTML = '<option value="">-- Ingresa un curso válido --</option>';
         teacherSelect.disabled = true;
         return;
@@ -473,7 +473,7 @@ import Layout from "../../layouts/Layout.astro";
 
     courseCodeInput?.addEventListener("input", () => {
       const val = courseCodeInput.value.trim().toUpperCase();
-      if (/^[A-Z]{3}[0-9]{2}$/.test(val)) {
+      if (/^[A-Z]{2,4}[0-9]{2,3}$/.test(val)) {
         loadTeachersByCourse(val);
       }
     });
