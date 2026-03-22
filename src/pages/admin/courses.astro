@@ -204,6 +204,13 @@ if (!isAdmin) {
                                 >
                                     ${c.is_hidden ? "Mostrar" : "Ocultar"}
                                 </button>
+                                <button
+                                    type="button"
+                                    class="delete-course-btn w-[72px] rounded-lg border border-red-600/30 bg-red-600/20 px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-600/30 cursor-pointer"
+                                    data-course-id="${c.id}"
+                                >
+                                    Eliminar
+                                </button>
                                 <div class="text-xs text-global-text-muted w-10 text-right">ID: ${c.id}</div>
                             </div>
                         </div>
@@ -235,6 +242,36 @@ if (!isAdmin) {
                         console.error(e);
                         b.disabled = false;
                         alert(e instanceof Error ? e.message : 'Error desconocido');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-course-btn').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const b = btn as HTMLButtonElement;
+                    const courseId = Number(b.getAttribute('data-course-id'));
+                    
+                    if (!confirm('¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus carpetas, planchas y calificaciones asociadas. Esta acción no se puede deshacer.')) {
+                        return;
+                    }
+
+                    b.disabled = true;
+                    try {
+                        const res = await fetch('/api/admin/delete-course', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ course_id: courseId }),
+                        });
+                        const out = await res.json().catch(() => null);
+                        if (!res.ok || !out?.ok) {
+                            throw new Error(out?.error || 'No se pudo eliminar el curso');
+                        }
+                        await loadCourses(page);
+                    } catch (e) {
+                        console.error(e);
+                        b.disabled = false;
+                        alert(e instanceof Error ? e.message : 'Error desconocido al eliminar');
                     }
                 });
             });
