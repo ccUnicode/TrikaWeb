@@ -91,7 +91,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // 3. Fetch the actual page of data
         let mainQuery = supabaseAdmin
             .from('sheets')
-            .select('id, exam_type, cycle, teacher_hint, avg_difficulty, rating_count, view_count, solution_kind, thumb_storage_path, is_hidden, courses:course_id (code,name)')
+            .select('id, exam_type, cycle, teacher_hint, avg_difficulty, rating_count, view_count, solution_kind, exam_storage_path, solution_storage_path, thumb_storage_path, is_hidden, courses:course_id (code,name)')
             .order('cycle', { ascending: false })
             .order('exam_type', { ascending: true })
             .range(from, to);
@@ -125,6 +125,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 rating_count: s.rating_count ?? 0,
                 view_count: s.view_count ?? 0,
                 solution_kind: s.solution_kind ?? null,
+                exam_storage_path: s.exam_storage_path ?? null,
+                solution_storage_path: s.solution_storage_path ?? null,
                 thumb_storage_path: s.thumb_storage_path ?? null,
                 is_hidden: s.is_hidden ?? false,
                 course_code: courseData?.code ?? null,
