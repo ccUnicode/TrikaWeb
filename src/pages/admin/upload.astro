@@ -1,5 +1,11 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
+
+const isAdmin = await validateAdminSession(Astro.cookies);
+if (!isAdmin) {
+  return Astro.redirect("/admin/login");
+}
 ---
 
 <Layout title="Admin – Subir material | TrikaWeb">
@@ -161,7 +167,7 @@ import Layout from "../../layouts/Layout.astro";
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="file"
               >
-                PDF de la Plancha <span class="text-global-text-muted text-xs">(opcional si subes soluc.)</span>
+                PDF de la Plancha
               </label>
               <label
                 for="file"
@@ -192,9 +198,7 @@ import Layout from "../../layouts/Layout.astro";
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="solution-file"
               >
-                PDF del Solucionario <span class="text-global-text-muted"
-                  >(opcional)</span
-                >
+                PDF del Solucionario
               </label>
               <label
                 for="solution-file"
@@ -757,12 +761,16 @@ import Layout from "../../layouts/Layout.astro";
       }
 
       if (!courseCode || !cycle || !examType) {
-        alert("Por favor completa los metadatos del curso, ciclo y evaluación.");
+        alert(
+          "Por favor completa los metadatos del curso, ciclo y evaluación.",
+        );
         return;
       }
 
       if (!hasPlancha && !hasSolution) {
-        alert("Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).");
+        alert(
+          "Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).",
+        );
         return;
       }
 
@@ -818,8 +826,11 @@ import Layout from "../../layouts/Layout.astro";
 
         // Step 2.5: Upload Solution PDF if present
         if (resourceKind === "SOLUCIONARIO" || resourceKind === "AMBOS") {
-          const solUrl = resourceKind === "AMBOS" ? urlData.solutionSignedUrl : urlData.signedUrl;
-          
+          const solUrl =
+            resourceKind === "AMBOS"
+              ? urlData.solutionSignedUrl
+              : urlData.signedUrl;
+
           if (solUrl && solutionFile) {
             setUploadUI("Subiendo solucionario a Storage...", 50);
 
