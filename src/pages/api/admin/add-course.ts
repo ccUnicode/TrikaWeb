@@ -34,7 +34,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const code = normalizeCode(body.code);
         const name = normalizeName(body.name);
         const credits = normalizeCredits(body.credits);
+        const system_id =
+            body.system_id !== undefined && body.system_id !== ""
+                ? Number(body.system_id)
+                : null;
 
+        if (system_id !== null && !Number.isInteger(system_id)) {
+            throw new Error("system_id inválido");
+        }
+
+        const subsystem_id =
+            body.subsystem_id !== undefined && body.subsystem_id !== ""
+                ? Number(body.subsystem_id)
+                : null;
+
+        if (subsystem_id !== null && !Number.isInteger(subsystem_id)) {
+            throw new Error("subsystem_id inválido");
+        }
 
         if (!code || code.length < 2) {
             return new Response(JSON.stringify({ ok: false, error: 'El código es requerido (mínimo 2 caracteres)' }), {
@@ -60,6 +76,71 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
+        if (!Number.isInteger(system_id)) {
+            return new Response(JSON.stringify({ ok: false, error: 'Debe seleccionar un sistema de evaluación' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        const { data: requiresData, error: requiresError } = await supabaseAdmin.rpc(
+            "get_evaluation_systems"
+        );
+
+        if (requiresError) {
+            console.error(requiresError);
+            return new Response(JSON.stringify({ ok: false, error: 'Error validando sistema' }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        const system = requiresData?.find((s: any) => s.system_id === system_id);
+
+        if (!system) {
+            return new Response(JSON.stringify({ ok: false, error: 'Sistema de evaluación inválido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (system.requires_subsystem && !subsystem_id) {
+            return new Response(JSON.stringify({ ok: false, error: 'Debe seleccionar un subsistema' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (!system.requires_subsystem && subsystem_id) {
+            return new Response(JSON.stringify({ ok: false, error: 'Este sistema no admite subsistema' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        if (subsystem_id) {
+            const { data: subsystems, error: subError } = await supabaseAdmin.rpc(
+                "get_evaluation_subsystems"
+            );
+
+            if (subError) {
+                console.error(subError);
+                return new Response(JSON.stringify({ ok: false, error: 'Error validando subsistema' }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+
+            const exists = subsystems?.some((s: any) => s.subsystem_id === subsystem_id);
+
+            if (!exists) {
+                return new Response(JSON.stringify({ ok: false, error: 'Subsistema inválido' }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' },
+                });
+            }
+        }
+
         const { data: existing, error: existingError } = await supabaseAdmin
             .from('courses')
             .select('id')
@@ -83,8 +164,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         const { data: course, error: insertError } = await supabaseAdmin
             .from('courses')
-            .insert({ code, name, credits, is_hidden: false })
-            .select('id, code, name, is_hidden')
+            .insert({
+                code,
+                name,
+                credits,
+                system_id,
+                subsystem_id,
+                is_hidden: false
+            })
+            .select('id, code, name, system_id, subsystem_id, is_hidden')
             .single();
 
         if (insertError || !course) {
@@ -95,10 +183,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        return new Response(JSON.stringify({ ok: true, course: { ...course, is_hidden: course.is_hidden ?? false } }), {
+        return new Response(JSON.stringify({
+            ok: true,
+            course: {
+                ...course,
+                is_hidden: course.is_hidden ?? false
+            }
+        }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });
+
     } catch (err) {
         console.error('add-course API error:', err);
         return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor' }), {
