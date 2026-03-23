@@ -161,7 +161,7 @@ import Layout from "../../layouts/Layout.astro";
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="file"
               >
-                PDF de la Plancha <span class="text-red-400">*</span>
+                PDF de la Plancha <span class="text-global-text-muted text-xs">(opcional si subes soluc.)</span>
               </label>
               <label
                 for="file"
@@ -184,7 +184,6 @@ import Layout from "../../layouts/Layout.astro";
                 name="file"
                 type="file"
                 accept="application/pdf"
-                required
                 class="hidden"
               />
             </div>
@@ -746,14 +745,24 @@ import Layout from "../../layouts/Layout.astro";
       const solutionFile = (formData.get("solution_file") as File) || null;
 
       let resourceKind = "PLANCHA";
-      if (solutionFile && solutionFile.size > 0) {
+      const hasPlancha = file && file.size > 0;
+      const hasSolution = solutionFile && solutionFile.size > 0;
+
+      if (hasPlancha && hasSolution) {
         resourceKind = "AMBOS";
+      } else if (hasPlancha) {
+        resourceKind = "PLANCHA";
+      } else if (hasSolution) {
+        resourceKind = "SOLUCIONARIO";
       }
 
-      if (!courseCode || !cycle || !examType || !file || file.size === 0) {
-        alert(
-          "Por favor completa todos los campos requeridos (el PDF de la plancha es obligatorio).",
-        );
+      if (!courseCode || !cycle || !examType) {
+        alert("Por favor completa los metadatos del curso, ciclo y evaluación.");
+        return;
+      }
+
+      if (!hasPlancha && !hasSolution) {
+        alert("Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).");
         return;
       }
 
@@ -788,42 +797,44 @@ import Layout from "../../layouts/Layout.astro";
           thumbBlob = await generatePdfThumbnail(file);
         }
 
-        // Step 2: Upload plancha PDF directly to Supabase Storage
-        setUploadUI("Subiendo plancha a Storage...", 40);
+        // Step 2: Upload plancha PDF directly to Storage (If present)
+        if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+          setUploadUI("Subiendo plancha a Storage...", 40);
 
-        const uploadRes = await fetch(urlData.signedUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "application/pdf" },
-          body: file,
-        });
+          const uploadRes = await fetch(urlData.signedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/pdf" },
+            body: file,
+          });
 
-        if (!uploadRes.ok) {
-          const errText = await uploadRes.text();
-          console.error("Storage upload failed:", errText);
-          setUploadUI("❌ Error al subir la plancha a Storage", 40, false);
-          submitBtn?.removeAttribute("disabled");
-          return;
+          if (!uploadRes.ok) {
+            const errText = await uploadRes.text();
+            console.error("Storage upload failed:", errText);
+            setUploadUI("❌ Error al subir la plancha a Storage", 40, false);
+            submitBtn?.removeAttribute("disabled");
+            return;
+          }
         }
 
         // Step 2.5: Upload Solution PDF if present
-        if (
-          resourceKind === "AMBOS" &&
-          solutionFile &&
-          urlData.solutionSignedUrl
-        ) {
-          setUploadUI("Subiendo solucionario a Storage...", 50);
+        if (resourceKind === "SOLUCIONARIO" || resourceKind === "AMBOS") {
+          const solUrl = resourceKind === "AMBOS" ? urlData.solutionSignedUrl : urlData.signedUrl;
+          
+          if (solUrl && solutionFile) {
+            setUploadUI("Subiendo solucionario a Storage...", 50);
 
-          const solutionUploadRes = await fetch(urlData.solutionSignedUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "application/pdf" },
-            body: solutionFile,
-          });
+            const solutionUploadRes = await fetch(solUrl, {
+              method: "PUT",
+              headers: { "Content-Type": "application/pdf" },
+              body: solutionFile,
+            });
 
-          if (!solutionUploadRes.ok) {
-            console.error("Solution upload failed");
-            setUploadUI("❌ Error al subir el solucionario", 50, false);
-            submitBtn?.removeAttribute("disabled");
-            return;
+            if (!solutionUploadRes.ok) {
+              console.error("Solution upload failed");
+              setUploadUI("❌ Error al subir el solucionario", 50, false);
+              submitBtn?.removeAttribute("disabled");
+              return;
+            }
           }
         }
 
