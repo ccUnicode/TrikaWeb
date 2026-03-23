@@ -5,7 +5,7 @@ import { validateAdminSession } from "../../lib/adminAuth";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
 if (!isAdmin) {
-    return Astro.redirect("/admin/login");
+  return Astro.redirect("/admin/login");
 }
 ---
 
@@ -13,9 +13,9 @@ if (!isAdmin) {
   <div class="min-h-screen py-8">
     <div class="mx-auto w-full max-w-3xl px-4">
       <!-- Header Section -->
-      <AdminHeader 
-          title="Panel de subida" 
-          description="Sube PDFs de planchas y solucionarios" 
+      <AdminHeader
+        title="Panel de subida"
+        description="Sube PDFs de planchas y solucionarios"
       />
 
       <!-- Upload Form Card -->
@@ -134,7 +134,7 @@ if (!isAdmin) {
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="file"
               >
-                PDF de la Plancha <span class="text-global-text-muted text-xs">(opcional si subes soluc.)</span>
+                PDF de la Plancha
               </label>
               <label
                 for="file"
@@ -165,9 +165,7 @@ if (!isAdmin) {
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="solution-file"
               >
-                PDF del Solucionario <span class="text-global-text-muted"
-                  >(opcional)</span
-                >
+                PDF del Solucionario
               </label>
               <label
                 for="solution-file"
@@ -666,12 +664,16 @@ if (!isAdmin) {
       }
 
       if (!courseCode || !cycle || !examType) {
-        alert("Por favor completa los metadatos del curso, ciclo y evaluación.");
+        alert(
+          "Por favor completa los metadatos del curso, ciclo y evaluación.",
+        );
         return;
       }
 
       if (!hasPlancha && !hasSolution) {
-        alert("Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).");
+        alert(
+          "Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).",
+        );
         return;
       }
 
@@ -727,8 +729,11 @@ if (!isAdmin) {
 
         // Step 2.5: Upload Solution PDF if present
         if (resourceKind === "SOLUCIONARIO" || resourceKind === "AMBOS") {
-          const solUrl = resourceKind === "AMBOS" ? urlData.solutionSignedUrl : urlData.signedUrl;
-          
+          const solUrl =
+            resourceKind === "AMBOS"
+              ? urlData.solutionSignedUrl
+              : urlData.signedUrl;
+
           if (solUrl && solutionFile) {
             setUploadUI("Subiendo solucionario a Storage...", 50);
 
