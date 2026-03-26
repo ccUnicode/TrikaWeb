@@ -67,6 +67,31 @@ if (!isAdmin) {
                             required
                         />
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-global-text-muted mb-1.5">
+                            Sistema de evaluación
+                        </label>
+                        <select
+                            id="course-system"
+                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text"
+                            required
+                        >
+                            <option value="">Seleccionar...</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-global-text-muted mb-1.5">
+                            Subsistema
+                        </label>
+                        <select
+                            id="course-subsystem"
+                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text"
+                            disabled
+                        >
+                            <option value="">Seleccionar...</option>
+                        </select>
+                    </div>
                     <div class="sm:col-span-3 flex items-center gap-3">
                         <button
                             type="submit"
@@ -131,6 +156,9 @@ if (!isAdmin) {
     const codeInput = document.getElementById("course-code") as HTMLInputElement;
     const nameInput = document.getElementById("course-name") as HTMLInputElement;
     const creditsInput = document.getElementById("course-credits") as HTMLInputElement;
+
+    const systemSelect = document.getElementById("course-system") as HTMLSelectElement;
+    const subsystemSelect = document.getElementById("course-subsystem") as HTMLSelectElement;
 
     let page = 1;
     let pageSize = 30;
@@ -316,12 +344,82 @@ if (!isAdmin) {
         }
     }
 
+    async function loadSystems() {
+    const res = await fetch("/api/admin/evaluation-systems");
+    const systems = await res.json();
+
+    systemSelect.innerHTML =
+        `<option value="">Seleccionar...</option>` +
+        systems.map((s: any) => `
+            <option 
+                value="${s.system_id}" 
+                data-requires="${s.requires_subsystem}"
+            >
+                ${s.system_cod} - ${s.system_description}
+            </option>
+        `).join("");
+    }
+
+    async function loadSubsystems() {
+        try {
+            const res = await fetch("/api/admin/evaluation-subsystems", {
+                credentials: "include"
+            });
+
+            const result = await res.json();
+
+            if (!result.ok) {
+                console.error("Error:", result.error);
+                return;
+            }
+
+            const subsystems = result.subsystems;
+
+            subsystemSelect.innerHTML =
+                `<option value="">Seleccionar...</option>` +
+                subsystems.map((s: any) => `
+                    <option value="${s.subsystem_id}">
+                        ${s.subsystem_cod} (${s.practices_quantity})
+                    </option>
+                `).join("");
+
+        } catch (err) {
+            console.error("Error cargando subsistemas:", err);
+        }
+    }
+
+    systemSelect.addEventListener("change", () => {
+        const selected = systemSelect.selectedOptions[0];
+        const requires = selected.getAttribute("data-requires") === "true";
+
+        if (requires) {
+            subsystemSelect.disabled = false;
+            subsystemSelect.classList.remove("opacity-60", "cursor-not-allowed");
+            if (subsystemSelect.options.length > 0) {
+                subsystemSelect.options[0].text = "Seleccionar...";
+            }
+
+        } else {
+            subsystemSelect.disabled = true;
+            subsystemSelect.value = "";
+            subsystemSelect.classList.add("opacity-60", "cursor-not-allowed");
+            if (subsystemSelect.options.length > 0) {
+                subsystemSelect.options[0].text = "No aplica";
+            }
+        }
+    });
+
     addForm?.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const code = (codeInput?.value || "").trim();
         const name = (nameInput?.value || "").trim();
         const credits = Number((creditsInput?.value || "").trim());
+        const system_id = Number(systemSelect.value) || null;
+        const subsystem_id = subsystemSelect.value ? Number(subsystemSelect.value) : null;
+
+        console.log("SYSTEM:", system_id);
+        console.log("SUBSYSTEM:", subsystemSelect.value);
 
         if (!Number.isInteger(credits) || credits <= 0) {
         setFeedback("Créditos inválidos (entero mayor a 0).", "error");
@@ -335,7 +433,7 @@ if (!isAdmin) {
         const res = await fetch("/api/admin/add-course", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, name, credits }),
+            body: JSON.stringify({ code, name, credits, system_id, subsystem_id }),
         });
 
         const data = await res.json().catch(() => null);
@@ -352,6 +450,9 @@ if (!isAdmin) {
         nameInput.value = "";
         searchInput.value = "";
         creditsInput.value = "";
+        systemSelect.value = "";
+        subsystemSelect.value = "";
+        subsystemSelect.disabled = true;
         await loadCourses(1);
     });
 
@@ -366,6 +467,8 @@ if (!isAdmin) {
     refreshBtn?.addEventListener("click", () => loadCourses(page));
 
     document.addEventListener("DOMContentLoaded", () => {
+        loadSystems();
+        loadSubsystems();
         loadCourses(1);
     });
 </script>
