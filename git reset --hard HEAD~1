@@ -1,0 +1,110 @@
+[33m0465e69[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/rf-30-profesor-dropdown[m[33m, [m[1;31morigin/feature/rf-30-profesor-dropdown[m[33m)[m Merge branch 'integration-test-func-4' into feature/rf-30-profesor-dropdown
+[33mf14f3d2[m feat/delete-course-teacher
+[33m89995a9[m feature/evaluation-system
+[33mb6665a0[m feat/add-courses
+[33m846cf80[m[33m ([m[1;31morigin/feat/add-courses[m[33m, [m[1;32mfeat/add-courses[m[33m)[m Pequeña corrección en los textos
+[33m0ea56c4[m fix: Ahora el sistema permite subir solucionario a una plancha existente
+[33m314063d[m add: Implementación de los Botones eliminar plancha y solucionario de manera independiente
+[33m3231878[m[33m ([m[1;31morigin/feature/evaluation-system[m[33m, [m[1;32mfeature/evaluation-system[m[33m)[m feat: selectores de sistema y subsistema de evaluación
+[33mb3dfcda[m Merge pull request #53 from ccUnicode/feat/add-courses
+[33m4ed6d73[m[33m ([m[1;31morigin/feat/delete-course-teacher[m[33m)[m RF-31 RF-32: delete course and delete teacher endpoints + admin delete button
+[33mf2dd59d[m fix(RF-30): broaden course code regex to accept XX000 format (FB403, FB303)
+[33mf34fef1[m feat(RF-30): add teacher dropdown filtered by course in upload form
+[33md6d8d4c[m fix: correcting errors
+[33mc1be417[m Incorporé un buscador de cursos a la lista desplegable
+[33mf41e0cb[m Sustituimos 'window.confirm' por una ventana modal para la confirmación de eliminación permanente
+[33m069c0e5[m Borrar archivo dev.log
+[33m60bc9f2[m Arreglar el error al momento de eliminar una plancha (Borrado correcto de la BD)
+[33m8f85954[m feat: ahora en el panel de subida se puede subir plancha y solucionario a la vez, este último siendo opcional.
+[33mdd0c7f1[m feat: agregar funcionalidad para eliminar planchas en el panel de admin
+[33mfc85e66[m fix: corrigiendo miniaturas que no se veían
+[33m633d0b4[m Corrigiendo el contador para las planchas
+[33mb24d46c[m feat: selector de cursos
+[33m15006aa[m feat: agrego input de créditos
+[33ma18eacc[m feat: agrego mejoras adicionales
+[33me4a5330[m feat: corrigiendo errores
+[33ma4b7f2a[m prueba para poder subir cursos
+[33m28747cb[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/dev[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Merge pull request #49 from ccUnicode/fix/direct-upload
+[33mcc22626[m[33m ([m[1;31morigin/fix/direct-upload[m[33m)[m fix: direct upload to Supabase Storage (bypass Vercel 4.5MB limit)
+[33mc0dc11c[m fix(admin): replace admin_pass with session cookie validation - upload.ts: validate admin_session cookie instead of FormData admin_pass - drive-sync.ts: validate admin_session cookie instead of non-existent cookie
+[33m72344b6[m docs: agregar archivos faltantes de documentación
+[33ma4d1e9a[m docs: agregar flujos y mejorar documentación para onboarding
+[33m6569684[m Merge pull request #48 from ccUnicode/feat/docs
+[33m727c496[m[33m ([m[1;31morigin/feat/docs[m[33m)[m Eliminación de archivos que no aportaba
+[33m19b56f4[m Merge pull request #47 from ccUnicode/feat/docs
+[33m5267fff[m Actualización en la arquitectur y eliminación de la dependencia playwright para hacer pruebas automatizadas
+[33me4db984[m Merge pull request #46 from ccUnicode/feat/docs
+[33m41762c5[m Mejora en el readme y creación de la carpeta docs
+[33m671ace0[m Merge pull request #45 from ccUnicode/fix/frontend
+[33mf5f7bc1[m[33m ([m[1;31morigin/fix/frontend[m[33m)[m Mejora del responsive, sección de planchas
+[33me332e8c[m Merge pull request #44 from ccUnicode/fix/frontend
+[33mf5a32c3[m Mejora en el hover de las planchas
+[33m4d3b1fb[m Merge pull request #43 from ccUnicode/fix/frontend-hover
+[33m9d11f81[m[33m ([m[1;31morigin/fix/frontend-hover[m[33m)[m Mejora en el hover de varios botones y cards
+[33m7d6ac3e[m Merge pull request #42 from ccUnicode/fix/frontend
+[33m428ebbb[m Arreglo del frontend, hover en botones
+[33m8b44445[m Merge pull request #41 from ccUnicode/fix/frontend
+[33m1866d79[m Cambios en el hero section, responsive y UI
+[33me9fa5b3[m Merge pull request #40 from ccUnicode/fix/frontend
+[33ma78ebde[m Cambios dentro del frontend, paginación y UX
+[33m2015813[m fix: sitemap
+[33m0314812[m fix: se corrigio el sitemap.xml
+[33m5e4a423[m feat: sitemap dinamico que genera urls a partir de supabase, remove de planchas
+[33m59a966d[m update: sitemap renombrado
+[33mf996cc1[m Merge branch 'main' of https://github.com/ccUnicode/TrikaWeb
+[33m88846d4[m fix: sitemap corregido
+[33m855f43a[m fix: se agrego el redirect por hosting
+[33mbffd86e[m feat(admin): add teacher management and remove redundant auth
+[33m59feecd[m fix: tamaño de la searchbar
+[33m90861bf[m fix: se agrego correctamente el touch web app
+[33m113590e[m feat: nuevos archivos para el favicon mejorados
+[33m99591ee[m Merge pull request #39 from ccUnicode/flav
+[33m96f42fd[m flavionc
+[33mb0b3e5b[m feat: añadir buscador y badge Nuevo en panel admin de calificaciones
+[33m16d14a7[m feat: añadir panel admin para gestionar calificaciones de profesores
+[33mb04b21c[m feat: añadir funcionalidad de quitar voto en exámenes y calificaciones de profesores
+[33m5ca6b49[m style: mejorar hover en pestañas de tipo de examen
+[33mc02abd3[m style: unificar diseño cards profesores en home y seccion principal
+[33mfc31227[m feat: agregar tooltips de informacion en estadisticas del perfil de profesor
+[33m023d91c[m feat: mejoras en sistema de guardados y calificación de profesores - UX y feedback visual
+[33mb251cb3[m feat: mejoras de ui por feedback - ajustar logo, búsqueda y carruseles
+[33m1af033e[m feat: mejoras de accesibilidad
+[33m00dcb47[m update: se añadió favicon links para el SEO
+[33me027e7a[m fix: se corrigio el sitemap
+[33m616c6a5[m fix: se corrigio vercel.json
+[33m8cedcf0[m fix: se agregó cursor-pointer a lo faltante
+[33m2c33d4b[m feat(seo): mejoras SEO - rutas en español y sitemap dinámico
+[33m989caed[m update: se corrigio el url para robots.txt
+[33m3b3f6b9[m update: se modifico el loc del sitemap
+[33m13ba9a3[m feat: se añadió los logos en svg y se corrigio la direccion del site al nuevo dominio
+[33mb5f3aa2[m feat: se añadió un resumen luego de hacer una calificación de profesores
+[33m9942a21[m update: se cambió la UI de votación para planchas
+[33mb8e1789[m Refactorizando el proyecto y añadiendo test
+[33m82f3cf1[m fix: sitemap
+[33md9bfe6f[m feat: moderación de comentarios
+[33mcf2f440[m Archivo para verificación en Google Search
+[33mc5fece1[m SEO: se migró del dominio de trika-web a trikaweb
+[33mbe37b1b[m feat: se añadió el ordenamiento por calificación de los profesores
+[33mfc5adda[m feat: se añadió el texto hover para ver si el examen tiene solucionario
+[33m1fdc3aa[m fix: si no ponen comentarios no aparecen
+[33m2777bf1[m feat: se añadió la descarga de solucionarios
+[33m81123bc[m fix: se removio el Sin Comentario, ahora simplemente no aparece
+[33m0186ead[m update: se mejoró la UI de las votaciones junto a la lógica de calificaciones de profesores
+[33ma593c6e[m feat: se añadió correcatamente el filtro de las palabras en los comentarios
+[33me1d3c20[m feat: se mejoró la seguridad en las votaciones
+[33mb1db817[m Add Google Search Console verification
+[33m61f963d[m google .html
+[33ma68bcb6[m SEO
+[33m119121b[m feat: se añadio el swipe de planchas para la page de curso
+[33mf0ce9c1[m ix: se corrigio el label del search y el truncate de los nombres de los profesores
+[33m2573312[m feat: se mejoro la UI de las pages de cursos, de profesores de cada curso
+[33m6e417af[m NavBar Fix
+[33ma989b28[m update: se mejoro la UI de la page de cursos
+[33m699ac02[m fix: header fijo en todas las pages
+[33mee9e404[m fix: la votación se corrigió
+[33m35824ed[m fix: limpieza de la db y debug
+[33m3c2f469[m fix: se removió la vista antigua de planchas
+[33md673a4a[m fix: se oculto los dots en la vista de desktop, se añadió la vista de solucionarios de videos
+[33m2a2e667[m uwu2
+[33m02d714b[m uwu
+[33mf739f7d[m fix: la sincronización se tiene que hacer por

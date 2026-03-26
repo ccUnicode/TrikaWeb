@@ -117,13 +117,17 @@ if (!isAdmin) {
               >
                 Docente <span class="text-global-text-muted">(opcional)</span>
               </label>
-              <input
-                id="teacher-hint"
+              <select
+                id="teacher-select"
                 name="teacher_hint"
-                type="text"
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                placeholder="Prof. Arámbulo, etc."
-              />
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled
+              >
+                <option value="">Selecciona curso primero</option>
+              </select>
+              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">
+                Cargando profesores...
+              </p>
             </div>
           </div>
 
@@ -469,6 +473,8 @@ if (!isAdmin) {
     const courseComboboxContainer = document.getElementById(
       "course-combobox-container",
     );
+    const teacherSelect = document.getElementById("teacher-select") as HTMLSelectElement;
+    const teacherLoading = document.getElementById("teacher-loading") as HTMLParagraphElement;
 
     async function loadCourseOptions() {
       try {
@@ -526,33 +532,81 @@ if (!isAdmin) {
           if (courseCodeHidden) courseCodeHidden.value = code;
           if (courseSearchInput) courseSearchInput.value = label;
           courseDropdown.classList.add("hidden");
+          teacherSelect.innerHTML = '<option value="">Selecciona docente</option>';
+          teacherSelect.disabled = true;
+          loadTeachers(code);
         });
       });
     }
 
-    courseSearchInput?.addEventListener("input", (e) => {
-      const query = (e.target as HTMLInputElement).value.toLowerCase();
-      // Ocultar valor real si editan para forzar la selección válida
-      if (courseCodeHidden) courseCodeHidden.value = "";
+      async function loadTeachers(code: string) {
+        teacherSelect.disabled = true;
+        teacherSelect.innerHTML = '<option>Cargando...</option>';
+        teacherLoading.classList.remove("hidden");
 
-      const filtered = allCourses.filter(
-        (c) =>
-          c.code.toLowerCase().includes(query) ||
-          c.name.toLowerCase().includes(query),
-      );
-      renderCourseDropdown(filtered);
-      courseDropdown?.classList.remove("hidden");
-    });
+        try {
+          const res = await fetch(`/api/cursos/${code}/profesores`);
+          const data = await res.json();
+
+          if (data.ok && data.profesores.length > 0) {
+            teacherSelect.innerHTML =
+              '<option value="">Seleccionar docente</option>';
+
+            data.profesores.forEach((p: any) => {
+              const opt = document.createElement("option");
+              opt.value = p.id; // 🔥 importante
+              opt.textContent = p.full_name;
+              teacherSelect.appendChild(opt);
+            });
+
+            teacherSelect.disabled = false;
+          } else {
+            teacherSelect.innerHTML =
+              '<option value="">Sin profesores</option>';
+          }
+        } catch (err) {
+          console.error(err);
+          teacherSelect.innerHTML =
+            '<option value="">Error al cargar</option>';
+        } finally {
+          teacherLoading.classList.add("hidden");
+        }
+    }
+
+      courseSearchInput?.addEventListener("input", (e) => {
+        const query = (e.target as HTMLInputElement).value.toLowerCase();
+
+        courseCodeHidden.value = "";
+
+        const filtered = allCourses.filter((c) => {
+          const label = `${c.code} - ${c.name}`.toLowerCase();
+
+          return (
+            c.code.toLowerCase().includes(query) ||
+            c.name.toLowerCase().includes(query) ||
+            label.includes(query)
+          );
+        });
+
+        renderCourseDropdown(filtered);
+        courseDropdown?.classList.remove("hidden");
+      });
 
     courseSearchInput?.addEventListener("focus", () => {
+      courseSearchInput.value = "";
+      courseCodeHidden.value = "";
       courseSearchInput.select();
       if (allCourses.length > 0) {
         const query = courseSearchInput.value.toLowerCase();
-        const filtered = allCourses.filter(
-          (c) =>
+        const filtered = allCourses.filter((c) => {
+          const label = `${c.code} - ${c.name}`.toLowerCase();
+
+          return (
             c.code.toLowerCase().includes(query) ||
-            c.name.toLowerCase().includes(query),
-        );
+            c.name.toLowerCase().includes(query) ||
+            label.includes(query)
+          );
+        });
         renderCourseDropdown(filtered);
         courseDropdown?.classList.remove("hidden");
       }
