@@ -18,7 +18,6 @@ export const GET: APIRoute = async ({ params }) => {
       );
     }
 
-    // 🔥 1. Buscar curso en tabla REAL
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
       .select("id")
@@ -36,7 +35,6 @@ export const GET: APIRoute = async ({ params }) => {
       );
     }
 
-    // 🔥 2. Relación correcta courses_teachers → teachers
     const { data: teachers, error: teachersError } = await supabaseAdmin
       .from("courses_teachers")
       .select(`
@@ -51,7 +49,6 @@ export const GET: APIRoute = async ({ params }) => {
       throw teachersError;
     }
 
-    // 🔥 3. Formateo
     const profesoresFormateados =
       teachers?.map((t) => t.teachers).filter(Boolean) || [];
 
