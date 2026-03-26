@@ -1,0 +1,445 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
+
+const isAdmin = await validateAdminSession(Astro.cookies);
+if (!isAdmin) {
+    return Astro.redirect("/admin/login");
+}
+---
+
+<Layout title="Gestionar Planchas | TrikaWeb Admin">
+    <div class="min-h-screen py-8">
+        <div class="mx-auto w-full max-w-5xl px-4">
+            <AdminHeader 
+                title="Gestionar Planchas" 
+                description="Oculta o muestra planchas sin borrarlas" 
+            />
+
+            <section
+                class="rounded-2xl bg-global-surface border border-global-border p-6"
+            >
+                <div
+                    class="flex items-start justify-between gap-4 flex-wrap mb-4"
+                >
+                    <div>
+                        <h2 class="text-lg font-semibold text-global-text">
+                            Planchas
+                        </h2>
+                        <p class="text-sm text-global-text-muted">
+                            <span
+                                id="visible-count"
+                                class="font-semibold text-global-text">0</span
+                            > visibles ·
+                            <span
+                                id="hidden-count"
+                                class="font-semibold text-global-text">0</span
+                            > ocultas
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <input
+                            id="sheets-course"
+                            type="text"
+                            class="w-full sm:w-[260px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                            placeholder="Buscar por Curso (Nombre o Código)"
+                        />
+                        <input
+                            id="sheets-q"
+                            type="text"
+                            class="w-full sm:w-[260px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                            placeholder="Ciclo, Evaluación, Docente..."
+                        />
+                        <button
+                            id="sheets-refresh"
+                            type="button"
+                            class="rounded-xl bg-global-card border border-global-border px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+                        >
+                            Recargar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="sheets-list" class="space-y-3"></div>
+                <div
+                    id="sheets-pagination"
+                    class="mt-6 flex items-center justify-between gap-3"
+                >
+                </div>
+            </section>
+        </div>
+    </div>
+    <div
+        id="delete-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+    >
+        <div
+            class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300"
+        >
+            <h3 id="delete-modal-title" class="text-lg font-bold text-global-text mb-2">
+                ¿Eliminar?
+            </h3>
+            <p
+                id="delete-modal-text"
+                class="text-global-text-muted text-sm mb-6"
+            >
+                Esta acción es permanente y no se puede deshacer.
+            </p>
+            <div class="flex justify-end gap-3">
+                <button
+                    id="cancel-delete-btn"
+                    class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
+                >
+                    Cancelar
+                </button>
+                <button
+                    id="confirm-delete-btn"
+                    class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium"
+                >
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</Layout>
+
+<script>
+    type AdminSheet = {
+        id: number;
+        exam_type: string;
+        cycle: string;
+        teacher_hint: string | null;
+        avg_difficulty: number | null;
+        rating_count: number;
+        view_count: number;
+        solution_kind: string | null;
+        exam_storage_path: string | null;
+        solution_storage_path: string | null;
+        thumb_storage_path: string | null;
+        is_hidden: boolean;
+        course_code: string | null;
+        course_name: string | null;
+    };
+
+    const listEl = document.getElementById("sheets-list") as HTMLDivElement;
+    const paginationEl = document.getElementById(
+        "sheets-pagination",
+    ) as HTMLDivElement;
+    const courseInput = document.getElementById(
+        "sheets-course",
+    ) as HTMLInputElement;
+    const qInput = document.getElementById("sheets-q") as HTMLInputElement;
+    const refreshBtn = document.getElementById(
+        "sheets-refresh",
+    ) as HTMLButtonElement;
+    const visibleCountEl = document.getElementById(
+        "visible-count",
+    ) as HTMLSpanElement;
+    const hiddenCountEl = document.getElementById(
+        "hidden-count",
+    ) as HTMLSpanElement;
+
+    const deleteModal = document.getElementById(
+        "delete-modal",
+    ) as HTMLDivElement;
+    const deleteModalTitle = document.getElementById(
+        "delete-modal-title",
+    ) as HTMLHeadingElement;
+    const deleteModalText = document.getElementById(
+        "delete-modal-text",
+    ) as HTMLParagraphElement;
+    const confirmDeleteBtn = document.getElementById(
+        "confirm-delete-btn",
+    ) as HTMLButtonElement;
+    const cancelDeleteBtn = document.getElementById(
+        "cancel-delete-btn",
+    ) as HTMLButtonElement;
+
+    type DeleteTarget = 'exam' | 'solution' | 'row';
+
+    let sheetIdToDelete: number | null = null;
+    let deleteTarget: DeleteTarget = 'row';
+    let deleteBtnRef: HTMLButtonElement | null = null;
+
+    const DELETE_COPY: Record<DeleteTarget, { title: string; body: string }> = {
+        exam:     { title: '¿Eliminar la plancha?',     body: 'Se eliminarán el PDF y la miniatura. Si no tiene solucionario, el registro completo será borrado.' },
+        solution: { title: '¿Eliminar el solucionario?', body: 'Se eliminará el PDF del solucionario. La plancha se mantendrá. Si tampoco hay plancha, se borrará el registro.' },
+        row:      { title: '¿Eliminar el registro completo?', body: 'Se eliminarán todos los archivos asociados. Esta acción es permanente.' },
+    };
+
+    function showDeleteModal(sheetId: number, target: DeleteTarget, btn: HTMLButtonElement) {
+        sheetIdToDelete = sheetId;
+        deleteTarget = target;
+        deleteBtnRef = btn;
+        const copy = DELETE_COPY[target];
+        if (deleteModalTitle) deleteModalTitle.textContent = copy.title;
+        if (deleteModalText) deleteModalText.textContent = copy.body;
+        deleteModal.classList.remove("opacity-0", "pointer-events-none");
+        deleteModal.firstElementChild?.classList.remove("scale-95");
+        deleteModal.firstElementChild?.classList.add("scale-100");
+    }
+
+    function hideDeleteModal() {
+        deleteModal.classList.add("opacity-0", "pointer-events-none");
+        deleteModal.firstElementChild?.classList.remove("scale-100");
+        deleteModal.firstElementChild?.classList.add("scale-95");
+        sheetIdToDelete = null;
+        deleteBtnRef = null;
+    }
+
+    cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
+
+    confirmDeleteBtn?.addEventListener("click", async () => {
+        if (!sheetIdToDelete || !deleteBtnRef) return;
+
+        const b = deleteBtnRef;
+        const sheetId = sheetIdToDelete;
+        const target = deleteTarget;
+        hideDeleteModal();
+
+        b.disabled = true;
+        try {
+            const res = await fetch("/api/admin/delete-sheet", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ sheet_id: sheetId, target }),
+            });
+            const out = await res.json().catch(() => null);
+            if (!res.ok || !out?.ok) {
+                throw new Error(out?.error || "No se pudo eliminar");
+            }
+            await loadSheets(page);
+        } catch (e) {
+            console.error(e);
+            b.disabled = false;
+            alert(e instanceof Error ? e.message : "Error desconocido");
+        }
+    });
+
+    let page = 1;
+    const pageSize = 20;
+
+    const escapeHtml = (value: string) =>
+        String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+
+    async function loadSheets(nextPage: number = 1) {
+        page = nextPage;
+        listEl.innerHTML =
+            "<div class='text-sm text-global-text-muted'>Cargando...</div>";
+        paginationEl.innerHTML = "";
+
+        const course = (courseInput?.value || "").trim();
+        const q = (qInput?.value || "").trim();
+
+        const res = await fetch("/api/admin/sheets", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ page, pageSize, course, q }),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
+            listEl.innerHTML =
+                "<div class='text-sm text-red-400'>No se pudo cargar planchas</div>";
+            return;
+        }
+
+        if (visibleCountEl)
+            visibleCountEl.textContent = String(data?.counts?.visible ?? 0);
+        if (hiddenCountEl)
+            hiddenCountEl.textContent = String(data?.counts?.hidden ?? 0);
+
+        const sheets: AdminSheet[] = data.sheets || [];
+
+        if (!sheets.length) {
+            listEl.innerHTML =
+                "<div class='text-sm text-global-text-muted'>No hay planchas para mostrar.</div>";
+        } else {
+            listEl.innerHTML = sheets
+                .map((s) => {
+                    const courseLabel = s.course_code
+                        ? `${escapeHtml(s.course_code)}${s.course_name ? ` - ${escapeHtml(s.course_name)}` : ""}`
+                        : "Curso";
+                    const meta =
+                        `${escapeHtml(s.exam_type || "")}${s.cycle ? ` · ${escapeHtml(s.cycle)}` : ""}`.trim();
+                    const hint = s.teacher_hint
+                        ? escapeHtml(s.teacher_hint)
+                        : "";
+                    const badgeClass = s.is_hidden
+                        ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                        : "bg-green-500/10 border-green-500/30 text-green-400";
+                    const toggleClass = s.is_hidden
+                        ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
+                        : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30";
+                    const toggleLabel = s.is_hidden ? "Mostrar" : "Ocultar";
+
+                    return `
+                        <div class="rounded-xl bg-global-bg border border-global-border p-4 ${s.is_hidden ? "opacity-70" : ""}" data-sheet-id="${s.id}">
+                            <div class="flex items-center justify-between gap-4">
+                                <div class="min-w-0 flex-1">
+                                    <div class="text-sm text-global-text-muted truncate">${courseLabel}</div>
+                                    <div class="text-base font-semibold text-global-text truncate">${meta}</div>
+                                    ${hint ? `<div class="text-xs text-global-text-muted truncate mt-1">${hint}</div>` : ""}
+                                </div>
+                                <div class="flex items-center gap-3 shrink-0">
+                                    <span class="inline-flex items-center justify-center w-[70px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${badgeClass}">
+                                        ${s.is_hidden ? "Oculta" : "Visible"}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="toggle-sheet-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${toggleClass}"
+                                        data-sheet-id="${s.id}"
+                                        data-next-hidden="${s.is_hidden ? "false" : "true"}"
+                                    >
+                                        ${toggleLabel}
+                                    </button>
+                                    <a
+                                        href="/exams/${s.id}"
+                                        class="rounded-lg bg-global-card border border-global-border px-3 py-1.5 text-xs font-medium text-global-text transition hover:bg-global-border"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Ver
+                                    </a>
+                                    <button
+                                        type="button"
+                                        class="delete-exam-btn rounded-lg border px-2 py-1.5 text-xs font-medium transition cursor-pointer ${s.exam_storage_path ? 'bg-red-600/20 border-red-600/30 text-red-400 hover:bg-red-600/30' : 'bg-global-card border-global-border text-global-text-muted opacity-40 cursor-not-allowed'}"
+                                        data-sheet-id="${s.id}"
+                                        ${s.exam_storage_path ? '' : 'disabled'}
+                                        title="Eliminar plancha"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="inline h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Plancha
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="delete-solution-btn rounded-lg border px-2 py-1.5 text-xs font-medium transition cursor-pointer ${s.solution_storage_path ? 'bg-orange-600/20 border-orange-600/30 text-orange-400 hover:bg-orange-600/30' : 'bg-global-card border-global-border text-global-text-muted opacity-40 cursor-not-allowed'}"
+                                        data-sheet-id="${s.id}"
+                                        ${s.solution_storage_path ? '' : 'disabled'}
+                                        title="Eliminar solucionario"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="inline h-3.5 w-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Soluc.
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("");
+
+            document.querySelectorAll(".toggle-sheet-btn").forEach((btn) => {
+                btn.addEventListener("click", async () => {
+                    const b = btn as HTMLButtonElement;
+                    const sheetId = Number(b.getAttribute("data-sheet-id"));
+                    const nextHidden =
+                        b.getAttribute("data-next-hidden") === "true";
+
+                    b.disabled = true;
+                    try {
+                        const res = await fetch("/api/admin/toggle-sheet", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: "include",
+                            body: JSON.stringify({
+                                sheet_id: sheetId,
+                                is_hidden: nextHidden,
+                            }),
+                        });
+                        const out = await res.json().catch(() => null);
+                        if (!res.ok || !out?.ok) {
+                            throw new Error(
+                                out?.error || "No se pudo actualizar",
+                            );
+                        }
+                        await loadSheets(page);
+                    } catch (e) {
+                        console.error(e);
+                        b.disabled = false;
+                        alert(
+                            e instanceof Error
+                                ? e.message
+                                : "Error desconocido",
+                        );
+                    }
+                });
+            });
+
+            document.querySelectorAll(".delete-exam-btn").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const b = btn as HTMLButtonElement;
+                    const sheetId = Number(b.getAttribute("data-sheet-id"));
+                    showDeleteModal(sheetId, 'exam', b);
+                });
+            });
+
+            document.querySelectorAll(".delete-solution-btn").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const b = btn as HTMLButtonElement;
+                    const sheetId = Number(b.getAttribute("data-sheet-id"));
+                    showDeleteModal(sheetId, 'solution', b);
+                });
+            });
+        }
+
+        const totalPages = Number(data?.pagination?.totalPages || 0);
+
+        if (totalPages > 1) {
+            const prevDisabled = page <= 1;
+            const nextDisabled = page >= totalPages;
+
+            paginationEl.innerHTML = `
+                <div class="text-sm text-global-text-muted">Página ${page} de ${totalPages}</div>
+                <div class="flex gap-2">
+                    <button
+                        ${prevDisabled ? "disabled" : ""}
+                        id="sheets-prev"
+                        class="rounded-lg bg-global-card border border-global-border px-3 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Anterior
+                    </button>
+                    <button
+                        ${nextDisabled ? "disabled" : ""}
+                        id="sheets-next"
+                        class="rounded-lg bg-global-card border border-global-border px-3 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Siguiente
+                    </button>
+                </div>
+            `;
+
+            (
+                document.getElementById("sheets-prev") as HTMLButtonElement
+            )?.addEventListener("click", () => {
+                if (page > 1) loadSheets(page - 1);
+            });
+            (
+                document.getElementById("sheets-next") as HTMLButtonElement
+            )?.addEventListener("click", () => {
+                if (page < totalPages) loadSheets(page + 1);
+            });
+        }
+    }
+
+    let searchTimer: any;
+    const scheduleSearch = () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadSheets(1), 250);
+    };
+
+    courseInput?.addEventListener("input", scheduleSearch);
+    qInput?.addEventListener("input", scheduleSearch);
+
+    refreshBtn?.addEventListener("click", () => loadSheets(page));
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadSheets(1);
+    });
+</script>

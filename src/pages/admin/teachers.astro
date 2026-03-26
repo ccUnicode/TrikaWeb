@@ -1,6 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { getCourses } from "../../lib/data";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
+
+const isAdmin = await validateAdminSession(Astro.cookies);
+if (!isAdmin) {
+    return Astro.redirect("/admin/login");
+}
 
 const courses = await getCourses();
 ---
@@ -9,46 +16,10 @@ const courses = await getCourses();
     <div class="min-h-screen py-8">
         <div class="mx-auto w-full max-w-5xl px-4">
             <!-- Header Section -->
-            <div
-                class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap"
-            >
-                <div>
-                    <h1 class="text-2xl font-bold text-global-text">
-                        Gestionar Profesores
-                    </h1>
-                    <p class="mt-1 text-sm text-global-text-muted">
-                        Agrega y administra la visibilidad de profesores
-                    </p>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <a
-                        href="/admin/upload"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Panel de subida
-                    </a>
-                    <a
-                        href="/admin/ratings"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Calificaciones
-                    </a>
-                    <a
-                        href="/admin/moderation"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Moderación
-                    </a>
-                    <form action="/api/admin/logout" method="POST">
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-                        >
-                            Cerrar Sesión
-                        </button>
-                    </form>
-                </div>
-            </div>
+            <AdminHeader 
+                title="Gestionar Profesores" 
+                description="Agrega y administra la visibilidad de profesores" 
+            />
 
             <!-- Teachers Section -->
             <section id="teachers-section" class="space-y-6">
@@ -443,13 +414,22 @@ const courses = await getCourses();
                             </div>
                             <p class="text-xs ${starsColor} mb-2">${stars} <span class="text-global-text-muted">(${t.rating_count})</span></p>
                             ${t.bio ? `<p class="text-xs text-global-text-muted line-clamp-2 mb-3">${escapeHtml(t.bio)}</p>` : '<p class="text-xs text-global-text-muted italic mb-3">Sin biografía</p>'}
-                            <button
-                                type="button"
-                                onclick="toggleTeacher(${t.id}, ${!isHidden})"
-                                class="w-full rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${toggleClass}"
-                            >
-                                ${toggleText}
-                            </button>
+                            <div class="flex gap-2 mt-auto">
+                                <button
+                                    type="button"
+                                    onclick="toggleTeacher(${t.id}, ${!isHidden})"
+                                    class="flex-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${toggleClass}"
+                                >
+                                    ${toggleText}
+                                </button>
+                                <button
+                                    type="button"
+                                    onclick="deleteTeacher(${t.id})"
+                                    class="flex-1 rounded-lg border border-red-600/30 bg-red-600/20 px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-600/30 cursor-pointer"
+                                >
+                                    Eliminar
+                                </button>
+                            </div>
                         </div>
                     `;
                 })
@@ -494,6 +474,41 @@ const courses = await getCourses();
                 }
             } catch {
                 alert("Error de red");
+                if (card)
+                    card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        (window as any).deleteTeacher = async function (id: number) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este profesor? Se eliminarán permanentemente todas sus calificaciones y asociaciones a cursos. Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            const card = document.querySelector(`[data-teacher-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/delete-teacher", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ teacher_id: id }),
+                });
+
+                const data = await res.json().catch(() => null);
+
+                if (data?.ok) {
+                    loadTeachers(currentPage, currentSearch);
+                } else {
+                    alert("Error: " + (data?.error ?? "No se pudo eliminar al profesor"));
+                    if (card)
+                        card.classList.remove(
+                            "opacity-50",
+                            "pointer-events-none",
+                        );
+                }
+            } catch {
+                alert("Error de red al eliminar");
                 if (card)
                     card.classList.remove("opacity-50", "pointer-events-none");
             }
