@@ -11,13 +11,11 @@ export const GET: APIRoute = async ({ params }) => {
 
   const { data: sheet } = await supa
     .from('sheets')
-    .select('solution_kind, solution_storage_path, solution_video_url, is_hidden')
+    .select('solution_kind, solution_storage_path, solution_video_url')
     .eq('id', id)
     .single();
 
   if (!sheet) return new Response('Not found', { status: 404 });
-
-  if (sheet.is_hidden) return new Response('Not found', { status: 404 });
 
   if (sheet.solution_kind === 'pdf' && sheet.solution_storage_path) {
     const { data, error } = await supa.storage

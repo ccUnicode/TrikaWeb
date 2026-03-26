@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
     }
 
-    if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
+    if (!["PLANCHA", "SOLUCIONARIO"].includes(resourceKind)) {
         return new Response(
             JSON.stringify({ ok: false, error: "resource_kind inválido" }),
             { status: 400, headers: { "Content-Type": "application/json" } }
@@ -71,83 +71,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
     const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
 
-    let signedUrl: string | undefined;
-    let token: string | undefined;
-    let solutionSignedUrl: string | undefined;
-    let solutionPath: string | undefined;
+    // Generate signed upload URL
+    const { data: signedData, error: signedError } = await supabaseAdmin.storage
+        .from(bucket)
+        .createSignedUploadUrl(path);
 
-    if (resourceKind === "AMBOS") {
-        // Generate signed URL for Plancha
-        const { data: pData, error: pError } = await supabaseAdmin.storage
-            .from("exams")
-            .createSignedUploadUrl(path, { upsert: true });
-
-        // Generate signed URL for Solucionario
-        solutionPath = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
-        const { data: sData, error: sError } = await supabaseAdmin.storage
-            .from("solutions")
-            .createSignedUploadUrl(solutionPath, { upsert: true });
-
-        if (pError || !pData || sError || !sData) {
-            console.error("Error creating signed upload URLs for AMBOS:", pError, sError);
-            return new Response(
-                JSON.stringify({ ok: false, error: "No se pudo generar URLs de subida conjunta." }),
-                { status: 500, headers: { "Content-Type": "application/json" } }
-            );
-        }
-        signedUrl = pData.signedUrl;
-        token = pData.token;
-        solutionSignedUrl = sData.signedUrl;
-    } else {
-        // Generate signed upload URL for the single file
-        const { data: signedData, error: signedError } = await supabaseAdmin.storage
-            .from(bucket)
-            .createSignedUploadUrl(path, { upsert: true });
-
-        if (signedError || !signedData) {
-            console.error("Error creating signed upload URL:", signedError);
-            return new Response(
-                JSON.stringify({
-                    ok: false,
-                    error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
-                }),
-                { status: 500, headers: { "Content-Type": "application/json" } }
-            );
-        }
-        signedUrl = signedData.signedUrl;
-        token = signedData.token;
-    }
-
-    // Optional: Generate signed upload URL for thumbnail if it's a Plancha
-    let thumbSignedUrl: string | undefined = undefined;
-    let thumbPath: string | undefined = undefined;
-
-    if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-        thumbPath = `${normalizedCode}/${safeExam}/${safeCycle}.jpg`;
-        const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
-            .from("thumbnails")
-            .createSignedUploadUrl(thumbPath, { upsert: true });
-
-        if (!thumbError && thumbData) {
-            thumbSignedUrl = thumbData.signedUrl;
-        } else {
-            console.error("Error creating signed upload URL for thumbnail:", thumbError);
-            // Non-fatal, we can still upload the PDF even if thumb url fails
-        }
+    if (signedError || !signedData) {
+        console.error("Error creating signed upload URL:", signedError);
+        return new Response(
+            JSON.stringify({
+                ok: false,
+                error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+        );
     }
 
     return new Response(
         JSON.stringify({
             ok: true,
-            signedUrl,
-            token,
+            signedUrl: signedData.signedUrl,
+            token: signedData.token,
             path,
-            bucket: resourceKind === "AMBOS" ? "exams" : bucket,
+            bucket,
             courseId,
-            thumbSignedUrl,
-            thumbPath,
-            solutionSignedUrl,
-            solutionPath
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
     );

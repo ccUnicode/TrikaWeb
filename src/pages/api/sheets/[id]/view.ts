@@ -31,16 +31,6 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin;
 
-  const { data: sheet } = await supa
-    .from('sheets')
-    .select('id, is_hidden')
-    .eq('id', sheetId)
-    .maybeSingle();
-
-  if (!sheet || sheet.is_hidden) {
-    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
-  }
-
   const rate = await enforceIpRateLimit(supa, ipHash, 120);
   if (!rate.allowed) {
     if (rate.reason === 'rate_limit') {

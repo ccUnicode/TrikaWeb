@@ -7,9 +7,6 @@ export default defineConfig({
   output: 'server',
   adapter: vercel(),
   trailingSlash: 'never',
-  devToolbar: {
-    enabled: false,
-  },
   vite: {
     plugins: [tailwindcss()],
   },

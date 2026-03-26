@@ -94,7 +94,6 @@ export async function getCourses(): Promise<CourseSummary[]> {
   const { data, error } = await supabaseClient
     .from('courses')
     .select('id, code, name, sheets(count)')
-    .eq('is_hidden', false)
     .order('name', { ascending: true });
 
   if (error || !data) return [];
@@ -113,7 +112,6 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
     .from('courses')
     .select('id, code, name, sheets:sheets (*)')
     .eq('code', normalized)
-    .eq('is_hidden', false)
     .single();
 
   if (error || !course) return null;
@@ -122,7 +120,6 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
     .from('sheets')
     .select(sheetSelect)
     .eq('course_id', course.id)
-    .eq('is_hidden', false)
     .order('cycle', { ascending: false })
     .order('exam_type', { ascending: true });
 
@@ -143,7 +140,6 @@ export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   const { data } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
-    .eq('is_hidden', false)
     .gte('rating_count', minRatings)
     .order('avg_difficulty', { ascending: false })
     .limit(limit);
@@ -158,7 +154,6 @@ export async function getTopSheetsByViews(limit = 6, minViews = 5) {
   const { data } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
-    .eq('is_hidden', false)
     .gte('view_count', minViews)
     .order('view_count', { ascending: false })
     .limit(limit);
@@ -182,7 +177,6 @@ export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
   const { data, error } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
-    .eq('is_hidden', false)
     .in('id', uniqueIds);
 
   if (error || !data) {
@@ -468,7 +462,6 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
     supabaseClient
       .from('courses')
       .select('id, code, name, sheets(count)')
-      .eq('is_hidden', false)
       .or(`code.ilike.${pattern},name.ilike.${pattern}`)
       .limit(safeLimit * 2),
     supabaseClient
@@ -530,7 +523,6 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
     .select(
       'id, exam_type, cycle, avg_difficulty, rating_count, view_count, teacher_hint, solution_kind, courses:course_id (id, code, name)'
     )
-    .eq('is_hidden', false)
     .or(sheetFilters.join(','))
     .limit(safeLimit * 2);
 

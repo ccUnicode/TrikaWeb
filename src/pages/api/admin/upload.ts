@@ -41,9 +41,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const examType = String(body.exam_type ?? "").trim();
   const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
   const storagePath = String(body.storage_path ?? "").trim();
-  const thumbStoragePath = String(body.thumb_storage_path ?? "").trim() || null;
   const teacherHint = String(body.teacher_hint ?? "").trim();
-  const solutionStoragePath = String(body.solution_storage_path ?? "").trim();
 
   if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
     return new Response(
@@ -52,7 +50,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
+  if (!["PLANCHA", "SOLUCIONARIO"].includes(resourceKind)) {
     return new Response(
       JSON.stringify({ ok: false, error: "resource_kind inválido" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
@@ -77,19 +75,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+    if (resourceKind === "PLANCHA") {
       const insertPayload = {
         course_id: courseId,
         cycle,
         exam_type: examType,
         exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
-        thumb_storage_path: thumbStoragePath,
-        is_hidden: false,
-        ...(resourceKind === "AMBOS" ? {
-          solution_kind: "pdf",
-          solution_storage_path: solutionStoragePath
-        } : {})
       };
 
       if (existingSheet) {
@@ -98,13 +90,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         };
         if (teacherHint) {
           updatePayload.teacher_hint = teacherHint;
-        }
-        if (thumbStoragePath) {
-          updatePayload.thumb_storage_path = thumbStoragePath;
-        }
-        if (resourceKind === "AMBOS" && solutionStoragePath) {
-          updatePayload.solution_kind = "pdf";
-          updatePayload.solution_storage_path = solutionStoragePath;
         }
 
         const { error: updateError } = await supabaseAdmin
@@ -169,7 +154,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    const action = resourceKind === "AMBOS" ? "Plancha y Solucionario" : resourceKind === "PLANCHA" ? "Plancha" : "Solucionario";
+    const action = resourceKind === "PLANCHA" ? "Plancha" : "Solucionario";
 
     return new Response(
       JSON.stringify({
