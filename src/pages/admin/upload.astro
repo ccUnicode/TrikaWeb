@@ -54,21 +54,28 @@ import Layout from "../../layouts/Layout.astro";
         <form id="upload-form" class="space-y-4">
           <!-- Row 1: Course Code & Cycle -->
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
+            <div class="relative" id="course-combobox-wrapper">
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="course-code"
+                for="course-search"
               >
                 Código de curso
               </label>
               <input
-                id="course-code"
-                name="course_code"
+                id="course-search"
                 type="text"
+                autocomplete="off"
                 required
                 class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-                placeholder="Ej: BMA02"
+                placeholder="Buscar curso... ej: BMA02, Física"
               />
+              <input id="course-code" name="course_code" type="hidden" />
+              <!-- Dropdown list -->
+              <ul
+                id="course-dropdown"
+                class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-global-border bg-global-card shadow-xl hidden"
+                role="listbox"
+              ></ul>
             </div>
             <div>
               <label
@@ -415,28 +422,139 @@ import Layout from "../../layouts/Layout.astro";
       }
     });
 
-    // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const courseCodeInput = document.getElementById("course-code") as HTMLInputElement;
+    // ── RF-30: Course Autocomplete + Teacher Dropdown ───────────
+    const courseSearch = document.getElementById("course-search") as HTMLInputElement;
+    const courseHidden = document.getElementById("course-code") as HTMLInputElement;
+    const courseDropdown = document.getElementById("course-dropdown") as HTMLUListElement;
     const teacherSelect = document.getElementById("teacher-select") as HTMLSelectElement;
     const teacherLoading = document.getElementById("teacher-loading");
 
+    interface CourseItem { id: number; code: string; name: string; }
+    let allCourses: CourseItem[] = [];
     let lastFetchedCode = "";
+    let highlightIndex = -1;
 
-    async function loadTeachersByCourse(code: string) {
-      const trimmed = code.trim().toUpperCase();
+    // Normalize for accent-insensitive matching
+    const norm = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-      // Validar formato de código de curso (3 letras + 2 dígitos)
-      if (!/^[A-Z]{2,4}[0-9]{2,3}$/.test(trimmed)) {
-        teacherSelect.innerHTML = '<option value="">-- Ingresa un curso válido --</option>';
-        teacherSelect.disabled = true;
+    // ── Fetch all courses once on page load ──
+    (async () => {
+      try {
+        const res = await fetch("/api/cursos");
+        const data = await res.json();
+        if (data.ok) allCourses = data.cursos;
+      } catch (e) {
+        console.error("Error cargando cursos:", e);
+      }
+    })();
+
+    function renderDropdown(items: CourseItem[]) {
+      courseDropdown.innerHTML = "";
+      highlightIndex = -1;
+      if (!items.length) {
+        courseDropdown.classList.add("hidden");
         return;
       }
+      items.forEach((c, i) => {
+        const li = document.createElement("li");
+        li.className =
+          "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
+        li.setAttribute("role", "option");
+        li.dataset.index = String(i);
+        li.innerHTML = `<span class="font-semibold text-global-primary">${c.code}</span> <span class="text-global-text-muted">–</span> ${c.name}`;
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault(); // prevent blur before selection
+          selectCourse(c);
+        });
+        courseDropdown.appendChild(li);
+      });
+      courseDropdown.classList.remove("hidden");
+    }
 
-      // No repetir fetch si el código no cambió
-      if (trimmed === lastFetchedCode) return;
+    function filterCourses(query: string) {
+      const q = norm(query);
+      if (!q) return allCourses.slice(0, 20);
+      return allCourses.filter(
+        (c) => norm(c.code).includes(q) || norm(c.name).includes(q)
+      );
+    }
+
+    function selectCourse(c: CourseItem) {
+      courseSearch.value = `${c.code} – ${c.name}`;
+      courseHidden.value = c.code;
+      courseDropdown.classList.add("hidden");
+      loadTeachersByCourse(c.code);
+    }
+
+    function updateHighlight(items: NodeListOf<HTMLLIElement>) {
+      items.forEach((li, i) => {
+        li.classList.toggle("bg-global-primary/15", i === highlightIndex);
+      });
+      if (highlightIndex >= 0 && items[highlightIndex]) {
+        items[highlightIndex].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    courseSearch?.addEventListener("input", () => {
+      // Clear hidden value while user is editing
+      courseHidden.value = "";
+      lastFetchedCode = "";
+      teacherSelect.innerHTML = '<option value="">-- Selecciona un curso primero --</option>';
+      teacherSelect.disabled = true;
+
+      const filtered = filterCourses(courseSearch.value);
+      renderDropdown(filtered);
+    });
+
+    courseSearch?.addEventListener("focus", () => {
+      const filtered = filterCourses(courseSearch.value);
+      renderDropdown(filtered);
+    });
+
+    courseSearch?.addEventListener("blur", () => {
+      // Small delay to let mousedown on options fire first
+      setTimeout(() => courseDropdown.classList.add("hidden"), 150);
+    });
+
+    courseSearch?.addEventListener("keydown", (e) => {
+      const items = courseDropdown.querySelectorAll("li") as NodeListOf<HTMLLIElement>;
+      if (!items.length) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        highlightIndex = Math.min(highlightIndex + 1, items.length - 1);
+        updateHighlight(items);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        highlightIndex = Math.max(highlightIndex - 1, 0);
+        updateHighlight(items);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (highlightIndex >= 0) {
+          const idx = highlightIndex;
+          const filtered = filterCourses(courseSearch.value);
+          if (filtered[idx]) selectCourse(filtered[idx]);
+        }
+      } else if (e.key === "Escape") {
+        courseDropdown.classList.add("hidden");
+      }
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener("click", (e) => {
+      const wrapper = document.getElementById("course-combobox-wrapper");
+      if (wrapper && !wrapper.contains(e.target as Node)) {
+        courseDropdown.classList.add("hidden");
+      }
+    });
+
+    // ── Teacher loading (reused from RF-30) ──
+    async function loadTeachersByCourse(code: string) {
+      const trimmed = code.trim().toUpperCase();
+      if (!trimmed || trimmed === lastFetchedCode) return;
       lastFetchedCode = trimmed;
 
-      // Mostrar loading
       teacherLoading?.classList.remove("hidden");
       teacherSelect.disabled = true;
       teacherSelect.innerHTML = '<option value="">Cargando...</option>';
@@ -466,17 +584,6 @@ import Layout from "../../layouts/Layout.astro";
         teacherLoading?.classList.add("hidden");
       }
     }
-
-    courseCodeInput?.addEventListener("blur", () => {
-      loadTeachersByCourse(courseCodeInput.value);
-    });
-
-    courseCodeInput?.addEventListener("input", () => {
-      const val = courseCodeInput.value.trim().toUpperCase();
-      if (/^[A-Z]{2,4}[0-9]{2,3}$/.test(val)) {
-        loadTeachersByCourse(val);
-      }
-    });
 
     // ── Two-Step Upload (bypasses Vercel 4.5MB limit) ──────────────
     const uploadForm = document.getElementById(
@@ -601,8 +708,11 @@ import Layout from "../../layouts/Layout.astro";
         setUploadUI(`✅ ${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+        // Reset course combobox
+        courseSearch.value = "";
+        courseHidden.value = "";
         // Reset teacher dropdown
-        teacherSelect.innerHTML = '<option value="">-- Ingresa un curso primero --</option>';
+        teacherSelect.innerHTML = '<option value="">-- Selecciona un curso primero --</option>';
         teacherSelect.disabled = true;
         lastFetchedCode = "";
 
