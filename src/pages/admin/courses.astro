@@ -62,6 +62,7 @@ if (!isAdmin) {
                             type="number"
                             min="1"
                             step="1"
+                            onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.code) || (!isNaN(Number(event.key)) && event.code !== 'Space')"
                             class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                             placeholder="4"
                             required
@@ -219,63 +220,7 @@ if (!isAdmin) {
                 )
                 .join("");
 
-            document.querySelectorAll('.toggle-course-btn').forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const b = btn as HTMLButtonElement;
-                    const courseId = Number(b.getAttribute('data-course-id'));
-                    const nextHidden = b.getAttribute('data-next-hidden') === 'true';
 
-                    b.disabled = true;
-                    try {
-                        const res = await fetch('/api/admin/toggle-course', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ course_id: courseId, is_hidden: nextHidden }),
-                        });
-                        const out = await res.json().catch(() => null);
-                        if (!res.ok || !out?.ok) {
-                            throw new Error(out?.error || 'No se pudo actualizar');
-                        }
-                        await loadCourses(page);
-                    } catch (e) {
-                        console.error(e);
-                        b.disabled = false;
-                        alert(e instanceof Error ? e.message : 'Error desconocido');
-                    }
-                });
-            });
-
-            document.querySelectorAll('.delete-course-btn').forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const b = btn as HTMLButtonElement;
-                    const courseId = Number(b.getAttribute('data-course-id'));
-                    
-                    if (!confirm('¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus carpetas, planchas y calificaciones asociadas. Esta acción no se puede deshacer.')) {
-                        return;
-                    }
-
-                    b.disabled = true;
-                    try {
-                        const res = await fetch('/api/admin/delete-course', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ course_id: courseId }),
-                        });
-                        const out = await res.json().catch(() => null);
-                        if (!res.ok || !out?.ok) {
-                            throw new Error(out?.error || 'No se pudo eliminar el curso');
-                        }
-                        await loadCourses(page);
-                    } catch (e) {
-                        console.error(e);
-                        b.disabled = false;
-                        alert(e instanceof Error ? e.message : 'Error desconocido al eliminar');
-                    }
-                });
-            });
-        }
 
         const pagination = data.pagination;
         const totalPages = Number(pagination?.totalPages || 0);
@@ -353,6 +298,97 @@ if (!isAdmin) {
         searchInput.value = "";
         creditsInput.value = "";
         await loadCourses(1);
+    });
+
+    listEl?.addEventListener("click", async (e) => {
+        const target = e.target as HTMLElement;
+
+        if (target.matches(".toggle-course-btn")) {
+            const btn = target as HTMLButtonElement;
+            const courseId = Number(btn.getAttribute("data-course-id"));
+            const nextHidden = btn.getAttribute("data-next-hidden") === "true";
+
+            btn.disabled = true;
+            try {
+                const res = await fetch("/api/admin/toggle-course", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ course_id: courseId, is_hidden: nextHidden }),
+                });
+                const out = await res.json().catch(() => null);
+                if (!res.ok || !out?.ok) {
+                    throw new Error(out?.error || "No se pudo actualizar");
+                }
+                
+                // Actualizamos directamente en el DOM sin recargar la lista
+                btn.disabled = false;
+                btn.setAttribute("data-next-hidden", nextHidden ? "false" : "true");
+                btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
+
+                const courseDiv = btn.closest(`[data-course-id="${courseId}"]`) as HTMLElement;
+                if (courseDiv) {
+                    if (nextHidden) {
+                         courseDiv.classList.add("opacity-70");
+                    } else {
+                         courseDiv.classList.remove("opacity-70");
+                    }
+
+                    const badge = courseDiv.querySelector("span.inline-flex.rounded-full.border") as HTMLElement;
+                    if (badge) {
+                        badge.textContent = nextHidden ? "Oculto" : "Visible";
+                        badge.className = `inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${nextHidden ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`;
+                    }
+                    
+                    btn.className = `toggle-course-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${nextHidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}`;
+                }
+
+                if (out?.counts) {
+                    if (visibleCountEl) visibleCountEl.textContent = String(out.counts.visible);
+                    if (hiddenCountEl) hiddenCountEl.textContent = String(out.counts.hidden);
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                alert(err instanceof Error ? err.message : "Error desconocido");
+            }
+        }
+
+        if (target.matches(".delete-course-btn")) {
+            const btn = target as HTMLButtonElement;
+            const courseId = Number(btn.getAttribute("data-course-id"));
+            
+            if (!confirm("¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus carpetas, planchas y calificaciones asociadas. Esta acción no se puede deshacer.")) {
+                return;
+            }
+
+            btn.disabled = true;
+            try {
+                const res = await fetch("/api/admin/delete-course", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ course_id: courseId }),
+                });
+                const out = await res.json().catch(() => null);
+                if (!res.ok || !out?.ok) {
+                    throw new Error(out?.error || "No se pudo eliminar el curso");
+                }
+                
+                // Actualizamos directamente en el DOM eliminando la fila
+                const courseDiv = btn.closest(`[data-course-id="${courseId}"]`);
+                if (courseDiv) courseDiv.remove();
+
+                if (out?.counts) {
+                    if (visibleCountEl) visibleCountEl.textContent = String(out.counts.visible);
+                    if (hiddenCountEl) hiddenCountEl.textContent = String(out.counts.hidden);
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                alert(err instanceof Error ? err.message : "Error desconocido al eliminar");
+            }
+        }
     });
 
     let searchTimer: any;

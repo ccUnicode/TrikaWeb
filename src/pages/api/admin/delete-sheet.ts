@@ -64,10 +64,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
         await Promise.allSettled(storagePromises);
 
-        return new Response(JSON.stringify({ ok: true }), {
+        const { count: visibleCount } = await supabaseAdmin
+            .from('sheets')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_hidden', false);
+        const { count: hiddenCount } = await supabaseAdmin
+            .from('sheets')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_hidden', true);
+
+        return new Response(
+            JSON.stringify({
+                ok: true,
+                counts: { visible: visibleCount ?? 0, hidden: hiddenCount ?? 0 },
+            }),
+            {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
-        });
+            }
+        );
     } catch (err) {
         console.error('delete-sheet API error:', err);
         return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor' }), {

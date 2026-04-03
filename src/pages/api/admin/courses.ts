@@ -59,8 +59,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         is_hidden: c.is_hidden ?? false,
         }));
 
-        const visibleCount = courses.filter(c => !c.is_hidden).length;
-        const hiddenCount = courses.filter(c => c.is_hidden).length;
+        const { count: visibleCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', false);
+        const { count: hiddenCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', true);
 
         return new Response(
             JSON.stringify({

@@ -42,7 +42,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        return new Response(JSON.stringify({ ok: true }), {
+        const { count: visibleCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', false);
+        const { count: hiddenCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', true);
+
+        return new Response(JSON.stringify({ 
+            ok: true, 
+            counts: { visible: visibleCount ?? 0, hidden: hiddenCount ?? 0 } 
+        }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
         });
