@@ -193,7 +193,8 @@ if (!isAdmin) {
             // Actualización optimista del DOM
             const sheetRow = b.closest(`[data-sheet-id="${sheetIdToDelete}"]`);
             if (sheetRow) {
-                const wasHidden = !!sheetRow.querySelector(".bg-yellow-500\\/10");
+                const toggleBtn = sheetRow.querySelector(".toggle-sheet-btn");
+                const wasHidden = toggleBtn?.getAttribute("data-next-hidden") === "false";
                 sheetRow.remove();
 
                 if (visibleCountEl && hiddenCountEl) {
@@ -370,9 +371,10 @@ if (!isAdmin) {
 
     listEl?.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
+        const toggleBtn = target.closest(".toggle-sheet-btn") as HTMLButtonElement | null;
 
-        if (target.matches(".toggle-sheet-btn")) {
-            const btn = target as HTMLButtonElement;
+        if (toggleBtn) {
+            const btn = toggleBtn;
             const sheetId = Number(btn.getAttribute("data-sheet-id"));
             const nextHidden = btn.getAttribute("data-next-hidden") === "true";
 
@@ -434,8 +436,9 @@ if (!isAdmin) {
             }
         }
 
-        if (target.matches(".delete-sheet-btn")) {
-            const btn = target as HTMLButtonElement;
+        const deleteBtn = target.closest(".delete-sheet-btn") as HTMLButtonElement | null;
+        if (deleteBtn) {
+            const btn = deleteBtn;
             const sheetId = Number(btn.getAttribute("data-sheet-id"));
             showDeleteModal(sheetId, btn);
         }

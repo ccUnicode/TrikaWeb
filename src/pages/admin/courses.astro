@@ -302,9 +302,10 @@ if (!isAdmin) {
 
     listEl?.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
+        const toggleBtn = target.closest(".toggle-course-btn") as HTMLButtonElement | null;
 
-        if (target.matches(".toggle-course-btn")) {
-            const btn = target as HTMLButtonElement;
+        if (toggleBtn) {
+            const btn = toggleBtn;
             const courseId = Number(btn.getAttribute("data-course-id"));
             const nextHidden = btn.getAttribute("data-next-hidden") === "true";
 
@@ -354,8 +355,9 @@ if (!isAdmin) {
             }
         }
 
-        if (target.matches(".delete-course-btn")) {
-            const btn = target as HTMLButtonElement;
+        const deleteBtn = target.closest(".delete-course-btn") as HTMLButtonElement | null;
+        if (deleteBtn) {
+            const btn = deleteBtn;
             const courseId = Number(btn.getAttribute("data-course-id"));
             
             if (!confirm("¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus carpetas, planchas y calificaciones asociadas. Esta acción no se puede deshacer.")) {
