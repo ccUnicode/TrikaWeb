@@ -171,6 +171,10 @@ if (!isAdmin) {
     cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
 
     confirmDeleteBtn?.addEventListener("click", async () => {
+
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.textContent = "Eliminando...";
+
         if (!sheetIdToDelete || !deleteBtnRef) return;
 
         const b = deleteBtnRef;
@@ -195,6 +199,10 @@ if (!isAdmin) {
             b.disabled = false;
             alert(e instanceof Error ? e.message : "Error desconocido");
         }
+
+        confirmDeleteBtn.disabled = false;
+        confirmDeleteBtn.textContent = "Eliminar";
+        
     });
 
     let page = 1;
@@ -304,14 +312,16 @@ if (!isAdmin) {
                 })
                 .join("");
 
-            document.querySelectorAll(".toggle-sheet-btn").forEach((btn) => {
-                btn.addEventListener("click", async () => {
-                    const b = btn as HTMLButtonElement;
-                    const sheetId = Number(b.getAttribute("data-sheet-id"));
-                    const nextHidden =
-                        b.getAttribute("data-next-hidden") === "true";
+            listEl.addEventListener("click", async (e) => {
+                const target = e.target as HTMLElement;
 
-                    b.disabled = true;
+                const toggleBtn = target.closest(".toggle-sheet-btn") as HTMLButtonElement;
+                if (toggleBtn) {
+                    const sheetId = Number(toggleBtn.dataset.sheetId);
+                    const nextHidden = toggleBtn.dataset.nextHidden === "true";
+
+                    toggleBtn.disabled = true;
+
                     try {
                         const res = await fetch("/api/admin/toggle-sheet", {
                             method: "POST",
@@ -322,32 +332,50 @@ if (!isAdmin) {
                                 is_hidden: nextHidden,
                             }),
                         });
+
                         const out = await res.json().catch(() => null);
                         if (!res.ok || !out?.ok) {
-                            throw new Error(
-                                out?.error || "No se pudo actualizar",
-                            );
+                            throw new Error(out?.error || "No se pudo actualizar");
                         }
-                        await loadSheets(page);
+                        
+                        const card = toggleBtn.closest("[data-sheet-id]") as HTMLElement;
+
+                        if (card) {
+                            const badge = card.querySelector("span");
+                            
+                            if (nextHidden) {
+                                // se va a ocultar
+                                card.classList.add("opacity-70");
+                                badge?.classList.remove("bg-green-500/10", "text-green-400");
+                                badge?.classList.add("bg-yellow-500/10", "text-yellow-400");
+                                badge!.textContent = "Oculta";
+
+                                toggleBtn.textContent = "Mostrar";
+                                toggleBtn.dataset.nextHidden = "false";
+                            } else {
+                                // se va a mostrar
+                                card.classList.remove("opacity-70");
+                                badge?.classList.remove("bg-yellow-500/10", "text-yellow-400");
+                                badge?.classList.add("bg-green-500/10", "text-green-400");
+                                badge!.textContent = "Visible";
+
+                                toggleBtn.textContent = "Ocultar";
+                                toggleBtn.dataset.nextHidden = "true";
+                            }
+                        }
+
                     } catch (e) {
                         console.error(e);
-                        b.disabled = false;
-                        alert(
-                            e instanceof Error
-                                ? e.message
-                                : "Error desconocido",
-                        );
+                        toggleBtn.disabled = false;
+                        alert(e instanceof Error ? e.message : "Error desconocido");
                     }
-                });
-            });
+                }
 
-            document.querySelectorAll(".delete-sheet-btn").forEach((btn) => {
-                btn.addEventListener("click", () => {
-                    const b = btn as HTMLButtonElement;
-                    const sheetId = Number(b.getAttribute("data-sheet-id"));
-
-                    showDeleteModal(sheetId, b);
-                });
+                const deleteBtn = target.closest(".delete-sheet-btn") as HTMLButtonElement;
+                if (deleteBtn) {
+                    const sheetId = Number(deleteBtn.dataset.sheetId);
+                    showDeleteModal(sheetId, deleteBtn);
+                }
             });
         }
 

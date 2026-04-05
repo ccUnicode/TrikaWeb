@@ -5,12 +5,11 @@ dotenv.config({ path: ".env.local" });
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath, pathToFileURL } from "url";
-
-import puppeteer from "puppeteer";
+import { fileURLToPath } from "url";
 
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { createCanvas } from "canvas";
+import pLimit from "p-limit";
 
 const FORCE = process.argv.includes("--force");
 
@@ -24,7 +23,7 @@ const workerPath = path.join(
   "../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"
 );
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href;
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
@@ -37,8 +36,17 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+async function retry(fn, retries = 3, delay = 1000) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (retries <= 0) throw err;
+    await sleep(delay);
+    return retry(fn, retries - 1, delay * 2);
+  }
+}
+
 async function fileExists(bucket, filePath) {
-  // List by prefix trick (Supabase doesn't have direct HEAD in JS client)
   const parts = filePath.split("/");
   const fileName = parts.pop();
   const folder = parts.join("/");
@@ -59,69 +67,22 @@ async function downloadFromStorage(bucket, storagePath, outPath) {
   fs.writeFileSync(outPath, buffer);
 }
 
-async function renderFirstPageToJpg(browser, pdfPath) {
-  const page = await browser.newPage();
+async function renderFirstPageToJpg(pdfPath) {
+  const pdf = await pdfjsLib.getDocument(pdfPath).promise;
+  const page = await pdf.getPage(1);
 
-  // Leer PDF y convertir a base64
-  const pdfBuffer = fs.readFileSync(pdfPath);
-  const base64 = pdfBuffer.toString("base64");
-  const dataUrl = `data:application/pdf;base64,${base64}`;
+  const scale = 1.5;
+  const viewport = page.getViewport({ scale });
 
-  const html = `
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <style>
-    html, body { margin:0; padding:0; background:#fff; }
-    canvas { display:block; }
-  </style>
-</head>
-<body>
-  <canvas id="c"></canvas>
+  const canvas = createCanvas(viewport.width, viewport.height);
+  const context = canvas.getContext("2d");
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>
-    (async () => {
-      const pdfjsLib = window['pdfjsLib'];
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  await page.render({
+    canvasContext: context,
+    viewport,
+  }).promise;
 
-      const loadingTask = pdfjsLib.getDocument("${dataUrl}");
-      const pdf = await loadingTask.promise;
-      const page1 = await pdf.getPage(1);
-
-      const scale = 1.8;
-      const viewport = page1.getViewport({ scale });
-
-      const canvas = document.getElementById('c');
-      const ctx = canvas.getContext('2d', { alpha: false });
-
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-
-      await page1.render({ canvasContext: ctx, viewport }).promise;
-
-      window.__RENDER_DONE__ = true;
-    })();
-  </script>
-</body>
-</html>`;
-
-  await page.setContent(html, { waitUntil: "domcontentloaded" });
-
-  await page.waitForFunction(() => window.__RENDER_DONE__ === true, {
-    timeout: 60000
-  });
-
-  const canvasHandle = await page.$("#c");
-  const buffer = await canvasHandle.screenshot({
-    type: "jpeg",
-    quality: 90
-  });
-
-  await page.close();
-  return buffer;
+  return canvas.toBuffer("image/jpeg", { quality: 0.9 });
 }
 
 async function uploadThumb(buffer, thumbPath) {
@@ -138,76 +99,75 @@ async function uploadThumb(buffer, thumbPath) {
 async function main() {
   console.log("Rebuilding missing thumbnails...");
 
-  const browser = await puppeteer.launch({ headless: "new" });
+  const limit = pLimit(5);
 
   try {
-    // Trae sheets en “páginas” para no reventar memoria
     let from = 0;
-  const pageSize = 200;
+    const pageSize = 200;
 
-  while (true) {
-    const { data: sheets, error } = await supabase
-      .from("sheets")
-      .select("id, exam_storage_path, thumb_storage_path")
-      .not("exam_storage_path", "is", null)
-      .range(from, from + pageSize - 1);
+    const tmpDir = path.join(__dirname, "../tmp-thumbs");
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
-    if (error) throw error;
-    if (!sheets || sheets.length === 0) break;
+    while (true) {
+      const { data: sheets, error } = await supabase
+        .from("sheets")
+        .select("id, exam_storage_path, thumb_storage_path")
+        .not("exam_storage_path", "is", null)
+        .range(from, from + pageSize - 1);
 
-    for (const s of sheets) {
-      const examPath = s.exam_storage_path;
-      if (!examPath) continue;
+      if (error) throw error;
+      if (!sheets || sheets.length === 0) break;
 
-      const thumbPath =
-        s.thumb_storage_path || examPath.replace(/\.pdf$/i, ".jpg");
+      await Promise.all(
+        sheets.map((s) =>
+          limit(async () => {
+            const examPath = s.exam_storage_path;
+            if (!examPath) return;
 
-    const exists = await fileExists("thumbnails", thumbPath);
-    if (exists && !FORCE) continue;
+            const thumbPath =
+              s.thumb_storage_path || examPath.replace(/\.pdf$/i, ".jpg");
 
-      console.log("Missing thumb:", thumbPath, "for", examPath);
+            const exists = await fileExists("thumbnails", thumbPath);
+            if (exists && !FORCE) return;
 
-      const tmpDir = path.join(__dirname, "../tmp-thumbs");
-      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+            console.log("Missing thumb:", thumbPath);
 
-      const tmpPdf = path.join(tmpDir, `${s.id}.pdf`);
+            const tmpPdf = path.join(tmpDir, `${s.id}.pdf`);
 
-      try {
-        // 1) download pdf
-        await downloadFromStorage("exams", examPath, tmpPdf);
+            try {
+              await retry(() =>
+                downloadFromStorage("exams", examPath, tmpPdf)
+              );
 
-        // 2) render
-        const jpgBuffer = await renderFirstPageToJpg(browser, tmpPdf);
+              const jpgBuffer = await renderFirstPageToJpg(tmpPdf);
 
-        // 3) upload thumb
-        await uploadThumb(jpgBuffer, thumbPath);
+              await retry(() => uploadThumb(jpgBuffer, thumbPath));
 
-        // 4) ensure DB points to it
-        if (!s.thumb_storage_path) {
-          await supabase
-            .from("sheets")
-            .update({ thumb_storage_path: thumbPath })
-            .eq("id", s.id);
-        }
+              if (!s.thumb_storage_path) {
+                await supabase
+                  .from("sheets")
+                  .update({ thumb_storage_path: thumbPath })
+                  .eq("id", s.id);
+              }
 
-        console.log("✅ created:", thumbPath);
-      } catch (e) {
-        console.error("❌ failed:", examPath, e);
-      } finally {
-        if (fs.existsSync(tmpPdf)) fs.unlinkSync(tmpPdf);
-      }
+              console.log("✅ created:", thumbPath);
+            } catch (e) {
+              console.error("❌ failed:", examPath, e);
+            } finally {
+              if (fs.existsSync(tmpPdf)) fs.unlinkSync(tmpPdf);
+            }
+          })
+        )
+      );
+
+      from += pageSize;
     }
 
-    from += pageSize;
-  }
-
-  console.log("Done.");
-  } finally {
-    await browser.close();
+    console.log("Done.");
+  } catch (e) {
+    console.error(e);
+    process.exit(1);
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main();

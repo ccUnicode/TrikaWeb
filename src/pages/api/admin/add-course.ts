@@ -34,8 +34,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const code = normalizeCode(body.code);
         const name = normalizeName(body.name);
         const credits = normalizeCredits(body.credits);
-        const system_id = Number(body.system_id);
-        const subsystem_id = body.subsystem_id ? Number(body.subsystem_id) : null;
+        const system_id =
+            body.system_id !== undefined && body.system_id !== ""
+                ? Number(body.system_id)
+                : null;
+
+        if (system_id !== null && !Number.isInteger(system_id)) {
+            throw new Error("system_id inválido");
+        }
+
+        const subsystem_id =
+            body.subsystem_id !== undefined && body.subsystem_id !== ""
+                ? Number(body.subsystem_id)
+                : null;
+
+        if (subsystem_id !== null && !Number.isInteger(subsystem_id)) {
+            throw new Error("subsystem_id inválido");
+        }
 
         if (!code || code.length < 2) {
             return new Response(JSON.stringify({ ok: false, error: 'El código es requerido (mínimo 2 caracteres)' }), {

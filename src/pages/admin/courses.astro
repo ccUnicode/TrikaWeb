@@ -96,7 +96,7 @@ if (!isAdmin) {
                         <button
                             type="submit"
                             id="add-course-btn"
-                            class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
+                            class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Agregar
                         </button>
@@ -240,13 +240,17 @@ if (!isAdmin) {
                 )
                 .join("");
 
-            document.querySelectorAll('.toggle-course-btn').forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const b = btn as HTMLButtonElement;
-                    const courseId = Number(b.getAttribute('data-course-id'));
-                    const nextHidden = b.getAttribute('data-next-hidden') === 'true';
+                listEl.addEventListener("click", async (e) => {
+                    const target = e.target as HTMLElement;
 
-                    b.disabled = true;
+                    if (!target.classList.contains("toggle-course-btn")) return;
+
+                    const courseId = Number(target.getAttribute("data-course-id"));
+                    const nextHidden = target.getAttribute("data-next-hidden") === "true";
+
+                    const btn = target as HTMLButtonElement;
+                    btn.disabled = true;
+
                     try {
                         const res = await fetch('/api/admin/toggle-course', {
                             method: 'POST',
@@ -254,18 +258,26 @@ if (!isAdmin) {
                             credentials: 'include',
                             body: JSON.stringify({ course_id: courseId, is_hidden: nextHidden }),
                         });
-                        const out = await res.json().catch(() => null);
+
+                        const out = await res.json();
+
                         if (!res.ok || !out?.ok) {
                             throw new Error(out?.error || 'No se pudo actualizar');
                         }
-                        await loadCourses(page);
-                    } catch (e) {
-                        console.error(e);
-                        b.disabled = false;
-                        alert(e instanceof Error ? e.message : 'Error desconocido');
+
+                        const card = btn.closest("[data-course-id]");
+                        if (card) {
+                            card.classList.toggle("opacity-70", nextHidden);
+
+                            btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
+                            btn.setAttribute("data-next-hidden", String(!nextHidden));
+                        }
+
+                    } catch (err) {
+                        console.error(err);
+                        btn.disabled = false;
                     }
                 });
-            });
         }
 
         const pagination = data.pagination;
@@ -373,6 +385,9 @@ if (!isAdmin) {
     });
 
     addForm?.addEventListener("submit", async (e) => {
+
+        if (addBtn.disabled) return;
+
         e.preventDefault();
 
         const code = (codeInput?.value || "").trim();
@@ -429,9 +444,11 @@ if (!isAdmin) {
 
     refreshBtn?.addEventListener("click", () => loadCourses(page));
 
-    document.addEventListener("DOMContentLoaded", () => {
-        loadSystems();
-        loadSubsystems();
-        loadCourses(1);
+    document.addEventListener("DOMContentLoaded", async () => {
+        await Promise.all([
+            loadSystems(),
+            loadSubsystems(),
+            loadCourses(1)
+        ]);
     });
 </script>
