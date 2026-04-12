@@ -219,10 +219,24 @@ export const GET: APIRoute = async ({ params, request }) => {
     userFeedback = existing || null;
   }
 
+  // Calcular promedio de estrellas para este sheet_id
+  const { data: allStars } = await supa
+    .from('sheet_feedback')
+    .select('stars')
+    .eq('sheet_id', sheetId)
+    .eq('is_hidden', false)
+    .neq('content', '');
+
+  let avgRating = 0;
+  if (allStars && allStars.length > 0) {
+    avgRating = allStars.reduce((acc: number, curr: any) => acc + curr.stars, 0) / allStars.length;
+  }
+
   return new Response(
     JSON.stringify({
       feedback: filteredList,
       total: count ?? 0,
+      avgRating,
       page,
       pageSize,
       userFeedback,
