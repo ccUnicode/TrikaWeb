@@ -104,26 +104,6 @@ const { sheetId } = Astro.props;
     </div>
   </div>
 
-  <!-- Feedback existente del usuario -->
-  <div id="user-feedback-card" class="hidden mb-4">
-    <div class="rounded-xl border border-global-primary/30 bg-global-primary/5 p-4">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-medium text-global-primary uppercase tracking-wider">Tu comentario</span>
-        <button
-          type="button"
-          id="delete-own-feedback-btn"
-          class="text-xs text-global-text-muted hover:text-red-400 underline underline-offset-2 transition-colors cursor-pointer"
-        >
-          Eliminar
-        </button>
-      </div>
-      <div class="flex items-center gap-1 mb-1">
-        <span id="user-feedback-stars" class="text-yellow-400 text-sm"></span>
-      </div>
-      <p id="user-feedback-content" class="text-sm text-global-text"></p>
-    </div>
-  </div>
-
   <!-- Lista de comentarios -->
   <div id="feedback-list" class="space-y-3">
     <!-- Se llena con JS -->
@@ -200,6 +180,7 @@ const { sheetId } = Astro.props;
     let currentPage = 1;
     const pageSize = 5;
     let hasUserFeedback = false;
+    let currentUserFeedback: any = null;
 
     // ── Stars interaction ──
     const highlightStars = (count: number) => {
@@ -247,18 +228,30 @@ const { sheetId } = Astro.props;
       if (isHidden) {
         formContainer?.classList.remove("hidden");
         if (toggleText) toggleText.textContent = "Cancelar";
+        if (currentUserFeedback) populateForm(currentUserFeedback);
       } else {
         formContainer?.classList.add("hidden");
-        if (toggleText) toggleText.textContent = "Comentar";
+        if (toggleText) toggleText.textContent = hasUserFeedback ? "Editar comentario" : "Comentar";
         resetForm();
       }
     });
 
     cancelBtn?.addEventListener("click", () => {
       formContainer?.classList.add("hidden");
-      if (toggleText) toggleText.textContent = "Comentar";
+      if (toggleText) toggleText.textContent = hasUserFeedback ? "Editar comentario" : "Comentar";
       resetForm();
     });
+
+    const populateForm = (feedback: any) => {
+      selectedStars = feedback.stars || 0;
+      highlightStars(selectedStars);
+      if (contentInput) {
+        contentInput.value = feedback.content || "";
+        if (charCount) charCount.textContent = String(contentInput.value.length);
+      }
+      if (formStatus) { formStatus.textContent = ""; formStatus.className = "text-xs text-center"; }
+      updateSubmitState();
+    };
 
     const resetForm = () => {
       selectedStars = 0;
@@ -300,7 +293,7 @@ const { sheetId } = Astro.props;
 
         // Éxito
         formContainer?.classList.add("hidden");
-        if (toggleText) toggleText.textContent = "Comentar";
+        if (toggleText) toggleText.textContent = "Editar comentario";
         resetForm();
         loadFeedback(1);
       } catch {
@@ -315,8 +308,27 @@ const { sheetId } = Astro.props;
       }
     });
 
-    // ── Delete own feedback ──
-    deleteOwnBtn?.addEventListener("click", async () => {
+    // ── Edit/Delete own feedback ──
+    feedbackList?.addEventListener("click", async (e) => {
+      const target = e.target as HTMLElement;
+      
+      // Edit logic
+      if (target.closest("[data-edit-own]")) {
+        const isHidden = formContainer?.classList.contains("hidden");
+        if (isHidden) {
+          formContainer?.classList.remove("hidden");
+          if (toggleText) toggleText.textContent = "Cancelar";
+          if (currentUserFeedback) populateForm(currentUserFeedback);
+        } else {
+           contentInput?.focus();
+        }
+        formContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // Delete logic
+      if (!target.closest("[data-delete-own]")) return;
+
       if (!confirm("¿Eliminar tu comentario?")) return;
 
       try {
@@ -328,9 +340,10 @@ const { sheetId } = Astro.props;
         });
 
         if (res.ok) {
-          userCard?.classList.add("hidden");
           hasUserFeedback = false;
-          toggleBtn?.classList.remove("hidden");
+          if (toggleText && formContainer?.classList.contains("hidden")) {
+            toggleText.textContent = "Comentar";
+          }
           loadFeedback(1);
         }
       } catch {
@@ -362,27 +375,36 @@ const { sheetId } = Astro.props;
           return;
         }
 
-        const items = data.feedback ?? [];
+        let items = data.feedback ?? [];
         const total = data.total ?? 0;
         const totalPages = Math.ceil(total / pageSize) || 1;
 
         if (totalBadge) totalBadge.textContent = String(total);
 
-        // User feedback card
+        // User feedback
+        let userFeedbackId: number | null = null;
         if (data.userFeedback) {
           hasUserFeedback = true;
-          showUserCard(data.userFeedback);
-          toggleBtn?.classList.add("hidden");
+          currentUserFeedback = data.userFeedback;
+          userFeedbackId = data.userFeedback.id;
+          if (toggleText && formContainer?.classList.contains("hidden")) {
+            toggleText.textContent = "Editar comentario";
+          }
+          // Remove from list if present, then prepend to pin at top
+          items = items.filter((i: any) => i.id !== userFeedbackId);
+          items.unshift(data.userFeedback);
         } else {
           hasUserFeedback = false;
-          userCard?.classList.add("hidden");
-          toggleBtn?.classList.remove("hidden");
+          currentUserFeedback = null;
+          if (toggleText && formContainer?.classList.contains("hidden")) {
+            toggleText.textContent = "Comentar";
+          }
         }
 
-        if (items.length === 0 && !hasUserFeedback) {
+        if (items.length === 0) {
           feedbackEmpty?.classList.remove("hidden");
         } else {
-          renderFeedback(items);
+          renderFeedback(items, userFeedbackId);
         }
 
         // Pagination
@@ -402,7 +424,7 @@ const { sheetId } = Astro.props;
       }
     }
 
-    function renderFeedback(items: any[]) {
+    function renderFeedback(items: any[], userFeedbackId: number | null) {
       if (!feedbackList) return;
 
       feedbackList.innerHTML = items
@@ -414,25 +436,34 @@ const { sheetId } = Astro.props;
           });
           const starsHtml = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
           const escapedContent = escapeHtml(item.content ?? "");
+          
+          const isOwn = item.id === userFeedbackId;
+          const borderClass = isOwn ? "border-y border-r border-global-border border-l-4 border-l-green-500 bg-green-500/5" : "border border-global-border hover:border-global-border/80 bg-global-card";
 
           return `
-            <div class="rounded-xl border border-global-border bg-global-card p-4 transition-colors hover:border-global-border/80">
-              <div class="flex items-center justify-between mb-1.5">
-                <span class="text-yellow-400 text-sm tracking-wider">${starsHtml}</span>
-                <span class="text-[11px] text-global-text-muted">${date}</span>
+            <div class="rounded-xl ${borderClass} p-4 transition-colors relative">
+              <div class="flex items-start justify-between mb-1.5 gap-2">
+                <span class="text-yellow-400 text-sm tracking-wider shrink-0 mt-0.5">${starsHtml}</span>
+                <div class="flex items-center gap-2 flex-wrap justify-end">
+                  ${isOwn ? `<span class="text-[10px] font-bold text-green-500 uppercase tracking-wider bg-green-500/10 px-1.5 py-0.5 rounded-md">(Tú)</span>` : ""}
+                  <span class="text-[11px] text-global-text-muted">${date}</span>
+                  ${isOwn ? `
+                    <div class="flex items-center gap-1.5 ml-1 pl-2 border-l border-global-border">
+                      <button type="button" data-edit-own class="text-blue-400/80 hover:text-blue-400 transition-colors cursor-pointer p-1 rounded-md hover:bg-blue-500/10" title="Editar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                      </button>
+                      <button type="button" data-delete-own class="text-red-400/80 hover:text-red-400 transition-colors cursor-pointer p-1 rounded-md hover:bg-red-500/10" title="Eliminar">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                      </button>
+                    </div>
+                  ` : ""}
+                </div>
               </div>
               ${escapedContent ? `<p class="text-sm text-global-text leading-relaxed">${escapedContent}</p>` : ""}
             </div>
           `;
         })
         .join("");
-    }
-
-    function showUserCard(feedback: any) {
-      const starsHtml = "★".repeat(feedback.stars) + "☆".repeat(5 - feedback.stars);
-      if (userStars) userStars.textContent = starsHtml;
-      if (userContent) userContent.textContent = feedback.content ?? "";
-      userCard?.classList.remove("hidden");
     }
 
     function escapeHtml(text: string): string {
