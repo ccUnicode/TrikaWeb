@@ -10,6 +10,19 @@ const normalizeCredits = (value: unknown) => {
     const num = Number(value);
     return Number.isInteger(num) ? num : NaN;
 };
+const normalizeId = (value: unknown): number | null => {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+
+    const num = Number(value);
+
+    if (!Number.isInteger(num) || num <= 0) {
+        return null;
+    }
+
+    return num;
+}
 
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
@@ -34,22 +47,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const code = normalizeCode(body.code);
         const name = normalizeName(body.name);
         const credits = normalizeCredits(body.credits);
-        const system_id =
-            body.system_id !== undefined && body.system_id !== ""
-                ? Number(body.system_id)
-                : null;
+        const system_id = normalizeId(body.system_id);
+        const subsystem_id = normalizeId(body.subsystem_id);
 
-        if (system_id !== null && !Number.isInteger(system_id)) {
-            throw new Error("system_id inválido");
+        if (system_id === null) {
+            return new Response(JSON.stringify({ ok: false, error: 'Sistema inválido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
         }
 
-        const subsystem_id =
-            body.subsystem_id !== undefined && body.subsystem_id !== ""
-                ? Number(body.subsystem_id)
-                : null;
-
-        if (subsystem_id !== null && !Number.isInteger(subsystem_id)) {
-            throw new Error("subsystem_id inválido");
+        if (subsystem_id !== null && subsystem_id <= 0) {
+            return new Response(JSON.stringify({ ok: false, error: 'Subsistema inválido' }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
         }
 
         if (!code || code.length < 2) {
@@ -141,54 +153,35 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             }
         }
 
-        const { data: existing, error: existingError } = await supabaseAdmin
-            .from('courses')
-            .select('id')
-            .eq('code', code)
-            .maybeSingle();
+        const { data: result, error: rpcError } = await supabaseAdmin.rpc('create_course', {
+            p_code: code,
+            p_name: name,
+            p_credits: credits,
+            p_system_id: system_id,
+            p_subsystem_id: subsystem_id,
+        });
 
-        if (existingError) {
-            console.error('Error checking existing course:', existingError);
-            return new Response(JSON.stringify({ ok: false, error: 'Error al validar curso existente' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        if (existing) {
-            return new Response(JSON.stringify({ ok: false, error: 'Ya existe un curso con ese código' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        const { data: course, error: insertError } = await supabaseAdmin
-            .from('courses')
-            .insert({
-                code,
-                name,
-                credits,
-                system_id,
-                subsystem_id,
-                is_hidden: false
-            })
-            .select('id, code, name, system_id, subsystem_id, is_hidden')
-            .single();
-
-        if (insertError || !course) {
-            console.error('Error inserting course:', insertError);
+        if (rpcError) {
+            console.error('Error calling create_course:', rpcError);
             return new Response(JSON.stringify({ ok: false, error: 'Error al crear curso' }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },
             });
         }
 
+        if (!result?.ok) {
+            return new Response(JSON.stringify({
+                ok: false,
+                error: result?.error || 'No se pudo crear el curso',
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
         return new Response(JSON.stringify({
             ok: true,
-            course: {
-                ...course,
-                is_hidden: course.is_hidden ?? false
-            }
+            course: result.course,
         }), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },

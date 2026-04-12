@@ -239,45 +239,6 @@ if (!isAdmin) {
                 `,
                 )
                 .join("");
-
-                listEl.addEventListener("click", async (e) => {
-                    const target = e.target as HTMLElement;
-
-                    if (!target.classList.contains("toggle-course-btn")) return;
-
-                    const courseId = Number(target.getAttribute("data-course-id"));
-                    const nextHidden = target.getAttribute("data-next-hidden") === "true";
-
-                    const btn = target as HTMLButtonElement;
-                    btn.disabled = true;
-
-                    try {
-                        const res = await fetch('/api/admin/toggle-course', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ course_id: courseId, is_hidden: nextHidden }),
-                        });
-
-                        const out = await res.json();
-
-                        if (!res.ok || !out?.ok) {
-                            throw new Error(out?.error || 'No se pudo actualizar');
-                        }
-
-                        const card = btn.closest("[data-course-id]");
-                        if (card) {
-                            card.classList.toggle("opacity-70", nextHidden);
-
-                            btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
-                            btn.setAttribute("data-next-hidden", String(!nextHidden));
-                        }
-
-                    } catch (err) {
-                        console.error(err);
-                        btn.disabled = false;
-                    }
-                });
         }
 
         const pagination = data.pagination;
@@ -318,6 +279,51 @@ if (!isAdmin) {
             });
         }
     }
+
+    listEl?.addEventListener("click", async (e) => {
+        const target = e.target as HTMLElement;
+        const btn = target.closest(".toggle-course-btn") as HTMLButtonElement | null;
+
+        if (!btn) return;
+
+        const courseId = Number(btn.getAttribute("data-course-id"));
+        const nextHidden = btn.getAttribute("data-next-hidden") === "true";
+
+        if (!Number.isFinite(courseId) || courseId <= 0) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("/api/admin/toggle-course", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    course_id: courseId,
+                    is_hidden: nextHidden
+                }),
+            });
+
+            const out = await res.json().catch(() => null);
+
+            if (!res.ok || !out?.ok) {
+                throw new Error(out?.error || "No se pudo actualizar");
+            }
+
+            const card = btn.closest("[data-course-id]");
+            if (card) {
+                card.classList.toggle("opacity-70", nextHidden);
+            }
+
+            btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
+            btn.setAttribute("data-next-hidden", String(!nextHidden));
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            btn.disabled = false;
+        }
+    });
 
     async function loadSystems() {
     const res = await fetch("/api/admin/evaluation-systems");
