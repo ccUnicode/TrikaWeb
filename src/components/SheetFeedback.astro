@@ -1,0 +1,454 @@
+---
+export interface Props {
+  sheetId: number;
+}
+const { sheetId } = Astro.props;
+---
+
+<section
+  id="sheet-feedback-section"
+  class="rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 max-w-4xl mx-auto"
+  data-sheet-id={sheetId}
+>
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-5">
+    <h2 class="text-lg font-bold text-global-text flex items-center gap-2">
+      <svg class="w-5 h-5 text-global-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+      </svg>
+      Comentarios
+      <span id="feedback-total-badge" class="text-xs font-medium bg-global-primary/15 text-global-primary rounded-full px-2 py-0.5">0</span>
+    </h2>
+    <button
+      id="toggle-feedback-form"
+      type="button"
+      class="inline-flex items-center gap-1.5 rounded-xl bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors cursor-pointer"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      <span id="toggle-form-text">Comentar</span>
+    </button>
+  </div>
+
+  <!-- Formulario (oculto por defecto) -->
+  <div id="feedback-form-container" class="hidden mb-6">
+    <div class="rounded-xl border border-global-border bg-global-card p-4 space-y-4">
+      <!-- Estrellas -->
+      <div>
+        <label class="block text-sm font-medium text-global-text mb-2">¿Qué tan útil te fue esta plancha?</label>
+        <div class="flex items-center gap-1" id="feedback-stars-input">
+          <span class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider mr-2">Poco</span>
+          {Array.from({ length: 5 }).map((_, idx) => {
+            const val = idx + 1;
+            return (
+              <button
+                type="button"
+                class="feedback-star-btn w-8 h-8 flex items-center justify-center rounded-lg hover:bg-global-bg transition-all focus:outline-none cursor-pointer"
+                data-star={val}
+                aria-label={`${val} estrellas`}
+              >
+                <svg
+                  class="w-6 h-6 pointer-events-none transition-colors duration-150 text-global-text-muted/30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                >
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </button>
+            );
+          })}
+          <span class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider ml-2">Mucho</span>
+        </div>
+      </div>
+
+      <!-- Texto -->
+      <div>
+        <label for="feedback-content" class="block text-sm font-medium text-global-text mb-2">
+          Tu comentario <span class="text-global-text-muted font-normal">(opcional)</span>
+        </label>
+        <textarea
+          id="feedback-content"
+          rows="3"
+          maxlength="500"
+          placeholder="Comparte tu experiencia con esta plancha..."
+          class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text placeholder-global-text-muted/50 outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors resize-none"
+        ></textarea>
+        <p class="text-xs text-global-text-muted mt-1 text-right">
+          <span id="feedback-char-count">0</span>/500
+        </p>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex justify-end gap-2">
+        <button
+          type="button"
+          id="cancel-feedback-btn"
+          class="rounded-xl border border-global-border bg-global-card px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="submit-feedback-btn"
+          disabled
+          class="rounded-xl bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Enviar
+        </button>
+      </div>
+
+      <p id="feedback-form-status" class="text-xs text-center"></p>
+    </div>
+  </div>
+
+  <!-- Feedback existente del usuario -->
+  <div id="user-feedback-card" class="hidden mb-4">
+    <div class="rounded-xl border border-global-primary/30 bg-global-primary/5 p-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-medium text-global-primary uppercase tracking-wider">Tu comentario</span>
+        <button
+          type="button"
+          id="delete-own-feedback-btn"
+          class="text-xs text-global-text-muted hover:text-red-400 underline underline-offset-2 transition-colors cursor-pointer"
+        >
+          Eliminar
+        </button>
+      </div>
+      <div class="flex items-center gap-1 mb-1">
+        <span id="user-feedback-stars" class="text-yellow-400 text-sm"></span>
+      </div>
+      <p id="user-feedback-content" class="text-sm text-global-text"></p>
+    </div>
+  </div>
+
+  <!-- Lista de comentarios -->
+  <div id="feedback-list" class="space-y-3">
+    <!-- Se llena con JS -->
+  </div>
+
+  <!-- Estado vacío -->
+  <div id="feedback-empty" class="hidden text-center py-6">
+    <svg class="mx-auto w-10 h-10 text-global-text-muted/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+    </svg>
+    <p class="text-sm text-global-text-muted">Aún no hay comentarios. ¡Sé el primero!</p>
+  </div>
+
+  <!-- Loading -->
+  <div id="feedback-loading" class="text-center py-6">
+    <div class="animate-spin h-6 w-6 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+    <p class="text-xs text-global-text-muted">Cargando comentarios...</p>
+  </div>
+
+  <!-- Paginación -->
+  <div id="feedback-pagination" class="hidden flex items-center justify-center gap-4 pt-4 mt-4 border-t border-global-border/50">
+    <button
+      type="button"
+      id="feedback-prev-btn"
+      class="rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-xs text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+    >
+      ← Anterior
+    </button>
+    <span id="feedback-page-info" class="text-xs text-global-text-muted">1 / 1</span>
+    <button
+      type="button"
+      id="feedback-next-btn"
+      class="rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-xs text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+    >
+      Siguiente →
+    </button>
+  </div>
+</section>
+
+<script>
+  import { ensureDeviceId } from "../lib/client/device";
+
+  function initSheetFeedback() {
+    const section = document.getElementById("sheet-feedback-section");
+    if (!section) return;
+
+    const sheetId = section.getAttribute("data-sheet-id");
+    if (!sheetId) return;
+
+    // Elements
+    const toggleBtn = document.getElementById("toggle-feedback-form");
+    const toggleText = document.getElementById("toggle-form-text");
+    const formContainer = document.getElementById("feedback-form-container");
+    const starsInput = document.getElementById("feedback-stars-input");
+    const contentInput = document.getElementById("feedback-content") as HTMLTextAreaElement;
+    const charCount = document.getElementById("feedback-char-count");
+    const cancelBtn = document.getElementById("cancel-feedback-btn");
+    const submitBtn = document.getElementById("submit-feedback-btn") as HTMLButtonElement;
+    const formStatus = document.getElementById("feedback-form-status");
+    const feedbackList = document.getElementById("feedback-list");
+    const feedbackEmpty = document.getElementById("feedback-empty");
+    const feedbackLoading = document.getElementById("feedback-loading");
+    const totalBadge = document.getElementById("feedback-total-badge");
+    const userCard = document.getElementById("user-feedback-card");
+    const userStars = document.getElementById("user-feedback-stars");
+    const userContent = document.getElementById("user-feedback-content");
+    const deleteOwnBtn = document.getElementById("delete-own-feedback-btn");
+    const paginationEl = document.getElementById("feedback-pagination");
+    const prevBtn = document.getElementById("feedback-prev-btn") as HTMLButtonElement;
+    const nextBtn = document.getElementById("feedback-next-btn") as HTMLButtonElement;
+    const pageInfo = document.getElementById("feedback-page-info");
+
+    let selectedStars = 0;
+    let currentPage = 1;
+    const pageSize = 5;
+    let hasUserFeedback = false;
+
+    // ── Stars interaction ──
+    const highlightStars = (count: number) => {
+      starsInput?.querySelectorAll(".feedback-star-btn").forEach((btn) => {
+        const val = Number((btn as HTMLElement).dataset.star);
+        const svg = btn.querySelector("svg");
+        if (svg) {
+          if (val <= count) {
+            svg.classList.remove("text-global-text-muted/30");
+            svg.classList.add("fill-yellow-400", "text-yellow-400");
+          } else {
+            svg.classList.add("text-global-text-muted/30");
+            svg.classList.remove("fill-yellow-400", "text-yellow-400");
+          }
+        }
+      });
+    };
+
+    starsInput?.querySelectorAll(".feedback-star-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedStars = Number((btn as HTMLElement).dataset.star);
+        highlightStars(selectedStars);
+        updateSubmitState();
+      });
+      btn.addEventListener("mouseenter", () => {
+        highlightStars(Number((btn as HTMLElement).dataset.star));
+      });
+    });
+    starsInput?.addEventListener("mouseleave", () => {
+      highlightStars(selectedStars);
+    });
+
+    // ── Character counter ──
+    contentInput?.addEventListener("input", () => {
+      if (charCount) charCount.textContent = String(contentInput.value.length);
+    });
+
+    const updateSubmitState = () => {
+      if (submitBtn) submitBtn.disabled = selectedStars === 0;
+    };
+
+    // ── Toggle form ──
+    toggleBtn?.addEventListener("click", () => {
+      const isHidden = formContainer?.classList.contains("hidden");
+      if (isHidden) {
+        formContainer?.classList.remove("hidden");
+        if (toggleText) toggleText.textContent = "Cancelar";
+      } else {
+        formContainer?.classList.add("hidden");
+        if (toggleText) toggleText.textContent = "Comentar";
+        resetForm();
+      }
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+      formContainer?.classList.add("hidden");
+      if (toggleText) toggleText.textContent = "Comentar";
+      resetForm();
+    });
+
+    const resetForm = () => {
+      selectedStars = 0;
+      highlightStars(0);
+      if (contentInput) contentInput.value = "";
+      if (charCount) charCount.textContent = "0";
+      if (formStatus) { formStatus.textContent = ""; formStatus.className = "text-xs text-center"; }
+      updateSubmitState();
+    };
+
+    // ── Submit feedback ──
+    submitBtn?.addEventListener("click", async () => {
+      if (selectedStars === 0) return;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Enviando...";
+
+      try {
+        const deviceId = ensureDeviceId();
+        const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stars: selectedStars,
+            content: contentInput?.value?.trim() || null,
+            device_id: deviceId,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          if (formStatus) {
+            formStatus.textContent = data.error ?? "Error al enviar";
+            formStatus.className = "text-xs text-center text-red-400";
+          }
+          return;
+        }
+
+        // Éxito
+        formContainer?.classList.add("hidden");
+        if (toggleText) toggleText.textContent = "Comentar";
+        resetForm();
+        loadFeedback(1);
+      } catch {
+        if (formStatus) {
+          formStatus.textContent = "Error de conexión";
+          formStatus.className = "text-xs text-center text-red-400";
+        }
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Enviar";
+        updateSubmitState();
+      }
+    });
+
+    // ── Delete own feedback ──
+    deleteOwnBtn?.addEventListener("click", async () => {
+      if (!confirm("¿Eliminar tu comentario?")) return;
+
+      try {
+        const deviceId = ensureDeviceId();
+        const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id: deviceId }),
+        });
+
+        if (res.ok) {
+          userCard?.classList.add("hidden");
+          hasUserFeedback = false;
+          toggleBtn?.classList.remove("hidden");
+          loadFeedback(1);
+        }
+      } catch {
+        alert("Error al eliminar");
+      }
+    });
+
+    // ── Load feedback ──
+    async function loadFeedback(page: number) {
+      currentPage = page;
+      feedbackLoading?.classList.remove("hidden");
+      feedbackEmpty?.classList.add("hidden");
+      if (feedbackList) feedbackList.innerHTML = "";
+      paginationEl?.classList.add("hidden");
+
+      try {
+        const deviceId = ensureDeviceId();
+        const res = await fetch(
+          `/api/sheets/${sheetId}/feedback?device_id=${deviceId}&page=${page}&pageSize=${pageSize}`
+        );
+        const data = await res.json();
+
+        // Handle server errors
+        if (data.error) {
+          console.error("Feedback API error:", data.error);
+          if (feedbackList) {
+            feedbackList.innerHTML = `<p class="text-center text-sm text-red-400 py-4">${escapeHtml(data.error)}</p>`;
+          }
+          return;
+        }
+
+        const items = data.feedback ?? [];
+        const total = data.total ?? 0;
+        const totalPages = Math.ceil(total / pageSize) || 1;
+
+        if (totalBadge) totalBadge.textContent = String(total);
+
+        // User feedback card
+        if (data.userFeedback) {
+          hasUserFeedback = true;
+          showUserCard(data.userFeedback);
+          toggleBtn?.classList.add("hidden");
+        } else {
+          hasUserFeedback = false;
+          userCard?.classList.add("hidden");
+          toggleBtn?.classList.remove("hidden");
+        }
+
+        if (items.length === 0 && !hasUserFeedback) {
+          feedbackEmpty?.classList.remove("hidden");
+        } else {
+          renderFeedback(items);
+        }
+
+        // Pagination
+        if (totalPages > 1) {
+          paginationEl?.classList.remove("hidden");
+          if (pageInfo) pageInfo.textContent = `${page} / ${totalPages}`;
+          if (prevBtn) prevBtn.disabled = page <= 1;
+          if (nextBtn) nextBtn.disabled = page >= totalPages;
+        }
+      } catch (err) {
+        console.error("Feedback load error:", err);
+        if (feedbackList) {
+          feedbackList.innerHTML = '<p class="text-center text-sm text-red-400 py-4">Error al cargar comentarios</p>';
+        }
+      } finally {
+        feedbackLoading?.classList.add("hidden");
+      }
+    }
+
+    function renderFeedback(items: any[]) {
+      if (!feedbackList) return;
+
+      feedbackList.innerHTML = items
+        .map((item) => {
+          const date = new Date(item.created_at).toLocaleDateString("es-PE", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+          const starsHtml = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
+          const escapedContent = escapeHtml(item.content ?? "");
+
+          return `
+            <div class="rounded-xl border border-global-border bg-global-card p-4 transition-colors hover:border-global-border/80">
+              <div class="flex items-center justify-between mb-1.5">
+                <span class="text-yellow-400 text-sm tracking-wider">${starsHtml}</span>
+                <span class="text-[11px] text-global-text-muted">${date}</span>
+              </div>
+              ${escapedContent ? `<p class="text-sm text-global-text leading-relaxed">${escapedContent}</p>` : ""}
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function showUserCard(feedback: any) {
+      const starsHtml = "★".repeat(feedback.stars) + "☆".repeat(5 - feedback.stars);
+      if (userStars) userStars.textContent = starsHtml;
+      if (userContent) userContent.textContent = feedback.content ?? "";
+      userCard?.classList.remove("hidden");
+    }
+
+    function escapeHtml(text: string): string {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ── Pagination handlers ──
+    prevBtn?.addEventListener("click", () => loadFeedback(currentPage - 1));
+    nextBtn?.addEventListener("click", () => loadFeedback(currentPage + 1));
+
+    // ── Init ──
+    loadFeedback(1);
+  }
+
+  document.addEventListener("astro:page-load", initSheetFeedback);
+  document.addEventListener("DOMContentLoaded", initSheetFeedback);
+</script>

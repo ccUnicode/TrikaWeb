@@ -8,8 +8,8 @@ import moderationConfig from "../../../../../config/moderation.json";
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
 export const POST: APIRoute = async ({ params, request }) => {
-  const teacherId = Number(params.id);
-  if (!teacherId) {
+  const sheetId = Number(params.id);
+  if (!sheetId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
@@ -20,12 +20,19 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const { difficulty, didactic, resources, responsability, grading, comment } = body;
+  const { stars, content } = body;
 
-  // check for bad words
-  if (comment) {
-    const commentLower = comment.toLowerCase();
-    const foundBadWord = bannedWords.find((word: string) => commentLower.includes(word));
+  if (!stars || stars < 1 || stars > 5) {
+    return new Response(
+      JSON.stringify({ error: 'stars debe ser 1-5' }),
+      { status: 400 }
+    );
+  }
+
+  // Filtro de palabras prohibidas
+  if (content) {
+    const contentLower = content.toLowerCase();
+    const foundBadWord = bannedWords.find((word: string) => contentLower.includes(word));
     if (foundBadWord) {
       return new Response(
         JSON.stringify({
@@ -35,26 +42,6 @@ export const POST: APIRoute = async ({ params, request }) => {
       );
     }
   }
-
-  if (!difficulty || !didactic || !resources || !responsability || !grading) {
-    return new Response(
-      JSON.stringify({
-        error: 'Faltan calificaciones (difficulty, didactic, resources, responsability, grading)'
-      }),
-      { status: 400 }
-    );
-  }
-
-  const ratings = [difficulty, didactic, resources, responsability, grading];
-  if (ratings.some(r => r < 1 || r > 5)) {
-    return new Response(
-      JSON.stringify({ error: 'Todas las calificaciones deben ser 1-5' }),
-      { status: 400 }
-    );
-  }
-
-  // Calculate overall automatically
-  const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
   const deviceId = getDeviceId(body);
   if (!deviceId) {
@@ -66,6 +53,18 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin;
 
+  // Verificar que la plancha existe y es visible
+  const { data: sheet } = await supa
+    .from('sheets')
+    .select('id, is_hidden')
+    .eq('id', sheetId)
+    .maybeSingle();
+
+  if (!sheet || sheet.is_hidden) {
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  }
+
+  // Rate limit por IP
   const rateLimit = await enforceIpRateLimit(supa, ipHash);
   if (!rateLimit.allowed) {
     if (rateLimit.reason === 'rate_limit') {
@@ -73,48 +72,42 @@ export const POST: APIRoute = async ({ params, request }) => {
         status: 429
       });
     }
-    console.error('Rate limit interno teacher rate:', rateLimit.details);
+    console.error('Rate limit interno sheet feedback:', rateLimit.details);
     return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
   }
 
-  // Verificar si ya existe
+  // Verificar si ya existe feedback de este device_id para esta plancha
   const { data: existing } = await supa
-    .from('teacher_ratings')
+    .from('sheet_feedback')
     .select('id')
-    .eq('teacher_id', teacherId)
+    .eq('sheet_id', sheetId)
     .eq('device_id', deviceId)
     .maybeSingle();
 
   let error;
 
-  // IMPORTANT: is_hidden is always true on write to enforce moderation
   if (existing) {
-    // Actualizar
+    // Actualizar feedback existente
     const result = await supa
-      .from('teacher_ratings')
+      .from('sheet_feedback')
       .update({
+        stars,
+        content: content || null,
         ip_hash: ipHash,
-        overall,
-        difficulty,
-        didactic,
-        resources,
-        responsability,
-        grading,
-        comment: comment || null,
         is_hidden: false,
         needs_review: true,
         updated_at: new Date().toISOString()
       })
-      .eq('teacher_id', teacherId)
+      .eq('sheet_id', sheetId)
       .eq('device_id', deviceId);
 
     error = result.error;
   } else {
-    // Verificar límite de votos por IP para este profesor (Anti-spam)
+    // Anti-spam: límite de comentarios por IP para esta plancha
     const { count, error: countError } = await supa
-      .from('teacher_ratings')
+      .from('sheet_feedback')
       .select('id', { count: 'exact', head: true })
-      .eq('teacher_id', teacherId)
+      .eq('sheet_id', sheetId)
       .eq('ip_hash', ipHash);
 
     if (countError) {
@@ -124,25 +117,20 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     if (count !== null && count >= 3) {
       return new Response(
-        JSON.stringify({ error: 'Se ha alcanzado el límite de votos desde esta red para este profesor.' }),
+        JSON.stringify({ error: 'Se ha alcanzado el límite de comentarios desde esta red para esta plancha.' }),
         { status: 429 }
       );
     }
 
-    // Insertar
+    // Insertar nuevo feedback
     const result = await supa
-      .from('teacher_ratings')
+      .from('sheet_feedback')
       .insert({
-        ip_hash: ipHash,
-        teacher_id: teacherId,
+        sheet_id: sheetId,
         device_id: deviceId,
-        overall,
-        difficulty,
-        didactic,
-        resources,
-        responsability,
-        grading,
-        comment: comment || null,
+        stars,
+        content: content || null,
+        ip_hash: ipHash,
         is_hidden: false,
         needs_review: true,
         created_at: new Date().toISOString(),
@@ -153,61 +141,93 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   if (error) {
-    console.error('Error al guardar rating:', error);
+    console.error('Error al guardar feedback:', error);
     return new Response(
       JSON.stringify({ error: 'Error al guardar', details: error.message }),
       { status: 500 }
     );
   }
 
-  const { data: stats } = await supa
-    .from('teachers')
-    .select('avg_overall, rating_count')
-    .eq('id', teacherId)
-    .single();
-
   return new Response(
-    JSON.stringify({ success: true, stats }),
+    JSON.stringify({ success: true, updated: !!existing }),
     { status: 200 }
   );
 };
 
-// GET handler para verificar si el usuario ya votó
+// GET: verificar si el usuario ya dejó feedback y obtener lista de feedback
 export const GET: APIRoute = async ({ params, request }) => {
-  const teacherId = Number(params.id);
-  if (!teacherId) {
+  const sheetId = Number(params.id);
+  if (!sheetId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
   const url = new URL(request.url);
   const deviceId = url.searchParams.get('device_id');
-
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
-  }
+  const page = Number(url.searchParams.get('page') ?? 1);
+  const pageSize = Number(url.searchParams.get('pageSize') ?? 10);
 
   const supa = supabaseAdmin;
 
-  const { data: existing } = await supa
-    .from('teacher_ratings')
-    .select('id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at')
-    .eq('teacher_id', teacherId)
-    .eq('device_id', deviceId)
-    .maybeSingle();
+  // Obtener feedback visible para esta plancha (con contenido no vacío)
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data: feedbackList, count, error: listError } = await supa
+    .from('sheet_feedback')
+    .select('id, stars, content, created_at', { count: 'exact', head: false })
+    .eq('sheet_id', sheetId)
+    .eq('is_hidden', false)
+    .neq('content', '')
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (listError) {
+    console.error('Error fetching sheet feedback:', listError);
+    return new Response(
+      JSON.stringify({
+        error: 'Error al cargar comentarios: ' + listError.message,
+        feedback: [],
+        total: 0,
+        page,
+        pageSize,
+        userFeedback: null,
+      }),
+      { status: 500 }
+    );
+  }
+
+  // Filtrar null/empty content en memoria como respaldo
+  const filteredList = (feedbackList ?? []).filter((f: any) => f.content && f.content.trim().length > 0);
+
+  // Verificar si el device_id ya dejó feedback
+  let userFeedback = null;
+  if (deviceId) {
+    const { data: existing } = await supa
+      .from('sheet_feedback')
+      .select('id, stars, content, created_at')
+      .eq('sheet_id', sheetId)
+      .eq('device_id', deviceId)
+      .maybeSingle();
+
+    userFeedback = existing || null;
+  }
 
   return new Response(
     JSON.stringify({
-      hasVoted: !!existing,
-      rating: existing || null
+      feedback: filteredList,
+      total: count ?? 0,
+      page,
+      pageSize,
+      userFeedback,
     }),
     { status: 200 }
   );
 };
 
-// DELETE handler para quitar calificación
+// DELETE: eliminar feedback propio
 export const DELETE: APIRoute = async ({ params, request }) => {
-  const teacherId = Number(params.id);
-  if (!teacherId) {
+  const sheetId = Number(params.id);
+  if (!sheetId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
@@ -225,42 +245,33 @@ export const DELETE: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin;
 
-  // Verificar si existe la calificación antes de eliminarla
   const { data: existing } = await supa
-    .from('teacher_ratings')
+    .from('sheet_feedback')
     .select('id')
-    .eq('teacher_id', teacherId)
+    .eq('sheet_id', sheetId)
     .eq('device_id', deviceId)
     .maybeSingle();
 
   if (!existing) {
-    return new Response(JSON.stringify({ error: 'No hay calificación para eliminar' }), { status: 404 });
+    return new Response(JSON.stringify({ error: 'No hay comentario para eliminar' }), { status: 404 });
   }
 
-  // Eliminar la calificación
   const { error } = await supa
-    .from('teacher_ratings')
+    .from('sheet_feedback')
     .delete()
-    .eq('teacher_id', teacherId)
+    .eq('sheet_id', sheetId)
     .eq('device_id', deviceId);
 
   if (error) {
-    console.error('Error al eliminar calificación:', error);
+    console.error('Error al eliminar feedback:', error);
     return new Response(
       JSON.stringify({ error: 'Error al eliminar', details: error.message }),
       { status: 500 }
     );
   }
 
-  // Obtener estadísticas actualizadas
-  const { data: stats } = await supa
-    .from('teachers')
-    .select('avg_overall, rating_count')
-    .eq('id', teacherId)
-    .single();
-
   return new Response(
-    JSON.stringify({ success: true, deleted: true, stats }),
+    JSON.stringify({ success: true, deleted: true }),
     { status: 200 }
   );
 };

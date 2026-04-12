@@ -38,16 +38,15 @@ const { title, description } = Astro.props;
             Panel de subida
         </a>
         <a
-            href="/admin/ratings"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-        >
-            Calificaciones
-        </a>
-        <a
             href="/admin/moderation"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+            id="nav-moderation-link"
+            class="relative rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
         >
             Moderación
+            <span
+                id="nav-moderation-badge"
+                class="hidden absolute -top-1.5 -right-1.5 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center leading-tight animate-pulse"
+            >0</span>
         </a>
         <form action="/api/admin/logout" method="POST">
             <button
@@ -59,3 +58,35 @@ const { title, description } = Astro.props;
         </form>
     </div>
 </div>
+
+<script>
+    async function loadModerationBadge() {
+        try {
+            const res = await fetch("/api/admin/moderation-counts", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({}),
+            });
+            const data = await res.json();
+
+            if (data.ok) {
+                const total = (data.teachers ?? 0) + (data.sheets ?? 0);
+                const badge = document.getElementById("nav-moderation-badge");
+                if (badge) {
+                    badge.textContent = String(total);
+                    if (total > 0) {
+                        badge.classList.remove("hidden");
+                    } else {
+                        badge.classList.add("hidden");
+                    }
+                }
+            }
+        } catch {
+            // Silently ignore
+        }
+    }
+
+    // Load badge on page load
+    loadModerationBadge();
+</script>

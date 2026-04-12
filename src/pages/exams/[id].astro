@@ -3,6 +3,7 @@ export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
+import SheetFeedback from "../../components/SheetFeedback.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 
 const sheetId = Number(Astro.params.id);
@@ -326,6 +327,9 @@ function getYouTubeId(url: string) {
           </div>
         </div>
       </div>
+
+      <!-- Sección de comentarios -->
+      <SheetFeedback sheetId={sheet.id} />
     </section>
   </main>
 </Layout>

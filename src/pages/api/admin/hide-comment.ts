@@ -3,14 +3,11 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
-import moderationConfig from "../../../../config/moderation.json";
 
-const bannedWords = (moderationConfig.bannedWords ?? []).map((w) =>
-  w.toLowerCase()
-);
+const ALLOWED_TABLES = ["teacher_ratings", "sheet_feedback"] as const;
+type AllowedTable = typeof ALLOWED_TABLES[number];
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Validate session from cookie
   const isValid = await validateAdminSession(cookies);
   if (!isValid) {
     return new Response(
@@ -30,6 +27,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   const ratingId = Number(body?.rating_id ?? 0);
+  const table = (body?.table ?? "teacher_ratings") as string;
 
   if (!ratingId) {
     return new Response(
@@ -38,19 +36,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
+  if (!ALLOWED_TABLES.includes(table as AllowedTable)) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Tabla no válida" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // Ocultar y marcar como revisado
   const { data, error } = await supabaseAdmin
-    .from("teacher_ratings")
-    .update({ is_hidden: true })
+    .from(table)
+    .update({ is_hidden: true, needs_review: false })
     .eq("id", ratingId)
-    .select("id, comment")
+    .select("id")
     .single();
 
   if (error) {
     const status = error.code === "PGRST116" ? 404 : 500;
     const message =
       status === 404
-        ? "No se encontró el comentario"
-        : "No se pudo ocultar el comentario";
+        ? "No se encontró el registro"
+        : "No se pudo ocultar el registro";
     if (status === 500) {
       console.error("Error hide-comment:", error);
     }
@@ -60,18 +66,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  const commentText = (data?.comment ?? "").toLowerCase();
-  const matches =
-    commentText && bannedWords.length
-      ? bannedWords.filter((word) => commentText.includes(word))
-      : [];
-
   return new Response(
     JSON.stringify({
       ok: true,
       rating_id: ratingId,
       hidden: true,
-      matches: matches.length ? matches : undefined,
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
