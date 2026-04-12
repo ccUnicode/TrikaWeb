@@ -92,6 +92,19 @@ if (!isAdmin) {
                             <option value="">Seleccionar...</option>
                         </select>
                     </div>
+                    <div id="evaluation-config-wrapper" class="sm:col-span-3 hidden">
+                        <label class="block text-sm font-medium text-global-text-muted mb-1.5">
+                            Evaluaciones del curso
+                        </label>
+                        <div
+                            id="evaluation-config-help"
+                            class="mb-2 text-xs text-global-text-muted"
+                        ></div>
+                        <div
+                            id="evaluation-options"
+                            class="grid gap-2 sm:grid-cols-2"
+                        ></div>
+                    </div>
                     <div class="sm:col-span-3 flex items-center gap-3">
                         <button
                             type="submit"
@@ -141,6 +154,10 @@ if (!isAdmin) {
 </Layout>
 
 <script>
+
+    let cachedSubsystems: Array<{ subsystem_id: number; subsystem_cod: string; practices_quantity: number }> = [];
+    let cachedVariableEvaluations: Array<{ evaluation_id: number; evaluation_name: string }> = [];
+
     type Course = { id: number; code: string; name: string; credits: number; is_hidden: boolean };
 
     const listEl = document.getElementById("courses-list") as HTMLDivElement;
@@ -160,6 +177,10 @@ if (!isAdmin) {
     const systemSelect = document.getElementById("course-system") as HTMLSelectElement;
     const subsystemSelect = document.getElementById("course-subsystem") as HTMLSelectElement;
 
+    const evaluationConfigWrapper = document.getElementById("evaluation-config-wrapper") as HTMLDivElement;
+    const evaluationConfigHelp = document.getElementById("evaluation-config-help") as HTMLDivElement;
+    const evaluationOptions = document.getElementById("evaluation-options") as HTMLDivElement;
+
     let page = 1;
     let pageSize = 30;
 
@@ -175,6 +196,150 @@ if (!isAdmin) {
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#039;");
+
+    function renderEvaluationOptions() {
+        const subsystem_id = Number(subsystemSelect.value);
+        const subsystem = cachedSubsystems.find((s) => s.subsystem_id === subsystem_id);
+
+        const requires = systemSelect.selectedOptions[0]?.getAttribute("data-requires") === "true";
+
+        if (!requires || !subsystem) {
+            evaluationOptions.innerHTML = "";
+            evaluationConfigHelp.textContent = "";
+            evaluationConfigWrapper.classList.add("hidden");
+            return;
+        }
+
+        evaluationConfigWrapper.classList.remove("hidden");
+        evaluationConfigHelp.textContent = `Selecciona exactamente ${subsystem.practices_quantity} evaluaciones.`;
+
+        evaluationOptions.innerHTML = cachedVariableEvaluations
+            .map(
+                (ev) => `
+                    <label class="flex items-center gap-3 rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text">
+                        <input
+                            type="checkbox"
+                            class="course-evaluation-checkbox"
+                            value="${ev.evaluation_id}"
+                            data-evaluation-name="${escapeHtml(ev.evaluation_name)}"
+                        />
+                        <span>${escapeHtml(ev.evaluation_name)}</span>
+                    </label>
+                `
+            )
+            .join("");
+
+        const checkboxes = Array.from(
+            document.querySelectorAll(".course-evaluation-checkbox")
+        ) as HTMLInputElement[];
+
+        for (const checkbox of checkboxes) {
+            checkbox.addEventListener("change", () => {
+                const allCheckboxes = Array.from(
+                    document.querySelectorAll(".course-evaluation-checkbox")
+                ) as HTMLInputElement[];
+
+                if (checkbox.checked) {
+                    const allowed = canCheckEvaluation(checkbox, allCheckboxes);
+
+                    if (!allowed) {
+                        checkbox.checked = false;
+                        setFeedback("Debes seleccionar las evaluaciones en orden.", "error");
+                        return;
+                    }
+                } else {
+                    uncheckFollowingEvaluations(checkbox, allCheckboxes);
+                }
+
+                setFeedback("", "ok");
+                updateEvaluationCheckboxLimits();
+            });
+        }
+
+        updateEvaluationCheckboxLimits();
+    }
+
+    function parseEvaluationLabel(label: string) {
+    const match = label.match(/^(.*?)(\d+)$/);
+
+    if (!match) {
+        return {
+            baseName: label.trim(),
+            order: null as number | null,
+        };
+    }
+
+    return {
+        baseName: match[1].trim(),
+        order: Number(match[2]),
+    };
+}
+
+    function canCheckEvaluation(target: HTMLInputElement, checkboxes: HTMLInputElement[]) {
+        const label = target.dataset.evaluationName || "";
+        const parsed = parseEvaluationLabel(label);
+
+        if (parsed.order === null || parsed.order <= 1) {
+            return true;
+        }
+
+        for (let i = 1; i < parsed.order; i++) {
+            const required = checkboxes.find((cb) => {
+                const current = parseEvaluationLabel(cb.dataset.evaluationName || "");
+                return current.baseName === parsed.baseName && current.order === i;
+            });
+
+            if (!required || !required.checked) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    function uncheckFollowingEvaluations(target: HTMLInputElement, checkboxes: HTMLInputElement[]) {
+        const label = target.dataset.evaluationName || "";
+        const parsed = parseEvaluationLabel(label);
+
+        if (parsed.order === null) return;
+
+        for (const cb of checkboxes) {
+            const current = parseEvaluationLabel(cb.dataset.evaluationName || "");
+
+            if (
+                current.baseName === parsed.baseName &&
+                current.order !== null &&
+                current.order > parsed.order
+            ) {
+                cb.checked = false;
+            }
+        }
+    }
+
+    function updateEvaluationCheckboxLimits() {
+        const subsystem_id = Number(subsystemSelect.value);
+        const subsystem = cachedSubsystems.find((s) => s.subsystem_id === subsystem_id);
+
+        if (!subsystem) return;
+
+        const max = subsystem.practices_quantity;
+
+        const checkboxes = Array.from(
+            document.querySelectorAll(".course-evaluation-checkbox")
+        ) as HTMLInputElement[];
+
+        const checkedCount = checkboxes.filter((cb) => cb.checked).length;
+
+        for (const checkbox of checkboxes) {
+            if (!checkbox.checked) {
+                checkbox.disabled = checkedCount >= max;
+            } else {
+                checkbox.disabled = false;
+            }
+        }
+
+        evaluationConfigHelp.textContent = `Selecciona exactamente ${max} evaluaciones. Actualmente: ${checkedCount}/${max}.`;
+    }
 
     async function loadCourses(nextPage: number = 1) {
         page = nextPage;
@@ -280,6 +445,50 @@ if (!isAdmin) {
         }
     }
 
+    async function loadEvaluationOptions() {
+        const system_id = Number(systemSelect.value);
+
+        if (!Number.isInteger(system_id) || system_id <= 0) {
+            cachedVariableEvaluations = [];
+            evaluationOptions.innerHTML = "";
+            evaluationConfigWrapper.classList.add("hidden");
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/admin/course-evaluation-options", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ system_id }),
+            });
+
+            const text = await res.text();
+            let result: any = null;
+
+            try {
+                result = JSON.parse(text);
+            } catch (err) {
+                console.error("Respuesta no JSON:", text);
+                throw new Error("El endpoint no devolvió JSON válido");
+            }
+
+            if (!res.ok || !result?.ok) {
+                cachedVariableEvaluations = [];
+                evaluationOptions.innerHTML = "";
+                evaluationConfigWrapper.classList.add("hidden");
+                return;
+            }
+
+            cachedVariableEvaluations = result.evaluations || [];
+            renderEvaluationOptions();
+        } catch (err) {
+            console.error("Error cargando evaluaciones:", err);
+            cachedVariableEvaluations = [];
+            evaluationOptions.innerHTML = "";
+            evaluationConfigWrapper.classList.add("hidden");
+        }
+    }
+
     listEl?.addEventListener("click", async (e) => {
         const target = e.target as HTMLElement;
         const btn = target.closest(".toggle-course-btn") as HTMLButtonElement | null;
@@ -355,6 +564,7 @@ if (!isAdmin) {
             }
 
             const subsystems = result.subsystems;
+            cachedSubsystems = subsystems;
 
             subsystemSelect.innerHTML =
                 `<option value="">Seleccionar...</option>` +
@@ -369,25 +579,37 @@ if (!isAdmin) {
         }
     }
 
-    systemSelect.addEventListener("change", () => {
+    systemSelect.addEventListener("change", async () => {
         const selected = systemSelect.selectedOptions[0];
-        const requires = selected.getAttribute("data-requires") === "true";
+        const requires = selected?.getAttribute("data-requires") === "true";
 
         if (requires) {
             subsystemSelect.disabled = false;
             subsystemSelect.classList.remove("opacity-60", "cursor-not-allowed");
+
             if (subsystemSelect.options.length > 0) {
                 subsystemSelect.options[0].text = "Seleccionar...";
             }
-
         } else {
             subsystemSelect.disabled = true;
             subsystemSelect.value = "";
             subsystemSelect.classList.add("opacity-60", "cursor-not-allowed");
+
             if (subsystemSelect.options.length > 0) {
                 subsystemSelect.options[0].text = "No aplica";
             }
         }
+
+        evaluationOptions.innerHTML = "";
+        evaluationConfigHelp.textContent = "";
+        evaluationConfigWrapper.classList.add("hidden");
+        cachedVariableEvaluations = [];
+
+        await loadEvaluationOptions();
+    });
+
+    subsystemSelect.addEventListener("change", () => {
+        renderEvaluationOptions();
     });
 
     addForm?.addEventListener("submit", async (e) => {
@@ -401,6 +623,9 @@ if (!isAdmin) {
         const credits = Number((creditsInput?.value || "").trim());
         const system_id = Number(systemSelect.value) || null;
         const subsystem_id = subsystemSelect.value ? Number(subsystemSelect.value) : null;
+        const selected_evaluations = Array.from(
+            document.querySelectorAll(".course-evaluation-checkbox:checked")
+        ).map((el) => Number((el as HTMLInputElement).value)).filter((id) => Number.isInteger(id) && id > 0);
 
         console.log("SYSTEM:", system_id);
         console.log("SUBSYSTEM:", subsystemSelect.value);
@@ -411,13 +636,30 @@ if (!isAdmin) {
         return;
         }
 
+        const selectedOption = systemSelect.selectedOptions[0];
+        const requires = selectedOption?.getAttribute("data-requires") === "true";
+        const selectedSubsystem = cachedSubsystems.find((s) => s.subsystem_id === subsystem_id);
+
+        if (requires && selectedSubsystem && selected_evaluations.length !== selectedSubsystem.practices_quantity) {
+            setFeedback(`Debes seleccionar exactamente ${selectedSubsystem.practices_quantity} evaluaciones.`, "error");
+            addBtn.disabled = false;
+            return;
+        }
+
         addBtn.disabled = true;
         setFeedback("Guardando...", "ok");
 
         const res = await fetch("/api/admin/add-course", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, name, credits, system_id, subsystem_id }),
+            body: JSON.stringify({
+                code,
+                name,
+                credits,
+                system_id,
+                subsystem_id,
+                selected_evaluations
+            }),
         });
 
         const data = await res.json().catch(() => null);
