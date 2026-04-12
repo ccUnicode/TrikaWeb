@@ -50,6 +50,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const system_id = normalizeId(body.system_id);
         const subsystem_id = normalizeId(body.subsystem_id);
 
+        const rawSelectedEvaluations = Array.isArray(body.selected_evaluations)
+            ? body.selected_evaluations
+            : [];
+
+        const selected_evaluations: number[] = rawSelectedEvaluations
+            .map((id: unknown) => Number(id))
+            .filter((id: number) => Number.isInteger(id) && id > 0);
+
         if (system_id === null) {
             return new Response(JSON.stringify({ ok: false, error: 'Sistema inválido' }), {
                 status: 400,
@@ -95,75 +103,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        const { data: requiresData, error: requiresError } = await supabaseAdmin.rpc(
-            "get_evaluation_systems"
+        const { data: result, error: rpcError } = await supabaseAdmin.rpc(
+            'create_course_with_evaluations',
+            {
+                p_code: code,
+                p_name: name,
+                p_credits: credits,
+                p_system_id: system_id,
+                p_subsystem_id: subsystem_id,
+                p_selected_evaluations: selected_evaluations,
+            }
         );
 
-        if (requiresError) {
-            console.error(requiresError);
-            return new Response(JSON.stringify({ ok: false, error: 'Error validando sistema' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        const system = requiresData?.find((s: any) => s.system_id === system_id);
-
-        if (!system) {
-            return new Response(JSON.stringify({ ok: false, error: 'Sistema de evaluación inválido' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        if (system.requires_subsystem && !subsystem_id) {
-            return new Response(JSON.stringify({ ok: false, error: 'Debe seleccionar un subsistema' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        if (!system.requires_subsystem && subsystem_id) {
-            return new Response(JSON.stringify({ ok: false, error: 'Este sistema no admite subsistema' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        if (subsystem_id) {
-            const { data: subsystems, error: subError } = await supabaseAdmin.rpc(
-                "get_evaluation_subsystems"
-            );
-
-            if (subError) {
-                console.error(subError);
-                return new Response(JSON.stringify({ ok: false, error: 'Error validando subsistema' }), {
-                    status: 500,
-                    headers: { 'Content-Type': 'application/json' },
-                });
-            }
-
-            const exists = subsystems?.some((s: any) => s.subsystem_id === subsystem_id);
-
-            if (!exists) {
-                return new Response(JSON.stringify({ ok: false, error: 'Subsistema inválido' }), {
-                    status: 400,
-                    headers: { 'Content-Type': 'application/json' },
-                });
-            }
-        }
-
-        const { data: result, error: rpcError } = await supabaseAdmin.rpc('create_course', {
-            p_code: code,
-            p_name: name,
-            p_credits: credits,
-            p_system_id: system_id,
-            p_subsystem_id: subsystem_id,
-        });
-
         if (rpcError) {
-            console.error('Error calling create_course:', rpcError);
-            return new Response(JSON.stringify({ ok: false, error: 'Error al crear curso' }), {
+            console.error('Error calling create_course_with_evaluations:', rpcError);
+            return new Response(JSON.stringify({
+                ok: false,
+                error: 'Error al crear curso'
+            }), {
                 status: 500,
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -172,7 +129,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (!result?.ok) {
             return new Response(JSON.stringify({
                 ok: false,
-                error: result?.error || 'No se pudo crear el curso',
+                error: result?.error || 'No se pudo crear el curso'
             }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
