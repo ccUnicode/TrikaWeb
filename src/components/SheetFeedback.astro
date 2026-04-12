@@ -67,7 +67,7 @@ const { sheetId } = Astro.props;
       <!-- Texto -->
       <div>
         <label for="feedback-content" class="block text-sm font-medium text-global-text mb-2">
-          Tu comentario <span class="text-global-text-muted font-normal">(opcional)</span>
+          Tu comentario
         </label>
         <textarea
           id="feedback-content"
@@ -143,6 +143,37 @@ const { sheetId } = Astro.props;
   </div>
 </section>
 
+<!-- Modal de eliminación -->
+<div
+  id="feedback-delete-modal"
+  class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+>
+  <div class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300" id="feedback-delete-modal-box">
+    <h3 class="text-lg font-bold text-global-text mb-2">
+      ¿Eliminar tu comentario?
+    </h3>
+    <p class="text-global-text-muted text-sm mb-6">
+      Esta acción es permanente y no se puede deshacer.
+    </p>
+    <div class="flex justify-end gap-3">
+      <button
+        type="button"
+        id="cancel-feedback-delete-btn"
+        class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        id="confirm-feedback-delete-btn"
+        class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium"
+      >
+        Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   import { ensureDeviceId } from "../lib/client/device";
 
@@ -175,6 +206,11 @@ const { sheetId } = Astro.props;
     const prevBtn = document.getElementById("feedback-prev-btn") as HTMLButtonElement;
     const nextBtn = document.getElementById("feedback-next-btn") as HTMLButtonElement;
     const pageInfo = document.getElementById("feedback-page-info");
+
+    const deleteModal = document.getElementById("feedback-delete-modal");
+    const deleteModalBox = document.getElementById("feedback-delete-modal-box");
+    const confirmDeleteBtn = document.getElementById("confirm-feedback-delete-btn") as HTMLButtonElement;
+    const cancelDeleteBtn = document.getElementById("cancel-feedback-delete-btn");
 
     let selectedStars = 0;
     let currentPage = 1;
@@ -216,10 +252,12 @@ const { sheetId } = Astro.props;
     // ── Character counter ──
     contentInput?.addEventListener("input", () => {
       if (charCount) charCount.textContent = String(contentInput.value.length);
+      updateSubmitState();
     });
 
     const updateSubmitState = () => {
-      if (submitBtn) submitBtn.disabled = selectedStars === 0;
+      const hasText = contentInput ? contentInput.value.trim().length > 0 : false;
+      if (submitBtn) submitBtn.disabled = selectedStars === 0 || !hasText;
     };
 
     // ── Toggle form ──
@@ -308,6 +346,53 @@ const { sheetId } = Astro.props;
       }
     });
 
+    // ── Delete Modal Logic ──
+    const showDeleteModal = () => {
+      deleteModal?.classList.remove("opacity-0", "pointer-events-none");
+      deleteModalBox?.classList.remove("scale-95");
+      deleteModalBox?.classList.add("scale-100");
+    };
+
+    const hideDeleteModal = () => {
+      deleteModal?.classList.add("opacity-0", "pointer-events-none");
+      deleteModalBox?.classList.remove("scale-100");
+      deleteModalBox?.classList.add("scale-95");
+    };
+
+    cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
+
+    confirmDeleteBtn?.addEventListener("click", async () => {
+      if (!confirmDeleteBtn) return;
+      confirmDeleteBtn.disabled = true;
+      confirmDeleteBtn.textContent = "Eliminando...";
+
+      try {
+        const deviceId = ensureDeviceId();
+        const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id: deviceId }),
+        });
+
+        if (res.ok) {
+          hasUserFeedback = false;
+          currentUserFeedback = null;
+          if (toggleText && formContainer?.classList.contains("hidden")) {
+            toggleText.textContent = "Comentar";
+          }
+          hideDeleteModal();
+          loadFeedback(1);
+        } else {
+          throw new Error("Failed to delete");
+        }
+      } catch {
+        alert("Error al eliminar el comentario");
+      } finally {
+        confirmDeleteBtn.disabled = false;
+        confirmDeleteBtn.textContent = "Eliminar";
+      }
+    });
+
     // ── Edit/Delete own feedback ──
     feedbackList?.addEventListener("click", async (e) => {
       const target = e.target as HTMLElement;
@@ -327,27 +412,8 @@ const { sheetId } = Astro.props;
       }
 
       // Delete logic
-      if (!target.closest("[data-delete-own]")) return;
-
-      if (!confirm("¿Eliminar tu comentario?")) return;
-
-      try {
-        const deviceId = ensureDeviceId();
-        const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_id: deviceId }),
-        });
-
-        if (res.ok) {
-          hasUserFeedback = false;
-          if (toggleText && formContainer?.classList.contains("hidden")) {
-            toggleText.textContent = "Comentar";
-          }
-          loadFeedback(1);
-        }
-      } catch {
-        alert("Error al eliminar");
+      if (target.closest("[data-delete-own]")) {
+        showDeleteModal();
       }
     });
 

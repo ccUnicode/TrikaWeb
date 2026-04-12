@@ -29,6 +29,13 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
+  if (!content || typeof content !== 'string' || content.trim().length === 0) {
+    return new Response(
+      JSON.stringify({ error: 'El comentario de texto es obligatorio' }),
+      { status: 400 }
+    );
+  }
+
   // Filtro de palabras prohibidas
   if (content) {
     const contentLower = content.toLowerCase();
