@@ -339,6 +339,59 @@ import Layout from "../../layouts/Layout.astro";
           </p>
         </div>
       </section>
+
+      <!-- RF-04: Solucionarios más solicitados -->
+      <section
+        class="rounded-2xl bg-global-surface border border-global-border p-6 mt-6"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-global-text">
+              Solucionarios más solicitados
+            </h2>
+            <p class="mt-0.5 text-sm text-global-text-muted">
+              Planchas sin solucionario con más votos de "Me interesa"
+            </p>
+          </div>
+          <button
+            id="refresh-interests-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            Actualizar
+          </button>
+        </div>
+
+        <div id="interests-list" class="space-y-3">
+          <!-- Loading -->
+          <div id="interests-loading" class="text-center py-6">
+            <div
+              class="animate-spin h-6 w-6 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-2"
+            >
+            </div>
+            <p class="text-sm text-global-text-muted">Cargando...</p>
+          </div>
+        </div>
+
+        <div id="interests-empty" class="hidden text-center py-6">
+          <p class="text-global-text-muted text-sm">
+            No hay planchas con solicitudes de solucionario aún.
+          </p>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -545,5 +598,100 @@ import Layout from "../../layouts/Layout.astro";
         submitBtn?.removeAttribute("disabled");
       }
     });
+  </script>
+
+  <script>
+    // RF-04: Load most requested solucionarios
+    import { supabaseClient } from "../../lib/supabase.client";
+
+    const interestsList = document.getElementById("interests-list");
+    const interestsLoading = document.getElementById("interests-loading");
+    const interestsEmpty = document.getElementById("interests-empty");
+    const refreshInterestsBtn = document.getElementById(
+      "refresh-interests-btn",
+    );
+
+    async function loadTopInterests() {
+      if (interestsLoading) interestsLoading.classList.remove("hidden");
+      if (interestsEmpty) interestsEmpty.classList.add("hidden");
+      if (interestsList) {
+        // Keep only the loading div
+        const children = Array.from(interestsList.children);
+        children.forEach((child) => {
+          if (child.id !== "interests-loading") child.remove();
+        });
+      }
+
+      try {
+        const { data, error } = await supabaseClient
+          .from("sheets")
+          .select(
+            "id, exam_type, cycle, interest_count, solution_kind, courses:course_id (code, name)",
+          )
+          .is("solution_kind", null)
+          .gt("interest_count", 0)
+          .order("interest_count", { ascending: false })
+          .limit(10);
+
+        if (interestsLoading) interestsLoading.classList.add("hidden");
+
+        if (error) {
+          console.error("Error loading interests:", error);
+          if (interestsList) {
+            interestsList.innerHTML = `<div class="text-center text-red-400 py-4 text-sm">${error.message}</div>`;
+          }
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          if (interestsEmpty) interestsEmpty.classList.remove("hidden");
+          return;
+        }
+
+        // Render the list
+        const html = data
+          .map((sheet: any, index: number) => {
+            const course = Array.isArray(sheet.courses)
+              ? sheet.courses[0]
+              : sheet.courses;
+            const courseCode = course?.code ?? "N/A";
+            const courseName = course?.name ?? "";
+            const count = sheet.interest_count ?? 0;
+
+            return `
+            <a href="/exams/${sheet.id}" target="_blank"
+               class="flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border hover:border-global-primary transition-colors group">
+              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0">
+                ${index + 1}
+              </span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate">
+                  ${courseCode} — ${sheet.exam_type} ${sheet.cycle}
+                </p>
+                <p class="text-xs text-global-text-muted truncate">${courseName}</p>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-global-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 10v12" />
+                  <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+                </svg>
+                <span class="text-sm font-bold text-global-primary">${count}</span>
+              </div>
+            </a>
+          `;
+          })
+          .join("");
+
+        if (interestsList) {
+          interestsList.innerHTML = html;
+        }
+      } catch (err) {
+        if (interestsLoading) interestsLoading.classList.add("hidden");
+        console.error("Error:", err);
+      }
+    }
+
+    refreshInterestsBtn?.addEventListener("click", loadTopInterests);
+    loadTopInterests();
   </script>
 </Layout>

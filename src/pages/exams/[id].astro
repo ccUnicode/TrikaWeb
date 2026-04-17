@@ -37,6 +37,18 @@ if (error || !sheet) {
   return Astro.redirect("/cursos");
 }
 
+// RF-04: Fetch interest_count separately (graceful fallback if column doesn't exist yet)
+let interestCount = 0;
+try {
+  const { count } = await supa
+    .from("sheet_interests")
+    .select("*", { count: "exact", head: true })
+    .eq("sheet_id", sheetId);
+  interestCount = count ?? 0;
+} catch {
+  // Table doesn't exist yet — migration pending
+}
+
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
 const courseCode = course?.code ?? "Curso";
 const courseName = course?.name ?? "Curso";
@@ -111,6 +123,13 @@ function getYouTubeId(url: string) {
                 </span>
               )
             }
+            {
+              !sheet.solution_kind && (
+                <span>
+                  Interesados: <strong id="interest-count-display">{interestCount}</strong>
+                </span>
+              )
+            }
           </div>
           {
             sheet.teacher_hint &&
@@ -126,6 +145,35 @@ function getYouTubeId(url: string) {
 
         <!-- Right side: Action buttons -->
         <div class="flex flex-wrap gap-3 items-center">
+          {/* RF-03: Botón "Me interesa" — solo si NO tiene solucionario */}
+          {!sheet.solution_kind && (
+            <button
+              id="interest-btn"
+              data-sheet-id={sheet.id}
+              type="button"
+              class="inline-flex items-center justify-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-semibold transition-all group cursor-pointer"
+              style="border-color: rgb(var(--global-primary)); color: rgb(var(--global-primary));"
+              title="Solicitar solucionario para esta plancha"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="transition-all"
+              >
+                <path d="M7 10v12" />
+                <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+              </svg>
+              <span class="interest-detail-label">Me interesa</span>
+            </button>
+          )}
+
           <!-- Save/Favorite Button -->
           <button
             id="favorite-btn"
@@ -797,4 +845,129 @@ function getYouTubeId(url: string) {
   } else {
     initRatings();
   }
+</script>
+
+<script>
+  import { ensureDeviceId } from "../../lib/client/device";
+
+  // RF-04: "Me interesa" — API-backed + localStorage cache
+  const INTEREST_STORAGE_KEY = "trikaweb:interests";
+
+  function getStoredInterests(): number[] {
+    try {
+      const stored = localStorage.getItem(INTEREST_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function isSheetInterested(id: number): boolean {
+    return getStoredInterests().includes(id);
+  }
+
+  function setLocalInterest(id: number, interested: boolean): void {
+    const interests = getStoredInterests();
+    const index = interests.indexOf(id);
+    if (interested && index === -1) {
+      interests.push(id);
+    } else if (!interested && index >= 0) {
+      interests.splice(index, 1);
+    }
+    localStorage.setItem(INTEREST_STORAGE_KEY, JSON.stringify(interests));
+  }
+
+  function applyDetailInterestState(btn: HTMLElement, sheetId: number) {
+    const label = btn.querySelector(".interest-detail-label");
+    const svg = btn.querySelector("svg");
+
+    if (isSheetInterested(sheetId)) {
+      if (label) label.textContent = "¡Registrado!";
+      if (svg) svg.setAttribute("fill", "currentColor");
+      btn.style.backgroundColor = "rgb(var(--global-primary))";
+      btn.style.color = "black";
+      btn.style.borderColor = "rgb(var(--global-primary))";
+    } else {
+      if (label) label.textContent = "Me interesa";
+      if (svg) svg.setAttribute("fill", "none");
+      btn.style.backgroundColor = "transparent";
+      btn.style.color = "rgb(var(--global-primary))";
+      btn.style.borderColor = "rgb(var(--global-primary))";
+    }
+  }
+
+  function initInterestButton() {
+    const btn = document.getElementById("interest-btn");
+    if (!btn) return;
+
+    const sheetId = Number(btn.dataset.sheetId);
+    if (!Number.isFinite(sheetId)) return;
+
+    const countDisplay = document.getElementById("interest-count-display");
+
+    // Apply initial state from localStorage
+    applyDetailInterestState(btn, sheetId);
+
+    // Hover effects
+    btn.addEventListener("mouseenter", () => {
+      if (!isSheetInterested(sheetId)) {
+        btn.style.backgroundColor = "rgb(var(--global-primary))";
+        btn.style.color = "black";
+      } else {
+        btn.style.backgroundColor = "rgb(var(--global-primary-hover))";
+      }
+    });
+
+    btn.addEventListener("mouseleave", () => {
+      applyDetailInterestState(btn, sheetId);
+    });
+
+    btn.addEventListener("click", async () => {
+      // Optimistic UI update
+      const wasInterested = isSheetInterested(sheetId);
+      setLocalInterest(sheetId, !wasInterested);
+
+      // Visual pulse animation
+      btn.classList.add("scale-110");
+      setTimeout(() => btn.classList.remove("scale-110"), 200);
+
+      // Update button state
+      applyDetailInterestState(btn, sheetId);
+
+      // Call API
+      try {
+        const deviceId = ensureDeviceId();
+        const response = await fetch(`/api/sheets/${sheetId}/interest`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ device_id: deviceId }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          // Sync localStorage with API response
+          setLocalInterest(sheetId, result.interested);
+          applyDetailInterestState(btn, sheetId);
+
+          // Update counter display
+          if (countDisplay) {
+            countDisplay.textContent = String(result.interest_count ?? 0);
+          }
+        } else {
+          // Revert on error
+          setLocalInterest(sheetId, wasInterested);
+          applyDetailInterestState(btn, sheetId);
+          console.error("Error al registrar interés");
+        }
+      } catch (err) {
+        // Revert on network error
+        setLocalInterest(sheetId, wasInterested);
+        applyDetailInterestState(btn, sheetId);
+        console.error("Error de red:", err);
+      }
+    });
+  }
+
+  document.addEventListener("astro:page-load", initInterestButton);
+  document.addEventListener("DOMContentLoaded", initInterestButton);
 </script>
