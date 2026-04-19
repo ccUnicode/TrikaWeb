@@ -29,15 +29,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
     }
 
+    const courseId = Number(body.course_id);
     const courseCode = String(body.course_code ?? "").trim().toUpperCase();
     const cycle = String(body.cycle ?? "").trim();
-    const examType = String(body.exam_type ?? "").trim();
+    const evaluationId = Number(body.evaluation_id);
     const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
 
-    if (!courseCode || !cycle || !examType || !resourceKind) {
+    if (!Number.isInteger(courseId) || courseId <= 0 || !courseCode || !cycle || !Number.isInteger(evaluationId) || evaluationId <= 0 || !resourceKind) {
         return new Response(
-            JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
-            { status: 400, headers: { "Content-Type": "application/json" } }
+            JSON.stringify({
+            ok: false,
+            error: "Faltan campos obligatorios o son inválidos",
+            }),
+            {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+            }
         );
     }
 
@@ -48,22 +55,62 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
     }
 
-    // Resolve course
-    const { data: course, error: courseError } = await supabaseAdmin
-        .from("courses")
-        .select("id, code")
-        .ilike("code", courseCode)
+    const { data: evaluation, error: evaluationError } = await supabaseAdmin
+        .from("evaluation_type")
+        .select("evaluation_id, evaluation_name, evaluation_abr")
+        .eq("evaluation_id", evaluationId)
         .single();
 
-    if (courseError || !course) {
+    if (evaluationError || !evaluation) {
         return new Response(
-            JSON.stringify({ ok: false, error: "course_code no encontrado" }),
-            { status: 404, headers: { "Content-Type": "application/json" } }
+            JSON.stringify({
+            ok: false,
+            error: "No se encontró la evaluación seleccionada",
+            }),
+            {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+            }
         );
     }
 
-    const courseId = course.id;
-    const normalizedCode = (course.code ?? courseCode).toUpperCase();
+    const examType = String(evaluation.evaluation_abr ?? "").trim().toUpperCase();
+
+    if (!examType) {
+        return new Response(
+            JSON.stringify({
+            ok: false,
+            error: "La evaluación seleccionada no tiene abreviatura válida",
+            }),
+            {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+            }
+        );
+    }
+
+    // Resolve course
+    const { data: course, error: courseError } = await supabaseAdmin
+    .from("courses")
+    .select("id, code")
+    .eq("id", courseId)
+    .single();
+
+    if (courseError || !course) {
+    return new Response(
+        JSON.stringify({ ok: false, error: "course_id no encontrado" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
+    );
+    }
+
+    const normalizedCode = String(course.code ?? "").trim().toUpperCase();
+
+    if (!normalizedCode || normalizedCode !== courseCode) {
+    return new Response(
+        JSON.stringify({ ok: false, error: "El course_id no coincide con el course_code enviado" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+    }
 
     // Build storage path & bucket
     const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
@@ -137,18 +184,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     return new Response(
-        JSON.stringify({
-            ok: true,
-            signedUrl,
-            token,
-            path,
-            bucket: resourceKind === "AMBOS" ? "exams" : bucket,
-            courseId,
-            thumbSignedUrl,
-            thumbPath,
-            solutionSignedUrl,
-            solutionPath
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+    JSON.stringify({
+        ok: true,
+        signedUrl,
+        token,
+        path,
+        bucket: resourceKind === "AMBOS" ? "exams" : bucket,
+        courseId,
+        examType,
+        thumbSignedUrl,
+        thumbPath,
+        solutionSignedUrl,
+        solutionPath
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } }
     );
 };

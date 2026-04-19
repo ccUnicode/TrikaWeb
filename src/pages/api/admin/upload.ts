@@ -1,7 +1,3 @@
-// src/pages/api/admin/upload.ts
-// Registers sheet metadata in the DB after the file has already been
-// uploaded directly to Supabase Storage by the browser.
-
 export const prerender = false;
 
 import type { APIRoute } from "astro";
@@ -16,7 +12,6 @@ export const GET: APIRoute = () => {
 };
 
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Validate admin session via cookie
   const isAdmin = await validateAdminSession(cookies);
   if (!isAdmin) {
     return new Response(
@@ -25,7 +20,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // Parse JSON body (metadata only, no file)
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -38,6 +32,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const courseId = Number(body.course_id);
   const cycle = String(body.cycle ?? "").trim();
+  const evaluationId = Number(body.evaluation_id);
   const examType = String(body.exam_type ?? "").trim();
   const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
   const storagePath = String(body.storage_path ?? "").trim();
@@ -45,7 +40,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const teacherHint = String(body.teacher_hint ?? "").trim();
   const solutionStoragePath = String(body.solution_storage_path ?? "").trim();
 
-  if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
+  if (!courseId || Number.isNaN(courseId) || !evaluationId || Number.isNaN(evaluationId) || !cycle || !examType || !resourceKind || !storagePath) {
     return new Response(
       JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
@@ -60,13 +55,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   try {
-    // Check existing sheet
     const { data: existingSheet, error: lookupError } = await supabaseAdmin
       .from("sheets")
       .select("id")
       .eq("course_id", courseId)
       .eq("cycle", cycle)
-      .eq("exam_type", examType)
+      .eq("evaluation_id", evaluationId)
       .maybeSingle();
 
     if (lookupError) {
@@ -81,21 +75,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       const insertPayload = {
         course_id: courseId,
         cycle,
+        evaluation_id: evaluationId,
         exam_type: examType,
         exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
         thumb_storage_path: thumbStoragePath,
         is_hidden: false,
-        ...(resourceKind === "AMBOS" ? {
-          solution_kind: "pdf",
-          solution_storage_path: solutionStoragePath
-        } : {})
+        ...(resourceKind === "AMBOS"
+          ? {
+              solution_kind: "pdf",
+              solution_storage_path: solutionStoragePath,
+            }
+          : {}),
       };
 
       if (existingSheet) {
         const updatePayload: Record<string, unknown> = {
+          evaluation_id: evaluationId,
+          exam_type: examType,
           exam_storage_path: storagePath,
         };
+
         if (teacherHint) {
           updatePayload.teacher_hint = teacherHint;
         }
@@ -169,7 +169,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    const action = resourceKind === "AMBOS" ? "Plancha y Solucionario" : resourceKind === "PLANCHA" ? "Plancha" : "Solucionario";
+    const action =
+      resourceKind === "AMBOS"
+        ? "Plancha y Solucionario"
+        : resourceKind === "PLANCHA"
+        ? "Plancha"
+        : "Solucionario";
 
     return new Response(
       JSON.stringify({

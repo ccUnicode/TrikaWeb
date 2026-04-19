@@ -39,6 +39,12 @@ if (!isAdmin) {
               <div class="relative">
                 <input
                   type="hidden"
+                  id="course-id"
+                  name="course_id"
+                  required
+                />
+                <input
+                  type="hidden"
                   id="course-code"
                   name="course_code"
                   required
@@ -70,7 +76,7 @@ if (!isAdmin) {
               </div>
               <ul
                 id="course-dropdown"
-                class="absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
               >
               </ul>
             </div>
@@ -92,24 +98,56 @@ if (!isAdmin) {
             </div>
           </div>
 
-          <!-- Row 2: Exam Type & Teacher -->
+          <!-- Row 2: Evaluation Type & Teacher -->
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="exam-type"
+          <div class="relative" id="evaluation-combobox-container">
+          <label
+            class="block text-sm font-medium text-global-text-muted mb-1.5"
+            for="evaluation-search"
+          >
+            Evaluación
+          </label>
+
+          <div class="relative">
+            <input
+              type="hidden"
+              id="evaluation-id"
+              name="evaluation_id"
+              required
+            />
+
+            <input
+              type="text"
+              id="evaluation-search"
+              autocomplete="off"
+              disabled
+              class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              placeholder="Selecciona primero un curso"
+              required
+            />
+
+            <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+              <svg
+                class="h-4 w-4 text-global-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                Evaluación
-              </label>
-              <input
-                id="exam-type"
-                name="exam_type"
-                type="text"
-                required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                placeholder="Ej: PC1, Parcial, Final"
-              />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"
+                ></path>
+              </svg>
             </div>
+          </div>
+
+          <ul
+            id="evaluation-dropdown"
+            class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+          ></ul>
+        </div>
             <div>
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
@@ -457,15 +495,40 @@ if (!isAdmin) {
       "upload-submit-btn",
     ) as HTMLButtonElement;
 
-    type CourseOption = { code: string; name: string };
+    type CourseOption = { id: number; code: string; name: string };
+    type EvaluationOption = {
+      evaluation_id: number;
+      evaluation_name: string;
+      evaluation_abr: string;
+      evaluation_category: string;
+    };
     let allCourses: CourseOption[] = [];
+    let allEvaluations: EvaluationOption[] = [];
 
     const courseSearchInput = document.getElementById(
       "course-search",
     ) as HTMLInputElement;
+    const courseIdHidden = document.getElementById(
+      "course-id",
+    ) as HTMLInputElement;
     const courseCodeHidden = document.getElementById(
       "course-code",
     ) as HTMLInputElement;
+    const evaluationIdHidden = document.getElementById(
+      "evaluation-id",
+    ) as HTMLInputElement;
+
+    const evaluationSearchInput = document.getElementById(
+      "evaluation-search",
+    ) as HTMLInputElement;
+
+    const evaluationDropdown = document.getElementById(
+      "evaluation-dropdown",
+    ) as HTMLUListElement;
+
+    const evaluationComboboxContainer = document.getElementById(
+      "evaluation-combobox-container",
+    );
     const courseDropdown = document.getElementById(
       "course-dropdown",
     ) as HTMLUListElement;
@@ -507,6 +570,41 @@ if (!isAdmin) {
       }
     }
 
+    async function loadEvaluationOptions(courseId: number) {
+      if (!evaluationSearchInput) return;
+
+      resetEvaluationSelection("Cargando evaluaciones...");
+
+      try {
+        const res = await fetch(`/api/admin/course-evaluations?course_id=${courseId}`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
+          resetEvaluationSelection("No se pudieron cargar evaluaciones");
+          return;
+        }
+
+        const evaluations: EvaluationOption[] = data.evaluations || [];
+        allEvaluations = evaluations;
+
+        if (!evaluations.length) {
+          resetEvaluationSelection("Este curso no tiene evaluaciones registradas");
+          return;
+        }
+
+        evaluationSearchInput.removeAttribute("disabled");
+        evaluationSearchInput.placeholder = "Buscar evaluación...";
+        renderEvaluationDropdown(allEvaluations);
+      } catch (error) {
+        console.error("Error cargando evaluaciones:", error);
+        resetEvaluationSelection("Error cargando evaluaciones");
+      }
+    }
+
     function renderCourseDropdown(coursesToRender: CourseOption[]) {
       if (!courseDropdown) return;
       if (coursesToRender.length === 0) {
@@ -517,26 +615,80 @@ if (!isAdmin) {
       courseDropdown.innerHTML = coursesToRender
         .map((c) => {
           const label = `${c.code} - ${c.name}`;
-          return `<li data-code="${c.code}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
+          return `<li data-id="${c.id}" data-code="${c.code}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
         })
         .join("");
 
       const items = courseDropdown.querySelectorAll("li[data-code]");
       items.forEach((item) => {
         item.addEventListener("click", () => {
+          const id = Number(item.getAttribute("data-id") || "0");
           const code = item.getAttribute("data-code") || "";
           const label = item.getAttribute("data-label") || "";
+
+          if (courseIdHidden) courseIdHidden.value = String(id);
           if (courseCodeHidden) courseCodeHidden.value = code;
           if (courseSearchInput) courseSearchInput.value = label;
+
+          if (id > 0) {
+            loadEvaluationOptions(id);
+          }
+
           courseDropdown.classList.add("hidden");
         });
       });
     }
 
+    function renderEvaluationDropdown(evaluationsToRender: EvaluationOption[]) {
+      if (!evaluationDropdown) return;
+
+      if (evaluationsToRender.length === 0) {
+        evaluationDropdown.innerHTML = `<li class="px-4 py-3 text-sm text-global-text-muted text-center cursor-default">No se encontraron evaluaciones.</li>`;
+        return;
+      }
+
+      evaluationDropdown.innerHTML = evaluationsToRender
+        .map((ev) => {
+          const label = `${ev.evaluation_abr} - ${ev.evaluation_name}`;
+          return `<li data-id="${ev.evaluation_id}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
+        })
+        .join("");
+
+      const items = evaluationDropdown.querySelectorAll("li[data-id]");
+      items.forEach((item) => {
+        item.addEventListener("click", () => {
+          const id = Number(item.getAttribute("data-id") || "0");
+          const label = item.getAttribute("data-label") || "";
+
+          if (evaluationIdHidden) evaluationIdHidden.value = String(id);
+          if (evaluationSearchInput) evaluationSearchInput.value = label;
+
+          evaluationDropdown.classList.add("hidden");
+        });
+      });
+    }
+
+    function resetEvaluationSelection(placeholder = "Selecciona primero un curso") {
+      if (evaluationIdHidden) evaluationIdHidden.value = "";
+      if (evaluationSearchInput) {
+        evaluationSearchInput.value = "";
+        evaluationSearchInput.placeholder = placeholder;
+        evaluationSearchInput.setAttribute("disabled", "true");
+      }
+      if (evaluationDropdown) {
+        evaluationDropdown.innerHTML = "";
+        evaluationDropdown.classList.add("hidden");
+      }
+      allEvaluations = [];
+    }
+
     courseSearchInput?.addEventListener("input", (e) => {
       const query = (e.target as HTMLInputElement).value.toLowerCase();
       // Ocultar valor real si editan para forzar la selección válida
+      if (courseIdHidden) courseIdHidden.value = "";
       if (courseCodeHidden) courseCodeHidden.value = "";
+
+      resetEvaluationSelection("Selecciona primero un curso");
 
       const filtered = allCourses.filter(
         (c) =>
@@ -548,22 +700,15 @@ if (!isAdmin) {
     });
 
     courseSearchInput?.addEventListener("focus", () => {
-      courseSearchInput.select();
-      if (allCourses.length > 0) {
-        const query = courseSearchInput.value.toLowerCase();
-        const filtered = allCourses.filter(
-          (c) =>
-            c.code.toLowerCase().includes(query) ||
-            c.name.toLowerCase().includes(query),
-        );
-        renderCourseDropdown(filtered);
-        courseDropdown?.classList.remove("hidden");
-      }
-    });
+      if (courseIdHidden) courseIdHidden.value = "";
+      if (courseCodeHidden) courseCodeHidden.value = "";
+      courseSearchInput.value = "";
 
-    document.addEventListener("click", (e) => {
-      if (!courseComboboxContainer?.contains(e.target as Node)) {
-        courseDropdown?.classList.add("hidden");
+      resetEvaluationSelection("Selecciona primero un curso");
+
+      if (allCourses.length > 0) {
+        renderCourseDropdown(allCourses);
+        courseDropdown?.classList.remove("hidden");
       }
     });
 
@@ -572,6 +717,48 @@ if (!isAdmin) {
       setTimeout(() => {
         if (courseCodeHidden && !courseCodeHidden.value) {
           courseSearchInput.value = "";
+        }
+      }, 150);
+    });
+
+    evaluationSearchInput?.addEventListener("input", (e) => {
+      const query = (e.target as HTMLInputElement).value.toLowerCase();
+
+      if (evaluationIdHidden) evaluationIdHidden.value = "";
+
+      const filtered = allEvaluations.filter(
+        (ev) =>
+          ev.evaluation_abr.toLowerCase().includes(query) ||
+          ev.evaluation_name.toLowerCase().includes(query),
+      );
+
+      renderEvaluationDropdown(filtered);
+      evaluationDropdown?.classList.remove("hidden");
+    });
+
+    evaluationSearchInput?.addEventListener("focus", () => {
+      if (allEvaluations.length > 0) {
+        renderEvaluationDropdown(allEvaluations);
+        evaluationDropdown?.classList.remove("hidden");
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      const target = e.target as Node;
+
+      if (!courseComboboxContainer?.contains(target)) {
+        courseDropdown?.classList.add("hidden");
+      }
+
+      if (!evaluationComboboxContainer?.contains(target)) {
+        evaluationDropdown?.classList.add("hidden");
+      }
+    });
+
+    evaluationSearchInput?.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (evaluationIdHidden && !evaluationIdHidden.value) {
+          evaluationSearchInput.value = "";
         }
       }, 150);
     });
@@ -647,19 +834,31 @@ if (!isAdmin) {
       e.preventDefault();
 
       const formData = new FormData(uploadForm);
+      const courseId = Number(formData.get("course_id") ?? 0);
       const courseCode = String(formData.get("course_code") ?? "").trim();
       const cycle = String(formData.get("cycle") ?? "").trim();
-      const examType = String(formData.get("exam_type") ?? "").trim();
+      const evaluationId = Number(formData.get("evaluation_id") ?? 0);
       const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
       const file = (formData.get("file") as File) || null;
       const solutionFile = (formData.get("solution_file") as File) || null;
+
+      console.log({
+        courseId,
+        courseCode,
+        cycle,
+        evaluationId,
+        teacherHint,
+        file,
+        fileName: file?.name,
+        fileSize: file?.size,
+      });
 
       let resourceKind = "PLANCHA";
       if (solutionFile && solutionFile.size > 0) {
         resourceKind = "AMBOS";
       }
 
-      if (!courseCode || !cycle || !examType || !file || file.size === 0) {
+      if (!courseId || !courseCode || !cycle || !evaluationId || !file || file.size === 0) {
         alert(
           "Por favor completa todos los campos requeridos (el PDF de la plancha es obligatorio).",
         );
@@ -676,9 +875,10 @@ if (!isAdmin) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            course_id: courseId,
             course_code: courseCode,
             cycle,
-            exam_type: examType,
+            evaluation_id: evaluationId,
             resource_kind: resourceKind,
           }),
         });
@@ -771,7 +971,8 @@ if (!isAdmin) {
           body: JSON.stringify({
             course_id: urlData.courseId,
             cycle,
-            exam_type: examType,
+            evaluation_id: evaluationId,
+            exam_type: urlData.examType,
             resource_kind: resourceKind,
             storage_path: urlData.path,
             teacher_hint: teacherHint,
@@ -793,6 +994,11 @@ if (!isAdmin) {
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
         if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
+        resetEvaluationSelection("Selecciona primero un curso");
+        if (courseSearchInput) courseSearchInput.value = "";
+        if (courseIdHidden) courseIdHidden.value = "";
+        if (courseCodeHidden) courseCodeHidden.value = "";
+        courseDropdown?.classList.add("hidden");
 
         // Auto-hide success message after 4 seconds
         setTimeout(() => resetUploadUI(), 4000);
