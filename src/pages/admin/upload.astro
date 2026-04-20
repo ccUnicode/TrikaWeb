@@ -68,12 +68,7 @@ if (!isAdmin) {
                 Curso
               </label>
               <div class="relative">
-                <input
-                  type="hidden"
-                  id="course-id"
-                  name="course_id"
-                  required
-                />
+                <input type="hidden" id="course-id" name="course_id" required />
                 <input
                   type="hidden"
                   id="course-code"
@@ -131,60 +126,68 @@ if (!isAdmin) {
 
           <!-- Row 2: Evaluation Type & Teacher -->
           <div class="grid gap-4 sm:grid-cols-2">
-          <div class="relative" id="evaluation-combobox-container">
-          <label
-            class="block text-sm font-medium text-global-text-muted mb-1.5"
-            for="evaluation-search"
-          >
-            Evaluación
-          </label>
-
-          <div class="relative">
-            <input
-              type="hidden"
-              id="evaluation-id"
-              name="evaluation_id"
-              required
-            />
-
-            <input
-              type="text"
-              id="evaluation-search"
-              autocomplete="off"
-              disabled
-              class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
-              placeholder="Selecciona primero un curso"
-              required
-            />
-
-            <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-              <svg
-                class="h-4 w-4 text-global-text-muted"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <!-- Col 1: Evaluation -->
+            <div class="relative" id="evaluation-combobox-container">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="evaluation-search"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                ></path>
-              </svg>
-            </div>
-          </div>
+                Evaluación
+              </label>
 
-          <ul
-            id="evaluation-dropdown"
-            class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-          ></ul>
-        </div>
+              <div class="relative">
+                <input
+                  type="hidden"
+                  id="evaluation-id"
+                  name="evaluation_id"
+                  required
+                />
+
+                <input
+                  type="text"
+                  id="evaluation-search"
+                  autocomplete="off"
+                  disabled
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  placeholder="Selecciona primero un curso"
+                  required
+                />
+
+                <div
+                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="h-4 w-4 text-global-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <ul
+                id="evaluation-dropdown"
+                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+              >
+              </ul>
+            </div>
+
+            <!-- Col 2: Docente -->
             <div>
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="teacher-select"
               >
-                Docente <span class="text-global-text-muted">(opcional)</span>
+                Docente <span
+                  id="teacher-optional-label"
+                  class="text-global-text-muted">(opcional)</span
+                >
               </label>
               <select
                 id="teacher-select"
@@ -194,8 +197,53 @@ if (!isAdmin) {
               >
                 <option value="">-- Ingresa un curso primero --</option>
               </select>
-              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">Cargando profesores...</p>
+              <p
+                id="teacher-loading"
+                class="hidden mt-1 text-xs text-global-text-muted"
+              >
+                Cargando profesores...
+              </p>
             </div>
+          </div>
+
+          <!-- Toggle: Plancha de profesor específico -->
+          <div
+            id="teacher-specific-toggle"
+            class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-colors"
+          >
+            <label
+              class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5"
+            >
+              <input
+                id="is-teacher-specific"
+                name="is_teacher_specific"
+                type="checkbox"
+                class="sr-only peer"
+              />
+              <div
+                class="w-9 h-5 bg-global-border rounded-full peer-checked:bg-global-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"
+              >
+              </div>
+            </label>
+            <div>
+              <p class="text-sm font-medium text-global-text">
+                Plancha de profesor específico
+              </p>
+              <p class="text-xs text-global-text-muted mt-0.5">
+                Activa esto si la plancha pertenece a un profesor en particular
+                y no es la práctica general del curso.
+              </p>
+            </div>
+          </div>
+
+          <!-- Info alert (shown when toggle is active) -->
+          <div
+            id="teacher-specific-info"
+            class="hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200"
+          >
+            <strong>📋 Nota:</strong> Esta plancha se guardará como específica del
+            docente indicado. Puedes tener la plancha general <em>y</em> las de profesores
+            específicos para el mismo curso, ciclo y evaluación.
           </div>
 
           <!-- Row 3: Archivos -->
@@ -512,8 +560,12 @@ if (!isAdmin) {
     });
 
     // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const courseCodeInput = document.getElementById("course-code") as HTMLInputElement;
-    const teacherSelect = document.getElementById("teacher-select") as HTMLSelectElement;
+    const courseCodeInput = document.getElementById(
+      "course-code",
+    ) as HTMLInputElement;
+    const teacherSelect = document.getElementById(
+      "teacher-select",
+    ) as HTMLSelectElement;
     const teacherLoading = document.getElementById("teacher-loading");
 
     let lastFetchedCode = "";
@@ -523,7 +575,8 @@ if (!isAdmin) {
 
       // Validar formato de código de curso (3 letras + 2 dígitos)
       if (!/^[A-Z]{2,4}[0-9]{2,3}$/.test(trimmed)) {
-        teacherSelect.innerHTML = '<option value="">-- Ingresa un curso válido --</option>';
+        teacherSelect.innerHTML =
+          '<option value="">-- Ingresa un curso válido --</option>';
         teacherSelect.disabled = true;
         return;
       }
@@ -538,11 +591,14 @@ if (!isAdmin) {
       teacherSelect.innerHTML = '<option value="">Cargando...</option>';
 
       try {
-        const res = await fetch(`/api/cursos/${encodeURIComponent(trimmed)}/profesores`);
+        const res = await fetch(
+          `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
+        );
         const data = await res.json();
 
         if (data.ok && data.profesores.length > 0) {
-          teacherSelect.innerHTML = '<option value="">-- Selecciona un docente --</option>';
+          teacherSelect.innerHTML =
+            '<option value="">-- Selecciona un docente --</option>';
           for (const prof of data.profesores) {
             const opt = document.createElement("option");
             opt.value = prof.full_name;
@@ -551,7 +607,8 @@ if (!isAdmin) {
           }
           teacherSelect.disabled = false;
         } else {
-          teacherSelect.innerHTML = '<option value="">Sin profesores asociados</option>';
+          teacherSelect.innerHTML =
+            '<option value="">Sin profesores asociados</option>';
           teacherSelect.disabled = true;
         }
       } catch (err) {
@@ -573,6 +630,64 @@ if (!isAdmin) {
         loadTeachersByCourse(val);
       }
     });
+
+    // ── Teacher-specific toggle behavior ──────────────
+    const teacherSpecificCheckbox = document.getElementById(
+      "is-teacher-specific",
+    ) as HTMLInputElement;
+    const teacherSpecificInfo = document.getElementById(
+      "teacher-specific-info",
+    );
+    const teacherOptionalLabel = document.getElementById(
+      "teacher-optional-label",
+    );
+    const teacherToggleWrapper = document.getElementById(
+      "teacher-specific-toggle",
+    );
+
+    function updateTeacherSpecificUI() {
+      const isActive = teacherSpecificCheckbox?.checked ?? false;
+
+      // Show/hide info alert
+      if (isActive) {
+        teacherSpecificInfo?.classList.remove("hidden");
+        teacherToggleWrapper?.classList.add("border-global-primary/50");
+        teacherToggleWrapper?.classList.remove("border-global-border");
+      } else {
+        teacherSpecificInfo?.classList.add("hidden");
+        teacherToggleWrapper?.classList.remove("border-global-primary/50");
+        teacherToggleWrapper?.classList.add("border-global-border");
+      }
+
+      // Update teacher field required state and label
+      if (teacherSelect) {
+        teacherSelect.required = isActive;
+        if (isActive) {
+          teacherSelect.classList.add("border-global-primary/50");
+        } else {
+          teacherSelect.classList.remove("border-global-primary/50");
+        }
+      }
+      if (teacherOptionalLabel) {
+        teacherOptionalLabel.textContent = isActive
+          ? "(requerido)"
+          : "(opcional)";
+        if (isActive) {
+          teacherOptionalLabel.classList.add("text-global-primary");
+          teacherOptionalLabel.classList.remove("text-global-text-muted");
+        } else {
+          teacherOptionalLabel.classList.remove("text-global-primary");
+          teacherOptionalLabel.classList.add("text-global-text-muted");
+        }
+      }
+    }
+
+    teacherSpecificCheckbox?.addEventListener(
+      "change",
+      updateTeacherSpecificUI,
+    );
+    // Initialize on load
+    updateTeacherSpecificUI();
 
     // ── Two-Step Upload (bypasses Vercel 4.5MB limit) ──────────────
     const uploadForm = document.getElementById(
@@ -669,10 +784,13 @@ if (!isAdmin) {
       resetEvaluationSelection("Cargando evaluaciones...");
 
       try {
-        const res = await fetch(`/api/admin/course-evaluations?course_id=${courseId}`, {
-          method: "GET",
-          credentials: "include",
-        });
+        const res = await fetch(
+          `/api/admin/course-evaluations?course_id=${courseId}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
 
         const data = await res.json().catch(() => null);
 
@@ -685,7 +803,9 @@ if (!isAdmin) {
         allEvaluations = evaluations;
 
         if (!evaluations.length) {
-          resetEvaluationSelection("Este curso no tiene evaluaciones registradas");
+          resetEvaluationSelection(
+            "Este curso no tiene evaluaciones registradas",
+          );
           return;
         }
 
@@ -762,7 +882,9 @@ if (!isAdmin) {
       });
     }
 
-    function resetEvaluationSelection(placeholder = "Selecciona primero un curso") {
+    function resetEvaluationSelection(
+      placeholder = "Selecciona primero un curso",
+    ) {
       if (evaluationIdHidden) evaluationIdHidden.value = "";
       if (evaluationSearchInput) {
         evaluationSearchInput.value = "";
@@ -933,6 +1055,7 @@ if (!isAdmin) {
       const cycle = String(formData.get("cycle") ?? "").trim();
       const evaluationId = Number(formData.get("evaluation_id") ?? 0);
       const teacherHint = (teacherSelect?.value ?? "").trim();
+      const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
       const file = (formData.get("file") as File) || null;
       const solutionFile = (formData.get("solution_file") as File) || null;
 
@@ -942,6 +1065,7 @@ if (!isAdmin) {
         cycle,
         evaluationId,
         teacherHint,
+        isTeacherSpecific,
         file,
         fileName: file?.name,
         fileSize: file?.size,
@@ -959,7 +1083,7 @@ if (!isAdmin) {
         resourceKind = "SOLUCIONARIO";
       }
 
-      if (!courseId || !courseCode || !cycle || !evaluationId || !file || file.size === 0) {
+      if (!courseId || !courseCode || !cycle || !evaluationId) {
         alert(
           "Por favor completa los metadatos del curso, ciclo y evaluación.",
         );
@@ -970,6 +1094,15 @@ if (!isAdmin) {
         alert(
           "Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).",
         );
+        return;
+      }
+
+      // Validate teacher_hint when teacher-specific is enabled
+      if (isTeacherSpecific && !teacherHint) {
+        alert(
+          "Debes indicar el docente para una plancha de profesor específico.",
+        );
+        teacherSelect?.focus();
         return;
       }
 
@@ -988,6 +1121,8 @@ if (!isAdmin) {
             cycle,
             evaluation_id: evaluationId,
             resource_kind: resourceKind,
+            teacher_hint: teacherHint,
+            is_teacher_specific: isTeacherSpecific,
           }),
         });
 
@@ -1091,6 +1226,7 @@ if (!isAdmin) {
             teacher_hint: teacherHint,
             thumb_storage_path: uploadedThumbPath,
             solution_storage_path: urlData.solutionPath,
+            is_teacher_specific: isTeacherSpecific,
           }),
         });
 
@@ -1106,8 +1242,11 @@ if (!isAdmin) {
         setUploadUI(`✅ ${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+        if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
+
         // Reset teacher dropdown
-        teacherSelect.innerHTML = '<option value="">-- Ingresa un curso primero --</option>';
+        teacherSelect.innerHTML =
+          '<option value="">-- Ingresa un curso primero --</option>';
         teacherSelect.disabled = true;
         lastFetchedCode = "";
         resetEvaluationSelection("Selecciona primero un curso");
@@ -1115,6 +1254,8 @@ if (!isAdmin) {
         if (courseIdHidden) courseIdHidden.value = "";
         if (courseCodeHidden) courseCodeHidden.value = "";
         courseDropdown?.classList.add("hidden");
+        // Reset toggle UI after form reset
+        updateTeacherSpecificUI();
 
         // Auto-hide success message after 4 seconds
         setTimeout(() => resetUploadUI(), 4000);

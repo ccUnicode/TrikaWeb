@@ -70,6 +70,9 @@ create table if not exists sheets(
   solution_video_url text,
   thumb_storage_path text,
 
+  --Plancha de profesor específico
+  is_teacher_specific boolean not null default false,
+
   --Métricas
   avg_difficulty numeric(3,2) default 0,
   rating_count int default 0,
@@ -84,8 +87,8 @@ create table if not exists sheets(
 );
 
 --Índice para nicidad 
-create unique index if not exists uq_sheets_course_cycle_title
-  on sheets (course_id, cycle, lower(exam_type));
+create unique index if not exists uq_sheets_course_cycle_type_teacher
+  on sheets (course_id, cycle, lower(exam_type), coalesce(lower(teacher_hint), ''));
 
 --Índice para búsqueda
 create index if not exists ix_sheets_course on sheets (course_id);

@@ -43,21 +43,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const storagePath = String(body.storage_path ?? "").trim();
   const teacherHint = String(body.teacher_hint ?? "").trim();
   const solutionStoragePath = String(body.solution_storage_path ?? "").trim();
+  const thumbStoragePath = String(body.thumb_storage_path ?? "").trim();
+  const isTeacherSpecific = Boolean(body.is_teacher_specific);
 
-<<<<<<< HEAD
   if (
     !courseId ||
     Number.isNaN(courseId) ||
+    !evaluationId ||
+    Number.isNaN(evaluationId) ||
     !cycle ||
     !examType ||
     !resourceKind ||
     !storagePath
   ) {
-=======
-  if (!courseId || Number.isNaN(courseId) || !evaluationId || Number.isNaN(evaluationId) || !cycle || !examType || !resourceKind || !storagePath) {
->>>>>>> 4216c7c (feat: dropdown tipo de evaluación)
     return new Response(
       JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  // If marked as teacher-specific, teacher_hint is required
+  if (isTeacherSpecific && !teacherHint) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error:
+          "Debes indicar el docente para una plancha de profesor específico",
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
@@ -70,13 +82,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   try {
-    const { data: existingSheet, error: lookupError } = await supabaseAdmin
+    // Check existing sheet — include teacher_hint in the lookup so
+    // professor-specific sheets don't collide with general ones.
+    // For teacher-specific: match by teacher_hint
+    // For general: match where teacher_hint IS NULL or generic values
+    let lookupQuery = supabaseAdmin
       .from("sheets")
       .select("id")
       .eq("course_id", courseId)
       .eq("cycle", cycle)
-      .eq("evaluation_id", evaluationId)
-      .maybeSingle();
+      .eq("evaluation_id", evaluationId);
+
+    if (isTeacherSpecific && teacherHint) {
+      lookupQuery = lookupQuery.eq("teacher_hint", teacherHint);
+    } else {
+      // General sheet: look for one without a specific teacher
+      lookupQuery = lookupQuery.or(
+        "teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos",
+      );
+    }
+
+    const { data: existingSheet, error: lookupError } =
+      await lookupQuery.maybeSingle();
 
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);
@@ -87,15 +114,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-      const insertPayload = {
+      const insertPayload: Record<string, unknown> = {
         course_id: courseId,
         cycle,
         evaluation_id: evaluationId,
         exam_type: examType,
         exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
-        thumb_storage_path: thumbStoragePath,
+        thumb_storage_path: thumbStoragePath || null,
         is_hidden: false,
+        is_teacher_specific: isTeacherSpecific,
         ...(resourceKind === "AMBOS"
           ? {
               solution_kind: "pdf",
@@ -109,6 +137,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           evaluation_id: evaluationId,
           exam_type: examType,
           exam_storage_path: storagePath,
+          is_teacher_specific: isTeacherSpecific,
         };
 
         if (teacherHint) {
@@ -189,13 +218,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       resourceKind === "AMBOS"
         ? "Plancha y Solucionario"
         : resourceKind === "PLANCHA"
-<<<<<<< HEAD
           ? "Plancha"
           : "Solucionario";
-=======
-        ? "Plancha"
-        : "Solucionario";
->>>>>>> 4216c7c (feat: dropdown tipo de evaluación)
 
     return new Response(
       JSON.stringify({
