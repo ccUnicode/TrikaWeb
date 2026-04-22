@@ -314,8 +314,22 @@ if (!isAdmin) {
         }
 
         // ── Load data ──
+        let activeAbortController: AbortController | null = null;
+
         async function loadItems(page: number = 1) {
+            // Cancel any in-flight request before starting a new one
+            if (activeAbortController) {
+                activeAbortController.abort();
+            }
+            const controller = new AbortController();
+            activeAbortController = controller;
+
             currentPage = page;
+
+            // Snapshot the filters at call time so we can verify on response
+            const snapshotCategory = currentCategory;
+            const snapshotStatus = currentStatus;
+
             loadingState?.classList.remove("hidden");
             emptyState?.classList.add("hidden");
             pagination?.classList.add("hidden");
@@ -326,41 +340,48 @@ if (!isAdmin) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
+                    signal: controller.signal,
                     body: JSON.stringify({
-                        category: currentCategory,
-                        status: currentStatus,
+                        category: snapshotCategory,
+                        status: snapshotStatus,
                         page,
                         pageSize,
                         search: currentSearch,
                     }),
                 });
 
+                // If filters changed while we were waiting, discard this response
+                if (controller.signal.aborted) return;
+
                 const data = await res.json();
                 if (!data.ok) throw new Error(data.error || "Error desconocido");
+
+                // Double-check: if user switched tabs during json parsing, bail out
+                if (snapshotCategory !== currentCategory || snapshotStatus !== currentStatus) return;
 
                 const items = data.items ?? [];
                 const pag = data.pagination;
 
                 if (totalCount) totalCount.textContent = String(pag.total);
                 if (countLabel) {
-                    const label = currentStatus === "pending" ? " pendientes" : " registros";
+                    const label = snapshotStatus === "pending" ? " pendientes" : " registros";
                     countLabel.textContent = label;
                 }
 
                 if (items.length === 0) {
                     if (emptyTitle) {
-                        emptyTitle.textContent = currentStatus === "pending"
+                        emptyTitle.textContent = snapshotStatus === "pending"
                             ? "¡Todo limpio!"
                             : "Sin resultados";
                     }
                     if (emptySubtitle) {
-                        emptySubtitle.textContent = currentStatus === "pending"
+                        emptySubtitle.textContent = snapshotStatus === "pending"
                             ? "No hay elementos pendientes de moderación"
                             : "No se encontraron registros";
                     }
                     emptyState?.classList.remove("hidden");
                 } else {
-                    if (currentCategory === "teachers") {
+                    if (snapshotCategory === "teachers") {
                         renderTeacherItems(items);
                     } else {
                         renderSheetItems(items);
@@ -374,12 +395,17 @@ if (!isAdmin) {
                     }
                 }
             } catch (err: any) {
+                // Silently ignore aborted requests — they are intentional
+                if (err.name === "AbortError") return;
                 console.error("Error loading items:", err);
                 if (itemsList) {
                     itemsList.innerHTML = `<div class="text-center text-red-400 p-4">${err.message}</div>`;
                 }
             } finally {
-                loadingState?.classList.add("hidden");
+                // Only hide loading if this is still the active request
+                if (activeAbortController === controller) {
+                    loadingState?.classList.add("hidden");
+                }
             }
         }
 
