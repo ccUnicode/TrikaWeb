@@ -86,7 +86,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   // Verificar si ya existe feedback de este device_id para esta plancha
   const { data: existing } = await supa
     .from('sheet_feedback')
-    .select('id')
+    .select('id, stars, content')
     .eq('sheet_id', sheetId)
     .eq('device_id', deviceId)
     .maybeSingle();
@@ -94,6 +94,14 @@ export const POST: APIRoute = async ({ params, request }) => {
   let error;
 
   if (existing) {
+    // Evitar spam: si no cambió ni el contenido ni las estrellas, ignoramos el guardado
+    if (existing.stars === stars && (existing.content || "") === (content || "")) {
+      return new Response(
+        JSON.stringify({ success: true, updated: false, message: "Sin cambios" }),
+        { status: 200 }
+      );
+    }
+
     // Actualizar feedback existente
     const result = await supa
       .from('sheet_feedback')
