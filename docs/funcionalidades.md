@@ -1,4 +1,4 @@
-﻿# Funcionalidades de TrikaWeb
+# Funcionalidades de TrikaWeb
 
 ## Modulo academico
 
@@ -21,9 +21,10 @@
 
 ## Sistema de ratings y anti-spam
 
-- Un voto por `device_id` para planchas y profesores.
-- Limite por IP hasheada para evitar abuso.
-- Votacion editable y eliminable por el mismo cliente.
+- Un voto por `device_id` para calificaciones de planchas (dificultad), calificaciones de profesores y **feedback de solucionarios**.
+- **Feedback de Planchas/Solucionarios:** Calificación de satisfacción por estrellas (1-5) y comentarios de texto vinculados a cada evaluación.
+- Limite por IP hasheada para evitar abuso y prevención de spam por reenvío de contenido idéntico.
+- Votacion y comentarios editables o eliminables por el mismo cliente.
 
 ## Busqueda
 
@@ -34,11 +35,11 @@
 
 - Login/logout de administrador.
 - Carga de planchas/solucionarios via `multipart/form-data`.
-- Moderacion de comentarios:
-  - listar pendientes
-  - aprobar
-  - ocultar
-  - eliminar
+- **Moderación Unificada:**
+  - Gestión centralizada de opiniones de profesores y comentarios de planchas/solucionarios en una sola interfaz.
+  - Filtros por **categoría** (Profesores / Planchas) y **estado** (Pendiente / Historial).
+  - Acciones rápidas: ocultar (soft-delete reactivo) y marcar como revisado.
+- Eliminación de recursos: Eliminación independiente de la plancha y del solucionario.
 - Gestion de profesores:
   - listar (incluyendo ocultos)
   - ocultar/mostrar

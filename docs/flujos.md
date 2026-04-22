@@ -182,22 +182,32 @@ sequenceDiagram
 
 ---
 
-## Flujo: Moderación de Comentarios
+## Flujo: Feedback y Post-moderación
 
 ```mermaid
-stateDiagram-v2
-    [*] --> Pendiente: Usuario envía comentario
-    Pendiente --> Visible: Admin aprueba
-    Pendiente --> Oculto: Admin oculta
-    Visible --> Oculto: Admin oculta
-    Oculto --> Visible: Admin aprueba
-    Oculto --> Eliminado: Admin elimina
-    Eliminado --> [*]
+sequenceDiagram
+    actor User as Alumno
+    participant UI as Frontend
+    participant API as API Routes
+    participant DB as Supabase DB
+    actor Admin as Administrador
+    participant AdminUI as Panel Moderación
     
-    note right of Pendiente
-        Comentarios nuevos
-        tienen is_hidden=true
-    end note
+    User->>UI: Escribe feedback y califica
+    UI->>API: POST (feedback / rate teacher)
+    API->>API: Valida anti-spam / filtros
+    API->>DB: INSERT (is_hidden=false, needs_review=true)
+    DB-->>API: Guardado
+    API-->>UI: { success: true }
+    UI-->>User: Comentario publicado inmediatamente
+    
+    Admin->>AdminUI: Entra a pestaña "Pendientes"
+    AdminUI->>DB: SELECT WHERE needs_review=true
+    DB-->>AdminUI: Lista de comentarios nuevos
+    Admin->>AdminUI: Clic en "Revisado" (o "Ocultar")
+    AdminUI->>DB: UPDATE needs_review=false (y/o is_hidden)
+    DB-->>AdminUI: Actualizado
+    AdminUI-->>Admin: Comentario movido a "Historial"
 ```
 
 ---
@@ -211,6 +221,7 @@ erDiagram
     TEACHERS ||--o{ COURSES_TEACHERS : teaches
     TEACHERS ||--o{ TEACHER_RATINGS : receives
     SHEETS ||--o{ SHEET_RATINGS : receives
+    SHEETS ||--o{ SHEET_FEEDBACK : receives
     SHEETS ||--o{ SHEET_VIEWS : tracks
     
     COURSES {
@@ -249,6 +260,17 @@ erDiagram
         int score
     }
     
+    SHEET_FEEDBACK {
+        bigint id PK
+        bigint sheet_id FK
+        uuid device_id
+        text ip_hash
+        int stars
+        text content
+        boolean is_hidden
+        boolean needs_review
+    }
+    
     TEACHER_RATINGS {
         bigint id PK
         bigint teacher_id FK
@@ -261,6 +283,7 @@ erDiagram
         int grading
         text comment
         boolean is_hidden
+        boolean needs_review
     }
 ```
 

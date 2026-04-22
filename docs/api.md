@@ -1,4 +1,4 @@
-﻿# Referencia API
+# Referencia API
 
 Base local: `http://localhost:4321`
 
@@ -125,6 +125,34 @@ Content-Type: application/json
   }
 }
 ```
+
+---
+
+### POST `/api/sheets/:id/feedback`
+
+Dejar comentarios y calificar (estrellas) el solucionario de una plancha.
+
+**Request:**
+```http
+POST /api/sheets/12/feedback
+Content-Type: application/json
+
+{
+  "stars": 5,
+  "content": "Muy buen solucionario, gracias por el aporte.",
+  "device_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "updated": false
+}
+```
+
+> **Nota:** El feedback entra directamente a la vista pública pero se encola para post-moderación (`needs_review = true`).
 
 ---
 
@@ -383,46 +411,75 @@ file=@plancha.pdf
 
 ### POST `/api/admin/pending-comments`
 
-Listar comentarios pendientes de moderación.
+Listar comentarios (de profesores o planchas) para moderación, filtrados por estado.
+
+**Request:**
+```http
+POST /api/admin/pending-comments
+Content-Type: application/json
+
+{
+  "category": "teachers", // o "sheets"
+  "status": "pending",    // o "all" (historial)
+  "page": 1,
+  "pageSize": 5
+}
+```
 
 **Response (200):**
 ```json
-[
-  {
-    "id": 105,
-    "teacher_id": 5,
-    "teacher_name": "Juan Pérez",
-    "comment": "Este profesor es...",
-    "created_at": "2024-03-20T14:00:00Z"
+{
+  "ok": true,
+  "items": [
+    {
+      "id": 105,
+      "teacher_id": 5,
+      "teacher_name": "Juan Pérez",
+      "comment": "Este profesor es...",
+      "created_at": "2024-03-20T14:00:00Z",
+      "is_hidden": false,
+      "needs_review": true
+    }
+  ],
+  "pagination": {
+    "total": 1,
+    "page": 1,
+    "totalPages": 1
   }
-]
+}
 ```
 
 ---
 
-### POST `/api/admin/approve-comment`
+### POST `/api/admin/approve-comment` (y equivalente `unhide-comment`)
 
-Aprobar un comentario (hacerlo visible).
+Aprobar un comentario (lo marca como revisado y asegura que esté visible).
 
 **Request:**
 ```json
-{ "rating_id": 105 }
+{
+  "id": 105,
+  "category": "teachers" // o "sheets"
+}
 ```
 
-**Efecto:** `is_hidden = false`
+**Efecto:** `needs_review = false` y `is_hidden = false`.
 
 ---
 
 ### POST `/api/admin/hide-comment`
 
-Ocultar un comentario.
+Ocultar un comentario (soft-delete reactivo).
 
 **Request:**
 ```json
-{ "rating_id": 105 }
+{
+  "id": 105,
+  "category": "teachers" // o "sheets"
+}
 ```
 
-**Efecto:** `is_hidden = true`
+**Efecto:** `is_hidden = true` y `needs_review = false`.
 
 ---
 

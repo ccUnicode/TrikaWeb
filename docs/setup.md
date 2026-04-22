@@ -1,4 +1,4 @@
-﻿# Setup y Configuracion
+# Setup y Configuracion
 
 ## Requisitos
 
@@ -42,7 +42,8 @@ Ejecutar en SQL Editor de Supabase, en este orden:
 1. `supabase/schema.sql`
 2. `supabase/function_triggers.sql`
 3. `supabase/migrations/add_teacher_visibility.sql`
-4. `supabase/seed.sql` (opcional)
+4. Migraciones de Moderación Unificada (creación de tabla `sheet_feedback` y añadir columnas `needs_review`).
+5. `supabase/seed.sql` (opcional)
 
 ## Storage buckets
 

@@ -1,4 +1,4 @@
-﻿# Arquitectura del Proyecto
+# Arquitectura del Proyecto
 
 ## Objetivo
 
@@ -89,6 +89,7 @@ flowchart LR
 | `courses_teachers` | Relación N:M cursos ↔ docentes |
 | `sheets` | Planchas y solucionarios (metadata + paths) |
 | `sheet_ratings` | Votos de dificultad por plancha |
+| `sheet_feedback` | Comentarios de texto y calificación por estrellas de solucionarios |
 | `sheet_views` | Eventos de vista/descarga |
 | `teacher_ratings` | Calificaciones de profesores |
 | `write_limits` | Control de rate-limit por IP |
@@ -104,6 +105,7 @@ erDiagram
     TEACHERS ||--o{ COURSES_TEACHERS : teaches
     TEACHERS ||--o{ TEACHER_RATINGS : receives
     SHEETS ||--o{ SHEET_RATINGS : receives
+    SHEETS ||--o{ SHEET_FEEDBACK : receives
     SHEETS ||--o{ SHEET_VIEWS : tracks
 ```
 
@@ -117,6 +119,14 @@ Definidos en `supabase/function_triggers.sql`:
 | `refresh_view_count` | `sheet_views` | Recalcula `view_count` en `sheets` |
 | `refresh_teacher_stats` | `teacher_ratings` | Recalcula `avg_overall` y `rating_count` en `teachers` |
 
+## Lógica de Auditoría y Post-moderación
+
+El sistema utiliza un enfoque de **Post-moderación** para los comentarios y reseñas (`teacher_ratings` y `sheet_feedback`):
+1. **Visibilidad Inmediata**: Al enviar un comentario, este se publica y es visible inmediatamente (`is_hidden = false`), a menos que el filtro de malas palabras lo bloquee por completo.
+2. **Cola de Revisión**: Todo nuevo comentario se inserta con la bandera `needs_review = true`.
+3. **Notificación y Acción Administrativa**: En el panel de moderación, los administradores ven todos los registros con `needs_review = true` en la pestaña de "Pendientes".
+4. **Historial**: Una vez que el administrador hace clic en "Revisado" o "Ocultar", el campo `needs_review` cambia a `false`, moviendo el comentario a la pestaña "Historial".
+
 ## Seguridad
 
 ### Identificación de Usuarios
@@ -129,8 +139,9 @@ flowchart LR
 ```
 
 - **`ip_hash`**: IP hasheada con `IP_SALT` (nunca se guarda IP en claro).
-- **`device_id`**: UUID generado en cliente para limitar votos duplicados.
-- **Rate limiting**: Tabla `write_limits` por IP en endpoints de escritura.
+- **`device_id`**: UUID generado y persistido en `localStorage` del cliente. Permite interacciones anónimas pero controladas (editar/eliminar los propios comentarios, limitar a un voto por recurso).
+- **Control de Spam en Edición**: El backend bloquea las peticiones de edición que no presenten cambios reales en el texto o la calificación, evitando el abuso de reenvío para reactivar comentarios ocultos.
+- **Rate limiting**: Tabla `write_limits` por IP en endpoints de escritura, complementado con límites lógicos (ej. máximo 3 comentarios por red/IP para un mismo recurso).
 
 ### Autenticación Admin
 
