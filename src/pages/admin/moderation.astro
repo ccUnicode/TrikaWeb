@@ -185,6 +185,32 @@ if (!isAdmin) {
                     Cargando...
                 </p>
             </div>
+            <!-- Generic Confirmation Modal -->
+            <div
+              id="admin-confirm-modal"
+              class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+            >
+              <div class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300" id="admin-confirm-modal-box">
+                <h3 id="admin-modal-title" class="text-lg font-bold text-global-text mb-2">Confirmar</h3>
+                <p id="admin-modal-body" class="text-global-text-muted text-sm mb-6">¿Desea continuar?</p>
+                <div class="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    id="admin-modal-cancel"
+                    class="rounded-xl border border-global-border bg-global-card px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    id="admin-modal-confirm"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold transition cursor-pointer text-white"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
         </div>
     </div>
 
@@ -210,6 +236,45 @@ if (!isAdmin) {
         const pageInfo = document.getElementById("page-info");
         const searchInput = document.getElementById("search-input") as HTMLInputElement;
         const refreshBtn = document.getElementById("refresh-btn");
+
+        // Modal
+        const adminModal = document.getElementById("admin-confirm-modal");
+        const adminModalBox = document.getElementById("admin-confirm-modal-box");
+        const adminModalTitle = document.getElementById("admin-modal-title");
+        const adminModalBody = document.getElementById("admin-modal-body");
+        const adminModalCancel = document.getElementById("admin-modal-cancel");
+        const adminModalConfirm = document.getElementById("admin-modal-confirm") as HTMLButtonElement;
+
+        let confirmActionCb: (() => void) | null = null;
+
+        function showAdminModal(title: string, body: string, btnText: string, btnClass: string, actionCb: () => void) {
+            if (adminModalTitle) adminModalTitle.textContent = title;
+            if (adminModalBody) adminModalBody.textContent = body;
+            if (adminModalConfirm) {
+                adminModalConfirm.textContent = btnText;
+                adminModalConfirm.className = `rounded-xl px-4 py-2 text-sm font-semibold transition cursor-pointer ${btnClass}`;
+            }
+            confirmActionCb = actionCb;
+            
+            adminModal?.classList.remove("opacity-0", "pointer-events-none");
+            adminModalBox?.classList.remove("scale-95");
+            adminModalBox?.classList.add("scale-100");
+        }
+
+        function hideAdminModal() {
+            adminModal?.classList.add("opacity-0", "pointer-events-none");
+            adminModalBox?.classList.remove("scale-100");
+            adminModalBox?.classList.add("scale-95");
+            confirmActionCb = null;
+        }
+
+        adminModalCancel?.addEventListener("click", hideAdminModal);
+        adminModalConfirm?.addEventListener("click", () => {
+            if (confirmActionCb) {
+                confirmActionCb();
+                hideAdminModal();
+            }
+        });
 
         // Tabs
         const tabTeachers = document.getElementById("tab-teachers");
@@ -398,7 +463,16 @@ if (!isAdmin) {
                                     </svg>
                                     Ocultar
                                 </button>
-                            ` : ''}
+                            ` : `
+                                <button type="button" onclick="unhideItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-600/30 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Mostrar
+                                </button>
+                            `}
                             <button type="button" onclick="deleteItem(${item.id}, '${table}')"
                                 class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -468,7 +542,16 @@ if (!isAdmin) {
                                     </svg>
                                     Ocultar
                                 </button>
-                            ` : ''}
+                            ` : `
+                                <button type="button" onclick="unhideItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-600/30 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Mostrar
+                                </button>
+                            `}
                             <button type="button" onclick="deleteItem(${item.id}, '${table}')"
                                 class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -515,7 +598,6 @@ if (!isAdmin) {
         };
 
         (window as any).hideItem = async function (id: number, table: string) {
-            if (!confirm("¿Ocultar este contenido de la web pública?")) return;
             const card = document.querySelector(`[data-item-id="${id}"]`);
             if (card) card.classList.add("opacity-50", "pointer-events-none");
 
@@ -542,13 +624,41 @@ if (!isAdmin) {
             }
         };
 
-        (window as any).deleteItem = async function (id: number, table: string) {
-            if (!confirm("¿Eliminar permanentemente? Esta acción no se puede deshacer.")) return;
+        (window as any).deleteItem = function (id: number, table: string) {
+            showAdminModal("¿Eliminar permanentemente?", "Esta acción no se puede deshacer.", "Eliminar", "bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20", async () => {
+                const card = document.querySelector(`[data-item-id="${id}"]`);
+                if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+                try {
+                    const res = await fetch("/api/admin/delete-rating", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ rating_id: id, table }),
+                    });
+                    const data = await res.json();
+
+                    if (data.ok) {
+                        card?.remove();
+                        updateCount(-1);
+                        loadCounts();
+                    } else {
+                        alert("Error: " + (data.error ?? "No se pudo eliminar"));
+                        if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                    }
+                } catch {
+                    alert("Error de red");
+                    if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                }
+            });
+        };
+
+        (window as any).unhideItem = async function (id: number, table: string) {
             const card = document.querySelector(`[data-item-id="${id}"]`);
             if (card) card.classList.add("opacity-50", "pointer-events-none");
 
             try {
-                const res = await fetch("/api/admin/delete-rating", {
+                const res = await fetch("/api/admin/unhide-comment", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -557,11 +667,10 @@ if (!isAdmin) {
                 const data = await res.json();
 
                 if (data.ok) {
-                    card?.remove();
-                    updateCount(-1);
+                    loadItems(currentPage);
                     loadCounts();
                 } else {
-                    alert("Error: " + (data.error ?? "No se pudo eliminar"));
+                    alert("Error: " + (data.error ?? "No se pudo mostrar"));
                     if (card) card.classList.remove("opacity-50", "pointer-events-none");
                 }
             } catch {
