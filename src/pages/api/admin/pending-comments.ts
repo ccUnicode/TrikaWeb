@@ -50,6 +50,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (status === "pending") {
             query = query.eq("needs_review", true).eq("is_hidden", false);
+        } else if (status === "all") {
+            query = query.eq("needs_review", false);
         }
 
         query = query.range(from, to);
@@ -140,6 +142,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (status === "pending") {
             query = query.eq("needs_review", true).eq("is_hidden", false);
+        } else if (status === "all") {
+            query = query.eq("needs_review", false);
         }
 
         query = query.range(from, to);
