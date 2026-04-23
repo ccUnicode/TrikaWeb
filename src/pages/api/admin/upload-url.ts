@@ -33,10 +33,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const cycle = String(body.cycle ?? "").trim();
     const examType = String(body.exam_type ?? "").trim();
     const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
+    const teacherHint = String(body.teacher_hint ?? "").trim();
+    const isTeacherSpecific = Boolean(body.is_teacher_specific);
 
     if (!courseCode || !cycle || !examType || !resourceKind) {
         return new Response(
             JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
+            { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+    }
+
+    // If marked as teacher-specific, teacher_hint is required
+    if (isTeacherSpecific && !teacherHint) {
+        return new Response(
+            JSON.stringify({ ok: false, error: "Debes indicar el docente para una plancha de profesor específico" }),
             { status: 400, headers: { "Content-Type": "application/json" } }
         );
     }
@@ -66,10 +76,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const normalizedCode = (course.code ?? courseCode).toUpperCase();
 
     // Build storage path & bucket
+    // For teacher-specific sheets, append sanitized teacher name to avoid collisions
+    // General:  BMA02/PC1/2024-II.pdf
+    // Specific: BMA02/PC1/2024-II_Arambulo.pdf
     const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
     const safeCycle = cycle.replace(/[^a-zA-Z0-9\-_]/g, "_");
     const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
-    const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
+    const safeTeacher = teacherHint
+        ? `_${teacherHint.replace(/[^a-zA-Z0-9\-_áéíóúñÁÉÍÓÚÑ]/g, "_")}`
+        : "";
+    const path = `${normalizedCode}/${safeExam}/${safeCycle}${safeTeacher}.pdf`;
 
     // Generate signed upload URL
     const { data: signedData, error: signedError } = await supabaseAdmin.storage

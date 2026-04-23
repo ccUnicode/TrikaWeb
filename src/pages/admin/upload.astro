@@ -111,7 +111,7 @@ import Layout from "../../layouts/Layout.astro";
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="teacher-hint"
               >
-                Docente <span class="text-global-text-muted">(opcional)</span>
+                Docente <span id="teacher-optional-label" class="text-global-text-muted">(opcional)</span>
               </label>
               <input
                 id="teacher-hint"
@@ -121,6 +121,39 @@ import Layout from "../../layouts/Layout.astro";
                 placeholder="Prof. Arámbulo, etc."
               />
             </div>
+          </div>
+
+          <!-- Toggle: Plancha de profesor específico -->
+          <div
+            id="teacher-specific-toggle"
+            class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-colors"
+          >
+            <label class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
+              <input
+                id="is-teacher-specific"
+                name="is_teacher_specific"
+                type="checkbox"
+                class="sr-only peer"
+              />
+              <div class="w-9 h-5 bg-global-border rounded-full peer-checked:bg-global-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+            </label>
+            <div>
+              <p class="text-sm font-medium text-global-text">
+                Plancha de profesor específico
+              </p>
+              <p class="text-xs text-global-text-muted mt-0.5">
+                Activa esto si la plancha pertenece a un profesor en particular y no es la práctica general del curso.
+              </p>
+            </div>
+          </div>
+
+          <!-- Info alert (shown when toggle is active) -->
+          <div
+            id="teacher-specific-info"
+            class="hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200"
+          >
+            <strong>📋 Nota:</strong> Esta plancha se guardará como específica del docente indicado.
+            Puedes tener la plancha general <em>y</em> las de profesores específicos para el mismo curso, ciclo y evaluación.
           </div>
 
           <!-- Row 3: Resource Type & File -->
@@ -413,6 +446,52 @@ import Layout from "../../layouts/Layout.astro";
       }
     });
 
+    // ── Teacher-specific toggle behavior ──────────────
+    const teacherSpecificCheckbox = document.getElementById("is-teacher-specific") as HTMLInputElement;
+    const teacherSpecificInfo = document.getElementById("teacher-specific-info");
+    const teacherHintInput = document.getElementById("teacher-hint") as HTMLInputElement;
+    const teacherOptionalLabel = document.getElementById("teacher-optional-label");
+    const teacherToggleWrapper = document.getElementById("teacher-specific-toggle");
+
+    function updateTeacherSpecificUI() {
+      const isActive = teacherSpecificCheckbox?.checked ?? false;
+
+      // Show/hide info alert
+      if (isActive) {
+        teacherSpecificInfo?.classList.remove("hidden");
+        teacherToggleWrapper?.classList.add("border-global-primary/50");
+        teacherToggleWrapper?.classList.remove("border-global-border");
+      } else {
+        teacherSpecificInfo?.classList.add("hidden");
+        teacherToggleWrapper?.classList.remove("border-global-primary/50");
+        teacherToggleWrapper?.classList.add("border-global-border");
+      }
+
+      // Update teacher field required state and label
+      if (teacherHintInput) {
+        teacherHintInput.required = isActive;
+        if (isActive) {
+          teacherHintInput.classList.add("border-global-primary/50");
+        } else {
+          teacherHintInput.classList.remove("border-global-primary/50");
+        }
+      }
+      if (teacherOptionalLabel) {
+        teacherOptionalLabel.textContent = isActive ? "(requerido)" : "(opcional)";
+        if (isActive) {
+          teacherOptionalLabel.classList.add("text-global-primary");
+          teacherOptionalLabel.classList.remove("text-global-text-muted");
+        } else {
+          teacherOptionalLabel.classList.remove("text-global-primary");
+          teacherOptionalLabel.classList.add("text-global-text-muted");
+        }
+      }
+    }
+
+    teacherSpecificCheckbox?.addEventListener("change", updateTeacherSpecificUI);
+    // Initialize on load
+    updateTeacherSpecificUI();
+
     // ── Two-Step Upload (bypasses Vercel 4.5MB limit) ──────────────
     const uploadForm = document.getElementById(
       "upload-form",
@@ -453,6 +532,7 @@ import Layout from "../../layouts/Layout.astro";
       const examType = String(formData.get("exam_type") ?? "").trim();
       const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
       const resourceKind = String(formData.get("resource_kind") ?? "").trim();
+      const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
       const file = (formData.get("file") as File) || null;
 
       if (
@@ -464,6 +544,13 @@ import Layout from "../../layouts/Layout.astro";
         file.size === 0
       ) {
         alert("Por favor completa todos los campos y selecciona un archivo.");
+        return;
+      }
+
+      // Validate teacher_hint when teacher-specific is enabled
+      if (isTeacherSpecific && !teacherHint) {
+        alert("Debes indicar el docente para una plancha de profesor específico.");
+        teacherHintInput?.focus();
         return;
       }
 
@@ -481,6 +568,8 @@ import Layout from "../../layouts/Layout.astro";
             cycle,
             exam_type: examType,
             resource_kind: resourceKind,
+            teacher_hint: teacherHint,
+            is_teacher_specific: isTeacherSpecific,
           }),
         });
 
@@ -521,6 +610,7 @@ import Layout from "../../layouts/Layout.astro";
             resource_kind: resourceKind,
             storage_path: urlData.path,
             teacher_hint: teacherHint,
+            is_teacher_specific: isTeacherSpecific,
           }),
         });
 
@@ -536,6 +626,8 @@ import Layout from "../../layouts/Layout.astro";
         setUploadUI(`✅ ${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+        // Reset toggle UI after form reset
+        updateTeacherSpecificUI();
 
         // Auto-hide success message after 4 seconds
         setTimeout(() => resetUploadUI(), 4000);

@@ -42,10 +42,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
   const storagePath = String(body.storage_path ?? "").trim();
   const teacherHint = String(body.teacher_hint ?? "").trim();
+  const isTeacherSpecific = Boolean(body.is_teacher_specific);
 
   if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
     return new Response(
       JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  // If marked as teacher-specific, teacher_hint is required
+  if (isTeacherSpecific && !teacherHint) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Debes indicar el docente para una plancha de profesor específico" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -58,14 +67,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   }
 
   try {
-    // Check existing sheet
-    const { data: existingSheet, error: lookupError } = await supabaseAdmin
+    // Check existing sheet — include teacher_hint in the lookup so
+    // professor-specific sheets don't collide with general ones.
+    // For teacher-specific: match by teacher_hint
+    // For general: match where teacher_hint IS NULL or generic values
+    let lookupQuery = supabaseAdmin
       .from("sheets")
       .select("id")
       .eq("course_id", courseId)
       .eq("cycle", cycle)
-      .eq("exam_type", examType)
-      .maybeSingle();
+      .eq("exam_type", examType);
+
+    if (isTeacherSpecific && teacherHint) {
+      lookupQuery = lookupQuery.eq("teacher_hint", teacherHint);
+    } else {
+      // General sheet: look for one without a specific teacher
+      lookupQuery = lookupQuery.or("teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos");
+    }
+
+    const { data: existingSheet, error: lookupError } = await lookupQuery.maybeSingle();
 
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);
@@ -76,17 +96,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (resourceKind === "PLANCHA") {
-      const insertPayload = {
+      const insertPayload: Record<string, unknown> = {
         course_id: courseId,
         cycle,
         exam_type: examType,
         exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
+        is_teacher_specific: isTeacherSpecific,
       };
 
       if (existingSheet) {
         const updatePayload: Record<string, unknown> = {
           exam_storage_path: storagePath,
+          is_teacher_specific: isTeacherSpecific,
         };
         if (teacherHint) {
           updatePayload.teacher_hint = teacherHint;
