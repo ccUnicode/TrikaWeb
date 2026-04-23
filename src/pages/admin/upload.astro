@@ -109,17 +109,19 @@ import Layout from "../../layouts/Layout.astro";
             <div>
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="teacher-hint"
+                for="teacher-select"
               >
                 Docente <span id="teacher-optional-label" class="text-global-text-muted">(opcional)</span>
               </label>
-              <input
-                id="teacher-hint"
+              <select
+                id="teacher-select"
                 name="teacher_hint"
-                type="text"
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-                placeholder="Prof. Arámbulo, etc."
-              />
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled
+              >
+                <option value="">-- Ingresa un curso primero --</option>
+              </select>
+              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">Cargando profesores...</p>
             </div>
           </div>
 
@@ -446,6 +448,68 @@ import Layout from "../../layouts/Layout.astro";
       }
     });
 
+    const courseCodeInput = document.getElementById("course-code") as HTMLInputElement;
+    const teacherSelect = document.getElementById("teacher-select") as HTMLSelectElement;
+    const teacherLoading = document.getElementById("teacher-loading");
+
+    let lastFetchedCode = "";
+
+    async function loadTeachersByCourse(code: string) {
+      const trimmed = code.trim().toUpperCase();
+
+      // Validar formato de código de curso (3 letras + 2 dígitos)
+      if (!/^[A-Z]{3}[0-9]{2}$/.test(trimmed)) {
+        teacherSelect.innerHTML = '<option value="">-- Ingresa un curso válido --</option>';
+        teacherSelect.disabled = true;
+        return;
+      }
+
+      // No repetir fetch si el código no cambió
+      if (trimmed === lastFetchedCode) return;
+      lastFetchedCode = trimmed;
+
+      // Mostrar loading
+      teacherLoading?.classList.remove("hidden");
+      teacherSelect.disabled = true;
+      teacherSelect.innerHTML = '<option value="">Cargando...</option>';
+
+      try {
+        const res = await fetch(`/api/cursos/${encodeURIComponent(trimmed)}/profesores`);
+        const data = await res.json();
+
+        if (data.ok && data.profesores.length > 0) {
+          teacherSelect.innerHTML = '<option value="">-- Selecciona un docente --</option>';
+          for (const prof of data.profesores) {
+            const opt = document.createElement("option");
+            opt.value = prof.full_name;
+            opt.textContent = prof.full_name;
+            teacherSelect.appendChild(opt);
+          }
+          teacherSelect.disabled = false;
+        } else {
+          teacherSelect.innerHTML = '<option value="">Sin profesores asociados</option>';
+          teacherSelect.disabled = true;
+        }
+      } catch (err) {
+        console.error("Error cargando profesores:", err);
+        teacherSelect.innerHTML = '<option value="">Error al cargar</option>';
+        teacherSelect.disabled = true;
+      } finally {
+        teacherLoading?.classList.add("hidden");
+      }
+    }
+
+    courseCodeInput?.addEventListener("blur", () => {
+      loadTeachersByCourse(courseCodeInput.value);
+    });
+
+    courseCodeInput?.addEventListener("input", () => {
+      const val = courseCodeInput.value.trim().toUpperCase();
+      if (/^[A-Z]{3}[0-9]{2}$/.test(val)) {
+        loadTeachersByCourse(val);
+      }
+    });
+
     // ── Teacher-specific toggle behavior ──────────────
     const teacherSpecificCheckbox = document.getElementById("is-teacher-specific") as HTMLInputElement;
     const teacherSpecificInfo = document.getElementById("teacher-specific-info");
@@ -530,7 +594,7 @@ import Layout from "../../layouts/Layout.astro";
       const courseCode = String(formData.get("course_code") ?? "").trim();
       const cycle = String(formData.get("cycle") ?? "").trim();
       const examType = String(formData.get("exam_type") ?? "").trim();
-      const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
+      const teacherHint = (teacherSelect?.value ?? "").trim();
       const resourceKind = String(formData.get("resource_kind") ?? "").trim();
       const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
       const file = (formData.get("file") as File) || null;
@@ -626,6 +690,10 @@ import Layout from "../../layouts/Layout.astro";
         setUploadUI(`✅ ${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+        // Reset teacher dropdown
+        teacherSelect.innerHTML = '<option value="">-- Ingresa un curso primero --</option>';
+        teacherSelect.disabled = true;
+        lastFetchedCode = "";
         // Reset toggle UI after form reset
         updateTeacherSpecificUI();
 
