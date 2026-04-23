@@ -34,6 +34,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const cycle = String(body.cycle ?? "").trim();
     const evaluationId = Number(body.evaluation_id);
     const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
+    const teacherHint = String(body.teacher_hint ?? "").trim();
+    const isTeacherSpecific = Boolean(body.is_teacher_specific);
 
     if (!Number.isInteger(courseId) || courseId <= 0 || !courseCode || !cycle || !Number.isInteger(evaluationId) || evaluationId <= 0 || !resourceKind) {
         return new Response(
@@ -48,12 +50,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
     }
 
-    if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
-        return new Response(
-            JSON.stringify({ ok: false, error: "resource_kind inválido" }),
-            { status: 400, headers: { "Content-Type": "application/json" } }
-        );
-    }
+if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
+  return new Response(
+    JSON.stringify({ ok: false, error: "resource_kind inválido" }),
+    { status: 400, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+// If marked as teacher-specific, teacher_hint is required
+if (isTeacherSpecific && !teacherHint) {
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      error: "Debes indicar el docente para una plancha de profesor específico",
+    }),
+    { status: 400, headers: { "Content-Type": "application/json" } }
+  );
+}
 
     const { data: evaluation, error: evaluationError } = await supabaseAdmin
         .from("evaluation_type")
@@ -113,10 +126,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Build storage path & bucket
+    // For teacher-specific sheets, append sanitized teacher name to avoid collisions
+    // General:  BMA02/PC1/2024-II.pdf
+    // Specific: BMA02/PC1/2024-II_Arambulo.pdf
     const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
     const safeCycle = cycle.replace(/[^a-zA-Z0-9\-_]/g, "_");
     const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
-    const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
+    const safeTeacher = teacherHint
+        ? `_${teacherHint.replace(/[^a-zA-Z0-9\-_áéíóúñÁÉÍÓÚÑ]/g, "_")}`
+        : "";
+    const path = `${normalizedCode}/${safeExam}/${safeCycle}${safeTeacher}.pdf`;
 
     let signedUrl: string | undefined;
     let token: string | undefined;

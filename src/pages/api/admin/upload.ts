@@ -39,6 +39,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const thumbStoragePath = String(body.thumb_storage_path ?? "").trim() || null;
   const teacherHint = String(body.teacher_hint ?? "").trim();
   const solutionStoragePath = String(body.solution_storage_path ?? "").trim();
+  const isTeacherSpecific = body.is_teacher_specific === true || body.is_teacher_specific === "true";
 
   if (!courseId || Number.isNaN(courseId) || !evaluationId || Number.isNaN(evaluationId) || !cycle || !examType || !resourceKind || !storagePath) {
     return new Response(
@@ -47,21 +48,44 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "resource_kind inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
+if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
+  return new Response(
+    JSON.stringify({ ok: false, error: "resource_kind inválido" }),
+    { status: 400, headers: { "Content-Type": "application/json" } }
+  );
+}
+
+// If marked as teacher-specific, teacher_hint is required
+if (isTeacherSpecific && !teacherHint) {
+  return new Response(
+    JSON.stringify({
+      ok: false,
+      error: "Debes indicar el docente para una plancha de profesor específico",
+    }),
+    { status: 400, headers: { "Content-Type": "application/json" } }
+  );
+}
 
   try {
-    const { data: existingSheet, error: lookupError } = await supabaseAdmin
+    // Check existing sheet — include teacher_hint in the lookup so
+    // professor-specific sheets don't collide with general ones.
+    // For teacher-specific: match by teacher_hint
+    // For general: match where teacher_hint IS NULL or generic values
+    let lookupQuery = supabaseAdmin
       .from("sheets")
       .select("id")
       .eq("course_id", courseId)
       .eq("cycle", cycle)
-      .eq("evaluation_id", evaluationId)
-      .maybeSingle();
+      .eq("exam_type", examType);
+
+    if (isTeacherSpecific && teacherHint) {
+      lookupQuery = lookupQuery.eq("teacher_hint", teacherHint);
+    } else {
+      // General sheet: look for one without a specific teacher
+      lookupQuery = lookupQuery.or("teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos");
+    }
+
+    const { data: existingSheet, error: lookupError } = await lookupQuery.maybeSingle();
 
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);
@@ -72,7 +96,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-      const insertPayload = {
+      const insertPayload: Record<string, unknown> = {
         course_id: courseId,
         cycle,
         evaluation_id: evaluationId,
@@ -87,6 +111,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
               solution_storage_path: solutionStoragePath,
             }
           : {}),
+        is_teacher_specific: isTeacherSpecific,
       };
 
       if (existingSheet) {
@@ -94,6 +119,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           evaluation_id: evaluationId,
           exam_type: examType,
           exam_storage_path: storagePath,
+          is_teacher_specific: isTeacherSpecific,
         };
 
         if (teacherHint) {
