@@ -98,30 +98,64 @@ import Layout from "../../layouts/Layout.astro";
                             required
                         />
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-global-text-muted mb-1.5">
-                            Sistema de evaluación
-                        </label>
-                        <select
-                            id="course-system"
-                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text"
-                            required
+                    <div class="relative">
+                    <label class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5">
+                        Sistema de evaluación
+
+                        <button
+                        type="button"
+                        id="system-info-btn"
+                        class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-global-border text-[10px] text-global-text-muted hover:border-global-primary hover:text-global-primary transition"
                         >
-                            <option value="">Seleccionar...</option>
-                        </select>
+                        i
+                        </button>
+                    </label>
+
+                    <div
+                        id="system-info-popover"
+                        class="hidden absolute z-20 top-full mt-1 w-72 rounded-xl border border-global-border bg-global-surface p-3 text-xs text-global-text-muted shadow-lg"
+                    >
+                        Define cómo se calcula la nota final del curso. Puede incluir prácticas,
+                        exámenes, trabajos o laboratorios, así como el peso de cada uno de estos puntajes
+                        (Ejm: "Examen Final (2)" significa que el examen final tiene peso 2 en ese sistema)
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-global-text-muted mb-1.5">
-                            Subsistema
-                        </label>
-                        <select
-                            id="course-subsystem"
-                            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text"
-                            disabled
+                    <select
+                        id="course-system"
+                        class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text"
+                        required
+                    >
+                        <option value="">Seleccionar...</option>
+                    </select>
+                    </div>
+
+                    <div class="relative">
+                    <label class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5">
+                        Subsistema de evaluación
+
+                        <button
+                        type="button"
+                        id="subsystem-info-btn"
+                        class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-global-border text-[10px] text-global-text-muted hover:border-global-primary hover:text-global-primary transition"
                         >
-                            <option value="">Seleccionar...</option>
-                        </select>
+                        i
+                        </button>
+                    </label>
+
+                    <div
+                        id="subsystem-info-popover"
+                        class="hidden absolute z-20 top-full mt-1 w-72 rounded-xl border border-global-border bg-global-surface p-3 text-xs text-global-text-muted shadow-lg"
+                    >
+                        En caso el sistema considere prácticas, trabajos (monografías) y/o laboratorios, la suma de estos define el subsistema respectivo (Ejm: 4 prácticas y 1 monografía = Subsistema S5 (4 + 1 = 5))
+                    </div>
+
+                    <select
+                        id="course-subsystem"
+                        class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text"
+                        disabled
+                    >
+                        <option value="">Seleccionar...</option>
+                    </select>
                     </div>
                     <div class="sm:col-span-3 flex items-center gap-3">
                         <button
@@ -487,5 +521,28 @@ import Layout from "../../layouts/Layout.astro";
             loadSubsystems(),
             loadCourses(1)
         ]);
+    });
+
+    const systemInfoBtn = document.getElementById("system-info-btn");
+    const systemInfoPopover = document.getElementById("system-info-popover");
+
+    const subsystemInfoBtn = document.getElementById("subsystem-info-btn");
+    const subsystemInfoPopover = document.getElementById("subsystem-info-popover");
+
+    systemInfoBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    systemInfoPopover?.classList.toggle("hidden");
+    subsystemInfoPopover?.classList.add("hidden");
+    });
+
+    subsystemInfoBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    subsystemInfoPopover?.classList.toggle("hidden");
+    systemInfoPopover?.classList.add("hidden");
+    });
+
+    document.addEventListener("click", () => {
+    systemInfoPopover?.classList.add("hidden");
+    subsystemInfoPopover?.classList.add("hidden");
     });
 </script>
