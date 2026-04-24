@@ -67,10 +67,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(
       JSON.stringify({
         ok: false,
-        error:
-          "Debes indicar el docente para una plancha de profesor específico",
+        error: "Debes indicar el docente para una plancha de profesor específico",
       }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+      { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
@@ -102,8 +101,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    const { data: existingSheet, error: lookupError } =
-      await lookupQuery.maybeSingle();
+    const { data: cycleExists, error: cycleError } = await supabaseAdmin
+      .from("cycles")
+      .select("cycle_id")
+      .eq("cycle_code", cycle)
+      .maybeSingle();
+
+    if (cycleError) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Error validando ciclo" }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!cycleExists) {
+      return new Response(
+        JSON.stringify({ ok: false, error: "Ciclo inválido" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    const { data: existingSheet, error: lookupError } = await lookupQuery.maybeSingle();
 
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);

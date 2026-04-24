@@ -106,21 +106,34 @@ if (!isAdmin) {
               >
               </ul>
             </div>
-            <div>
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="cycle"
-              >
+            <div class="relative" id="cycle-combobox-container">
+              <label class="block text-sm font-medium text-global-text-muted mb-1.5">
                 Ciclo
               </label>
-              <input
-                id="cycle"
-                name="cycle"
-                type="text"
-                required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                placeholder="Ej: 2024-II"
-              />
+
+              <div class="relative">
+                <input type="hidden" id="cycle-code" name="cycle" required />
+
+                <input
+                  type="text"
+                  id="cycle-search"
+                  autocomplete="off"
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+                  placeholder="Selecciona un ciclo"
+                  required
+                />
+
+                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                  <svg class="h-4 w-4 text-global-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <ul
+                id="cycle-dropdown"
+                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+              ></ul>
             </div>
           </div>
 
@@ -153,9 +166,7 @@ if (!isAdmin) {
                   required
                 />
 
-                <div
-                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
-                >
+                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                   <svg
                     class="h-4 w-4 text-global-text-muted"
                     fill="none"
@@ -166,7 +177,8 @@ if (!isAdmin) {
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M19 9l-7 7-7-7"></path>
+                      d="M19 9l-7 7-7-7"
+                    ></path>
                   </svg>
                 </div>
               </div>
@@ -174,33 +186,47 @@ if (!isAdmin) {
               <ul
                 id="evaluation-dropdown"
                 class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              >
-              </ul>
+              ></ul>
             </div>
 
             <!-- Col 2: Docente -->
-            <div>
+            <div class="relative" id="teacher-combobox-container">
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="teacher-select"
+                for="teacher-search"
               >
-                Docente <span
-                  id="teacher-optional-label"
-                  class="text-global-text-muted">(opcional)</span
-                >
+                Docente <span id="teacher-optional-label" class="text-global-text-muted">(opcional)</span>
               </label>
-              <select
-                id="teacher-select"
-                name="teacher_hint"
-                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                disabled
-              >
-                <option value="">-- Ingresa un curso primero --</option>
-              </select>
-              <p
-                id="teacher-loading"
-                class="hidden mt-1 text-xs text-global-text-muted"
-              >
+
+              <div class="relative">
+                <input
+                  type="hidden"
+                  id="teacher-hint"
+                  name="teacher_hint"
+                />
+
+                <input
+                  type="text"
+                  id="teacher-search"
+                  autocomplete="off"
+                  disabled
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  placeholder="Ingresa un curso primero"
+                />
+
+                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                  <svg class="h-4 w-4 text-global-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <ul
+                id="teacher-dropdown"
+                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+              ></ul>
+
+              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">
                 Cargando profesores...
               </p>
             </div>
@@ -560,24 +586,22 @@ if (!isAdmin) {
     });
 
     // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const courseCodeInput = document.getElementById(
-      "course-code",
-    ) as HTMLInputElement;
-    const teacherSelect = document.getElementById(
-      "teacher-select",
-    ) as HTMLSelectElement;
+    const courseCodeInput = document.getElementById("course-code") as HTMLInputElement;
+    const teacherSearchInput = document.getElementById("teacher-search") as HTMLInputElement;
+    const teacherHintInput = document.getElementById("teacher-hint") as HTMLInputElement;
+    const teacherDropdown = document.getElementById("teacher-dropdown") as HTMLUListElement;
     const teacherLoading = document.getElementById("teacher-loading");
+    const teacherComboboxContainer = document.getElementById("teacher-combobox-container");
 
+    let allTeachers: string[] = [];
     let lastFetchedCode = "";
 
     async function loadTeachersByCourse(code: string) {
       const trimmed = code.trim().toUpperCase();
 
-      // Validar formato de código de curso (3 letras + 2 dígitos)
+      // Validar formato de código de curso (3 letras + 2 dígitos o 2-4 letras + 2-3 dígitos)
       if (!/^[A-Z]{2,4}[0-9]{2,3}$/.test(trimmed)) {
-        teacherSelect.innerHTML =
-          '<option value="">-- Ingresa un curso válido --</option>';
-        teacherSelect.disabled = true;
+        resetTeacherSelection("Ingresa un curso primero");
         return;
       }
 
@@ -586,35 +610,28 @@ if (!isAdmin) {
       lastFetchedCode = trimmed;
 
       // Mostrar loading
+      resetTeacherSelection("Cargando profesores...");
       teacherLoading?.classList.remove("hidden");
-      teacherSelect.disabled = true;
-      teacherSelect.innerHTML = '<option value="">Cargando...</option>';
 
       try {
-        const res = await fetch(
-          `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
-        );
+        const res = await fetch(`/api/cursos/${encodeURIComponent(trimmed)}/profesores`);
         const data = await res.json();
 
         if (data.ok && data.profesores.length > 0) {
-          teacherSelect.innerHTML =
-            '<option value="">-- Selecciona un docente --</option>';
-          for (const prof of data.profesores) {
-            const opt = document.createElement("option");
-            opt.value = prof.full_name;
-            opt.textContent = prof.full_name;
-            teacherSelect.appendChild(opt);
+          allTeachers = data.profesores.map((prof: any) => prof.full_name);
+
+          if (teacherSearchInput) {
+            teacherSearchInput.removeAttribute("disabled");
+            teacherSearchInput.placeholder = "Buscar docente...";
           }
-          teacherSelect.disabled = false;
+
+          renderTeacherDropdown(allTeachers);
         } else {
-          teacherSelect.innerHTML =
-            '<option value="">Sin profesores asociados</option>';
-          teacherSelect.disabled = true;
+          resetTeacherSelection("Sin profesores asociados");
         }
       } catch (err) {
         console.error("Error cargando profesores:", err);
-        teacherSelect.innerHTML = '<option value="">Error al cargar</option>';
-        teacherSelect.disabled = true;
+        resetTeacherSelection("Error al cargar profesores");
       } finally {
         teacherLoading?.classList.add("hidden");
       }
@@ -631,19 +648,58 @@ if (!isAdmin) {
       }
     });
 
+    function resetTeacherSelection(placeholder = "Ingresa un curso primero") {
+      if (teacherSearchInput) {
+        teacherSearchInput.value = "";
+        teacherSearchInput.placeholder = placeholder;
+        teacherSearchInput.setAttribute("disabled", "true");
+      }
+
+      if (teacherHintInput) teacherHintInput.value = "";
+
+      if (teacherDropdown) {
+        teacherDropdown.innerHTML = "";
+        teacherDropdown.classList.add("hidden");
+      }
+
+      allTeachers = [];
+    }
+
+    function renderTeacherDropdown(teachersToRender: string[]) {
+      if (!teacherDropdown) return;
+
+      teacherDropdown.innerHTML = "";
+
+      if (teachersToRender.length === 0) {
+        const emptyItem = document.createElement("li");
+        emptyItem.className =
+          "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
+        emptyItem.textContent = "No se encontraron docentes.";
+        teacherDropdown.appendChild(emptyItem);
+        return;
+      }
+
+      teachersToRender.forEach((teacher) => {
+        const item = document.createElement("li");
+        item.className =
+          "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
+        item.textContent = teacher;
+
+        item.addEventListener("click", () => {
+          if (teacherHintInput) teacherHintInput.value = teacher;
+          if (teacherSearchInput) teacherSearchInput.value = teacher;
+          teacherDropdown.classList.add("hidden");
+        });
+
+        teacherDropdown.appendChild(item);
+      });
+    }
+
     // ── Teacher-specific toggle behavior ──────────────
-    const teacherSpecificCheckbox = document.getElementById(
-      "is-teacher-specific",
-    ) as HTMLInputElement;
-    const teacherSpecificInfo = document.getElementById(
-      "teacher-specific-info",
-    );
-    const teacherOptionalLabel = document.getElementById(
-      "teacher-optional-label",
-    );
-    const teacherToggleWrapper = document.getElementById(
-      "teacher-specific-toggle",
-    );
+    const teacherSpecificCheckbox = document.getElementById("is-teacher-specific") as HTMLInputElement;
+    const teacherSpecificInfo = document.getElementById("teacher-specific-info");
+    const teacherOptionalLabel = document.getElementById("teacher-optional-label");
+    const teacherToggleWrapper = document.getElementById("teacher-specific-toggle");
 
     function updateTeacherSpecificUI() {
       const isActive = teacherSpecificCheckbox?.checked ?? false;
@@ -660,18 +716,16 @@ if (!isAdmin) {
       }
 
       // Update teacher field required state and label
-      if (teacherSelect) {
-        teacherSelect.required = isActive;
+      if (teacherSearchInput) {
+        teacherSearchInput.required = isActive;
         if (isActive) {
-          teacherSelect.classList.add("border-global-primary/50");
+          teacherSearchInput.classList.add("border-global-primary/50");
         } else {
-          teacherSelect.classList.remove("border-global-primary/50");
+          teacherSearchInput.classList.remove("border-global-primary/50");
         }
       }
       if (teacherOptionalLabel) {
-        teacherOptionalLabel.textContent = isActive
-          ? "(requerido)"
-          : "(opcional)";
+        teacherOptionalLabel.textContent = isActive ? "(requerido)" : "(opcional)";
         if (isActive) {
           teacherOptionalLabel.classList.add("text-global-primary");
           teacherOptionalLabel.classList.remove("text-global-text-muted");
@@ -682,10 +736,7 @@ if (!isAdmin) {
       }
     }
 
-    teacherSpecificCheckbox?.addEventListener(
-      "change",
-      updateTeacherSpecificUI,
-    );
+    teacherSpecificCheckbox?.addEventListener("change", updateTeacherSpecificUI);
     // Initialize on load
     updateTeacherSpecificUI();
 
@@ -744,6 +795,26 @@ if (!isAdmin) {
       "course-combobox-container",
     );
 
+    const cycleSearchInput = document.getElementById("cycle-search") as HTMLInputElement;
+    const cycleCodeHidden = document.getElementById("cycle-code") as HTMLInputElement;
+    const cycleDropdown = document.getElementById("cycle-dropdown") as HTMLUListElement;
+    const cycleContainer = document.getElementById("cycle-combobox-container");
+
+    let allCycles: string[] = [];
+
+    async function loadCycles() {
+      try {
+        const res = await fetch("/api/admin/cycles");
+        const data = await res.json();
+
+        if (data.ok) {
+          allCycles = data.cycles.map((c: any) => c.cycle_code);
+        }
+      } catch (e) {
+        console.error("Error cargando ciclos:", e);
+      }
+    }
+
     async function loadCourseOptions() {
       try {
         const res = await fetch("/api/admin/course-options", {
@@ -784,13 +855,10 @@ if (!isAdmin) {
       resetEvaluationSelection("Cargando evaluaciones...");
 
       try {
-        const res = await fetch(
-          `/api/admin/course-evaluations?course_id=${courseId}`,
-          {
-            method: "GET",
-            credentials: "include",
-          },
-        );
+        const res = await fetch(`/api/admin/course-evaluations?course_id=${courseId}`, {
+          method: "GET",
+          credentials: "include",
+        });
 
         const data = await res.json().catch(() => null);
 
@@ -803,9 +871,7 @@ if (!isAdmin) {
         allEvaluations = evaluations;
 
         if (!evaluations.length) {
-          resetEvaluationSelection(
-            "Este curso no tiene evaluaciones registradas",
-          );
+          resetEvaluationSelection("Este curso no tiene evaluaciones registradas");
           return;
         }
 
@@ -816,6 +882,26 @@ if (!isAdmin) {
         console.error("Error cargando evaluaciones:", error);
         resetEvaluationSelection("Error cargando evaluaciones");
       }
+    }
+
+    function renderCycleDropdown(cycles: string[]) {
+      if (!cycleDropdown) return;
+
+      cycleDropdown.innerHTML = "";
+
+      cycles.forEach((cycle) => {
+        const li = document.createElement("li");
+        li.textContent = cycle;
+        li.className = "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
+
+        li.addEventListener("click", () => {
+          cycleCodeHidden.value = cycle;
+          cycleSearchInput.value = cycle;
+          cycleDropdown.classList.add("hidden");
+        });
+
+        cycleDropdown.appendChild(li);
+      });
     }
 
     function renderCourseDropdown(coursesToRender: CourseOption[]) {
@@ -882,9 +968,7 @@ if (!isAdmin) {
       });
     }
 
-    function resetEvaluationSelection(
-      placeholder = "Selecciona primero un curso",
-    ) {
+    function resetEvaluationSelection(placeholder = "Selecciona primero un curso") {
       if (evaluationIdHidden) evaluationIdHidden.value = "";
       if (evaluationSearchInput) {
         evaluationSearchInput.value = "";
@@ -898,6 +982,32 @@ if (!isAdmin) {
       allEvaluations = [];
     }
 
+    cycleSearchInput?.addEventListener("input", (e) => {
+      const q = (e.target as HTMLInputElement).value.toLowerCase();
+
+      cycleCodeHidden.value = "";
+
+      const filtered = allCycles.filter(c =>
+        c.toLowerCase().includes(q)
+      );
+
+      renderCycleDropdown(filtered);
+      cycleDropdown.classList.remove("hidden");
+    });
+
+    cycleSearchInput?.addEventListener("focus", () => {
+      renderCycleDropdown(allCycles);
+      cycleDropdown.classList.remove("hidden");
+    });
+
+    cycleSearchInput?.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (!cycleCodeHidden.value) {
+          cycleSearchInput.value = "";
+        }
+      }, 150);
+    });
+
     courseSearchInput?.addEventListener("input", (e) => {
       const query = (e.target as HTMLInputElement).value.toLowerCase();
       // Ocultar valor real si editan para forzar la selección válida
@@ -905,6 +1015,8 @@ if (!isAdmin) {
       if (courseCodeHidden) courseCodeHidden.value = "";
 
       resetEvaluationSelection("Selecciona primero un curso");
+      resetTeacherSelection("Ingresa un curso primero");
+      lastFetchedCode = "";
 
       const filtered = allCourses.filter(
         (c) =>
@@ -921,6 +1033,8 @@ if (!isAdmin) {
       courseSearchInput.value = "";
 
       resetEvaluationSelection("Selecciona primero un curso");
+      resetTeacherSelection("Ingresa un curso primero");
+      lastFetchedCode = "";
 
       if (allCourses.length > 0) {
         renderCourseDropdown(allCourses);
@@ -952,6 +1066,34 @@ if (!isAdmin) {
       evaluationDropdown?.classList.remove("hidden");
     });
 
+    teacherSearchInput?.addEventListener("input", (e) => {
+      const query = (e.target as HTMLInputElement).value.toLowerCase();
+
+      if (teacherHintInput) teacherHintInput.value = "";
+
+      const filtered = allTeachers.filter((teacher) =>
+        teacher.toLowerCase().includes(query)
+      );
+
+      renderTeacherDropdown(filtered);
+      teacherDropdown?.classList.remove("hidden");
+    });
+
+    teacherSearchInput?.addEventListener("focus", () => {
+      if (allTeachers.length > 0) {
+        renderTeacherDropdown(allTeachers);
+        teacherDropdown?.classList.remove("hidden");
+      }
+    });
+
+    teacherSearchInput?.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (teacherHintInput && !teacherHintInput.value) {
+          teacherSearchInput.value = "";
+        }
+      }, 150);
+    });
+
     evaluationSearchInput?.addEventListener("focus", () => {
       if (allEvaluations.length > 0) {
         renderEvaluationDropdown(allEvaluations);
@@ -969,6 +1111,14 @@ if (!isAdmin) {
       if (!evaluationComboboxContainer?.contains(target)) {
         evaluationDropdown?.classList.add("hidden");
       }
+
+      if (!teacherComboboxContainer?.contains(target)) {
+        teacherDropdown?.classList.add("hidden");
+      }
+
+      if (!cycleContainer?.contains(target)) {
+        cycleDropdown?.classList.add("hidden");
+      }
     });
 
     evaluationSearchInput?.addEventListener("blur", () => {
@@ -981,6 +1131,7 @@ if (!isAdmin) {
 
     document.addEventListener("DOMContentLoaded", () => {
       loadCourseOptions();
+      loadCycles();
     });
 
     // Load PDF.js dynamically
@@ -1054,7 +1205,7 @@ if (!isAdmin) {
       const courseCode = String(formData.get("course_code") ?? "").trim();
       const cycle = String(formData.get("cycle") ?? "").trim();
       const evaluationId = Number(formData.get("evaluation_id") ?? 0);
-      const teacherHint = (teacherSelect?.value ?? "").trim();
+      const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
       const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
       const file = (formData.get("file") as File) || null;
       const solutionFile = (formData.get("solution_file") as File) || null;
@@ -1099,10 +1250,8 @@ if (!isAdmin) {
 
       // Validate teacher_hint when teacher-specific is enabled
       if (isTeacherSpecific && !teacherHint) {
-        alert(
-          "Debes indicar el docente para una plancha de profesor específico.",
-        );
-        teacherSelect?.focus();
+        alert("Debes indicar el docente para una plancha de profesor específico.");
+        teacherSearchInput?.focus();
         return;
       }
 
@@ -1244,16 +1393,19 @@ if (!isAdmin) {
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
         if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
 
-        // Reset teacher dropdown
-        teacherSelect.innerHTML =
-          '<option value="">-- Ingresa un curso primero --</option>';
-        teacherSelect.disabled = true;
+        // Reset fields
+        resetTeacherSelection("Ingresa un curso primero");
         lastFetchedCode = "";
         resetEvaluationSelection("Selecciona primero un curso");
         if (courseSearchInput) courseSearchInput.value = "";
         if (courseIdHidden) courseIdHidden.value = "";
         if (courseCodeHidden) courseCodeHidden.value = "";
         courseDropdown?.classList.add("hidden");
+
+        if (cycleSearchInput) cycleSearchInput.value = "";
+        if (cycleCodeHidden) cycleCodeHidden.value = "";
+        cycleDropdown?.classList.add("hidden");
+
         // Reset toggle UI after form reset
         updateTeacherSpecificUI();
 

@@ -61,6 +61,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
+  // Validate cycle code in DB
+  const { data: cycleExists, error: cycleError } = await supabaseAdmin
+    .from("cycles")
+    .select("cycle_id")
+    .eq("cycle_code", cycle)
+    .maybeSingle();
+
+  if (cycleError) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Error validando ciclo" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (!cycleExists) {
+    return new Response(
+      JSON.stringify({ ok: false, error: "Ciclo inválido" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   // If marked as teacher-specific, teacher_hint is required
   if (isTeacherSpecific && !teacherHint) {
     return new Response(
@@ -147,7 +168,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const safeCycle = cycle.replace(/[^a-zA-Z0-9\-_]/g, "_");
   const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
   const safeTeacher = teacherHint
-    ? `_${teacherHint.replace(/[^a-zA-Z0-9\-_áéíóúñÁÉÍÓÚÑ]/g, "_")}`
+    ? `_${teacherHint
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ñ/g, "n")
+        .replace(/Ñ/g, "N")
+        .replace(/[^a-zA-Z0-9\-_]/g, "_")}`
     : "";
   const path = `${normalizedCode}/${safeExam}/${safeCycle}${safeTeacher}.pdf`;
 
