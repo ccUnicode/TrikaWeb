@@ -13,14 +13,18 @@ if (!isAdmin) {
     <div class="min-h-screen py-8">
         <div class="mx-auto w-full max-w-4xl px-4">
             <!-- Header Section -->
-            <AdminHeader 
-                title="Gestionar Cursos" 
-                description="Agrega cursos y revisa el listado existente" 
+            <AdminHeader
+                title="Gestionar Cursos"
+                description="Agrega cursos y revisa el listado existente"
             />
 
             <!-- Create Course -->
-            <section class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6">
-                <h2 class="text-lg font-semibold text-global-text mb-4">Agregar curso</h2>
+            <section
+                class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
+            >
+                <h2 class="text-lg font-semibold text-global-text mb-4">
+                    Agregar curso
+                </h2>
 
                 <form id="add-course-form" class="grid gap-4 sm:grid-cols-3">
                     <div>
@@ -54,7 +58,10 @@ if (!isAdmin) {
                         />
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="course-credits">
+                        <label
+                            class="block text-sm font-medium text-global-text-muted mb-1.5"
+                            for="course-credits"
+                        >
                             Créditos
                         </label>
                         <input
@@ -82,13 +89,25 @@ if (!isAdmin) {
             </section>
 
             <!-- Courses List -->
-            <section class="rounded-2xl bg-global-surface border border-global-border p-6">
-                <div class="flex flex-row items-start justify-between gap-4 flex-wrap mb-4">
+            <section
+                class="rounded-2xl bg-global-surface border border-global-border p-6"
+            >
+                <div
+                    class="flex flex-row items-start justify-between gap-4 flex-wrap mb-4"
+                >
                     <div>
-                        <h2 class="text-lg font-semibold text-global-text">Cursos</h2>
+                        <h2 class="text-lg font-semibold text-global-text">
+                            Cursos
+                        </h2>
                         <p class="text-sm text-global-text-muted">
-                            <span id="visible-count" class="font-semibold text-global-text">0</span> visibles ·
-                            <span id="hidden-count" class="font-semibold text-global-text">0</span> ocultos
+                            <span
+                                id="visible-count"
+                                class="font-semibold text-global-text">0</span
+                            > visibles ·
+                            <span
+                                id="hidden-count"
+                                class="font-semibold text-global-text">0</span
+                            > ocultos
                         </p>
                     </div>
                     <div class="flex items-center gap-3 flex-wrap">
@@ -110,35 +129,68 @@ if (!isAdmin) {
 
                 <div id="courses-list" class="space-y-3"></div>
 
-                <div id="courses-pagination" class="mt-6 flex items-center justify-between gap-3"></div>
+                <div
+                    id="courses-pagination"
+                    class="mt-6 flex items-center justify-between gap-3"
+                >
+                </div>
             </section>
         </div>
     </div>
 </Layout>
 
 <script>
-    type Course = { id: number; code: string; name: string; credits: number; is_hidden: boolean };
+    type Course = {
+        id: number;
+        code: string;
+        name: string;
+        credits: number;
+        is_hidden: boolean;
+    };
 
     const listEl = document.getElementById("courses-list") as HTMLDivElement;
-    const paginationEl = document.getElementById("courses-pagination") as HTMLDivElement;
-    const searchInput = document.getElementById("courses-search") as HTMLInputElement;
-    const refreshBtn = document.getElementById("courses-refresh") as HTMLButtonElement;
-    const visibleCountEl = document.getElementById("visible-count") as HTMLSpanElement;
-    const hiddenCountEl = document.getElementById("hidden-count") as HTMLSpanElement;
+    const paginationEl = document.getElementById(
+        "courses-pagination",
+    ) as HTMLDivElement;
+    const searchInput = document.getElementById(
+        "courses-search",
+    ) as HTMLInputElement;
+    const refreshBtn = document.getElementById(
+        "courses-refresh",
+    ) as HTMLButtonElement;
+    const visibleCountEl = document.getElementById(
+        "visible-count",
+    ) as HTMLSpanElement;
+    const hiddenCountEl = document.getElementById(
+        "hidden-count",
+    ) as HTMLSpanElement;
 
-    const addForm = document.getElementById("add-course-form") as HTMLFormElement;
-    const addBtn = document.getElementById("add-course-btn") as HTMLButtonElement;
-    const addFeedback = document.getElementById("add-course-feedback") as HTMLSpanElement;
-    const codeInput = document.getElementById("course-code") as HTMLInputElement;
-    const nameInput = document.getElementById("course-name") as HTMLInputElement;
-    const creditsInput = document.getElementById("course-credits") as HTMLInputElement;
+    const addForm = document.getElementById(
+        "add-course-form",
+    ) as HTMLFormElement;
+    const addBtn = document.getElementById(
+        "add-course-btn",
+    ) as HTMLButtonElement;
+    const addFeedback = document.getElementById(
+        "add-course-feedback",
+    ) as HTMLSpanElement;
+    const codeInput = document.getElementById(
+        "course-code",
+    ) as HTMLInputElement;
+    const nameInput = document.getElementById(
+        "course-name",
+    ) as HTMLInputElement;
+    const creditsInput = document.getElementById(
+        "course-credits",
+    ) as HTMLInputElement;
 
     let page = 1;
     let pageSize = 30;
 
     const setFeedback = (message: string, kind: "ok" | "error" = "ok") => {
         addFeedback.textContent = message;
-        addFeedback.className = kind === "ok" ? "text-sm text-green-400" : "text-sm text-red-400";
+        addFeedback.className =
+            kind === "ok" ? "text-sm text-green-400" : "text-sm text-red-400";
     };
 
     const escapeHtml = (value: string) =>
@@ -151,7 +203,8 @@ if (!isAdmin) {
 
     async function loadCourses(nextPage: number = 1) {
         page = nextPage;
-        listEl.innerHTML = "<div class='text-sm text-global-text-muted'>Cargando...</div>";
+        listEl.innerHTML =
+            "<div class='text-sm text-global-text-muted'>Cargando...</div>";
         paginationEl.innerHTML = "";
 
         const search = (searchInput?.value || "").trim();
@@ -194,8 +247,8 @@ if (!isAdmin) {
                                 <div class="text-xs text-global-text-muted">Créditos: ${c.credits}</div>
                             </div>
                             <div class="flex items-center gap-3 shrink-0">
-                                <span class="inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${c.is_hidden ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}">
-                                    ${c.is_hidden ? 'Oculto' : 'Visible'}
+                                <span class="inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${c.is_hidden ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" : "bg-green-500/10 border-green-500/30 text-green-400"}">
+                                    ${c.is_hidden ? "Oculto" : "Visible"}
                                 </span>
                                 <button
                                     type="button"
@@ -220,16 +273,14 @@ if (!isAdmin) {
                 )
                 .join("");
 
+            const pagination = data.pagination;
+            const totalPages = Number(pagination?.totalPages || 0);
 
+            if (totalPages > 1) {
+                const prevDisabled = page <= 1;
+                const nextDisabled = page >= totalPages;
 
-        const pagination = data.pagination;
-        const totalPages = Number(pagination?.totalPages || 0);
-
-        if (totalPages > 1) {
-            const prevDisabled = page <= 1;
-            const nextDisabled = page >= totalPages;
-
-            paginationEl.innerHTML = `
+                paginationEl.innerHTML = `
                 <div class="text-sm text-global-text-muted">Página ${page} de ${totalPages}</div>
                 <div class="flex gap-2">
                     <button
@@ -249,161 +300,211 @@ if (!isAdmin) {
                 </div>
             `;
 
-            const prevBtn = document.getElementById("courses-prev") as HTMLButtonElement;
-            const nextBtn = document.getElementById("courses-next") as HTMLButtonElement;
+                const prevBtn = document.getElementById(
+                    "courses-prev",
+                ) as HTMLButtonElement;
+                const nextBtn = document.getElementById(
+                    "courses-next",
+                ) as HTMLButtonElement;
 
-            prevBtn?.addEventListener("click", () => {
-                if (page > 1) loadCourses(page - 1);
-            });
-            nextBtn?.addEventListener("click", () => {
-                if (page < totalPages) loadCourses(page + 1);
-            });
-        }
-    }
-
-    addForm?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const code = (codeInput?.value || "").trim();
-        const name = (nameInput?.value || "").trim();
-        const credits = Number((creditsInput?.value || "").trim());
-
-        if (!Number.isInteger(credits) || credits <= 0) {
-        setFeedback("Créditos inválidos (entero mayor a 0).", "error");
-        addBtn.disabled = false;
-        return;
-        }
-
-        addBtn.disabled = true;
-        setFeedback("Guardando...", "ok");
-
-        const res = await fetch("/api/admin/add-course", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code, name, credits }),
-        });
-
-        const data = await res.json().catch(() => null);
-
-        addBtn.disabled = false;
-
-        if (!res.ok || !data?.ok) {
-            setFeedback(data?.error || "Error al agregar curso", "error");
-            return;
-        }
-
-        setFeedback("Curso agregado.", "ok");
-        codeInput.value = "";
-        nameInput.value = "";
-        searchInput.value = "";
-        creditsInput.value = "";
-        await loadCourses(1);
-    });
-
-    listEl?.addEventListener("click", async (e) => {
-        const target = e.target as HTMLElement;
-        const toggleBtn = target.closest(".toggle-course-btn") as HTMLButtonElement | null;
-
-        if (toggleBtn) {
-            const btn = toggleBtn;
-            const courseId = Number(btn.getAttribute("data-course-id"));
-            const nextHidden = btn.getAttribute("data-next-hidden") === "true";
-
-            btn.disabled = true;
-            try {
-                const res = await fetch("/api/admin/toggle-course", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ course_id: courseId, is_hidden: nextHidden }),
+                prevBtn?.addEventListener("click", () => {
+                    if (page > 1) loadCourses(page - 1);
                 });
-                const out = await res.json().catch(() => null);
-                if (!res.ok || !out?.ok) {
-                    throw new Error(out?.error || "No se pudo actualizar");
-                }
-                
-                // Actualizamos directamente en el DOM sin recargar la lista
-                btn.disabled = false;
-                btn.setAttribute("data-next-hidden", nextHidden ? "false" : "true");
-                btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
-
-                const courseDiv = btn.closest(`[data-course-id="${courseId}"]`) as HTMLElement;
-                if (courseDiv) {
-                    if (nextHidden) {
-                         courseDiv.classList.add("opacity-70");
-                    } else {
-                         courseDiv.classList.remove("opacity-70");
-                    }
-
-                    const badge = courseDiv.querySelector("span.inline-flex.rounded-full.border") as HTMLElement;
-                    if (badge) {
-                        badge.textContent = nextHidden ? "Oculto" : "Visible";
-                        badge.className = `inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${nextHidden ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`;
-                    }
-                    
-                    btn.className = `toggle-course-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${nextHidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}`;
-                }
-
-                if (out?.counts) {
-                    if (visibleCountEl) visibleCountEl.textContent = String(out.counts.visible);
-                    if (hiddenCountEl) hiddenCountEl.textContent = String(out.counts.hidden);
-                }
-            } catch (err) {
-                console.error(err);
-                btn.disabled = false;
-                alert(err instanceof Error ? err.message : "Error desconocido");
+                nextBtn?.addEventListener("click", () => {
+                    if (page < totalPages) loadCourses(page + 1);
+                });
             }
         }
 
-        const deleteBtn = target.closest(".delete-course-btn") as HTMLButtonElement | null;
-        if (deleteBtn) {
-            const btn = deleteBtn;
-            const courseId = Number(btn.getAttribute("data-course-id"));
-            
-            if (!confirm("¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus carpetas, planchas y calificaciones asociadas. Esta acción no se puede deshacer.")) {
+        addForm?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const code = (codeInput?.value || "").trim();
+            const name = (nameInput?.value || "").trim();
+            const credits = Number((creditsInput?.value || "").trim());
+
+            if (!Number.isInteger(credits) || credits <= 0) {
+                setFeedback("Créditos inválidos (entero mayor a 0).", "error");
+                addBtn.disabled = false;
                 return;
             }
 
-            btn.disabled = true;
-            try {
-                const res = await fetch("/api/admin/delete-course", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({ course_id: courseId }),
-                });
-                const out = await res.json().catch(() => null);
-                if (!res.ok || !out?.ok) {
-                    throw new Error(out?.error || "No se pudo eliminar el curso");
-                }
-                
-                // Actualizamos directamente en el DOM eliminando la fila
-                const courseDiv = btn.closest(`[data-course-id="${courseId}"]`);
-                if (courseDiv) courseDiv.remove();
+            addBtn.disabled = true;
+            setFeedback("Guardando...", "ok");
 
-                if (out?.counts) {
-                    if (visibleCountEl) visibleCountEl.textContent = String(out.counts.visible);
-                    if (hiddenCountEl) hiddenCountEl.textContent = String(out.counts.hidden);
-                }
-            } catch (err) {
-                console.error(err);
-                btn.disabled = false;
-                alert(err instanceof Error ? err.message : "Error desconocido al eliminar");
+            const res = await fetch("/api/admin/add-course", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code, name, credits }),
+            });
+
+            const data = await res.json().catch(() => null);
+
+            addBtn.disabled = false;
+
+            if (!res.ok || !data?.ok) {
+                setFeedback(data?.error || "Error al agregar curso", "error");
+                return;
             }
-        }
-    });
 
-    let searchTimer: any;
-    searchInput?.addEventListener("input", () => {
-        clearTimeout(searchTimer);
-        searchTimer = setTimeout(() => {
+            setFeedback("Curso agregado.", "ok");
+            codeInput.value = "";
+            nameInput.value = "";
+            searchInput.value = "";
+            creditsInput.value = "";
+            await loadCourses(1);
+        });
+
+        listEl?.addEventListener("click", async (e) => {
+            const target = e.target as HTMLElement;
+            const toggleBtn = target.closest(
+                ".toggle-course-btn",
+            ) as HTMLButtonElement | null;
+
+            if (toggleBtn) {
+                const btn = toggleBtn;
+                const courseId = Number(btn.getAttribute("data-course-id"));
+                const nextHidden =
+                    btn.getAttribute("data-next-hidden") === "true";
+
+                btn.disabled = true;
+                try {
+                    const res = await fetch("/api/admin/toggle-course", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            course_id: courseId,
+                            is_hidden: nextHidden,
+                        }),
+                    });
+                    const out = await res.json().catch(() => null);
+                    if (!res.ok || !out?.ok) {
+                        throw new Error(out?.error || "No se pudo actualizar");
+                    }
+
+                    // Actualizamos directamente en el DOM sin recargar la lista
+                    btn.disabled = false;
+                    btn.setAttribute(
+                        "data-next-hidden",
+                        nextHidden ? "false" : "true",
+                    );
+                    btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
+
+                    const courseDiv = btn.closest(
+                        `[data-course-id="${courseId}"]`,
+                    ) as HTMLElement;
+                    if (courseDiv) {
+                        if (nextHidden) {
+                            courseDiv.classList.add("opacity-70");
+                        } else {
+                            courseDiv.classList.remove("opacity-70");
+                        }
+
+                        const badge = courseDiv.querySelector(
+                            "span.inline-flex.rounded-full.border",
+                        ) as HTMLElement;
+                        if (badge) {
+                            badge.textContent = nextHidden
+                                ? "Oculto"
+                                : "Visible";
+                            badge.className = `inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${nextHidden ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" : "bg-green-500/10 border-green-500/30 text-green-400"}`;
+                        }
+
+                        btn.className = `toggle-course-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${nextHidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}`;
+                    }
+
+                    if (out?.counts) {
+                        if (visibleCountEl)
+                            visibleCountEl.textContent = String(
+                                out.counts.visible,
+                            );
+                        if (hiddenCountEl)
+                            hiddenCountEl.textContent = String(
+                                out.counts.hidden,
+                            );
+                    }
+                } catch (err) {
+                    console.error(err);
+                    btn.disabled = false;
+                    alert(
+                        err instanceof Error
+                            ? err.message
+                            : "Error desconocido",
+                    );
+                }
+            }
+
+            const deleteBtn = target.closest(
+                ".delete-course-btn",
+            ) as HTMLButtonElement | null;
+            if (deleteBtn) {
+                const btn = deleteBtn;
+                const courseId = Number(btn.getAttribute("data-course-id"));
+
+                if (
+                    !confirm(
+                        "¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus carpetas, planchas y calificaciones asociadas. Esta acción no se puede deshacer.",
+                    )
+                ) {
+                    return;
+                }
+
+                btn.disabled = true;
+                try {
+                    const res = await fetch("/api/admin/delete-course", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ course_id: courseId }),
+                    });
+                    const out = await res.json().catch(() => null);
+                    if (!res.ok || !out?.ok) {
+                        throw new Error(
+                            out?.error || "No se pudo eliminar el curso",
+                        );
+                    }
+
+                    // Actualizamos directamente en el DOM eliminando la fila
+                    const courseDiv = btn.closest(
+                        `[data-course-id="${courseId}"]`,
+                    );
+                    if (courseDiv) courseDiv.remove();
+
+                    if (out?.counts) {
+                        if (visibleCountEl)
+                            visibleCountEl.textContent = String(
+                                out.counts.visible,
+                            );
+                        if (hiddenCountEl)
+                            hiddenCountEl.textContent = String(
+                                out.counts.hidden,
+                            );
+                    }
+                } catch (err) {
+                    console.error(err);
+                    btn.disabled = false;
+                    alert(
+                        err instanceof Error
+                            ? err.message
+                            : "Error desconocido al eliminar",
+                    );
+                }
+            }
+        });
+
+        let searchTimer: any;
+        searchInput?.addEventListener("input", () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                loadCourses(1);
+            }, 250);
+        });
+
+        refreshBtn?.addEventListener("click", () => loadCourses(page));
+
+        document.addEventListener("DOMContentLoaded", () => {
             loadCourses(1);
-        }, 250);
-    });
-
-    refreshBtn?.addEventListener("click", () => loadCourses(page));
-
-    document.addEventListener("DOMContentLoaded", () => {
-        loadCourses(1);
-    });
+        });
+    }
 </script>
