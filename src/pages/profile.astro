@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getUserSession } from '../lib/auth';
+
+const { user, profile } = await getUserSession(Astro.cookies);
+
+if (!user || !profile) {
+  return Astro.redirect('/login');
+}
+
+const isStudent = profile.role === 'student';
+const isAdmin = profile.role === 'admin';
+---
+
+<Layout title="Mi Perfil - TrikaWeb">
+  <div class="flex min-h-[calc(100vh-100px)] w-full flex-col items-center justify-center px-4 py-12">
+    <div class="w-full max-w-2xl overflow-hidden rounded-3xl border-2 border-global-border bg-global-surface shadow-2xl">
+      <!-- Cover Header -->
+      <div class="h-32 bg-gradient-to-r from-global-border to-global-background relative">
+        <div class="absolute -bottom-12 left-8 rounded-full border-4 border-global-surface bg-global-background p-2 shadow-lg">
+          <div class="flex h-20 w-20 items-center justify-center rounded-full bg-global-primary/20 text-3xl font-bold text-global-primary">
+            {profile.full_name ? profile.full_name.charAt(0).toUpperCase() : (profile.email ? profile.email.charAt(0).toUpperCase() : '?')}
+          </div>
+        </div>
+      </div>
+
+      <div class="px-8 pt-16 pb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 class="text-3xl font-bold text-global-text">{profile.full_name || 'Estudiante'}</h1>
+            <p class="text-global-text-muted mt-1">{profile.email}</p>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <span class={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${isAdmin ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' : 'bg-global-primary/10 text-global-primary border border-global-primary/20'}`}>
+              Rol: {profile.role.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Opciones de Perfil -->
+          <div class="rounded-2xl border border-global-border bg-global-background/50 p-6">
+            <h2 class="text-lg font-semibold text-global-text mb-4">Opciones de Cuenta</h2>
+            <ul class="space-y-3">
+              <li>
+                <a href="/saved" class="flex items-center text-global-text-muted hover:text-global-primary transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                  Mis planchas guardadas
+                </a>
+              </li>
+              {isAdmin && (
+                <li>
+                  <a href="/admin/courses" class="flex items-center text-global-text-muted hover:text-purple-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                    Panel de Administración
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+          
+          <!-- Información -->
+          <div class="rounded-2xl border border-global-border bg-global-background/50 p-6">
+            <h2 class="text-lg font-semibold text-global-text mb-4">Información</h2>
+            <p class="text-sm text-global-text-muted leading-relaxed">
+              Estás conectado con tu cuenta institucional de la UNI. Pronto podrás interactuar más con la comunidad, valorar profesores y guardar tus recursos favoritos.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-8 border-t border-global-border pt-8 flex justify-end">
+          <form method="POST" action="/api/auth/logout">
+            <button 
+              type="submit"
+              class="inline-flex items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 px-6 py-2.5 text-sm font-semibold text-red-500 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-global-surface"
+            >
+              Cerrar Sesión
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
