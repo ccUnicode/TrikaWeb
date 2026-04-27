@@ -1,4 +1,4 @@
-﻿---
+---
 export const prerender = false;
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
@@ -411,6 +411,50 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
           </div>
         )
       }
+    </section>
+
+    <!--Seccion de Especialidades -->
+
+    <section
+      id="especialidades"
+      class="mx-auto flex w-full max-w-[1200px] flex-col items-center gap-6 rounded-2xl bg-global-surface px-6 sm:px-12 md:px-16 py-16"
+    >
+      <div
+        class="flex w-full items-start justify-between flex-wrap gap-4 px-2 sm:px-0"
+      >
+        <div class="space-y-1">
+          <h2 class="text-[32px] leading-10 font-semibold">Especialidades</h2>
+          <p class="text-global-text-muted">Mallas Curriculares</p>
+        </div>
+      </div>
+
+      <div class="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+        <a
+          href="/Especialidades/software"
+          class="group flex flex-col items-center gap-4 rounded-2xl border border-global-border bg-global-card p-8 transition-all duration-300 hover:border-global-primary hover:shadow-[0_0_24px_rgba(34,197,94,0.15)] hover:scale-[1.02]"
+        >
+          <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-global-primary/10 text-global-primary transition-colors group-hover:bg-global-primary/20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+              <path d="M10 6.5h4"></path>
+              <path d="M6.5 10v4"></path>
+              <path d="M17.5 10v4"></path>
+              <path d="M10 17.5h4"></path>
+            </svg>
+          </div>
+          <div class="text-center space-y-1">
+            <h3 class="text-lg font-semibold text-global-text group-hover:text-global-primary transition-colors">Ingeniería de Software</h3>
+            <p class="text-sm text-global-text-muted">Plan de Estudios 2021</p>
+          </div>
+          <span class="inline-flex items-center gap-2 rounded-full bg-global-primary/10 px-4 py-1.5 text-xs font-semibold text-global-primary transition-colors group-hover:bg-global-primary group-hover:text-black">
+            Ver malla curricular
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+          </span>
+        </a>
+      </div>
     </section>
   </div>
 </Layout>

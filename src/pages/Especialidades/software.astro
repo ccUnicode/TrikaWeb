@@ -1,0 +1,151 @@
+---
+export const prerender = false;
+import Layout from "../../layouts/Layout.astro";
+import Curriculum from "../../components/Malla/Curriculum.tsx";
+import { supabaseClient } from "../../lib/supabase.client";
+import type { CurriculumData, CurriculumCourse, CoursePrerequisite } from "../../lib/curriculumTypes";
+
+// 1. Buscar la especialidad por nombre
+const { data: specialty, error: specError } = await supabaseClient
+  .from("specialties")
+  .select("id, name")
+  .eq("name", "Ingeniería de Software")
+  .single();
+
+if (specError) {
+  console.error("Error fetching specialty:", specError);
+}
+
+// 2. Buscar el plan vigente de esa especialidad
+let planYear = "2021";
+let planId: number | null = null;
+
+if (specialty) {
+  const { data: plan, error: planError } = await supabaseClient
+    .from("study_plans")
+    .select("id, year, is_current")
+    .eq("specialty_id", specialty.id)
+    .eq("is_current", true)
+    .single();
+
+  if (planError) {
+    console.error("Error fetching study plan:", planError);
+  }
+
+  if (plan) {
+    planId = plan.id;
+    planYear = String(plan.year);
+  }
+}
+
+// 3. Obtener los cursos del plan (join con courses para code y name)
+let courses: CurriculumCourse[] = [];
+if (planId) {
+  const { data: planCourses, error: pcError } = await supabaseClient
+    .from("plan_courses")
+    .select("plan_id, course_id, cycle, courses:course_id (id, code, name, credits)")
+    .eq("plan_id", planId);
+
+  if (pcError) {
+    console.error("Error fetching plan courses:", pcError);
+  }
+
+  if (planCourses) {
+    courses = planCourses.map((pc: any) => ({
+      course_id: pc.course_id,
+      code: pc.courses?.code ?? "",
+      name: pc.courses?.name ?? "",
+      cycle: pc.cycle,
+      credits: pc.courses?.credits ?? undefined,
+    }));
+  }
+}
+
+// 4. Obtener los pre-requisitos del plan
+let prerequisites: CoursePrerequisite[] = [];
+if (planId) {
+  const { data: prereqs, error: prError } = await supabaseClient
+    .from("course_prerequisites")
+    .select("course_id, prerequisite_id")
+    .eq("plan_id", planId);
+
+  if (prError) {
+    console.error("Error fetching prerequisites:", prError);
+  }
+
+  if (prereqs) {
+    prerequisites = prereqs.map((pr: any) => ({
+      course_id: pr.course_id,
+      prerequisite_id: pr.prerequisite_id,
+    }));
+  }
+}
+
+// 5. Estructurar data para el componente
+const curriculumData: CurriculumData = {
+  specialtyName: specialty?.name ?? "Ingeniería de Software",
+  planYear,
+  courses,
+  prerequisites,
+};
+---
+
+<Layout
+  title={`Malla Curricular - ${curriculumData.specialtyName} | TrikaWeb`}
+  description={`Plan de estudios ${curriculumData.planYear} de ${curriculumData.specialtyName} en la Universidad Nacional de Ingeniería. Visualiza cursos, ciclos y pre-requisitos.`}
+  keywords="malla curricular, ingeniería de software, plan de estudios, uni, universidad nacional de ingenieria, cursos, pre-requisitos"
+>
+  <div class="flex min-h-screen w-full flex-col items-center gap-8 mt-12 sm:mt-16 px-4 pb-12">
+    <section
+      class="mx-auto flex w-full max-w-[1400px] flex-col items-start gap-6"
+    >
+      <!-- Breadcrumb -->
+      <nav class="flex items-center gap-2 text-sm text-global-text-muted">
+        <a href="/" class="hover:text-global-primary transition-colors">Inicio</a>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        <span class="text-global-text">Especialidades</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        <span class="text-global-primary font-medium">{curriculumData.specialtyName}</span>
+      </nav>
+
+      <!-- Title -->
+      <div class="space-y-2">
+        <h1 class="text-3xl sm:text-4xl font-bold text-global-text">
+          {curriculumData.specialtyName}
+        </h1>
+        <p class="text-global-text-muted text-lg">
+          Plan de Estudios {curriculumData.planYear} · {curriculumData.courses.length} cursos
+        </p>
+      </div>
+
+      <!-- Legend -->
+      <div class="flex flex-wrap items-center gap-4 text-sm text-global-text-muted">
+        <div class="flex items-center gap-2">
+          <div class="w-3 h-3 rounded-sm bg-[#1E2430] border border-[#2A3240]"></div>
+          <span>Curso</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-0.5 bg-[#22c55e]"></div>
+          <span>Pre-requisito</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-global-text-muted"><path d="M15 15l-2 5L9 9l11 4-5 2z"></path><path d="M14 14L22 22"></path></svg>
+          <span>Click en un curso para ver detalles</span>
+        </div>
+      </div>
+
+      <!-- React Flow Container -->
+      <div class="w-full border border-global-border rounded-2xl overflow-hidden shadow-lg">
+        {courses.length === 0 ? (
+          <div class="flex flex-col items-center justify-center py-20 text-global-text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mb-4 opacity-50"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <p class="text-lg font-medium">No se encontraron cursos</p>
+            <p class="text-sm mt-1">Verifica que el plan de estudios esté configurado en la base de datos.</p>
+          </div>
+        ) : (
+          <Curriculum client:load data={curriculumData} />
+        )}
+      </div>
+    </section>
+  </div>
+</Layout>
