@@ -2,18 +2,21 @@
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import Curriculum from "../../components/Malla/Curriculum.tsx";
-import { supabaseClient } from "../../lib/supabase.client";
+import { supabaseAdmin } from "../../lib/supabaseAdmin";
 import type { CurriculumData, CurriculumCourse, CoursePrerequisite } from "../../lib/curriculumTypes";
 
+console.log("========== [Malla] Inicio de queries ==========");
+
 // 1. Buscar la especialidad por nombre
-const { data: specialty, error: specError } = await supabaseClient
+const { data: specialty, error: specError } = await supabaseAdmin
   .from("specialties")
   .select("id, name")
   .eq("name", "Ingeniería de Software")
   .single();
 
+console.log("[Malla] Query 1 — specialty:", JSON.stringify(specialty));
 if (specError) {
-  console.error("Error fetching specialty:", specError);
+  console.error("[Malla] Query 1 — ERROR specialty:", JSON.stringify(specError));
 }
 
 // 2. Buscar el plan vigente de esa especialidad
@@ -21,33 +24,40 @@ let planYear = "2021";
 let planId: number | null = null;
 
 if (specialty) {
-  const { data: plan, error: planError } = await supabaseClient
+  const { data: plan, error: planError } = await supabaseAdmin
     .from("study_plans")
     .select("id, year, is_current")
     .eq("specialty_id", specialty.id)
     .eq("is_current", true)
     .single();
 
+  console.log("[Malla] Query 2 — plan:", JSON.stringify(plan));
   if (planError) {
-    console.error("Error fetching study plan:", planError);
+    console.error("[Malla] Query 2 — ERROR plan:", JSON.stringify(planError));
   }
 
   if (plan) {
     planId = plan.id;
     planYear = String(plan.year);
   }
+} else {
+  console.warn("[Malla] Specialty no encontrada, saltando queries 2-4.");
 }
+
+console.log("[Malla] planId resuelto:", planId, "| planYear:", planYear);
 
 // 3. Obtener los cursos del plan (join con courses para code y name)
 let courses: CurriculumCourse[] = [];
 if (planId) {
-  const { data: planCourses, error: pcError } = await supabaseClient
+  const { data: planCourses, error: pcError } = await supabaseAdmin
     .from("plan_courses")
-    .select("plan_id, course_id, cycle, courses:course_id (id, code, name, credits)")
+    .select("plan_id, course_id, cycle, courses (id, code, name, credits)")
     .eq("plan_id", planId);
 
+  console.log("[Malla] Query 3 — planCourses count:", planCourses?.length ?? 0);
+  console.log("[Malla] Query 3 — planCourses (primeros 3):", JSON.stringify(planCourses?.slice(0, 3)));
   if (pcError) {
-    console.error("Error fetching plan courses:", pcError);
+    console.error("[Malla] Query 3 — ERROR planCourses:", JSON.stringify(pcError));
   }
 
   if (planCourses) {
@@ -59,18 +69,22 @@ if (planId) {
       credits: pc.courses?.credits ?? undefined,
     }));
   }
+} else {
+  console.warn("[Malla] planId es null, saltando query de cursos.");
 }
 
 // 4. Obtener los pre-requisitos del plan
 let prerequisites: CoursePrerequisite[] = [];
 if (planId) {
-  const { data: prereqs, error: prError } = await supabaseClient
+  const { data: prereqs, error: prError } = await supabaseAdmin
     .from("course_prerequisites")
     .select("course_id, prerequisite_id")
     .eq("plan_id", planId);
 
+  console.log("[Malla] Query 4 — prereqs count:", prereqs?.length ?? 0);
+  console.log("[Malla] Query 4 — prereqs (primeros 3):", JSON.stringify(prereqs?.slice(0, 3)));
   if (prError) {
-    console.error("Error fetching prerequisites:", prError);
+    console.error("[Malla] Query 4 — ERROR prereqs:", JSON.stringify(prError));
   }
 
   if (prereqs) {
@@ -79,6 +93,8 @@ if (planId) {
       prerequisite_id: pr.prerequisite_id,
     }));
   }
+} else {
+  console.warn("[Malla] planId es null, saltando query de pre-requisitos.");
 }
 
 // 5. Estructurar data para el componente
@@ -88,6 +104,13 @@ const curriculumData: CurriculumData = {
   courses,
   prerequisites,
 };
+
+console.log("========== [Malla] Resumen final ==========");
+console.log(`  specialtyName: ${curriculumData.specialtyName}`);
+console.log(`  planYear: ${curriculumData.planYear}`);
+console.log(`  courses: ${curriculumData.courses.length}`);
+console.log(`  prerequisites: ${curriculumData.prerequisites.length}`);
+console.log("============================================");
 ---
 
 <Layout
