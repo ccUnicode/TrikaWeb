@@ -107,7 +107,9 @@ if (!isAdmin) {
               </ul>
             </div>
             <div class="relative" id="cycle-combobox-container">
-              <label class="block text-sm font-medium text-global-text-muted mb-1.5">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+              >
                 Ciclo
               </label>
 
@@ -123,9 +125,20 @@ if (!isAdmin) {
                   required
                 />
 
-                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                  <svg class="h-4 w-4 text-global-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                <div
+                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="h-4 w-4 text-global-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </div>
               </div>
@@ -133,7 +146,8 @@ if (!isAdmin) {
               <ul
                 id="cycle-dropdown"
                 class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              ></ul>
+              >
+              </ul>
             </div>
           </div>
 
@@ -166,7 +180,9 @@ if (!isAdmin) {
                   required
                 />
 
-                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <div
+                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                >
                   <svg
                     class="h-4 w-4 text-global-text-muted"
                     fill="none"
@@ -177,8 +193,7 @@ if (!isAdmin) {
                       stroke-linecap="round"
                       stroke-linejoin="round"
                       stroke-width="2"
-                      d="M19 9l-7 7-7-7"
-                    ></path>
+                      d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </div>
               </div>
@@ -186,7 +201,8 @@ if (!isAdmin) {
               <ul
                 id="evaluation-dropdown"
                 class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              ></ul>
+              >
+              </ul>
             </div>
 
             <!-- Col 2: Docente -->
@@ -195,15 +211,14 @@ if (!isAdmin) {
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="teacher-search"
               >
-                Docente <span id="teacher-optional-label" class="text-global-text-muted">(opcional)</span>
+                Docente <span
+                  id="teacher-optional-label"
+                  class="text-global-text-muted">(opcional)</span
+                >
               </label>
 
               <div class="relative">
-                <input
-                  type="hidden"
-                  id="teacher-hint"
-                  name="teacher_hint"
-                />
+                <input type="hidden" id="teacher-hint" name="teacher_hint" />
 
                 <input
                   type="text"
@@ -214,9 +229,20 @@ if (!isAdmin) {
                   placeholder="Ingresa un curso primero"
                 />
 
-                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                  <svg class="h-4 w-4 text-global-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                <div
+                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="h-4 w-4 text-global-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </div>
               </div>
@@ -224,9 +250,13 @@ if (!isAdmin) {
               <ul
                 id="teacher-dropdown"
                 class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              ></ul>
+              >
+              </ul>
 
-              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">
+              <p
+                id="teacher-loading"
+                class="hidden mt-1 text-xs text-global-text-muted"
+              >
                 Cargando profesores...
               </p>
             </div>
@@ -529,6 +559,12 @@ if (!isAdmin) {
           body: JSON.stringify({ type }),
         });
 
+        if (!res.ok) {
+          if (syncMessage)
+            syncMessage.textContent = `❌ Error del servidor (${res.status})`;
+          return;
+        }
+
         const data = await res.json();
 
         if (syncResultsPre) {
@@ -586,12 +622,22 @@ if (!isAdmin) {
     });
 
     // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const courseCodeInput = document.getElementById("course-code") as HTMLInputElement;
-    const teacherSearchInput = document.getElementById("teacher-search") as HTMLInputElement;
-    const teacherHintInput = document.getElementById("teacher-hint") as HTMLInputElement;
-    const teacherDropdown = document.getElementById("teacher-dropdown") as HTMLUListElement;
+    const courseCodeInput = document.getElementById(
+      "course-code",
+    ) as HTMLInputElement;
+    const teacherSearchInput = document.getElementById(
+      "teacher-search",
+    ) as HTMLInputElement;
+    const teacherHintInput = document.getElementById(
+      "teacher-hint",
+    ) as HTMLInputElement;
+    const teacherDropdown = document.getElementById(
+      "teacher-dropdown",
+    ) as HTMLUListElement;
     const teacherLoading = document.getElementById("teacher-loading");
-    const teacherComboboxContainer = document.getElementById("teacher-combobox-container");
+    const teacherComboboxContainer = document.getElementById(
+      "teacher-combobox-container",
+    );
 
     let allTeachers: string[] = [];
     let lastFetchedCode = "";
@@ -614,7 +660,10 @@ if (!isAdmin) {
       teacherLoading?.classList.remove("hidden");
 
       try {
-        const res = await fetch(`/api/cursos/${encodeURIComponent(trimmed)}/profesores`);
+        const res = await fetch(
+          `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
         if (data.ok && data.profesores.length > 0) {
@@ -696,10 +745,18 @@ if (!isAdmin) {
     }
 
     // ── Teacher-specific toggle behavior ──────────────
-    const teacherSpecificCheckbox = document.getElementById("is-teacher-specific") as HTMLInputElement;
-    const teacherSpecificInfo = document.getElementById("teacher-specific-info");
-    const teacherOptionalLabel = document.getElementById("teacher-optional-label");
-    const teacherToggleWrapper = document.getElementById("teacher-specific-toggle");
+    const teacherSpecificCheckbox = document.getElementById(
+      "is-teacher-specific",
+    ) as HTMLInputElement;
+    const teacherSpecificInfo = document.getElementById(
+      "teacher-specific-info",
+    );
+    const teacherOptionalLabel = document.getElementById(
+      "teacher-optional-label",
+    );
+    const teacherToggleWrapper = document.getElementById(
+      "teacher-specific-toggle",
+    );
 
     function updateTeacherSpecificUI() {
       const isActive = teacherSpecificCheckbox?.checked ?? false;
@@ -725,7 +782,9 @@ if (!isAdmin) {
         }
       }
       if (teacherOptionalLabel) {
-        teacherOptionalLabel.textContent = isActive ? "(requerido)" : "(opcional)";
+        teacherOptionalLabel.textContent = isActive
+          ? "(requerido)"
+          : "(opcional)";
         if (isActive) {
           teacherOptionalLabel.classList.add("text-global-primary");
           teacherOptionalLabel.classList.remove("text-global-text-muted");
@@ -736,7 +795,10 @@ if (!isAdmin) {
       }
     }
 
-    teacherSpecificCheckbox?.addEventListener("change", updateTeacherSpecificUI);
+    teacherSpecificCheckbox?.addEventListener(
+      "change",
+      updateTeacherSpecificUI,
+    );
     // Initialize on load
     updateTeacherSpecificUI();
 
@@ -795,9 +857,15 @@ if (!isAdmin) {
       "course-combobox-container",
     );
 
-    const cycleSearchInput = document.getElementById("cycle-search") as HTMLInputElement;
-    const cycleCodeHidden = document.getElementById("cycle-code") as HTMLInputElement;
-    const cycleDropdown = document.getElementById("cycle-dropdown") as HTMLUListElement;
+    const cycleSearchInput = document.getElementById(
+      "cycle-search",
+    ) as HTMLInputElement;
+    const cycleCodeHidden = document.getElementById(
+      "cycle-code",
+    ) as HTMLInputElement;
+    const cycleDropdown = document.getElementById(
+      "cycle-dropdown",
+    ) as HTMLUListElement;
     const cycleContainer = document.getElementById("cycle-combobox-container");
 
     let allCycles: string[] = [];
@@ -855,10 +923,13 @@ if (!isAdmin) {
       resetEvaluationSelection("Cargando evaluaciones...");
 
       try {
-        const res = await fetch(`/api/admin/course-evaluations?course_id=${courseId}`, {
-          method: "GET",
-          credentials: "include",
-        });
+        const res = await fetch(
+          `/api/admin/course-evaluations?course_id=${courseId}`,
+          {
+            method: "GET",
+            credentials: "include",
+          },
+        );
 
         const data = await res.json().catch(() => null);
 
@@ -871,7 +942,9 @@ if (!isAdmin) {
         allEvaluations = evaluations;
 
         if (!evaluations.length) {
-          resetEvaluationSelection("Este curso no tiene evaluaciones registradas");
+          resetEvaluationSelection(
+            "Este curso no tiene evaluaciones registradas",
+          );
           return;
         }
 
@@ -892,7 +965,8 @@ if (!isAdmin) {
       cycles.forEach((cycle) => {
         const li = document.createElement("li");
         li.textContent = cycle;
-        li.className = "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
+        li.className =
+          "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
 
         li.addEventListener("click", () => {
           cycleCodeHidden.value = cycle;
@@ -968,7 +1042,9 @@ if (!isAdmin) {
       });
     }
 
-    function resetEvaluationSelection(placeholder = "Selecciona primero un curso") {
+    function resetEvaluationSelection(
+      placeholder = "Selecciona primero un curso",
+    ) {
       if (evaluationIdHidden) evaluationIdHidden.value = "";
       if (evaluationSearchInput) {
         evaluationSearchInput.value = "";
@@ -987,9 +1063,7 @@ if (!isAdmin) {
 
       cycleCodeHidden.value = "";
 
-      const filtered = allCycles.filter(c =>
-        c.toLowerCase().includes(q)
-      );
+      const filtered = allCycles.filter((c) => c.toLowerCase().includes(q));
 
       renderCycleDropdown(filtered);
       cycleDropdown.classList.remove("hidden");
@@ -1072,7 +1146,7 @@ if (!isAdmin) {
       if (teacherHintInput) teacherHintInput.value = "";
 
       const filtered = allTeachers.filter((teacher) =>
-        teacher.toLowerCase().includes(query)
+        teacher.toLowerCase().includes(query),
       );
 
       renderTeacherDropdown(filtered);
@@ -1250,7 +1324,9 @@ if (!isAdmin) {
 
       // Validate teacher_hint when teacher-specific is enabled
       if (isTeacherSpecific && !teacherHint) {
-        alert("Debes indicar el docente para una plancha de profesor específico.");
+        alert(
+          "Debes indicar el docente para una plancha de profesor específico.",
+        );
         teacherSearchInput?.focus();
         return;
       }
