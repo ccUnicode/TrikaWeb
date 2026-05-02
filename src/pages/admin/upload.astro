@@ -474,7 +474,16 @@ import Layout from "../../layouts/Layout.astro";
           "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
         li.setAttribute("role", "option");
         li.dataset.index = String(i);
-        li.innerHTML = `<span class="font-semibold text-global-primary">${c.code}</span> <span class="text-global-text-muted">–</span> ${c.name}`;
+        const codeSpan = document.createElement("span");
+        codeSpan.className = "font-semibold text-global-primary";
+        codeSpan.textContent = c.code;
+        const separator = document.createElement("span");
+        separator.className = "text-global-text-muted";
+        separator.textContent = " \u2013 ";
+        const nameText = document.createTextNode(c.name);
+        li.appendChild(codeSpan);
+        li.appendChild(separator);
+        li.appendChild(nameText);
         li.addEventListener("mousedown", (e) => {
           e.preventDefault(); // prevent blur before selection
           selectCourse(c);
@@ -636,7 +645,7 @@ import Layout from "../../layouts/Layout.astro";
       const courseCode = String(formData.get("course_code") ?? "").trim();
       const cycle = String(formData.get("cycle") ?? "").trim();
       const examType = String(formData.get("exam_type") ?? "").trim();
-      const teacherHint = (teacherSelect?.value ?? "").trim();
+      const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
       const resourceKind = String(formData.get("resource_kind") ?? "").trim();
       const file = (formData.get("file") as File) || null;
 
