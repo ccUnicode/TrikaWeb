@@ -5,11 +5,12 @@ export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { validateAdminSession } from "../../../lib/adminAuth";
 
-export const POST: APIRoute = async ({ request }) => {
-  // Check admin session cookie
-  const cookie = request.headers.get("cookie") ?? "";
-  if (!cookie.includes("admin_session=")) {
+export const POST: APIRoute = async ({ request, cookies }) => {
+  // Validate admin session token against Supabase Auth
+  const isAdmin = await validateAdminSession(cookies);
+  if (!isAdmin) {
     return new Response(
       JSON.stringify({ ok: false, error: "No autorizado" }),
       { status: 401, headers: { "Content-Type": "application/json" } }
@@ -26,6 +27,10 @@ export const POST: APIRoute = async ({ request }) => {
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    // Note: delete + update are not atomic. If the update fails after delete,
+    // interest_count may be stale. This is acceptable for an admin-only reset
+    // action since the count is eventually consistent (recalculated on next toggle).
 
     // 1. Delete all interest records for this sheet
     const { error: deleteError } = await supabaseAdmin
@@ -50,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
     if (updateError) {
       console.error("Error resetting interest_count:", updateError);
       return new Response(
-        JSON.stringify({ ok: false, error: "Error al resetear contador" }),
+        JSON.stringify({ ok: false, error: "Error al resetear contador (registros ya eliminados)" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
