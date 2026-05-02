@@ -126,7 +126,7 @@ function getYouTubeId(url: string) {
             {
               !sheet.solution_kind && (
                 <span>
-                  Interesados: <strong id="interest-count-display">{interestCount}</strong>
+                  Solicitudes: <strong id="interest-count-display">{interestCount}</strong>
                 </span>
               )
             }
@@ -145,7 +145,7 @@ function getYouTubeId(url: string) {
 
         <!-- Right side: Action buttons -->
         <div class="flex flex-wrap gap-3 items-center">
-          {/* RF-03: Botón "Me interesa" — solo si NO tiene solucionario */}
+          {/* RF-03: Botón "Pedir solucionario" — solo si NO tiene solucionario */}
           {!sheet.solution_kind && (
             <button
               id="interest-btn"
@@ -167,10 +167,11 @@ function getYouTubeId(url: string) {
                 stroke-linejoin="round"
                 class="transition-all"
               >
-                <path d="M7 10v12" />
-                <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                <path d="m9 14 2 2 4-4" />
               </svg>
-              <span class="interest-detail-label">Me interesa</span>
+              <span class="interest-detail-label">Pedir solucionario</span>
             </button>
           )}
 
@@ -850,7 +851,7 @@ function getYouTubeId(url: string) {
 <script>
   import { ensureDeviceId } from "../../lib/client/device";
 
-  // RF-04: "Me interesa" — API-backed + localStorage cache
+  // RF-04: "Pedir solucionario" — API-backed + localStorage cache
   const INTEREST_STORAGE_KEY = "trikaweb:interests";
 
   function getStoredInterests(): number[] {
@@ -882,13 +883,13 @@ function getYouTubeId(url: string) {
     const svg = btn.querySelector("svg");
 
     if (isSheetInterested(sheetId)) {
-      if (label) label.textContent = "¡Registrado!";
+      if (label) label.textContent = "¡Solicitud enviada!";
       if (svg) svg.setAttribute("fill", "currentColor");
       btn.style.backgroundColor = "rgb(var(--global-primary))";
       btn.style.color = "black";
       btn.style.borderColor = "rgb(var(--global-primary))";
     } else {
-      if (label) label.textContent = "Me interesa";
+      if (label) label.textContent = "Pedir solucionario";
       if (svg) svg.setAttribute("fill", "none");
       btn.style.backgroundColor = "transparent";
       btn.style.color = "rgb(var(--global-primary))";
@@ -907,6 +908,21 @@ function getYouTubeId(url: string) {
 
     // Apply initial state from localStorage
     applyDetailInterestState(btn, sheetId);
+
+    // Sync localStorage with the API (handles admin resets)
+    const deviceId = ensureDeviceId();
+    fetch(`/api/sheets/${sheetId}/interest?device_id=${encodeURIComponent(deviceId)}`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data && typeof data.interested === "boolean") {
+          const localState = isSheetInterested(sheetId);
+          if (localState !== data.interested) {
+            setLocalInterest(sheetId, data.interested);
+            applyDetailInterestState(btn, sheetId);
+          }
+        }
+      })
+      .catch(() => { /* silently ignore sync errors */ });
 
     // Hover effects
     btn.addEventListener("mouseenter", () => {

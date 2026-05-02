@@ -350,7 +350,7 @@ import Layout from "../../layouts/Layout.astro";
               Solucionarios más solicitados
             </h2>
             <p class="mt-0.5 text-sm text-global-text-muted">
-              Planchas sin solucionario con más votos de "Me interesa"
+              Planchas sin solucionario con más solicitudes
             </p>
           </div>
           <button
@@ -659,31 +659,83 @@ import Layout from "../../layouts/Layout.astro";
             const count = sheet.interest_count ?? 0;
 
             return `
-            <a href="/exams/${sheet.id}" target="_blank"
-               class="flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border hover:border-global-primary transition-colors group">
-              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0">
-                ${index + 1}
-              </span>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate">
-                  ${courseCode} — ${sheet.exam_type} ${sheet.cycle}
-                </p>
-                <p class="text-xs text-global-text-muted truncate">${courseName}</p>
+            <div class="flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border group">
+              <a href="/exams/${sheet.id}" target="_blank"
+                 class="flex items-center gap-4 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0">
+                  ${index + 1}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate">
+                    ${courseCode} — ${sheet.exam_type} ${sheet.cycle}
+                  </p>
+                  <p class="text-xs text-global-text-muted truncate">${courseName}</p>
+                </div>
+              </a>
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-global-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    <path d="m9 14 2 2 4-4" />
+                  </svg>
+                  <span class="text-sm font-bold text-global-primary">${count}</span>
+                </div>
+                <button
+                  type="button"
+                  data-reset-sheet-id="${sheet.id}"
+                  title="Reiniciar contador"
+                  class="p-1.5 rounded-lg text-global-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  </svg>
+                </button>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-global-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M7 10v12" />
-                  <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
-                </svg>
-                <span class="text-sm font-bold text-global-primary">${count}</span>
-              </div>
-            </a>
+            </div>
           `;
           })
           .join("");
 
         if (interestsList) {
           interestsList.innerHTML = html;
+
+          // Attach reset handlers
+          interestsList
+            .querySelectorAll("[data-reset-sheet-id]")
+            .forEach((btn) => {
+              btn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const sheetId = (btn as HTMLElement).dataset.resetSheetId;
+                if (
+                  !sheetId ||
+                  !confirm("¿Reiniciar el contador de solicitudes para esta plancha?")
+                )
+                  return;
+
+                (btn as HTMLButtonElement).disabled = true;
+                try {
+                  const res = await fetch("/api/admin/reset-interest", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sheet_id: Number(sheetId) }),
+                  });
+                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                  const data = await res.json();
+                  if (data.ok) {
+                    loadTopInterests(); // Refresh the list
+                  } else {
+                    alert(data.error || "Error al reiniciar");
+                  }
+                } catch (err) {
+                  console.error("Reset error:", err);
+                  alert("Error de red al reiniciar contador");
+                }
+              });
+            });
         }
       } catch (err) {
         if (interestsLoading) interestsLoading.classList.add("hidden");

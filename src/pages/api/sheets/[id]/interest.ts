@@ -3,6 +3,30 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
+// GET: Check if a device has expressed interest in a sheet
+export const GET: APIRoute = async ({ params, url }) => {
+  const sheetId = Number(params.id);
+  if (!sheetId) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const deviceId = url.searchParams.get('device_id');
+  if (!deviceId) {
+    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  }
+
+  const { data: existing } = await supabaseAdmin
+    .from('sheet_interests')
+    .select('id')
+    .eq('sheet_id', sheetId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  return new Response(
+    JSON.stringify({ interested: !!existing }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  );
+};
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {
