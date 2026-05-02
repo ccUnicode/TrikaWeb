@@ -379,6 +379,11 @@ import Layout from "../../layouts/Layout.astro";
           body: JSON.stringify({ type }),
         });
 
+        if (!res.ok) {
+          if (syncMessage) syncMessage.textContent = `❌ Error del servidor (${res.status})`;
+          return;
+        }
+
         const data = await res.json();
 
         if (syncResultsPre) {
@@ -442,6 +447,7 @@ import Layout from "../../layouts/Layout.astro";
     (async () => {
       try {
         const res = await fetch("/api/cursos");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.ok) allCourses = data.cursos;
       } catch (e) {
@@ -561,6 +567,7 @@ import Layout from "../../layouts/Layout.astro";
 
       try {
         const res = await fetch(`/api/cursos/${encodeURIComponent(trimmed)}/profesores`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
         if (data.ok && data.profesores.length > 0) {
