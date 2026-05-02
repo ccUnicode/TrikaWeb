@@ -4,7 +4,16 @@
 export const prerender = false;
 
 import type { APIRoute } from "astro";
-import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { supabaseClient } from "../../../../lib/supabase.client";
+
+interface TeacherRow {
+  id: number;
+  full_name: string;
+}
+
+interface CourseTeacherJoin {
+  teachers: TeacherRow | null;
+}
 
 export const GET: APIRoute = async ({ params }) => {
   const cursoCode = (params.cursoCode ?? "").trim().toUpperCase();
@@ -18,7 +27,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   try {
     // 1. Buscar el curso por código
-    const { data: course, error: courseError } = await supabaseAdmin
+    const { data: course, error: courseError } = await supabaseClient
       .from("courses")
       .select("id")
       .ilike("code", cursoCode)
@@ -40,7 +49,7 @@ export const GET: APIRoute = async ({ params }) => {
     }
 
     // 2. Obtener profesores asociados al curso via courses_teachers
-    const { data: rows, error: joinError } = await supabaseAdmin
+    const { data: rows, error: joinError } = await supabaseClient
       .from("courses_teachers")
       .select("teachers:teacher_id ( id, full_name )")
       .eq("course_id", course.id);
@@ -53,11 +62,11 @@ export const GET: APIRoute = async ({ params }) => {
       );
     }
 
-    const profesores = (rows || [])
-      .map((row: any) => row.teachers)
-      .filter(Boolean)
-      .map((t: any) => ({ id: t.id, full_name: t.full_name }))
-      .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name));
+    const profesores = ((rows || []) as unknown as CourseTeacherJoin[])
+      .map((row) => row.teachers)
+      .filter((t): t is TeacherRow => t !== null && t !== undefined)
+      .map((t) => ({ id: t.id, full_name: t.full_name }))
+      .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
     return new Response(
       JSON.stringify({ ok: true, profesores }),

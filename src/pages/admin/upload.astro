@@ -69,7 +69,7 @@ import Layout from "../../layouts/Layout.astro";
                 class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
                 placeholder="Buscar curso... ej: BMA02, Física"
               />
-              <input id="course-code" name="course_code" type="hidden" />
+              <input id="course-code" name="course_code" type="hidden" required />
               <!-- Dropdown list -->
               <ul
                 id="course-dropdown"
@@ -449,9 +449,15 @@ import Layout from "../../layouts/Layout.astro";
         const res = await fetch("/api/cursos");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (data.ok) allCourses = data.cursos;
+        if (data.ok) {
+          allCourses = data.cursos;
+        } else {
+          throw new Error(data.error || "Respuesta inválida");
+        }
       } catch (e) {
         console.error("Error cargando cursos:", e);
+        courseSearch.placeholder = "⚠️ Error al cargar cursos. Recarga la página.";
+        courseSearch.classList.add("border-red-500/50");
       }
     })();
 
