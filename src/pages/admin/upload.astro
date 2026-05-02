@@ -1013,6 +1013,10 @@ if (!isAdmin) {
       }
     }
 
+    function norm(value: string) {
+      return value.trim().toLowerCase();
+    }
+
     function renderCycleDropdown(cycles: string[]) {
       if (!cycleDropdown) return;
 
@@ -1022,11 +1026,12 @@ if (!isAdmin) {
         const li = document.createElement("li");
         li.textContent = cycle;
         li.className =
-          "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
+          "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
 
-        li.addEventListener("click", () => {
-          cycleCodeHidden.value = cycle;
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
           cycleSearchInput.value = cycle;
+          cycleCodeHidden.value = cycle;
           cycleDropdown.classList.add("hidden");
         });
 
@@ -1034,130 +1039,141 @@ if (!isAdmin) {
       });
     }
 
-    function renderCourseDropdown(coursesToRender: CourseOption[]) {
+    function renderCourseDropdown(courses: CourseOption[]) {
       if (!courseDropdown) return;
-      if (coursesToRender.length === 0) {
-        courseDropdown.innerHTML = `<li class="px-4 py-3 text-sm text-global-text-muted text-center cursor-default">No se encontraron cursos.</li>`;
-        return;
+
+      courseDropdown.innerHTML = "";
+
+      if (courses.length === 0) {
+        const li = document.createElement("li");
+        li.className =
+          "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
+        li.textContent = "No hay cursos disponibles.";
+        courseDropdown.appendChild(li);
+      } else {
+        courses.forEach((course) => {
+          const li = document.createElement("li");
+          li.className =
+            "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
+
+          li.innerHTML = `
+        <span class="font-semibold text-global-primary">${course.code}</span>
+        <span class="text-global-text-muted"> – </span>
+        <span>${course.name}</span>
+      `;
+
+          li.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            selectCourse(course);
+          });
+
+          courseDropdown.appendChild(li);
+        });
       }
 
-      courseDropdown.innerHTML = coursesToRender
-        .map((c) => {
-          const label = `${c.code} - ${c.name}`;
-          return `<li data-id="${c.id}" data-code="${c.code}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
-        })
-        .join("");
-
-      const items = courseDropdown.querySelectorAll("li[data-code]");
-      items.forEach((item) => {
-        item.addEventListener("click", () => {
-          const id = Number(item.getAttribute("data-id") || "0");
-          const code = item.getAttribute("data-code") || "";
-          const label = item.getAttribute("data-label") || "";
-
-          if (courseIdHidden) courseIdHidden.value = String(id);
-          if (courseCodeHidden) courseCodeHidden.value = code;
-          if (courseSearchInput) courseSearchInput.value = label;
-
-          if (id > 0) {
-            loadEvaluationOptions(id);
-          }
-
-          courseDropdown.classList.add("hidden");
-          loadTeachersByCourse(code);
-        });
-      });
+      courseDropdown.classList.remove("hidden");
     }
 
-    function renderEvaluationDropdown(evaluationsToRender: EvaluationOption[]) {
-      if (!evaluationDropdown) return;
+    function selectCourse(course: CourseOption) {
+      courseSearchInput.value = `${course.code} – ${course.name}`;
+      courseIdHidden.value = String(course.id);
+      courseCodeHidden.value = course.code;
 
-      if (evaluationsToRender.length === 0) {
-        evaluationDropdown.innerHTML = `<li class="px-4 py-3 text-sm text-global-text-muted text-center cursor-default">No se encontraron evaluaciones.</li>`;
-        return;
-      }
+      courseDropdown.classList.add("hidden");
 
-      evaluationDropdown.innerHTML = evaluationsToRender
-        .map((ev) => {
-          const label = `${ev.evaluation_abr} - ${ev.evaluation_name}`;
-          return `<li data-id="${ev.evaluation_id}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
-        })
-        .join("");
+      resetEvaluationSelection("Cargando evaluaciones...");
+      loadEvaluationOptions(course.id);
 
-      const items = evaluationDropdown.querySelectorAll("li[data-id]");
-      items.forEach((item) => {
-        item.addEventListener("click", () => {
-          const id = Number(item.getAttribute("data-id") || "0");
-          const label = item.getAttribute("data-label") || "";
+      resetTeacherSelection("Cargando profesores...");
+      loadTeachersByCourse(course.code);
+    }
 
-          if (evaluationIdHidden) evaluationIdHidden.value = String(id);
-          if (evaluationSearchInput) evaluationSearchInput.value = label;
+    function filterCourses(query: string) {
+      const q = norm(query);
 
-          evaluationDropdown.classList.add("hidden");
-        });
-      });
+      if (!q) return allCourses.slice(0, 20);
+
+      return allCourses.filter(
+        (course) =>
+          norm(course.code).includes(q) || norm(course.name).includes(q),
+      );
     }
 
     function resetEvaluationSelection(
       placeholder = "Selecciona primero un curso",
     ) {
-      if (evaluationIdHidden) evaluationIdHidden.value = "";
       if (evaluationSearchInput) {
         evaluationSearchInput.value = "";
         evaluationSearchInput.placeholder = placeholder;
         evaluationSearchInput.setAttribute("disabled", "true");
       }
+
+      if (evaluationIdHidden) evaluationIdHidden.value = "";
+
       if (evaluationDropdown) {
         evaluationDropdown.innerHTML = "";
         evaluationDropdown.classList.add("hidden");
       }
+
       allEvaluations = [];
     }
 
-    cycleSearchInput?.addEventListener("input", (e) => {
-      const q = (e.target as HTMLInputElement).value.toLowerCase();
+    function renderEvaluationDropdown(evaluations: EvaluationOption[]) {
+      if (!evaluationDropdown) return;
 
-      cycleCodeHidden.value = "";
+      evaluationDropdown.innerHTML = "";
 
-      const filtered = allCycles.filter((c) => c.toLowerCase().includes(q));
+      if (evaluations.length === 0) {
+        const li = document.createElement("li");
+        li.className =
+          "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
+        li.textContent = "No se encontraron evaluaciones.";
+        evaluationDropdown.appendChild(li);
+        return;
+      }
 
-      renderCycleDropdown(filtered);
-      cycleDropdown.classList.remove("hidden");
-    });
+      evaluations.forEach((evaluation) => {
+        const li = document.createElement("li");
+        li.className =
+          "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
 
-    cycleSearchInput?.addEventListener("focus", () => {
-      renderCycleDropdown(allCycles);
-      cycleDropdown.classList.remove("hidden");
-    });
+        const abrSpan = document.createElement("span");
+        abrSpan.className = "font-semibold text-global-primary";
+        abrSpan.textContent = evaluation.evaluation_abr;
 
-    cycleSearchInput?.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (!cycleCodeHidden.value) {
-          cycleSearchInput.value = "";
-        }
-      }, 150);
-    });
+        const separator = document.createElement("span");
+        separator.className = "text-global-text-muted";
+        separator.textContent = " – ";
 
-    courseSearchInput?.addEventListener("input", (e) => {
-      const query = (e.target as HTMLInputElement).value.toLowerCase();
-      // Ocultar valor real si editan para forzar la selección válida
-      if (courseIdHidden) courseIdHidden.value = "";
-      if (courseCodeHidden) courseCodeHidden.value = "";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = evaluation.evaluation_name;
 
-      resetEvaluationSelection("Selecciona primero un curso");
-      resetTeacherSelection("Ingresa un curso primero");
+        li.appendChild(abrSpan);
+        li.appendChild(separator);
+        li.appendChild(nameSpan);
+
+        li.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          evaluationIdHidden.value = String(evaluation.evaluation_id);
+          evaluationSearchInput.value = `${evaluation.evaluation_abr} – ${evaluation.evaluation_name}`;
+          evaluationDropdown.classList.add("hidden");
+        });
+
+        evaluationDropdown.appendChild(li);
+      });
+    }
+
+    courseSearchInput?.addEventListener("input", () => {
+      courseIdHidden.value = "";
+      courseCodeHidden.value = "";
       lastFetchedCode = "";
 
-      const filtered = allCourses.filter(
-        (c) =>
-          c.code.toLowerCase().includes(query) ||
-          c.name.toLowerCase().includes(query),
-      );
+      const filtered = filterCourses(courseSearchInput.value);
       renderCourseDropdown(filtered);
       courseDropdown?.classList.remove("hidden");
     });
 
-    courseSearchInput?.addEventListener("focus", () => {
+    courseSearchInput?.addEventListener("focus", async () => {
       if (courseIdHidden) courseIdHidden.value = "";
       if (courseCodeHidden) courseCodeHidden.value = "";
       courseSearchInput.value = "";
@@ -1166,17 +1182,35 @@ if (!isAdmin) {
       resetTeacherSelection("Ingresa un curso primero");
       lastFetchedCode = "";
 
-      if (allCourses.length > 0) {
-        renderCourseDropdown(allCourses);
-        courseDropdown?.classList.remove("hidden");
+      if (allCourses.length === 0) {
+        await loadCourseOptions();
       }
+
+      renderCourseDropdown(allCourses.slice(0, 20));
+      courseDropdown?.classList.remove("hidden");
     });
 
-    // Enforce selection from list
-    courseSearchInput?.addEventListener("blur", () => {
+    cycleSearchInput?.addEventListener("input", () => {
+      cycleCodeHidden.value = "";
+
+      const q = norm(cycleSearchInput.value);
+      const filtered = !q
+        ? allCycles
+        : allCycles.filter((cycle) => norm(cycle).includes(q));
+
+      renderCycleDropdown(filtered);
+      cycleDropdown?.classList.remove("hidden");
+    });
+
+    cycleSearchInput?.addEventListener("focus", () => {
+      renderCycleDropdown(allCycles);
+      cycleDropdown?.classList.remove("hidden");
+    });
+
+    cycleSearchInput?.addEventListener("blur", () => {
       setTimeout(() => {
-        if (courseCodeHidden && !courseCodeHidden.value) {
-          courseSearchInput.value = "";
+        if (!cycleCodeHidden.value) {
+          cycleSearchInput.value = "";
         }
       }, 150);
     });
