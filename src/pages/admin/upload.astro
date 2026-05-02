@@ -933,6 +933,9 @@ if (!isAdmin) {
         }
       } catch (e) {
         console.error("Error cargando ciclos:", e);
+        courseSearchInput.placeholder =
+          "⚠️ Error al cargar cursos. Recarga la página.";
+        courseSearchInput.classList.add("border-red-500/50");
       }
     }
 
