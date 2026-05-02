@@ -1633,9 +1633,18 @@ if (!isAdmin) {
           return;
         }
 
+        interface InterestSheet {
+          id: number;
+          exam_type: string;
+          cycle: string;
+          interest_count: number;
+          solution_kind: string | null;
+          courses: { code: string; name: string } | { code: string; name: string }[];
+        }
+
         // Render the list
-        const html = data
-          .map((sheet: any, index: number) => {
+        const html = (data as InterestSheet[])
+          .map((sheet, index: number) => {
             const course = Array.isArray(sheet.courses)
               ? sheet.courses[0]
               : sheet.courses;

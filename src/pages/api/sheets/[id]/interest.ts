@@ -15,18 +15,27 @@ export const GET: APIRoute = async ({ params, url }) => {
     return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
   }
 
-  const { data: existing } = await supabaseAdmin
+  const { data: existing, error } = await supabaseAdmin
     .from('sheet_interests')
     .select('id')
     .eq('sheet_id', sheetId)
     .eq('device_id', deviceId)
     .maybeSingle();
 
+  if (error) {
+    console.error('Error checking interest:', error);
+    return new Response(
+      JSON.stringify({ error: 'Error interno' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
   return new Response(
     JSON.stringify({ interested: !!existing }),
     { status: 200, headers: { 'Content-Type': 'application/json' } }
   );
 };
+
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {
@@ -103,6 +112,9 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   // Update interest_count on sheets
+  // Note: select-count + update is not atomic and has a minor race condition
+  // under high concurrency. A DB trigger would be ideal but this is acceptable
+  // for the current traffic level. The count self-corrects on each toggle.
   const { count } = await supa
     .from('sheet_interests')
     .select('*', { count: 'exact', head: true })
@@ -110,10 +122,15 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   const interestCount = count ?? 0;
 
-  await supa
+  const { error: updateError } = await supa
     .from('sheets')
     .update({ interest_count: interestCount })
     .eq('id', sheetId);
+
+  if (updateError) {
+    console.error('Error updating interest_count:', updateError);
+    // Don't fail the request — the toggle itself succeeded, count is eventually consistent
+  }
 
   return new Response(
     JSON.stringify({
