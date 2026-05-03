@@ -69,6 +69,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
     const safeCycle = cycle.replace(/[^a-zA-Z0-9\-_]/g, "_");
     const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
+    // Misma convención de clave en `exams` y `solutions`; solo cambia el bucket de Storage.
     const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
 
     let signedUrl: string | undefined;
@@ -82,8 +83,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             .from("exams")
             .createSignedUploadUrl(path, { upsert: true });
 
-        // Generate signed URL for Solucionario
-        solutionPath = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
+        solutionPath = path;
         const { data: sData, error: sError } = await supabaseAdmin.storage
             .from("solutions")
             .createSignedUploadUrl(solutionPath, { upsert: true });

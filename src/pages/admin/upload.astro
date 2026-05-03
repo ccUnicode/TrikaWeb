@@ -360,6 +360,9 @@ if (!isAdmin) {
   </div>
 
   <script>
+    import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
+    import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
     const syncAllBtn = document.getElementById("sync-all-btn");
@@ -580,29 +583,10 @@ if (!isAdmin) {
       loadCourseOptions();
     });
 
-    // Load PDF.js dynamically
-    async function loadPdfJs() {
-      if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
-      return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        script.onload = () => {
-          const pdfjsLib = (window as any).pdfjsLib;
-          pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-          resolve(pdfjsLib);
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-
     async function generatePdfThumbnail(file: File): Promise<Blob | null> {
       try {
-        const pdfjsLib = await loadPdfJs();
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const page = await pdf.getPage(1);
 
         // Adjust scale as needed for quality vs size (1.5 gives good resolution)

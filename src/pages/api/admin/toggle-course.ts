@@ -42,8 +42,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             });
         }
 
-        const { count: visibleCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', false);
-        const { count: hiddenCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', true);
+        const { count: visibleCount } = await supabaseAdmin
+            .from('courses')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_hidden', false);
+        const { count: hiddenCount } = await supabaseAdmin
+            .from('courses')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_hidden', true);
 
         return new Response(JSON.stringify({ 
             ok: true, 

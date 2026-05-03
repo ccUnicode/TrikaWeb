@@ -39,22 +39,52 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const courseId = Number(body.course_id);
   const cycle = String(body.cycle ?? "").trim();
   const examType = String(body.exam_type ?? "").trim();
-  const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
+  const resourceKindRaw = String(body.resource_kind ?? "").trim().toUpperCase();
   const storagePath = String(body.storage_path ?? "").trim();
   const thumbStoragePath = String(body.thumb_storage_path ?? "").trim() || null;
   const teacherHint = String(body.teacher_hint ?? "").trim();
-  const solutionStoragePath = String(body.solution_storage_path ?? "").trim();
+  const solutionStoragePathRaw = String(body.solution_storage_path ?? "").trim();
 
-  if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
+  if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKindRaw || !storagePath) {
     return new Response(
       JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
+  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKindRaw)) {
     return new Response(
       JSON.stringify({ ok: false, error: "resource_kind inválido" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const treatsExamSide = resourceKindRaw !== "SOLUCIONARIO";
+  // Subida conjunta: la decide el backend por paths recibidos, no solo por resource_kind === "AMBOS".
+  const hasSolutionAttachment = treatsExamSide && solutionStoragePathRaw.length > 0;
+  const isCombinedExamAndSolution = hasSolutionAttachment;
+
+  if (resourceKindRaw === "AMBOS" && !hasSolutionAttachment) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "AMBOS requiere solution_storage_path con la clave del PDF en el bucket solutions",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (
+    resourceKindRaw === "SOLUCIONARIO" &&
+    solutionStoragePathRaw.length > 0 &&
+    solutionStoragePathRaw !== storagePath
+  ) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error:
+          "Para SOLUCIONARIO use solo storage_path; no envíe solution_storage_path distinto",
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -77,7 +107,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+    if (treatsExamSide) {
       const insertPayload = {
         course_id: courseId,
         cycle,
@@ -86,10 +116,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         teacher_hint: teacherHint || null,
         thumb_storage_path: thumbStoragePath,
         is_hidden: false,
-        ...(resourceKind === "AMBOS" ? {
-          solution_kind: "pdf",
-          solution_storage_path: solutionStoragePath
-        } : {})
+        ...(isCombinedExamAndSolution
+          ? {
+              solution_kind: "pdf",
+              solution_storage_path: solutionStoragePathRaw,
+            }
+          : {}),
       };
 
       if (existingSheet) {
@@ -102,9 +134,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (thumbStoragePath) {
           updatePayload.thumb_storage_path = thumbStoragePath;
         }
-        if (resourceKind === "AMBOS" && solutionStoragePath) {
+        if (isCombinedExamAndSolution && solutionStoragePathRaw) {
           updatePayload.solution_kind = "pdf";
-          updatePayload.solution_storage_path = solutionStoragePath;
+          updatePayload.solution_storage_path = solutionStoragePathRaw;
         }
 
         const { error: updateError } = await supabaseAdmin
@@ -169,7 +201,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    const action = resourceKind === "AMBOS" ? "Plancha y Solucionario" : resourceKind === "PLANCHA" ? "Plancha" : "Solucionario";
+    const action = isCombinedExamAndSolution
+      ? "Plancha y Solucionario"
+      : treatsExamSide
+        ? "Plancha"
+        : "Solucionario";
 
     return new Response(
       JSON.stringify({

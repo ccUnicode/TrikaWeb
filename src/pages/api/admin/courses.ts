@@ -52,15 +52,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const totalPages = total > 0 ? Math.ceil(total / safeSize) : 0;
 
         const courses = (data || []).map((c: any) => ({
-        id: c.id,
-        code: c.code,
-        name: c.name,
-        credits: c.credits ?? 0,
-        is_hidden: c.is_hidden ?? false,
+            id: c.id,
+            code: c.code,
+            name: c.name,
+            credits: c.credits ?? 0,
+            is_hidden: c.is_hidden ?? false,
         }));
 
-        const { count: visibleCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', false);
-        const { count: hiddenCount } = await supabaseAdmin.from('courses').select('id', { count: 'exact', head: true }).eq('is_hidden', true);
+        const { count: visibleCount } = await supabaseAdmin
+            .from('courses')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_hidden', false);
+        const { count: hiddenCount } = await supabaseAdmin
+            .from('courses')
+            .select('id', { count: 'exact', head: true })
+            .eq('is_hidden', true);
 
         return new Response(
             JSON.stringify({

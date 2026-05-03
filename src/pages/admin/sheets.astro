@@ -191,7 +191,7 @@ if (!isAdmin) {
             }
 
             // Actualización optimista del DOM
-            const sheetRow = b.closest(`[data-sheet-id="${sheetIdToDelete}"]`);
+            const sheetRow = b.closest(`[data-sheet-id="${sheetId}"]`);
             if (sheetRow) {
                 const toggleBtn = sheetRow.querySelector(".toggle-sheet-btn");
                 const wasHidden =
@@ -229,6 +229,126 @@ if (!isAdmin) {
 
     let page = 1;
     const pageSize = 20;
+    let searchTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const scheduleSearch = () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => loadSheets(1), 250);
+    };
+
+    listEl?.addEventListener("click", async (e) => {
+        const target = e.target as HTMLElement;
+        const toggleBtn = target.closest(
+            ".toggle-sheet-btn",
+        ) as HTMLButtonElement | null;
+
+        if (toggleBtn) {
+            const btn = toggleBtn;
+            const sheetId = Number(btn.getAttribute("data-sheet-id"));
+            const nextHidden =
+                btn.getAttribute("data-next-hidden") === "true";
+
+            btn.disabled = true;
+            try {
+                const res = await fetch("/api/admin/toggle-sheet", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                        sheet_id: sheetId,
+                        is_hidden: nextHidden,
+                    }),
+                });
+                const out = await res.json().catch(() => null);
+                if (!res.ok || !out?.ok) {
+                    throw new Error(out?.error || "No se pudo actualizar");
+                }
+
+                btn.disabled = false;
+                btn.setAttribute(
+                    "data-next-hidden",
+                    nextHidden ? "false" : "true",
+                );
+                btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
+
+                const sheetDiv = btn.closest(
+                    `[data-sheet-id="${sheetId}"]`,
+                ) as HTMLElement;
+                if (sheetDiv) {
+                    if (nextHidden) {
+                        sheetDiv.classList.add("opacity-70");
+                    } else {
+                        sheetDiv.classList.remove("opacity-70");
+                    }
+
+                    const badge = sheetDiv.querySelector(
+                        "span.inline-flex.rounded-full.border",
+                    ) as HTMLElement;
+                    if (badge) {
+                        badge.textContent = nextHidden ? "Oculta" : "Visible";
+                        badge.className = `inline-flex items-center justify-center w-[70px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${nextHidden ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" : "bg-green-500/10 border-green-500/30 text-green-400"}`;
+                    }
+
+                    btn.className = `toggle-sheet-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${nextHidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}`;
+                }
+
+                if (visibleCountEl && hiddenCountEl) {
+                    let vc = parseInt(visibleCountEl.textContent || "0", 10);
+                    let hc = parseInt(hiddenCountEl.textContent || "0", 10);
+                    if (nextHidden) {
+                        vc--;
+                        hc++;
+                    } else {
+                        vc++;
+                        hc--;
+                    }
+                    visibleCountEl.textContent = String(Math.max(0, vc));
+                    hiddenCountEl.textContent = String(Math.max(0, hc));
+                }
+
+                if (out?.counts) {
+                    if (visibleCountEl)
+                        visibleCountEl.textContent = String(out.counts.visible);
+                    if (hiddenCountEl)
+                        hiddenCountEl.textContent = String(out.counts.hidden);
+                }
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                alert(
+                    err instanceof Error ? err.message : "Error desconocido",
+                );
+            }
+        }
+
+        const deleteBtn = target.closest(
+            ".delete-sheet-btn",
+        ) as HTMLButtonElement | null;
+        if (deleteBtn) {
+            const btn = deleteBtn;
+            const sheetId = Number(btn.getAttribute("data-sheet-id"));
+            showDeleteModal(sheetId, btn);
+        }
+    });
+
+    courseInput?.addEventListener("input", () => {
+        if (qInput) qInput.value = "";
+        scheduleSearch();
+    });
+
+    qInput?.addEventListener("input", () => {
+        if (courseInput) courseInput.value = "";
+        scheduleSearch();
+    });
+
+    refreshBtn?.addEventListener("click", () => loadSheets(page));
+
+    paginationEl?.addEventListener("click", (e) => {
+        const btn = (e.target as HTMLElement).closest("button");
+        if (!btn || btn.disabled) return;
+        if (btn.id === "sheets-prev") loadSheets(page - 1);
+        else if (btn.id === "sheets-next") loadSheets(page + 1);
+    });
 
     const escapeHtml = (value: string) =>
         String(value)
@@ -360,147 +480,9 @@ if (!isAdmin) {
                 </div>
             `;
 
-                (
-                    document.getElementById("sheets-prev") as HTMLButtonElement
-                )?.addEventListener("click", () => {
-                    if (page > 1) loadSheets(page - 1);
-                });
-                (
-                    document.getElementById("sheets-next") as HTMLButtonElement
-                )?.addEventListener("click", () => {
-                    if (page < totalPages) loadSheets(page + 1);
-                });
             }
         }
-
-        let searchTimer: any;
-        const scheduleSearch = () => {
-            clearTimeout(searchTimer);
-            searchTimer = setTimeout(() => loadSheets(1), 250);
-        };
-
-        listEl?.addEventListener("click", async (e) => {
-            const target = e.target as HTMLElement;
-            const toggleBtn = target.closest(
-                ".toggle-sheet-btn",
-            ) as HTMLButtonElement | null;
-
-            if (toggleBtn) {
-                const btn = toggleBtn;
-                const sheetId = Number(btn.getAttribute("data-sheet-id"));
-                const nextHidden =
-                    btn.getAttribute("data-next-hidden") === "true";
-
-                btn.disabled = true;
-                try {
-                    const res = await fetch("/api/admin/toggle-sheet", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        credentials: "include",
-                        body: JSON.stringify({
-                            sheet_id: sheetId,
-                            is_hidden: nextHidden,
-                        }),
-                    });
-                    const out = await res.json().catch(() => null);
-                    if (!res.ok || !out?.ok) {
-                        throw new Error(out?.error || "No se pudo actualizar");
-                    }
-
-                    // Actualizamos directamente en el DOM el botón y los contadores
-                    btn.disabled = false;
-                    btn.setAttribute(
-                        "data-next-hidden",
-                        nextHidden ? "false" : "true",
-                    );
-                    btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
-
-                    const sheetDiv = btn.closest(
-                        `[data-sheet-id="${sheetId}"]`,
-                    ) as HTMLElement;
-                    if (sheetDiv) {
-                        if (nextHidden) {
-                            sheetDiv.classList.add("opacity-70");
-                        } else {
-                            sheetDiv.classList.remove("opacity-70");
-                        }
-
-                        const badge = sheetDiv.querySelector(
-                            "span.inline-flex.rounded-full.border",
-                        ) as HTMLElement;
-                        if (badge) {
-                            badge.textContent = nextHidden
-                                ? "Oculta"
-                                : "Visible";
-                            badge.className = `inline-flex items-center justify-center w-[70px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${nextHidden ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" : "bg-green-500/10 border-green-500/30 text-green-400"}`;
-                        }
-
-                        btn.className = `toggle-sheet-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${nextHidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}`;
-                    }
-
-                    // Ajustamos el conteo matenienedo estado del filtro
-                    if (visibleCountEl && hiddenCountEl) {
-                        let vc = parseInt(
-                            visibleCountEl.textContent || "0",
-                            10,
-                        );
-                        let hc = parseInt(hiddenCountEl.textContent || "0", 10);
-                        if (nextHidden) {
-                            vc--;
-                            hc++;
-                        } else {
-                            vc++;
-                            hc--;
-                        }
-                        visibleCountEl.textContent = String(Math.max(0, vc));
-                        hiddenCountEl.textContent = String(Math.max(0, hc));
-                    }
-
-                    if (out?.counts) {
-                        if (visibleCountEl)
-                            visibleCountEl.textContent = String(
-                                out.counts.visible,
-                            );
-                        if (hiddenCountEl)
-                            hiddenCountEl.textContent = String(
-                                out.counts.hidden,
-                            );
-                    }
-                } catch (err) {
-                    console.error(err);
-                    btn.disabled = false;
-                    alert(
-                        err instanceof Error
-                            ? err.message
-                            : "Error desconocido",
-                    );
-                }
-            }
-
-            const deleteBtn = target.closest(
-                ".delete-sheet-btn",
-            ) as HTMLButtonElement | null;
-            if (deleteBtn) {
-                const btn = deleteBtn;
-                const sheetId = Number(btn.getAttribute("data-sheet-id"));
-                showDeleteModal(sheetId, btn);
-            }
-        });
-
-        courseInput?.addEventListener("input", () => {
-            if (qInput) qInput.value = "";
-            scheduleSearch();
-        });
-
-        qInput?.addEventListener("input", () => {
-            if (courseInput) courseInput.value = "";
-            scheduleSearch();
-        });
-
-        refreshBtn?.addEventListener("click", () => loadSheets(page));
-
-        document.addEventListener("DOMContentLoaded", () => {
-            loadSheets(1);
-        });
     }
+
+    void loadSheets(1);
 </script>

@@ -1,3 +1,7 @@
+/**
+ * Script manual: regenera miniaturas JPG faltantes desde los PDF en Storage.
+ * Documentacion (cuando/como ejecutarlo): README.md seccion "Mantenimiento manual".
+ */
 import dotenv from "dotenv";
 dotenv.config({ path: ".env" });
 dotenv.config({ path: ".env.local" });
