@@ -17,7 +17,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "No autorizado. Inicia sesión como admin.",
       }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
+      { status: 401, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -28,15 +28,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   } catch {
     return new Response(
       JSON.stringify({ ok: false, error: "Body JSON inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
   const courseId = Number(body.course_id);
-  const courseCode = String(body.course_code ?? "").trim().toUpperCase();
+  const courseCode = String(body.course_code ?? "")
+    .trim()
+    .toUpperCase();
   const cycle = String(body.cycle ?? "").trim();
   const evaluationId = Number(body.evaluation_id);
-  const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
+  const resourceKind = String(body.resource_kind ?? "")
+    .trim()
+    .toUpperCase();
   const teacherHint = String(body.teacher_hint ?? "").trim();
   const isTeacherSpecific = Boolean(body.is_teacher_specific);
 
@@ -57,28 +61,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
   // Validate cycle code in DB
-  const { data: cycleExists, error: cycleError } = await supabaseAdmin
-    .from("cycles")
-    .select("cycle_id")
-    .eq("cycle_code", cycle)
-    .maybeSingle();
-
-  if (cycleError) {
+  if (!/^\d{4}-(I|II|III)$/.test(cycle)) {
     return new Response(
-      JSON.stringify({ ok: false, error: "Error validando ciclo" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        ok: false,
+        error:
+          "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  if (!cycleExists) {
+  const { error: cycleUpsertError } = await supabaseAdmin
+    .from("cycles")
+    .upsert({ cycle_code: cycle }, { onConflict: "cycle_code" });
+
+  if (cycleUpsertError) {
     return new Response(
-      JSON.stringify({ ok: false, error: "Ciclo inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({
+        ok: false,
+        error: `No se pudo registrar el ciclo: ${cycleUpsertError.message}`,
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -87,16 +96,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(
       JSON.stringify({
         ok: false,
-        error: "Debes indicar el docente para una plancha de profesor específico",
+        error:
+          "Debes indicar el docente para una plancha de profesor específico",
       }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
   if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
     return new Response(
       JSON.stringify({ ok: false, error: "resource_kind inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -115,11 +125,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       {
         status: 404,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
-  const examType = String(evaluation.evaluation_abr ?? "").trim().toUpperCase();
+  const examType = String(evaluation.evaluation_abr ?? "")
+    .trim()
+    .toUpperCase();
 
   if (!examType) {
     return new Response(
@@ -130,7 +142,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
@@ -144,11 +156,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   if (courseError || !course) {
     return new Response(
       JSON.stringify({ ok: false, error: "course_id no encontrado" }),
-      { status: 404, headers: { "Content-Type": "application/json" } }
+      { status: 404, headers: { "Content-Type": "application/json" } },
     );
   }
 
-  const normalizedCode = String(course.code ?? "").trim().toUpperCase();
+  const normalizedCode = String(course.code ?? "")
+    .trim()
+    .toUpperCase();
 
   if (!normalizedCode || normalizedCode !== courseCode) {
     return new Response(
@@ -156,7 +170,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "El course_id no coincide con el course_code enviado",
       }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -198,14 +212,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       console.error(
         "Error creating signed upload URLs for AMBOS:",
         pError,
-        sError
+        sError,
       );
       return new Response(
         JSON.stringify({
           ok: false,
           error: "No se pudo generar URLs de subida conjunta.",
         }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
     signedUrl = pData.signedUrl;
@@ -224,7 +238,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
         }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
     signedUrl = signedData.signedUrl;
@@ -246,7 +260,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     } else {
       console.error(
         "Error creating signed upload URL for thumbnail:",
-        thumbError
+        thumbError,
       );
       // Non-fatal, we can still upload the PDF even if thumb url fails
     }
@@ -266,6 +280,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       solutionSignedUrl,
       solutionPath,
     }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    { status: 200, headers: { "Content-Type": "application/json" } },
   );
 };

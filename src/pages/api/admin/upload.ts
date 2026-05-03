@@ -67,9 +67,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return new Response(
       JSON.stringify({
         ok: false,
-        error: "Debes indicar el docente para una plancha de profesor específico",
+        error:
+          "Debes indicar el docente para una plancha de profesor específico",
       }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
@@ -110,18 +111,46 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (cycleError) {
       return new Response(
         JSON.stringify({ ok: false, error: "Error validando ciclo" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { "Content-Type": "application/json" } },
       );
     }
 
     if (!cycleExists) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Ciclo inválido" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      const match = cycle.match(/^(\d{4})-(I|II|III)$/i);
+
+      if (!match) {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error:
+              "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      const year = parseInt(match[1], 10);
+      const term = match[2].toUpperCase();
+
+      const { error: insertError } = await supabaseAdmin
+        .from("cycles")
+        .insert([{ cycle_code: cycle, year, term }]);
+
+      if (insertError) {
+        console.error("Error insertando nuevo ciclo:", insertError);
+
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: "Error creando nuevo ciclo",
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
     }
 
-    const { data: existingSheet, error: lookupError } = await lookupQuery.maybeSingle();
+    const { data: existingSheet, error: lookupError } =
+      await lookupQuery.maybeSingle();
 
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);

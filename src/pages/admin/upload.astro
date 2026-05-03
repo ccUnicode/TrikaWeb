@@ -6,6 +6,9 @@ const isAdmin = await validateAdminSession(Astro.cookies);
 if (!isAdmin) {
   return Astro.redirect("/admin/login");
 }
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 ---
 
 <Layout title="Admin – Subir material | TrikaWeb">
@@ -59,7 +62,7 @@ if (!isAdmin) {
 
         <form id="upload-form" class="space-y-4">
           <!-- Row 1: Course Code & Cycle -->
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-4 sm:grid-cols-2 items-start">
             <div class="relative" id="course-combobox-container">
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
@@ -99,55 +102,138 @@ if (!isAdmin) {
                       d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </div>
+                <ul
+                  id="course-dropdown"
+                  class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+                >
+                </ul>
               </div>
-              <ul
-                id="course-dropdown"
-                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              >
-              </ul>
             </div>
-            <div class="relative" id="cycle-combobox-container">
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-              >
-                Ciclo
-              </label>
-
-              <div class="relative">
-                <input type="hidden" id="cycle-code" name="cycle" required />
+            <div class="flex gap-2 items-start">
+              <div class="w-1/2 relative" id="year-combobox-container">
+                <label
+                  class="block text-sm font-medium text-global-text-muted mb-1.5"
+                  for="year-display"
+                >
+                  Año
+                </label>
+                <div class="relative">
+                  <input type="hidden" id="year-hidden" />
+                  <input
+                    type="text"
+                    id="year-display"
+                    readonly
+                    class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer placeholder-gray-500"
+                    placeholder="Selecciona"
+                    required
+                  />
+                  <div
+                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+                  >
+                    <svg
+                      class="h-4 w-4 text-global-text-muted"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                  <ul
+                    id="year-dropdown"
+                    class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+                  >
+                    {
+                      years.map((y) => (
+                        <li
+                          data-value={y}
+                          class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                        >
+                          {y}
+                        </li>
+                      ))
+                    }
+                    <li
+                      data-value="otro"
+                      class="px-4 py-2.5 hover:bg-black/30 cursor-pointer text-sm font-medium text-global-primary transition-colors border-t border-global-border"
+                    >
+                      Otro
+                    </li>
+                  </ul>
+                </div>
 
                 <input
-                  type="text"
-                  id="cycle-search"
-                  autocomplete="off"
-                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                  placeholder="Selecciona un ciclo"
-                  required
+                  type="number"
+                  id="year-custom"
+                  placeholder="Ingresar año"
+                  class="hidden mt-2 w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 />
+              </div>
 
-                <div
-                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+              <div class="w-1/2 relative" id="term-combobox-container">
+                <label
+                  class="block text-sm font-medium text-global-text-muted mb-1.5"
+                  for="term-display"
                 >
-                  <svg
-                    class="h-4 w-4 text-global-text-muted"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  Semestre
+                </label>
+                <div class="relative">
+                  <input type="hidden" id="term-hidden" />
+                  <input
+                    type="text"
+                    id="term-display"
+                    readonly
+                    class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer placeholder-gray-500"
+                    placeholder="Selecciona"
+                    required
+                  />
+                  <div
+                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
                   >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"></path>
-                  </svg>
+                    <svg
+                      class="h-4 w-4 text-global-text-muted"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                  <ul
+                    id="term-dropdown"
+                    class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+                  >
+                    <li
+                      data-value="I"
+                      class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                    >
+                      I
+                    </li>
+                    <li
+                      data-value="II"
+                      class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                    >
+                      II
+                    </li>
+                    <li
+                      data-value="III"
+                      class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                    >
+                      III
+                    </li>
+                  </ul>
                 </div>
               </div>
 
-              <ul
-                id="cycle-dropdown"
-                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              >
-              </ul>
+              <input type="hidden" id="cycle-code" name="cycle" required />
             </div>
           </div>
 
@@ -260,6 +346,11 @@ if (!isAdmin) {
                 Cargando profesores...
               </p>
             </div>
+            <ul
+              id="teacher-dropdown"
+              class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+            >
+            </ul>
           </div>
 
           <!-- Toggle: Plancha de profesor específico -->
@@ -912,48 +1003,99 @@ if (!isAdmin) {
       "course-combobox-container",
     );
 
-    const cycleSearchInput = document.getElementById("cycle-search") as HTMLInputElement;
-    const cycleCodeHidden = document.getElementById("cycle-code") as HTMLInputElement;
-    const cycleDropdown = document.getElementById("cycle-dropdown") as HTMLUListElement;
-    const cycleContainer = document.getElementById("cycle-combobox-container");
+    const yearHidden = document.getElementById(
+      "year-hidden",
+    ) as HTMLInputElement;
+    const yearDisplay = document.getElementById(
+      "year-display",
+    ) as HTMLInputElement;
+    const yearDropdown = document.getElementById(
+      "year-dropdown",
+    ) as HTMLUListElement;
+    const yearCustom = document.getElementById(
+      "year-custom",
+    ) as HTMLInputElement;
+    const yearComboboxContainer = document.getElementById(
+      "year-combobox-container",
+    );
 
-    let allCycles: string[] = [];
+    const termHidden = document.getElementById(
+      "term-hidden",
+    ) as HTMLInputElement;
+    const termDisplay = document.getElementById(
+      "term-display",
+    ) as HTMLInputElement;
+    const termDropdown = document.getElementById(
+      "term-dropdown",
+    ) as HTMLUListElement;
+    const termComboboxContainer = document.getElementById(
+      "term-combobox-container",
+    );
 
-    function compareCyclesDesc(a: string, b: string) {
-      const parse = (cycle: string) => {
-        const match = cycle.match(/^(\d{4})-(I|II)$/i);
+    const cycleCodeHidden = document.getElementById(
+      "cycle-code",
+    ) as HTMLInputElement;
 
-        if (!match) {
-          return { year: 0, period: 0 };
-        }
+    function updateCycleCode() {
+      let year = yearHidden.value;
+      if (year === "otro") {
+        year = yearCustom.value;
+      }
+      const term = termHidden.value;
 
-        return {
-          year: Number(match[1]),
-          period: match[2].toUpperCase() === "II" ? 2 : 1,
-        };
-      };
-
-      const ca = parse(a);
-      const cb = parse(b);
-
-      if (cb.year !== ca.year) return cb.year - ca.year;
-      return cb.period - ca.period;
-    }
-
-    async function loadCycles() {
-      try {
-        const res = await fetch("/api/admin/cycles");
-        const data = await res.json();
-
-        if (data.ok) {
-          allCycles = data.cycles
-          .map((c: any) => c.cycle_code)
-          .sort(compareCyclesDesc);
-        }
-      } catch (e) {
-        console.error("Error cargando ciclos:", e);
+      if (year && term) {
+        cycleCodeHidden.value = `${year}-${term}`;
+      } else {
+        cycleCodeHidden.value = "";
       }
     }
+
+    yearDisplay?.addEventListener("click", () => {
+      yearDropdown?.classList.toggle("hidden");
+      termDropdown?.classList.add("hidden");
+    });
+
+    const yearItems = yearDropdown?.querySelectorAll("li");
+    yearItems?.forEach((item) => {
+      item.addEventListener("click", () => {
+        const val = item.getAttribute("data-value") || "";
+        yearHidden.value = val;
+
+        if (val === "otro") {
+          yearDisplay.value = "Otro";
+          yearCustom.classList.remove("hidden");
+          yearCustom.required = true;
+          yearCustom.focus();
+        } else {
+          yearDisplay.value = val;
+          yearCustom.classList.add("hidden");
+          yearCustom.required = false;
+          yearCustom.value = "";
+        }
+
+        yearDropdown.classList.add("hidden");
+        updateCycleCode();
+      });
+    });
+
+    termDisplay?.addEventListener("click", () => {
+      termDropdown?.classList.toggle("hidden");
+      yearDropdown?.classList.add("hidden");
+    });
+
+    const termItems = termDropdown?.querySelectorAll("li");
+    termItems?.forEach((item) => {
+      item.addEventListener("click", () => {
+        const val = item.getAttribute("data-value") || "";
+        termHidden.value = val;
+        termDisplay.value = val;
+
+        termDropdown.classList.add("hidden");
+        updateCycleCode();
+      });
+    });
+
+    yearCustom?.addEventListener("input", updateCycleCode);
 
     async function loadCourseOptions() {
       try {
@@ -1031,26 +1173,6 @@ if (!isAdmin) {
 
     function norm(value: string) {
       return value.trim().toLowerCase();
-    }
-
-    function renderCycleDropdown(cycles: string[]) {
-      if (!cycleDropdown) return;
-
-      cycleDropdown.innerHTML = "";
-
-      cycles.forEach((cycle) => {
-        const li = document.createElement("li");
-        li.textContent = cycle;
-        li.className = "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
-
-        li.addEventListener("click", () => {
-          cycleCodeHidden.value = cycle;
-          cycleSearchInput.value = cycle;
-          cycleDropdown.classList.add("hidden");
-        });
-
-        cycleDropdown.appendChild(li);
-      });
     }
 
     function renderCourseDropdown(courses: CourseOption[]) {
@@ -1204,31 +1326,6 @@ if (!isAdmin) {
       courseDropdown?.classList.remove("hidden");
     });
 
-    cycleSearchInput?.addEventListener("input", () => {
-      cycleCodeHidden.value = "";
-
-      const q = norm(cycleSearchInput.value);
-      const filtered = !q
-        ? allCycles
-        : allCycles.filter((cycle) => norm(cycle).includes(q));
-
-      renderCycleDropdown(filtered);
-      cycleDropdown?.classList.remove("hidden");
-    });
-
-    cycleSearchInput?.addEventListener("focus", () => {
-      renderCycleDropdown(allCycles);
-      cycleDropdown?.classList.remove("hidden");
-    });
-
-    cycleSearchInput?.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (!cycleCodeHidden.value) {
-          cycleSearchInput.value = "";
-        }
-      }, 150);
-    });
-
     evaluationSearchInput?.addEventListener("input", (e) => {
       const query = (e.target as HTMLInputElement).value.toLowerCase();
 
@@ -1294,8 +1391,12 @@ if (!isAdmin) {
         teacherDropdown?.classList.add("hidden");
       }
 
-      if (!cycleContainer?.contains(target)) {
-        cycleDropdown?.classList.add("hidden");
+      if (!yearComboboxContainer?.contains(target)) {
+        yearDropdown?.classList.add("hidden");
+      }
+
+      if (!termComboboxContainer?.contains(target)) {
+        termDropdown?.classList.add("hidden");
       }
     });
 
@@ -1309,7 +1410,6 @@ if (!isAdmin) {
 
     document.addEventListener("DOMContentLoaded", () => {
       loadCourseOptions();
-      loadCycles();
     });
 
     // Load PDF.js dynamically
@@ -1466,7 +1566,9 @@ if (!isAdmin) {
         let thumbBlob: Blob | null = null;
         if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
           setUploadUI("Generando miniatura de la 1ª página...", 20);
-          thumbBlob = await generatePdfThumbnail(file);
+          if (file) {
+            thumbBlob = await generatePdfThumbnail(file);
+          }
         }
 
         // Step 2: Upload plancha PDF directly to Storage (If present)
@@ -1476,7 +1578,7 @@ if (!isAdmin) {
           const uploadRes = await fetch(urlData.signedUrl, {
             method: "PUT",
             headers: { "Content-Type": "application/pdf" },
-            body: file,
+            body: file as File,
           });
 
           if (!uploadRes.ok) {
@@ -1578,13 +1680,18 @@ if (!isAdmin) {
         lastFetchedCode = "";
         resetEvaluationSelection("Selecciona primero un curso");
         if (courseSearchInput) courseSearchInput.value = "";
+        // Reset year/term UI
+        yearHidden.value = "";
+        yearDisplay.value = "";
+        yearCustom.value = "";
+        yearCustom.classList.add("hidden");
+        termHidden.value = "";
+        termDisplay.value = "";
+        cycleCodeHidden.value = "";
+
         if (courseIdHidden) courseIdHidden.value = "";
         if (courseCodeHidden) courseCodeHidden.value = "";
         courseDropdown?.classList.add("hidden");
-
-        if (cycleSearchInput) cycleSearchInput.value = "";
-        if (cycleCodeHidden) cycleCodeHidden.value = "";
-        cycleDropdown?.classList.add("hidden");
 
         // Reset toggle UI after form reset
         updateTeacherSpecificUI();
@@ -1653,7 +1760,9 @@ if (!isAdmin) {
           cycle: string;
           interest_count: number;
           solution_kind: string | null;
-          courses: { code: string; name: string } | { code: string; name: string }[];
+          courses:
+            | { code: string; name: string }
+            | { code: string; name: string }[];
         }
 
         // Render the list
