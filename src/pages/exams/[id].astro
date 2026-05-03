@@ -22,6 +22,7 @@ const { data: sheet, error } = await supa
     avg_difficulty,
     rating_count,
     view_count,
+    interest_count,
     exam_storage_path,
     solution_kind,
     solution_storage_path,
@@ -37,17 +38,8 @@ if (error || !sheet) {
   return Astro.redirect("/cursos");
 }
 
-// RF-04: Fetch interest_count separately (graceful fallback if column doesn't exist yet)
-let interestCount = 0;
-try {
-  const { count } = await supa
-    .from("sheet_interests")
-    .select("*", { count: "exact", head: true })
-    .eq("sheet_id", sheetId);
-  interestCount = count ?? 0;
-} catch {
-  // Table doesn't exist yet — migration pending
-}
+// RF-04: interest_count comes from the sheets query directly
+const interestCount = (sheet as any).interest_count ?? 0;
 
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
 const courseCode = course?.code ?? "Curso";
@@ -984,6 +976,14 @@ function getYouTubeId(url: string) {
     });
   }
 
-  document.addEventListener("astro:page-load", initInterestButton);
-  document.addEventListener("DOMContentLoaded", initInterestButton);
+  // Guard to prevent double initialization when both listeners fire
+  function guardedInit() {
+    const btn = document.getElementById("interest-btn");
+    if (btn && btn.dataset.initialized) return;
+    if (btn) btn.dataset.initialized = "true";
+    initInterestButton();
+  }
+
+  document.addEventListener("astro:page-load", guardedInit);
+  document.addEventListener("DOMContentLoaded", guardedInit);
 </script>
