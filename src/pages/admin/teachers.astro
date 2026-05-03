@@ -593,7 +593,7 @@ const courses = await getCourses();
             loadTeachers(currentPage + 1, currentSearch),
         );
 
-        let searchTimeout: number;
+        let searchTimeout: any;
         searchInput?.addEventListener("input", () => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
