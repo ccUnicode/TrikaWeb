@@ -19,8 +19,6 @@ const FORCE = process.argv.includes("--force");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
 const workerPath = path.join(
   __dirname,
   "../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"

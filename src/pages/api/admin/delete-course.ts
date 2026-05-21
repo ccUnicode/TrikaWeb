@@ -58,12 +58,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             if (row.thumb_storage_path) thumbPaths.push(row.thumb_storage_path);
         }
 
-        const storageJobs: Promise<unknown>[] = [];
-        if (examPaths.length) storageJobs.push(removePaths('exams', examPaths));
-        if (solutionPaths.length) storageJobs.push(removePaths('solutions', solutionPaths));
-        if (thumbPaths.length) storageJobs.push(removePaths('thumbnails', thumbPaths));
-        await Promise.allSettled(storageJobs);
-
         const { error } = await supabaseAdmin.from('courses').delete().eq('id', id);
 
         if (error) {
@@ -73,6 +67,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 headers: { 'Content-Type': 'application/json' },
             });
         }
+
+        // Tras cascade en BD, limpiar Storage (si el delete de BD falla, no tocamos archivos).
+        const storageJobs: Promise<unknown>[] = [];
+        if (examPaths.length) storageJobs.push(removePaths('exams', examPaths));
+        if (solutionPaths.length) storageJobs.push(removePaths('solutions', solutionPaths));
+        if (thumbPaths.length) storageJobs.push(removePaths('thumbnails', thumbPaths));
+        await Promise.allSettled(storageJobs);
 
         const { count: visibleCount } = await supabaseAdmin
             .from('courses')
