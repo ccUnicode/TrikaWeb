@@ -43,10 +43,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // Ocultar y marcar como revisado
+  // Desocultar (si es necesario forzar needs_review, esto solo desoculta)
   const { data, error } = await supabaseAdmin
     .from(table)
-    .update({ is_hidden: true, needs_review: false })
+    .update({ is_hidden: false })
     .eq("id", ratingId)
     .select("id")
     .single();
@@ -56,9 +56,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const message =
       status === 404
         ? "No se encontró el registro"
-        : "No se pudo ocultar el registro";
+        : "No se pudo restaurar el registro";
     if (status === 500) {
-      console.error("Error hide-comment:", error);
+      console.error("Error unhide-comment:", error);
     }
     return new Response(
       JSON.stringify({ ok: false, error: message }),
@@ -70,7 +70,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     JSON.stringify({
       ok: true,
       rating_id: ratingId,
-      hidden: true,
+      hidden: false,
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
