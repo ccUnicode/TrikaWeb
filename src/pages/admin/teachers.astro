@@ -1,5 +1,6 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
 import { getCourses } from "../../lib/data";
 
 const courses = await getCourses();
@@ -9,46 +10,10 @@ const courses = await getCourses();
     <div class="min-h-screen py-8">
         <div class="mx-auto w-full max-w-5xl px-4">
             <!-- Header Section -->
-            <div
-                class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap"
-            >
-                <div>
-                    <h1 class="text-2xl font-bold text-global-text">
-                        Gestionar Profesores
-                    </h1>
-                    <p class="mt-1 text-sm text-global-text-muted">
-                        Agrega y administra la visibilidad de profesores
-                    </p>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <a
-                        href="/admin/upload"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Panel de subida
-                    </a>
-                    <a
-                        href="/admin/ratings"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Calificaciones
-                    </a>
-                    <a
-                        href="/admin/moderation"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Moderación
-                    </a>
-                    <form action="/api/admin/logout" method="POST">
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-                        >
-                            Cerrar Sesión
-                        </button>
-                    </form>
-                </div>
-            </div>
+            <AdminHeader 
+                title="Gestionar Profesores" 
+                description="Agrega y administra la visibilidad de profesores" 
+            />
 
             <!-- Teachers Section -->
             <section id="teachers-section" class="space-y-6">
@@ -587,7 +552,7 @@ const courses = await getCourses();
             loadTeachers(currentPage + 1, currentSearch),
         );
 
-        let searchTimeout: number;
+        let searchTimeout: ReturnType<typeof setTimeout>;
         searchInput?.addEventListener("input", () => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
