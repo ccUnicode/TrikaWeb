@@ -3,6 +3,7 @@ export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
+import SheetFeedback from "../../components/SheetFeedback.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 
 const sheetId = Number(Astro.params.id);
@@ -16,6 +17,7 @@ const { data: sheet, error } = await supa
   .select(
     `
     id,
+    is_hidden,
     exam_type,
     cycle,
     teacher_hint,
@@ -34,6 +36,10 @@ const { data: sheet, error } = await supa
   .single();
 
 if (error || !sheet) {
+  return Astro.redirect("/cursos");
+}
+
+if (sheet.is_hidden) {
   return Astro.redirect("/cursos");
 }
 
@@ -284,7 +290,8 @@ function getYouTubeId(url: string) {
       </div>
 
       <div
-        class="rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 max-w-4xl mx-auto"
+        id="rating-widget-container"
+        class="rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 max-w-4xl mx-auto transition-all duration-300"
       >
         <div class="space-y-4">
           <!-- Header: Evaluación y Ciclo -->
@@ -321,6 +328,15 @@ function getYouTubeId(url: string) {
           </div>
         </div>
       </div>
+
+      <!-- Sección de comentarios (Solo para solucionarios) -->
+      {
+        (solutionUrl || (sheet.solution_kind === "video" && sheet.solution_video_url)) && (
+          <div id="feedback-section" class="hidden transition-all duration-300">
+            <SheetFeedback sheetId={sheet.id} avgRating={sheet.avg_difficulty} />
+          </div>
+        )
+      }
     </section>
   </main>
 </Layout>
@@ -346,6 +362,8 @@ function getYouTubeId(url: string) {
       "action-download-btn",
     ) as HTMLAnchorElement;
     const downloadText = document.getElementById("action-download-text");
+    const feedbackSection = document.getElementById("feedback-section");
+    const ratingWidget = document.getElementById("rating-widget-container");
 
     if (!iframe || !container) return;
 
@@ -411,6 +429,14 @@ function getYouTubeId(url: string) {
           examBtn.classList.remove("hidden");
           examBtn.classList.add("inline-flex");
         }
+        
+        // Show feedback section and hide rating widget
+        if (feedbackSection) {
+          feedbackSection.classList.remove("hidden");
+        }
+        if (ratingWidget) {
+          ratingWidget.classList.add("hidden");
+        }
       });
     }
 
@@ -446,6 +472,14 @@ function getYouTubeId(url: string) {
         if (solutionBtn) {
           solutionBtn.classList.remove("hidden");
           solutionBtn.classList.add("inline-flex");
+        }
+        
+        // Hide feedback section and show rating widget
+        if (feedbackSection) {
+          feedbackSection.classList.add("hidden");
+        }
+        if (ratingWidget) {
+          ratingWidget.classList.remove("hidden");
         }
       });
     }
