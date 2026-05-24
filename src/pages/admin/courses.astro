@@ -636,7 +636,6 @@ import Layout from "../../layouts/Layout.astro";
                         </div>
                     </div>
                 `,
-<<<<<<< HEAD
         )
         .join("");
       document.querySelectorAll(".delete-course-btn").forEach((btn) => {
@@ -691,11 +690,6 @@ import Layout from "../../layouts/Layout.astro";
     if (totalPages > 1) {
       const prevDisabled = page <= 1;
       const nextDisabled = page >= totalPages;
-=======
-                )
-                .join("");
-        }
->>>>>>> 31c066e (fix: fixing-identified-errors-2)
 
       paginationEl.innerHTML = `
                 <div class="text-sm text-global-text-muted">Página ${page} de ${totalPages}</div>
@@ -743,7 +737,6 @@ import Layout from "../../layouts/Layout.astro";
       return;
     }
 
-<<<<<<< HEAD
     try {
       const res = await fetch("/api/admin/course-evaluation-options", {
         method: "POST",
@@ -825,54 +818,6 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   async function loadSystems() {
-=======
-    listEl?.addEventListener("click", async (e) => {
-        const target = e.target as HTMLElement;
-        const btn = target.closest(".toggle-course-btn") as HTMLButtonElement | null;
-
-        if (!btn) return;
-
-        const courseId = Number(btn.getAttribute("data-course-id"));
-        const nextHidden = btn.getAttribute("data-next-hidden") === "true";
-
-        if (!Number.isFinite(courseId) || courseId <= 0) return;
-
-        btn.disabled = true;
-
-        try {
-            const res = await fetch("/api/admin/toggle-course", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    course_id: courseId,
-                    is_hidden: nextHidden
-                }),
-            });
-
-            const out = await res.json().catch(() => null);
-
-            if (!res.ok || !out?.ok) {
-                throw new Error(out?.error || "No se pudo actualizar");
-            }
-
-            const card = btn.closest("[data-course-id]");
-            if (card) {
-                card.classList.toggle("opacity-70", nextHidden);
-            }
-
-            btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
-            btn.setAttribute("data-next-hidden", String(!nextHidden));
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            btn.disabled = false;
-        }
-    });
-
-    async function loadSystems() {
->>>>>>> 31c066e (fix: fixing-identified-errors-2)
     const res = await fetch("/api/admin/evaluation-systems");
     const systems = await res.json();
 
