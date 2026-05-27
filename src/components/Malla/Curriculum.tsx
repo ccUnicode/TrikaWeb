@@ -1,9 +1,11 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   ReactFlow,
   Controls,
   Background,
   MiniMap,
+  ReactFlowProvider,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeMouseHandler,
@@ -24,19 +26,6 @@ const PADDING_TOP = 60;      // margen superior general
 const PADDING_LEFT = 40;     // margen izquierdo
 
 // ─── Estilos de nodo ────────────────────────────────────────────────
-const courseNodeStyle: React.CSSProperties = {
-  background: '#1E2430',
-  border: '1px solid #2A3240',
-  borderRadius: '12px',
-  color: '#E6E9EF',
-  fontSize: '11px',
-  fontWeight: 500,
-  padding: '8px 12px',
-  width: NODE_WIDTH,
-  cursor: 'pointer',
-  textAlign: 'center' as const,
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-};
 
 const cycleHeaderStyle: React.CSSProperties = {
   background: 'transparent',
@@ -56,7 +45,44 @@ interface Props {
   data: CurriculumData;
 }
 
-export default function MallaCurricular({ data }: Props) {
+export default function MallaCurricular(props: Props) {
+  return (
+    <ReactFlowProvider>
+      <CurriculumInner {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+function CurriculumInner({ data }: Props) {
+  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isInteractable, setIsInteractable] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const handleFullScreen = () => {
+    if (!containerRef.current) return;
+    const element = containerRef.current;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else {
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if ((element as any).webkitRequestFullscreen) {
+        (element as any).webkitRequestFullscreen();
+      } else if ((element as any).msRequestFullscreen) {
+        (element as any).msRequestFullscreen();
+      }
+    }
+  };
+
   // Agrupar cursos por ciclo
   const coursesByCycle = useMemo(() => {
     const map = new Map<number, typeof data.courses>();
@@ -147,7 +173,6 @@ export default function MallaCurricular({ data }: Props) {
   }, []);
 
   // ─── Calcular dimensiones del canvas ────────────────────────────
-  const totalCycles = Math.max(...Array.from(coursesByCycle.keys()), 1);
   const maxCoursesInCycle = Math.max(
     ...Array.from(coursesByCycle.values()).map((c) => c.length),
     1
@@ -159,18 +184,76 @@ export default function MallaCurricular({ data }: Props) {
 
   return (
     <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden"
       style={{
-        width: '100%',
-        height: `${canvasHeight}px`,
+        height: isFullscreen ? '100vh' : `${canvasHeight}px`,
         backgroundColor: '#0f1117',
       }}
     >
+      {/* Panel de Controles Flotante */}
+      <div className="absolute top-4 right-4 flex gap-2 z-10 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
+        {/* Indicador de Candado */}
+        <div className="flex items-center gap-1.5 px-2 text-xs font-medium border-r border-global-border pr-3 mr-1 text-gray-400">
+          <span className={`w-2 h-2 rounded-full ${isInteractable ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+          <span>{isInteractable ? 'Interactivo' : 'Bloqueado'}</span>
+        </div>
+
+        {/* Botón Zoom In */}
+        <button
+          onClick={() => {
+            zoomIn();
+            setIsInteractable(true);
+          }}
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] font-bold text-base"
+          title="Acercar (Desbloquea vista)"
+        >
+          +
+        </button>
+
+        {/* Botón Zoom Out */}
+        <button
+          onClick={() => {
+            zoomOut();
+            setIsInteractable(true);
+          }}
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] font-bold text-base"
+          title="Alejar (Desbloquea vista)"
+        >
+          -
+        </button>
+
+        {/* Botón Reset */}
+        <button
+          onClick={() => {
+            fitView({ duration: 500 });
+            setIsInteractable(false);
+          }}
+          className="flex items-center justify-center px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+          title="Restaurar y Bloquear Vista"
+        >
+          Reset
+        </button>
+
+        {/* Botón Fullscreen */}
+        <button
+          onClick={handleFullScreen}
+          className="flex items-center justify-center px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+          title="Pantalla Completa"
+        >
+          {isFullscreen ? 'Salir' : 'Full'}
+        </button>
+      </div>
+
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
+        panOnDrag={isInteractable}
+        zoomOnScroll={false}
+        zoomOnPinch={false}
         nodesDraggable={false}
         nodesConnectable={false}
         onNodeClick={onNodeClick}
@@ -192,4 +275,4 @@ export default function MallaCurricular({ data }: Props) {
       </ReactFlow>
     </div>
   );
-}
+}
