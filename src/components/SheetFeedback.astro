@@ -13,98 +13,88 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
   data-sheet-id={sheetId}
 >
   <!-- Header -->
-  <div class="flex items-center justify-between mb-5">
-    <h2 class="text-lg font-bold text-global-text flex items-center gap-2">
-      <svg class="w-5 h-5 text-global-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-      </svg>
-      Comentarios
-      <span id="feedback-total-badge" class="text-xs font-medium bg-global-primary/15 text-global-primary rounded-full px-2 py-0.5">0</span>
-      <span class="text-yellow-400 text-sm flex items-center ml-1 font-semibold tracking-wide">
+  <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center gap-4">
+      <h2 class="text-xl font-bold text-global-text flex items-center gap-2">
+        Comentarios
+        <span id="feedback-total-badge" class="text-sm font-medium text-global-text-muted ml-1">0</span>
+      </h2>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-yellow-400 text-sm flex items-center font-semibold tracking-wide bg-yellow-400/10 px-2 py-1 rounded-lg">
         <span class="mr-1 text-[16px]">★</span><span id="feedback-avg-badge">{formattedAvgRating}</span>
       </span>
-    </h2>
-    <button
-      id="toggle-feedback-form"
-      type="button"
-      class="inline-flex items-center gap-1.5 rounded-xl bg-global-primary hover:bg-global-primary-hover px-4 py-2 text-sm font-semibold text-black transition-colors cursor-pointer"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-      </svg>
-      <span id="toggle-form-text">Comentar</span>
-    </button>
+    </div>
   </div>
 
-  <!-- Formulario (oculto por defecto) -->
-  <div id="feedback-form-container" class="hidden mb-3">
-    <div class="rounded-xl border border-global-border bg-global-card p-4 pb-3 flex flex-col gap-3">
-      <!-- Estrellas -->
-      <div>
-        <label class="block text-sm font-medium text-global-text mb-2">¿Qué tan útil te fue este solucionario?</label>
-        <div class="flex items-center gap-1" id="feedback-stars-input">
-          <span class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider mr-2">Poco</span>
-          {Array.from({ length: 5 }).map((_, idx) => {
-            const val = idx + 1;
-            return (
-              <button
-                type="button"
-                class="feedback-star-btn w-8 h-8 flex items-center justify-center rounded-lg hover:bg-global-bg transition-all focus:outline-none cursor-pointer"
-                data-star={val}
-                aria-label={`${val} estrellas`}
-              >
-                <svg
-                  class="w-6 h-6 pointer-events-none transition-colors duration-150 text-global-text-muted/30"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                >
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              </button>
-            );
-          })}
-          <span class="text-[10px] font-medium text-global-text-muted uppercase tracking-wider ml-2">Mucho</span>
+  <!-- Formulario de Nuevo Comentario -->
+  <div id="feedback-form-container" class="mb-8">
+    <div class="flex gap-3 sm:gap-4">
+      <!-- Avatar -->
+      <div class="flex-shrink-0">
+        <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] flex items-center justify-center font-bold text-lg text-global-primary">
+          A
         </div>
       </div>
-
-      <!-- Texto -->
-      <div>
-        <label for="feedback-content" class="block text-sm font-medium text-global-text mb-2">
-          Tu comentario
-        </label>
-        <textarea
-          id="feedback-content"
-          rows="3"
-          maxlength="500"
-          placeholder="Comparte tu experiencia con este solucionario..."
-          class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text placeholder-global-text-muted/50 outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors resize-none"
-        ></textarea>
-        <p class="text-[11px] text-global-text-muted mt-1 text-right">
-          <span id="feedback-char-count">0</span>/500
-        </p>
-      </div>
-
-      <!-- Acciones -->
-      <div class="flex items-center justify-between">
-        <p id="feedback-form-status" class="text-[11px] font-medium text-red-400 hidden"></p>
-        <div class="flex justify-end gap-2 ml-auto">
-          <button
-            type="button"
-            id="cancel-feedback-btn"
-            class="rounded-xl border border-global-border bg-global-surface/50 w-28 h-10 text-sm font-semibold text-global-text transition hover:bg-global-border cursor-pointer flex items-center justify-center"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            id="submit-feedback-btn"
-            disabled
-            class="rounded-xl bg-global-primary border border-global-primary w-28 h-10 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          >
-            Enviar
-          </button>
+      <!-- Inputs -->
+      <div class="flex-1 flex flex-col gap-2">
+        <!-- Texto -->
+        <div>
+          <textarea
+            id="feedback-content"
+            rows="2"
+            maxlength="500"
+            placeholder="Añade un comentario..."
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text placeholder-global-text-muted/50 outline-none focus:border-global-primary transition-colors resize-none disabled:opacity-50"
+          ></textarea>
+        </div>
+        
+        <!-- Estrellas y Acciones -->
+        <div class="flex items-center justify-between mt-1">
+          <div>
+            <div class="flex items-center gap-0.5" id="feedback-stars-input">
+              {Array.from({ length: 5 }).map((_, idx) => {
+                const val = idx + 1;
+                return (
+                  <button
+                    type="button"
+                    class="feedback-star-btn w-7 h-7 flex items-center justify-center rounded hover:bg-global-surface transition-all focus:outline-none cursor-pointer disabled:opacity-50"
+                    data-star={val}
+                    aria-label={`${val} estrellas`}
+                  >
+                    <svg
+                      class="w-5 h-5 pointer-events-none transition-colors duration-150 text-global-text-muted/30"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                  </button>
+                );
+              })}
+            </div>
+            <p id="feedback-form-status" class="text-[11px] font-medium text-red-400 hidden mt-1"></p>
+          </div>
+          
+          <div class="flex justify-end gap-2">
+            <button
+              type="button"
+              id="cancel-feedback-btn"
+              class="rounded-full px-4 py-2 text-sm font-semibold text-global-text transition hover:bg-global-surface cursor-pointer hidden disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              id="submit-feedback-btn"
+              disabled
+              class="rounded-full bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:bg-global-border disabled:text-global-text-muted flex items-center justify-center"
+            >
+              Comentar
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -191,23 +181,16 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     if (!sheetId) return;
 
     // Elements
-    const toggleBtn = document.getElementById("toggle-feedback-form");
-    const toggleText = document.getElementById("toggle-form-text");
     const formContainer = document.getElementById("feedback-form-container");
     const starsInput = document.getElementById("feedback-stars-input");
     const contentInput = document.getElementById("feedback-content") as HTMLTextAreaElement;
-    const charCount = document.getElementById("feedback-char-count");
-    const cancelBtn = document.getElementById("cancel-feedback-btn");
+    const cancelBtn = document.getElementById("cancel-feedback-btn") as HTMLButtonElement;
     const submitBtn = document.getElementById("submit-feedback-btn") as HTMLButtonElement;
     const formStatus = document.getElementById("feedback-form-status");
     const feedbackList = document.getElementById("feedback-list");
     const feedbackEmpty = document.getElementById("feedback-empty");
     const feedbackLoading = document.getElementById("feedback-loading");
     const totalBadge = document.getElementById("feedback-total-badge");
-    const userCard = document.getElementById("user-feedback-card");
-    const userStars = document.getElementById("user-feedback-stars");
-    const userContent = document.getElementById("user-feedback-content");
-    const deleteOwnBtn = document.getElementById("delete-own-feedback-btn");
     const paginationEl = document.getElementById("feedback-pagination");
     const prevBtn = document.getElementById("feedback-prev-btn") as HTMLButtonElement;
     const nextBtn = document.getElementById("feedback-next-btn") as HTMLButtonElement;
@@ -218,11 +201,20 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     const confirmDeleteBtn = document.getElementById("confirm-feedback-delete-btn") as HTMLButtonElement;
     const cancelDeleteBtn = document.getElementById("cancel-feedback-delete-btn");
 
+    // Local State (Optimistic UI)
+    let localComments: any[] = [];
+    let totalComments = 0;
+    
     let selectedStars = 0;
+    let hoverStars = 0;
     let currentPage = 1;
+    let totalPages = 1;
     const pageSize = 5;
-    let hasUserFeedback = false;
-    let currentUserFeedback: any = null;
+    
+    let userFeedbackId: number | null = null;
+    let isSubmitting = false;
+    let deletingId: number | null = null;
+    let commentToDelete: number | null = null;
 
     // ── Stars interaction ──
     const highlightStars = (count: number) => {
@@ -243,77 +235,63 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
 
     starsInput?.querySelectorAll(".feedback-star-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
+        if (isSubmitting) return;
         selectedStars = Number((btn as HTMLElement).dataset.star);
         highlightStars(selectedStars);
         updateSubmitState();
       });
       btn.addEventListener("mouseenter", () => {
-        highlightStars(Number((btn as HTMLElement).dataset.star));
+        if (isSubmitting) return;
+        hoverStars = Number((btn as HTMLElement).dataset.star);
+        highlightStars(hoverStars);
       });
     });
     starsInput?.addEventListener("mouseleave", () => {
+      if (isSubmitting) return;
+      hoverStars = 0;
       highlightStars(selectedStars);
     });
 
     // ── Character counter ──
     contentInput?.addEventListener("input", () => {
-      if (charCount) charCount.textContent = String(contentInput.value.length);
       updateSubmitState();
+    });
+
+    contentInput?.addEventListener("focus", () => {
+      if (cancelBtn) cancelBtn.classList.remove("hidden");
+    });
+
+    cancelBtn?.addEventListener("click", () => {
+      resetForm();
+      if (cancelBtn) cancelBtn.classList.add("hidden");
+      contentInput?.blur();
     });
 
     const updateSubmitState = () => {
       const hasText = contentInput ? contentInput.value.trim().length > 0 : false;
-      if (submitBtn) submitBtn.disabled = selectedStars === 0 || !hasText;
-    };
-
-    const toggleOwnFeedbackDisplay = (hide: boolean) => {
-      const el = document.getElementById("user-own-feedback-item");
-      if (el) {
-        if (hide) el.classList.add("hidden");
-        else el.classList.remove("hidden");
+      if (submitBtn) {
+        submitBtn.disabled = isSubmitting || selectedStars === 0 || !hasText;
+        submitBtn.textContent = isSubmitting ? "Publicando..." : "Comentar";
       }
+      if (contentInput) contentInput.disabled = isSubmitting;
+      if (cancelBtn) cancelBtn.disabled = isSubmitting;
     };
-
-    // ── Toggle form ──
-    toggleBtn?.addEventListener("click", () => {
-      const isHidden = formContainer?.classList.contains("hidden");
-      if (isHidden) {
-        formContainer?.classList.remove("hidden");
-        if (toggleBtn) toggleBtn.style.display = "none";
-        if (currentUserFeedback) populateForm(currentUserFeedback);
-        toggleOwnFeedbackDisplay(true);
-      } else {
-        formContainer?.classList.add("hidden");
-        if (toggleText) toggleText.textContent = hasUserFeedback ? "Editar comentario" : "Comentar";
-        resetForm();
-        toggleOwnFeedbackDisplay(false);
-      }
-    });
-
-    cancelBtn?.addEventListener("click", () => {
-      formContainer?.classList.add("hidden");
-      if (toggleBtn) toggleBtn.style.display = "";
-      if (toggleText) toggleText.textContent = hasUserFeedback ? "Editar comentario" : "Comentar";
-      resetForm();
-      toggleOwnFeedbackDisplay(false);
-    });
 
     const populateForm = (feedback: any) => {
       selectedStars = feedback.stars || 0;
       highlightStars(selectedStars);
       if (contentInput) {
         contentInput.value = feedback.content || "";
-        if (charCount) charCount.textContent = String(contentInput.value.length);
       }
-      if (formStatus) { formStatus.textContent = ""; formStatus.className = "text-xs text-center"; }
+      if (formStatus) { formStatus.textContent = ""; formStatus.className = "text-xs text-center hidden"; }
       updateSubmitState();
     };
 
     const resetForm = () => {
       selectedStars = 0;
+      hoverStars = 0;
       highlightStars(0);
       if (contentInput) contentInput.value = "";
-      if (charCount) charCount.textContent = "0";
       if (formStatus) {
         formStatus.textContent = "";
         formStatus.classList.add("hidden");
@@ -321,23 +299,27 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
       updateSubmitState();
     };
 
-    // ── Submit feedback ──
+    // ── Submit feedback (Optimistic) ──
     submitBtn?.addEventListener("click", async () => {
-      if (selectedStars === 0) return;
+      if (selectedStars === 0 || isSubmitting) return;
 
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Enviando...";
+      isSubmitting = true;
+      updateSubmitState();
+
+      if (formStatus) formStatus.classList.add("hidden");
 
       try {
         const deviceId = ensureDeviceId();
+        const payload = {
+          stars: selectedStars,
+          content: contentInput?.value?.trim() || null,
+          device_id: deviceId,
+        };
+
         const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            stars: selectedStars,
-            content: contentInput?.value?.trim() || null,
-            device_id: deviceId,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
@@ -347,23 +329,39 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
             formStatus.textContent = data.error ?? "Error al enviar";
             formStatus.classList.remove("hidden");
           }
+          isSubmitting = false;
+          updateSubmitState();
           return;
         }
 
-        // Éxito
-        formContainer?.classList.add("hidden");
-        if (toggleBtn) toggleBtn.style.display = "";
-        if (toggleText) toggleText.textContent = "Editar comentario";
+        // Optimistic UI update
+        const newComment = {
+          id: data.id || Date.now(),
+          stars: selectedStars,
+          content: payload.content,
+          created_at: new Date().toISOString(),
+        };
+
+        if (userFeedbackId) {
+          localComments = [newComment, ...localComments.filter((c: any) => c.id !== userFeedbackId)];
+        } else {
+          localComments = [newComment, ...localComments];
+          totalComments++;
+        }
+        userFeedbackId = newComment.id;
+
         resetForm();
-        loadFeedback(1);
+        if (cancelBtn) cancelBtn.classList.add("hidden");
+        
+        renderFeedbackList();
+        
       } catch {
         if (formStatus) {
           formStatus.textContent = "Error de conexión";
           formStatus.classList.remove("hidden");
         }
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Enviar";
+        isSubmitting = false;
         updateSubmitState();
       }
     });
@@ -384,9 +382,15 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
 
     confirmDeleteBtn?.addEventListener("click", async () => {
-      if (!confirmDeleteBtn) return;
+      if (!confirmDeleteBtn || !commentToDelete) return;
       confirmDeleteBtn.disabled = true;
       confirmDeleteBtn.textContent = "Eliminando...";
+
+      const idToDelete = commentToDelete;
+      
+      hideDeleteModal();
+      deletingId = idToDelete;
+      renderFeedbackList(); // Show "Eliminando..."
 
       try {
         const deviceId = ensureDeviceId();
@@ -397,48 +401,144 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
         });
 
         if (res.ok) {
-          hasUserFeedback = false;
-          currentUserFeedback = null;
-          if (toggleText && formContainer?.classList.contains("hidden")) {
-            toggleText.textContent = "Comentar";
-          }
-          hideDeleteModal();
-          loadFeedback(1);
+          localComments = localComments.filter((c: any) => c.id !== idToDelete);
+          userFeedbackId = null;
+          totalComments = Math.max(0, totalComments - 1);
         } else {
-          throw new Error("Failed to delete");
+          alert("Error al eliminar");
         }
       } catch {
         alert("Error al eliminar el comentario");
       } finally {
+        deletingId = null;
+        commentToDelete = null;
         confirmDeleteBtn.disabled = false;
         confirmDeleteBtn.textContent = "Eliminar";
+        renderFeedbackList();
       }
     });
 
     // ── Edit/Delete own feedback ──
-    feedbackList?.addEventListener("click", async (e) => {
+    feedbackList?.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
       
       // Edit logic
       if (target.closest("[data-edit-own]")) {
-        const isHidden = formContainer?.classList.contains("hidden");
-        if (isHidden) {
-          formContainer?.classList.remove("hidden");
-          if (toggleBtn) toggleBtn.style.display = "none";
-          if (currentUserFeedback) populateForm(currentUserFeedback);
-          toggleOwnFeedbackDisplay(true);
-        } else {
-           contentInput?.focus();
-        }
+        const userFeedback = localComments.find((c: any) => c.id === userFeedbackId);
+        if (userFeedback) populateForm(userFeedback);
+        contentInput?.focus();
+        if (cancelBtn) cancelBtn.classList.remove("hidden");
         formContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
 
       // Delete logic
       if (target.closest("[data-delete-own]")) {
+        const itemBtn = target.closest("[data-delete-own]") as HTMLElement;
+        commentToDelete = Number(itemBtn.dataset.id);
         showDeleteModal();
       }
     });
+
+    // ── Render ──
+    function renderFeedbackList() {
+      if (!feedbackList) return;
+
+      if (totalBadge) totalBadge.textContent = String(totalComments);
+
+      if (localComments.length === 0) {
+        feedbackList.innerHTML = "";
+        feedbackEmpty?.classList.remove("hidden");
+        return;
+      }
+
+      feedbackEmpty?.classList.add("hidden");
+
+      feedbackList.innerHTML = localComments
+        .map((item) => {
+          const date = new Date(item.created_at).toLocaleDateString("es-PE", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+          const starsHtml = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
+          const escapedContent = escapeHtml(item.content ?? "");
+          
+          const isOwn = item.id === userFeedbackId;
+          const isAuthor = false; // Badge de autor
+          const isDeleting = item.id === deletingId;
+
+          let actionsHtml = "";
+          if (isOwn) {
+            if (isDeleting) {
+              actionsHtml = `<span class="text-xs text-red-400 font-medium mr-2">Eliminando...</span>`;
+            } else {
+              actionsHtml = `
+                <button type="button" data-edit-own class="text-global-text-muted hover:text-blue-400 transition-colors cursor-pointer p-1" title="Editar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                </button>
+                <button type="button" data-delete-own data-id="${item.id}" class="text-global-text-muted hover:text-red-400 transition-colors cursor-pointer p-1" title="Eliminar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </button>
+              `;
+            }
+          }
+
+          return `
+            <div ${isOwn ? 'id="user-own-feedback-item"' : ''} class="py-4 border-b border-global-border last:border-b-0 bg-global-card/50 px-2 sm:px-4 transition-colors relative flex gap-3 sm:gap-4 ${isDeleting ? 'opacity-50' : ''}">
+              <!-- Avatar -->
+              <div class="flex-shrink-0 mt-1">
+                <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] text-global-primary flex items-center justify-center font-bold text-lg">
+                  A
+                </div>
+              </div>
+              
+              <!-- Content -->
+              <div class="flex-1 min-w-0">
+                <!-- Header -->
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="font-bold text-global-text text-sm">Anónimo</span>
+                  ${isAuthor ? '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Autor</span>' : ''}
+                  <span class="text-xs text-global-text-muted ml-1">${date}</span>
+                  ${isOwn ? '<span class="text-[10px] font-bold text-global-primary uppercase tracking-wider bg-global-primary/10 px-1.5 py-0.5 rounded-md ml-1">(Tú)</span>' : ''}
+                </div>
+                
+                <!-- Stars -->
+                <div class="text-yellow-400 text-xs tracking-wider mb-2">
+                  ${starsHtml}
+                </div>
+                
+                <!-- Body text -->
+                ${escapedContent ? `<p class="text-sm text-global-text-muted leading-relaxed whitespace-pre-line">${escapedContent}</p>` : ""}
+                
+                <!-- Footer / Interactions -->
+                <div class="flex items-center gap-4 mt-3">
+                  <button type="button" class="flex items-center gap-1.5 text-global-text-muted hover:text-global-text transition-colors cursor-pointer group" ${isDeleting ? 'disabled' : ''}>
+                    <svg class="w-4 h-4 group-active:scale-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.514"></path></svg>
+                    <span class="text-xs font-medium">12</span>
+                  </button>
+                  <button type="button" class="text-xs font-semibold text-global-text-muted hover:text-global-text transition-colors cursor-pointer" ${isDeleting ? 'disabled' : ''}>
+                    Responder
+                  </button>
+                  
+                  ${isOwn ? `
+                    <div class="flex items-center gap-2 ml-auto">
+                      ${actionsHtml}
+                    </div>
+                  ` : ""}
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function escapeHtml(text: string): string {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
 
     // ── Load feedback ──
     async function loadFeedback(page: number) {
@@ -455,7 +555,6 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
         );
         const data = await res.json();
 
-        // Handle server errors
         if (data.error) {
           console.error("Feedback API error:", data.error);
           if (feedbackList) {
@@ -464,41 +563,19 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
           return;
         }
 
-        let items = data.feedback ?? [];
-        const total = data.total ?? 0;
-        const avg = data.avgRating ?? 0;
-        const totalPages = Math.ceil(total / pageSize) || 1;
+        localComments = data.feedback ?? [];
+        totalComments = data.total ?? 0;
+        totalPages = Math.ceil(totalComments / pageSize) || 1;
 
-        if (totalBadge) totalBadge.textContent = String(total);
-        
-        const avgBadge = document.getElementById("feedback-avg-badge");
-        if (avgBadge) avgBadge.textContent = avg.toFixed(1);
-
-        // User feedback
-        let userFeedbackId: number | null = null;
         if (data.userFeedback) {
-          hasUserFeedback = true;
-          currentUserFeedback = data.userFeedback;
           userFeedbackId = data.userFeedback.id;
-          if (toggleText && formContainer?.classList.contains("hidden")) {
-            toggleText.textContent = "Editar comentario";
-          }
-          // Remove from list if present, then prepend to pin at top
-          items = items.filter((i: any) => i.id !== userFeedbackId);
-          items.unshift(data.userFeedback);
+          localComments = localComments.filter((i: any) => i.id !== userFeedbackId);
+          localComments.unshift(data.userFeedback);
         } else {
-          hasUserFeedback = false;
-          currentUserFeedback = null;
-          if (toggleText && formContainer?.classList.contains("hidden")) {
-            toggleText.textContent = "Comentar";
-          }
+          userFeedbackId = null;
         }
 
-        if (items.length === 0) {
-          feedbackEmpty?.classList.remove("hidden");
-        } else {
-          renderFeedback(items, userFeedbackId);
-        }
+        renderFeedbackList();
 
         // Pagination
         if (totalPages > 1) {
@@ -515,54 +592,6 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
       } finally {
         feedbackLoading?.classList.add("hidden");
       }
-    }
-
-    function renderFeedback(items: any[], userFeedbackId: number | null) {
-      if (!feedbackList) return;
-
-      feedbackList.innerHTML = items
-        .map((item) => {
-          const date = new Date(item.created_at).toLocaleDateString("es-PE", {
-            day: "numeric",
-            month: "short",
-            year: "numeric",
-          });
-          const starsHtml = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
-          const escapedContent = escapeHtml(item.content ?? "");
-          
-          const isOwn = item.id === userFeedbackId;
-          const borderClass = isOwn ? "border-y border-r border-global-border border-l-4 border-l-green-500 bg-green-500/5" : "border border-global-border hover:border-global-border/80 bg-global-card";
-
-          return `
-            <div ${isOwn ? 'id="user-own-feedback-item"' : ''} class="rounded-xl ${borderClass} p-4 transition-colors relative">
-              <div class="flex items-start justify-between mb-1.5 gap-2">
-                <span class="text-yellow-400 text-sm tracking-wider shrink-0 mt-0.5">${starsHtml}</span>
-                <div class="flex items-center gap-2 flex-wrap justify-end">
-                  ${isOwn ? `<span class="text-[10px] font-bold text-green-500 uppercase tracking-wider bg-green-500/10 px-1.5 py-0.5 rounded-md">(Tú)</span>` : ""}
-                  <span class="text-[11px] text-global-text-muted">${date}</span>
-                  ${isOwn ? `
-                    <div class="flex items-center gap-1.5 ml-1 pl-2 border-l border-global-border">
-                      <button type="button" data-edit-own class="text-blue-400/80 hover:text-blue-400 transition-colors cursor-pointer p-1 rounded-md hover:bg-blue-500/10" title="Editar">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                      </button>
-                      <button type="button" data-delete-own class="text-red-400/80 hover:text-red-400 transition-colors cursor-pointer p-1 rounded-md hover:bg-red-500/10" title="Eliminar">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                      </button>
-                    </div>
-                  ` : ""}
-                </div>
-              </div>
-              ${escapedContent ? `<p class="text-sm text-global-text leading-relaxed">${escapedContent}</p>` : ""}
-            </div>
-          `;
-        })
-        .join("");
-    }
-
-    function escapeHtml(text: string): string {
-      const div = document.createElement("div");
-      div.textContent = text;
-      return div.innerHTML;
     }
 
     // ── Pagination handlers ──
