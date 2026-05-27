@@ -418,7 +418,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
       }
     });
 
-    // ── Edit/Delete own feedback ──
+    // ── Edit/Delete/Like/Reply own feedback ──
     feedbackList?.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
       
@@ -437,6 +437,60 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
         const itemBtn = target.closest("[data-delete-own]") as HTMLElement;
         commentToDelete = Number(itemBtn.dataset.id);
         showDeleteModal();
+        return;
+      }
+
+      // Like logic
+      const likeBtn = target.closest("[data-like-id]") as HTMLElement;
+      if (likeBtn) {
+        const id = Number(likeBtn.dataset.likeId);
+        const comment = localComments.find((c: any) => c.id === id);
+        if (comment) {
+          comment.isLiked = !comment.isLiked;
+          comment.likesCount = (comment.likesCount ?? 0) + (comment.isLiked ? 1 : -1);
+          renderFeedbackList();
+        }
+        return;
+      }
+
+      // Reply logic
+      const replyBtn = target.closest("[data-reply-id]") as HTMLElement;
+      if (replyBtn) {
+        const id = Number(replyBtn.dataset.replyId);
+        const comment = localComments.find((c: any) => c.id === id);
+        if (comment) {
+          comment.isReplying = true;
+          renderFeedbackList();
+          setTimeout(() => {
+            const ta = feedbackList.querySelector(`textarea[data-reply-textarea="${id}"]`) as HTMLTextAreaElement;
+            ta?.focus();
+          }, 0);
+        }
+        return;
+      }
+
+      // Cancel reply
+      const cancelReplyBtn = target.closest("[data-cancel-reply]") as HTMLElement;
+      if (cancelReplyBtn) {
+        const id = Number(cancelReplyBtn.dataset.cancelReply);
+        const comment = localComments.find((c: any) => c.id === id);
+        if (comment) {
+          comment.isReplying = false;
+          renderFeedbackList();
+        }
+        return;
+      }
+
+      // Submit reply
+      const submitReplyBtn = target.closest("[data-submit-reply]") as HTMLElement;
+      if (submitReplyBtn) {
+        const id = Number(submitReplyBtn.dataset.submitReply);
+        const comment = localComments.find((c: any) => c.id === id);
+        if (comment) {
+          comment.isReplying = false;
+          renderFeedbackList();
+        }
+        return;
       }
     });
 
@@ -455,7 +509,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
       feedbackEmpty?.classList.add("hidden");
 
       feedbackList.innerHTML = localComments
-        .map((item) => {
+         .map((item) => {
           const date = new Date(item.created_at).toLocaleDateString("es-PE", {
             day: "numeric",
             month: "short",
@@ -467,6 +521,16 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
           const isOwn = item.id === userFeedbackId;
           const isAuthor = false; // Badge de autor
           const isDeleting = item.id === deletingId;
+
+          const isLiked = !!item.isLiked;
+          const likesCount = item.likesCount ?? 0;
+          const isReplying = !!item.isReplying;
+
+          const likeBtnClass = isLiked 
+            ? "flex items-center gap-1.5 text-global-primary transition-colors duration-200 cursor-pointer group"
+            : "flex items-center gap-1.5 text-global-text-muted hover:text-global-text transition-colors duration-200 cursor-pointer group";
+
+          const likeSvgFill = isLiked ? "currentColor" : "none";
 
           let actionsHtml = "";
           if (isOwn) {
@@ -484,50 +548,86 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
             }
           }
 
+          let replyFormHtml = "";
+          if (isReplying) {
+            replyFormHtml = `
+              <div class="mt-3 ml-8 sm:ml-12 border-l-2 border-global-border-subtle pl-4 py-1">
+                <div class="flex gap-3">
+                  <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-[#1E2430] border border-[#2A3240] flex items-center justify-center font-bold text-sm text-global-primary">
+                      A
+                    </div>
+                  </div>
+                  <div class="flex-1 flex flex-col gap-2">
+                    <textarea
+                      data-reply-textarea="${item.id}"
+                      placeholder="Escribe una respuesta..."
+                      class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2 text-xs text-global-text placeholder-global-text-muted/50 outline-none focus:border-global-primary transition-colors resize-none"
+                      rows="2"
+                    ></textarea>
+                    <div class="flex justify-end gap-2">
+                      <button type="button" data-cancel-reply="${item.id}" class="rounded-full px-3 py-1.5 text-xs font-semibold text-global-text transition hover:bg-global-surface cursor-pointer">
+                        Cancelar
+                      </button>
+                      <button type="button" data-submit-reply="${item.id}" class="rounded-full bg-global-primary px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
+                        Responder
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
           return `
-            <div ${isOwn ? 'id="user-own-feedback-item"' : ''} class="py-4 border-b border-global-border last:border-b-0 bg-global-card/50 px-2 sm:px-4 transition-colors relative flex gap-3 sm:gap-4 ${isDeleting ? 'opacity-50' : ''}">
-              <!-- Avatar -->
-              <div class="flex-shrink-0 mt-1">
-                <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] text-global-primary flex items-center justify-center font-bold text-lg">
-                  A
+            <div ${isOwn ? 'id="user-own-feedback-item"' : ''} class="py-4 border-b border-global-border last:border-b-0 bg-global-card/50 px-2 sm:px-4 transition-colors relative flex flex-col ${isDeleting ? 'opacity-50' : ''}">
+              <div class="flex gap-3 sm:gap-4">
+                <!-- Avatar -->
+                <div class="flex-shrink-0 mt-1">
+                  <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] text-global-primary flex items-center justify-center font-bold text-lg">
+                    A
+                  </div>
+                </div>
+                
+                <!-- Content -->
+                <div class="flex-1 min-w-0">
+                  <!-- Header -->
+                  <div class="flex items-center gap-2 mb-0.5">
+                    <span class="font-bold text-global-text text-sm">Anónimo</span>
+                    ${isAuthor ? '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Autor</span>' : ''}
+                    <span class="text-xs text-global-text-muted ml-1">${date}</span>
+                    ${isOwn ? '<span class="text-[10px] font-bold text-global-primary uppercase tracking-wider bg-global-primary/10 px-1.5 py-0.5 rounded-md ml-1">(Tú)</span>' : ''}
+                  </div>
+                  
+                  <!-- Stars -->
+                  <div class="text-yellow-400 text-xs tracking-wider mb-2">
+                    ${starsHtml}
+                  </div>
+                  
+                  <!-- Body text -->
+                  ${escapedContent ? `<p class="text-sm text-global-text-muted leading-relaxed whitespace-pre-line">${escapedContent}</p>` : ""}
+                  
+                  <!-- Footer / Interactions -->
+                  <div class="flex items-center gap-4 mt-3">
+                    <button type="button" data-like-id="${item.id}" class="${likeBtnClass}" ${isDeleting ? 'disabled' : ''}>
+                      <svg class="w-4 h-4 group-active:scale-90 transition-transform" fill="${likeSvgFill}" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.514"></path></svg>
+                      <span class="text-xs font-medium">${likesCount}</span>
+                    </button>
+                    <button type="button" data-reply-id="${item.id}" class="text-xs font-semibold text-global-text-muted hover:text-global-text transition-colors cursor-pointer" ${isDeleting ? 'disabled' : ''}>
+                      Responder
+                    </button>
+                    
+                    ${isOwn ? `
+                      <div class="flex items-center gap-2 ml-auto">
+                        ${actionsHtml}
+                      </div>
+                    ` : ""}
+                  </div>
                 </div>
               </div>
               
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <!-- Header -->
-                <div class="flex items-center gap-2 mb-0.5">
-                  <span class="font-bold text-global-text text-sm">Anónimo</span>
-                  ${isAuthor ? '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Autor</span>' : ''}
-                  <span class="text-xs text-global-text-muted ml-1">${date}</span>
-                  ${isOwn ? '<span class="text-[10px] font-bold text-global-primary uppercase tracking-wider bg-global-primary/10 px-1.5 py-0.5 rounded-md ml-1">(Tú)</span>' : ''}
-                </div>
-                
-                <!-- Stars -->
-                <div class="text-yellow-400 text-xs tracking-wider mb-2">
-                  ${starsHtml}
-                </div>
-                
-                <!-- Body text -->
-                ${escapedContent ? `<p class="text-sm text-global-text-muted leading-relaxed whitespace-pre-line">${escapedContent}</p>` : ""}
-                
-                <!-- Footer / Interactions -->
-                <div class="flex items-center gap-4 mt-3">
-                  <button type="button" class="flex items-center gap-1.5 text-global-text-muted hover:text-global-text transition-colors cursor-pointer group" ${isDeleting ? 'disabled' : ''}>
-                    <svg class="w-4 h-4 group-active:scale-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.514"></path></svg>
-                    <span class="text-xs font-medium">12</span>
-                  </button>
-                  <button type="button" class="text-xs font-semibold text-global-text-muted hover:text-global-text transition-colors cursor-pointer" ${isDeleting ? 'disabled' : ''}>
-                    Responder
-                  </button>
-                  
-                  ${isOwn ? `
-                    <div class="flex items-center gap-2 ml-auto">
-                      ${actionsHtml}
-                    </div>
-                  ` : ""}
-                </div>
-              </div>
+              <!-- Reply Form -->
+              ${replyFormHtml}
             </div>
           `;
         })
@@ -563,14 +663,27 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
           return;
         }
 
-        localComments = data.feedback ?? [];
+        localComments = (data.feedback ?? []).map((c: any) => {
+          if (c.likesCount === undefined) {
+            c.likesCount = Math.floor(Math.random() * 15);
+          }
+          c.isLiked = !!c.isLiked;
+          c.isReplying = !!c.isReplying;
+          return c;
+        });
+
         totalComments = data.total ?? 0;
         totalPages = Math.ceil(totalComments / pageSize) || 1;
 
         if (data.userFeedback) {
           userFeedbackId = data.userFeedback.id;
+          const userComment = data.userFeedback;
+          if (userComment.likesCount === undefined) userComment.likesCount = 0;
+          userComment.isLiked = !!userComment.isLiked;
+          userComment.isReplying = !!userComment.isReplying;
+
           localComments = localComments.filter((i: any) => i.id !== userFeedbackId);
-          localComments.unshift(data.userFeedback);
+          localComments.unshift(userComment);
         } else {
           userFeedbackId = null;
         }
