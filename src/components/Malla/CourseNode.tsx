@@ -5,6 +5,7 @@ interface CourseNodeProps {
     name: string;
     code: string;
     evaluation_system: string;
+    credits?: number;
   };
 }
 
@@ -13,7 +14,12 @@ export default function CourseNode({ data }: CourseNodeProps) {
     <div className="w-[220px] rounded-xl border border-[#2A3240] bg-[#1E2430] flex flex-col overflow-hidden">
       <Handle type="target" position={Position.Left} />
       
-      <div className="p-3 text-center">
+      <div className="relative py-3 px-6 w-full text-center flex items-center justify-center min-h-[48px]">
+        {data.credits !== undefined && (
+          <span className="absolute top-2 right-2 text-[10px] font-medium text-gray-400">
+            {data.credits} cr.
+          </span>
+        )}
         <span className="text-white text-sm font-semibold">{data.name}</span>
       </div>
       

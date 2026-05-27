@@ -109,6 +109,7 @@ export default function MallaCurricular({ data }: Props) {
             name: course.name,
             code: course.code,
             evaluation_system: course.evaluation_system,
+            credits: course.credits,
           },
           draggable: false,
           connectable: false,
