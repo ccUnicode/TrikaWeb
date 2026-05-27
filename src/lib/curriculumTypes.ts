@@ -8,6 +8,7 @@ export interface CurriculumCourse {
   name: string;
   cycle: number;
   credits?: number;
+  evaluation_system?: string;
 }
 
 /** Relación de pre-requisito entre dos cursos del plan */

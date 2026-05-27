@@ -1,7 +1,7 @@
 ---
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
-import Curriculum from "../../components/Malla/Curriculum.tsx";
+import Curriculum from "../../components/Malla/Curriculum";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 import type { CurriculumData, CurriculumCourse, CoursePrerequisite } from "../../lib/curriculumTypes";
 
@@ -51,7 +51,7 @@ let courses: CurriculumCourse[] = [];
 if (planId) {
   const { data: planCourses, error: pcError } = await supabaseAdmin
     .from("plan_courses")
-    .select("plan_id, course_id, cycle, courses (id, code, name, credits)")
+    .select("plan_id, course_id, cycle, courses (id, code, name, credits, evaluation_system)")
     .eq("plan_id", planId);
 
   console.log("[Malla] Query 3 — planCourses count:", planCourses?.length ?? 0);
@@ -67,6 +67,7 @@ if (planId) {
       name: pc.courses?.name ?? "",
       cycle: pc.cycle,
       credits: pc.courses?.credits ?? undefined,
+      evaluation_system: pc.courses?.evaluation_system ?? "Faltante",
     }));
   }
 } else {
