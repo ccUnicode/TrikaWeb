@@ -1,9 +1,7 @@
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   ReactFlow,
-  Controls,
   Background,
-  MiniMap,
   ReactFlowProvider,
   useReactFlow,
   type Node,
@@ -263,15 +261,6 @@ function CurriculumInner({ data }: Props) {
         proOptions={{ hideAttribution: true }}
       >
         <Background color="#2A3240" gap={20} size={1} />
-        <Controls
-          showInteractive={false}
-          position="bottom-right"
-        />
-        <MiniMap
-          nodeColor="#22c55e"
-          maskColor="rgba(0,0,0,0.7)"
-          style={{ backgroundColor: '#1a1a2e' }}
-        />
       </ReactFlow>
     </div>
   );
