@@ -10,6 +10,9 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import type { CurriculumData } from '../../lib/curriculumTypes';
+import CourseNode from './CourseNode';
+
+const nodeTypes = { customCourse: CourseNode };
 
 // ─── Constantes de layout ───────────────────────────────────────────
 const NODE_WIDTH = 200;
@@ -100,15 +103,15 @@ export default function MallaCurricular({ data }: Props) {
         const y = PADDING_TOP + idx * (NODE_HEIGHT + NODE_GAP_Y);
         result.push({
           id: String(course.course_id),
-          type: 'default',
+          type: 'customCourse',
           position: { x, y },
           data: {
-            label: `${course.code}\n${course.name}`,
+            name: course.name,
             code: course.code,
+            evaluation_system: course.evaluation_system,
           },
           draggable: false,
           connectable: false,
-          style: courseNodeStyle,
         });
       });
     }
@@ -164,6 +167,7 @@ export default function MallaCurricular({ data }: Props) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         colorMode="dark"
         fitView
         nodesDraggable={false}

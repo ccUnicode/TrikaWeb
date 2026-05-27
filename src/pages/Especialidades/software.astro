@@ -51,7 +51,7 @@ let courses: CurriculumCourse[] = [];
 if (planId) {
   const { data: planCourses, error: pcError } = await supabaseAdmin
     .from("plan_courses")
-    .select("plan_id, course_id, cycle, courses (id, code, name, credits, evaluation_system)")
+    .select("plan_id, course_id, cycle, courses (id, code, name, credits, evaluation_systems (system_cod))")
     .eq("plan_id", planId);
 
   console.log("[Malla] Query 3 — planCourses count:", planCourses?.length ?? 0);
@@ -67,7 +67,7 @@ if (planId) {
       name: pc.courses?.name ?? "",
       cycle: pc.cycle,
       credits: pc.courses?.credits ?? undefined,
-      evaluation_system: pc.courses?.evaluation_system ?? "Faltante",
+      evaluation_system: pc.courses?.evaluation_systems?.system_cod ?? "N/A",
     }));
   }
 } else {
