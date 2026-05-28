@@ -4,6 +4,7 @@ import {
   Background,
   ReactFlowProvider,
   useReactFlow,
+  useNodesState,
   type Node,
   type Edge,
   type NodeMouseHandler,
@@ -11,11 +12,14 @@ import {
 import '@xyflow/react/dist/style.css';
 import type { CurriculumData } from '../../lib/curriculumTypes';
 import CourseNode from './CourseNode';
+import CycleHeaderNode from './CycleHeaderNode';
 
-const nodeTypes = { customCourse: CourseNode };
+const nodeTypes = {
+  customCourse: CourseNode,
+  cycleHeader: CycleHeaderNode,
+};
 
 // ─── Constantes de layout ───────────────────────────────────────────
-const NODE_WIDTH = 200;
 const NODE_HEIGHT = 60;
 const CYCLE_GAP_X = 260;    // espacio horizontal entre ciclos
 const NODE_GAP_Y = 80;      // espacio vertical entre cursos del mismo ciclo
@@ -24,19 +28,6 @@ const PADDING_TOP = 60;      // margen superior general
 const PADDING_LEFT = 40;     // margen izquierdo
 
 // ─── Estilos de nodo ────────────────────────────────────────────────
-
-const cycleHeaderStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  color: '#22c55e',
-  fontSize: '13px',
-  fontWeight: 700,
-  letterSpacing: '0.05em',
-  textTransform: 'uppercase' as const,
-  width: NODE_WIDTH,
-  textAlign: 'center' as const,
-  pointerEvents: 'none' as const,
-};
 
 // ─── Componente principal ───────────────────────────────────────────
 interface Props {
@@ -52,11 +43,97 @@ export default function MallaCurricular(props: Props) {
 }
 
 function CurriculumInner({ data }: Props) {
+  const isDev = import.meta.env.DEV;
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInteractable, setIsInteractable] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+
+  // 1. Agrupar cursos por ciclo
+  const coursesByCycle = useMemo(() => {
+    const map = new Map<number, typeof data.courses>();
+    for (const course of data.courses) {
+      const list = map.get(course.cycle) || [];
+      list.push(course);
+      map.set(course.cycle, list);
+    }
+    return map;
+  }, [data.courses]);
+
+  // 2. Crear mapa de course_id → code para las aristas
+  const courseIdToCode = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const c of data.courses) {
+      map.set(c.course_id, c.code);
+    }
+    return map;
+  }, [data.courses]);
+
+  // 3. Generar nodos iniciales
+  const initialNodes: Node[] = useMemo(() => {
+    const result: Node[] = [];
+    const sortedCycles = Array.from(coursesByCycle.keys()).sort((a, b) => a - b);
+
+    for (const cycle of sortedCycles) {
+      const coursesInCycle = [...(coursesByCycle.get(cycle) || [])].sort((a, b) => a.code.localeCompare(b.code));
+      const x = PADDING_LEFT + (cycle - 1) * CYCLE_GAP_X;
+
+      // Nodo cabecera del ciclo
+      result.push({
+        id: `cycle-header-${cycle}`,
+        type: 'cycleHeader',
+        position: { x, y: PADDING_TOP - HEADER_HEIGHT - 10 },
+        data: { label: `Ciclo ${cycle}` },
+        draggable: false,
+        connectable: false,
+        selectable: false,
+      });
+
+      // Nodos de cursos
+      coursesInCycle.forEach((course, idx) => {
+        const y = PADDING_TOP + idx * (NODE_HEIGHT + NODE_GAP_Y);
+        result.push({
+          id: String(course.course_id),
+          type: 'customCourse',
+          position: { x, y },
+          data: {
+            name: course.name,
+            code: course.code,
+            evaluation_system: course.evaluation_system,
+            credits: course.credits,
+            cycle: course.cycle,
+          },
+          draggable: isDev,
+          connectable: false,
+        });
+      });
+    }
+
+    return result;
+  }, [coursesByCycle, isDev]);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+  }, [initialNodes, setNodes]);
+
+  const logPositions = () => {
+    const positions = nodes
+      .filter(n => n.type === 'customCourse')
+      .map(n => {
+        const cycle = Number(n.data?.cycle) || 1;
+        const perfectX = PADDING_LEFT + (cycle - 1) * CYCLE_GAP_X;
+        return {
+          code: n.data?.code,
+          cycle: cycle,
+          x: perfectX,
+          y: Math.round(n.position.y)
+        };
+      });
+    console.log(JSON.stringify(positions, null, 2));
+  };
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -81,69 +158,6 @@ function CurriculumInner({ data }: Props) {
       }
     }
   };
-
-  // Agrupar cursos por ciclo
-  const coursesByCycle = useMemo(() => {
-    const map = new Map<number, typeof data.courses>();
-    for (const course of data.courses) {
-      const list = map.get(course.cycle) || [];
-      list.push(course);
-      map.set(course.cycle, list);
-    }
-    return map;
-  }, [data.courses]);
-
-  // Crear mapa de course_id → code para las aristas
-  const courseIdToCode = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const c of data.courses) {
-      map.set(c.course_id, c.code);
-    }
-    return map;
-  }, [data.courses]);
-
-  // ─── Generar nodos ──────────────────────────────────────────────
-  const nodes: Node[] = useMemo(() => {
-    const result: Node[] = [];
-    const sortedCycles = Array.from(coursesByCycle.keys()).sort((a, b) => a - b);
-
-    for (const cycle of sortedCycles) {
-      const coursesInCycle = [...(coursesByCycle.get(cycle) || [])].sort((a, b) => a.code.localeCompare(b.code));
-      const x = PADDING_LEFT + (cycle - 1) * CYCLE_GAP_X;
-
-      // Nodo cabecera del ciclo
-      result.push({
-        id: `cycle-header-${cycle}`,
-        type: 'default',
-        position: { x, y: PADDING_TOP - HEADER_HEIGHT - 10 },
-        data: { label: `Ciclo ${cycle}` },
-        draggable: false,
-        connectable: false,
-        selectable: false,
-        style: cycleHeaderStyle,
-      });
-
-      // Nodos de cursos
-      coursesInCycle.forEach((course, idx) => {
-        const y = PADDING_TOP + idx * (NODE_HEIGHT + NODE_GAP_Y);
-        result.push({
-          id: String(course.course_id),
-          type: 'customCourse',
-          position: { x, y },
-          data: {
-            name: course.name,
-            code: course.code,
-            evaluation_system: course.evaluation_system,
-            credits: course.credits,
-          },
-          draggable: false,
-          connectable: false,
-        });
-      });
-    }
-
-    return result;
-  }, [coursesByCycle]);
 
   // ─── Generar aristas ────────────────────────────────────────────
   const edges: Edge[] = useMemo(() => {
@@ -261,6 +275,17 @@ function CurriculumInner({ data }: Props) {
         >
           {isFullscreen ? 'Salir' : 'Full'}
         </button>
+
+        {/* Botón Log Coordenadas */}
+        {isDev && (
+          <button
+            onClick={logPositions}
+            className="flex items-center justify-center px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+            title="Log Coordenadas en Consola"
+          >
+            💾 Log Coordenadas
+          </button>
+        )}
       </div>
 
       <ReactFlow
@@ -272,8 +297,9 @@ function CurriculumInner({ data }: Props) {
         panOnDrag={isInteractable}
         zoomOnScroll={false}
         zoomOnPinch={false}
-        nodesDraggable={false}
+        nodesDraggable={isDev ? isInteractable : false}
         nodesConnectable={false}
+        onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
         onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
         onNodeMouseLeave={() => setHoveredNode(null)}
