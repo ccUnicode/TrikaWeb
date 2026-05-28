@@ -56,6 +56,7 @@ function CurriculumInner({ data }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInteractable, setIsInteractable] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   useEffect(() => {
     const handleFsChange = () => {
@@ -107,7 +108,7 @@ function CurriculumInner({ data }: Props) {
     const sortedCycles = Array.from(coursesByCycle.keys()).sort((a, b) => a - b);
 
     for (const cycle of sortedCycles) {
-      const coursesInCycle = coursesByCycle.get(cycle) || [];
+      const coursesInCycle = [...(coursesByCycle.get(cycle) || [])].sort((a, b) => a.code.localeCompare(b.code));
       const x = PADDING_LEFT + (cycle - 1) * CYCLE_GAP_X;
 
       // Nodo cabecera del ciclo
@@ -152,15 +153,34 @@ function CurriculumInner({ data }: Props) {
           courseIdToCode.has(pr.course_id) &&
           courseIdToCode.has(pr.prerequisite_id)
       )
-      .map((pr) => ({
-        id: `e-${pr.prerequisite_id}-${pr.course_id}`,
-        source: String(pr.prerequisite_id),
-        target: String(pr.course_id),
-        type: 'step',
-        animated: true,
-        style: { stroke: '#22c55e', strokeWidth: 2 },
-      }));
-  }, [data.prerequisites, courseIdToCode]);
+      .map((pr) => {
+        const sourceId = String(pr.prerequisite_id);
+        const targetId = String(pr.course_id);
+        
+        let style = { stroke: '#4b5563', strokeWidth: 1.5, opacity: 0.4 };
+        let animated = false;
+
+        if (hoveredNode !== null) {
+          if (hoveredNode === sourceId || hoveredNode === targetId) {
+            style = { stroke: '#22c55e', strokeWidth: 3, opacity: 1 };
+            animated = true;
+          } else {
+            style = { stroke: '#374151', strokeWidth: 1, opacity: 0.1 };
+            animated = false;
+          }
+        }
+
+        return {
+          id: `e-${sourceId}-${targetId}`,
+          source: sourceId,
+          target: targetId,
+          type: 'smoothstep',
+          animated,
+          style,
+          zIndex: hoveredNode !== null && (hoveredNode === sourceId || hoveredNode === targetId) ? 1000 : 0,
+        };
+      });
+  }, [data.prerequisites, courseIdToCode, hoveredNode]);
 
   // ─── Click en nodo → navegar a detalle del curso ────────────────
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
@@ -255,6 +275,8 @@ function CurriculumInner({ data }: Props) {
         nodesDraggable={false}
         nodesConnectable={false}
         onNodeClick={onNodeClick}
+        onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
+        onNodeMouseLeave={() => setHoveredNode(null)}
         minZoom={0.2}
         maxZoom={1.5}
         defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
