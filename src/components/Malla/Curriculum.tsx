@@ -15,13 +15,13 @@ import CourseNode from './CourseNode';
 import CycleHeaderNode from './CycleHeaderNode';
 
 const nodeTypes = {
-  customCourse: CourseNode,
+  course: CourseNode,
   cycleHeader: CycleHeaderNode,
 };
 
 // ─── Constantes de layout ───────────────────────────────────────────
+const COLUMN_WIDTH = 250;
 const NODE_HEIGHT = 60;
-const CYCLE_GAP_X = 260;    // espacio horizontal entre ciclos
 const NODE_GAP_Y = 80;      // espacio vertical entre cursos del mismo ciclo
 const HEADER_HEIGHT = 40;    // alto de la etiqueta de ciclo
 const PADDING_TOP = 60;      // margen superior general
@@ -72,30 +72,29 @@ function CurriculumInner({ data }: Props) {
 
   // 3. Generar nodos iniciales
   const initialNodes: Node[] = useMemo(() => {
-    const result: Node[] = [];
+    const TOTAL_CYCLES = 10;
+    const headerNodes: Node[] = Array.from({ length: TOTAL_CYCLES }).map((_, i) => ({
+      id: `cycle-header-${i + 1}`,
+      type: 'cycleHeader',
+      position: { x: i * COLUMN_WIDTH, y: -100 },
+      data: { label: `CICLO ${i + 1}` },
+      draggable: false,
+      selectable: false,
+    }));
+
+    const courseNodes: Node[] = [];
     const sortedCycles = Array.from(coursesByCycle.keys()).sort((a, b) => a - b);
 
     for (const cycle of sortedCycles) {
       const coursesInCycle = [...(coursesByCycle.get(cycle) || [])].sort((a, b) => a.code.localeCompare(b.code));
-      const x = PADDING_LEFT + (cycle - 1) * CYCLE_GAP_X;
-
-      // Nodo cabecera del ciclo
-      result.push({
-        id: `cycle-header-${cycle}`,
-        type: 'cycleHeader',
-        position: { x, y: PADDING_TOP - HEADER_HEIGHT - 10 },
-        data: { label: `Ciclo ${cycle}` },
-        draggable: false,
-        connectable: false,
-        selectable: false,
-      });
+      const x = (cycle - 1) * COLUMN_WIDTH;
 
       // Nodos de cursos
       coursesInCycle.forEach((course, idx) => {
         const y = PADDING_TOP + idx * (NODE_HEIGHT + NODE_GAP_Y);
-        result.push({
+        courseNodes.push({
           id: String(course.course_id),
-          type: 'customCourse',
+          type: 'course',
           position: { x, y },
           data: {
             name: course.name,
@@ -110,7 +109,7 @@ function CurriculumInner({ data }: Props) {
       });
     }
 
-    return result;
+    return [...headerNodes, ...courseNodes];
   }, [coursesByCycle, isDev]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -121,10 +120,10 @@ function CurriculumInner({ data }: Props) {
 
   const logPositions = () => {
     const positions = nodes
-      .filter(n => n.type === 'customCourse')
+      .filter(n => n.type === 'course')
       .map(n => {
         const cycle = Number(n.data?.cycle) || 1;
-        const perfectX = PADDING_LEFT + (cycle - 1) * CYCLE_GAP_X;
+        const perfectX = (cycle - 1) * COLUMN_WIDTH;
         return {
           code: n.data?.code,
           cycle: cycle,
@@ -147,7 +146,7 @@ function CurriculumInner({ data }: Props) {
     if (!containerRef.current) return;
     const element = containerRef.current;
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     } else {
       if (element.requestFullscreen) {
         element.requestFullscreen();
@@ -170,7 +169,7 @@ function CurriculumInner({ data }: Props) {
       .map((pr) => {
         const sourceId = String(pr.prerequisite_id);
         const targetId = String(pr.course_id);
-        
+
         let style = { stroke: '#4b5563', strokeWidth: 1.5, opacity: 0.4 };
         let animated = false;
 
@@ -189,6 +188,7 @@ function CurriculumInner({ data }: Props) {
           source: sourceId,
           target: targetId,
           type: 'smoothstep',
+          pathOptions: { borderRadius: 2 },
           animated,
           style,
           zIndex: hoveredNode !== null && (hoveredNode === sourceId || hoveredNode === targetId) ? 1000 : 0,
@@ -312,4 +312,4 @@ function CurriculumInner({ data }: Props) {
       </ReactFlow>
     </div>
   );
-}
+}
