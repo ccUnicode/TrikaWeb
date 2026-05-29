@@ -5,6 +5,7 @@ import {
   ReactFlowProvider,
   useReactFlow,
   useNodesState,
+  MarkerType,
   type Node,
   type Edge,
   type NodeMouseHandler,
@@ -20,9 +21,9 @@ const nodeTypes = {
 };
 
 // ─── Constantes de layout ───────────────────────────────────────────
-const COLUMN_WIDTH = 250;
-const NODE_HEIGHT = 60;
-const NODE_GAP_Y = 80;      // espacio vertical entre cursos del mismo ciclo
+const COLUMN_WIDTH = 275;    // ancho
+const NODE_HEIGHT = 80;      // alto
+const NODE_GAP_Y = 80;       // espacio vertical entre cursos del mismo ciclo
 const HEADER_HEIGHT = 40;    // alto de la etiqueta de ciclo
 const PADDING_TOP = 60;      // margen superior general
 const PADDING_LEFT = 40;     // margen izquierdo
@@ -170,28 +171,44 @@ function CurriculumInner({ data }: Props) {
         const sourceId = String(pr.prerequisite_id);
         const targetId = String(pr.course_id);
 
-        let style = { stroke: '#4b5563', strokeWidth: 1.5, opacity: 0.4 };
+        let edgeColor = '#4b5563';
+        let strokeWidth = 1.5;
+        let opacity = 0.4;
         let animated = false;
 
         if (hoveredNode !== null) {
           if (hoveredNode === sourceId || hoveredNode === targetId) {
-            style = { stroke: '#22c55e', strokeWidth: 3, opacity: 1 };
+            edgeColor = '#22c55e';
+            strokeWidth = 3;
+            opacity = 1;
             animated = true;
           } else {
-            style = { stroke: '#374151', strokeWidth: 1, opacity: 0.1 };
+            edgeColor = '#374151';
+            strokeWidth = 1;
+            opacity = 0.1;
             animated = false;
           }
         }
+
+        const style = { stroke: edgeColor, strokeWidth, opacity };
+
+        const isActive = hoveredNode !== null && (hoveredNode === sourceId || hoveredNode === targetId);
 
         return {
           id: `e-${sourceId}-${targetId}`,
           source: sourceId,
           target: targetId,
           type: 'smoothstep',
-          pathOptions: { borderRadius: 2 },
+          pathOptions: { borderRadius: 5 },
           animated,
           style,
-          zIndex: hoveredNode !== null && (hoveredNode === sourceId || hoveredNode === targetId) ? 1000 : 0,
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: isActive ? 10 : 12,
+            height: isActive ? 10 : 12,
+            color: edgeColor,
+          },
+          zIndex: isActive ? 1000 : 0,
         };
       });
   }, [data.prerequisites, courseIdToCode, hoveredNode]);
