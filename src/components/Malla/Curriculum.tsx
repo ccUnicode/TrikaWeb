@@ -25,7 +25,7 @@ const COLUMN_WIDTH = 275;    // ancho
 const NODE_HEIGHT = 80;      // alto
 const NODE_GAP_Y = 80;       // espacio vertical entre cursos del mismo ciclo
 const HEADER_HEIGHT = 40;    // alto de la etiqueta de ciclo
-const PADDING_TOP = 60;      // margen superior general
+const PADDING_TOP = 80;      // margen superior general
 const PADDING_LEFT = 40;     // margen izquierdo
 
 // ─── Estilos de nodo ────────────────────────────────────────────────
@@ -77,7 +77,7 @@ function CurriculumInner({ data }: Props) {
     const headerNodes: Node[] = Array.from({ length: TOTAL_CYCLES }).map((_, i) => ({
       id: `cycle-header-${i + 1}`,
       type: 'cycleHeader',
-      position: { x: i * COLUMN_WIDTH, y: -100 },
+      position: { x: i * COLUMN_WIDTH, y: 0 },
       data: { label: `CICLO ${i + 1}` },
       draggable: false,
       selectable: false,
@@ -234,14 +234,10 @@ function CurriculumInner({ data }: Props) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden"
-      style={{
-        height: isFullscreen ? '100vh' : `${canvasHeight}px`,
-        backgroundColor: '#0f1117',
-      }}
+      className={`w-full border border-global-border rounded-xl overflow-hidden relative bg-[#0f1117] ${isFullscreen ? '!h-screen !rounded-none' : 'h-[calc(100vh-220px)]'}`}
     >
       {/* Panel de Controles Flotante */}
-      <div className="absolute top-4 right-4 flex gap-2 z-10 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
+      <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
         {/* Indicador de Candado */}
         <div className="flex items-center gap-1.5 px-2 text-xs font-medium border-r border-global-border pr-3 mr-1 text-gray-400">
           <span className={`w-2 h-2 rounded-full ${isInteractable ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
@@ -322,6 +318,9 @@ function CurriculumInner({ data }: Props) {
         onNodeMouseLeave={() => setHoveredNode(null)}
         minZoom={0.2}
         maxZoom={1.5}
+        translateExtent={[[-200, -100], [3500, 2000]]}
+        fitViewOptions={{ padding: 0.1 }}
+        onInit={(reactFlowInstance) => reactFlowInstance.fitView({ duration: 800, padding: 0.1 })}
         defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
         proOptions={{ hideAttribution: true }}
       >
