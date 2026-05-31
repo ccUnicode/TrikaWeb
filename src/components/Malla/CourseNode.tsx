@@ -11,16 +11,18 @@ interface CourseNodeProps {
 
 export default function CourseNode({ data }: CourseNodeProps) {
   return (
-    <div className="w-[220px] rounded-xl border border-[#2A3240] bg-[#1E2430] flex flex-col overflow-hidden">
+    <div className="w-[220px] h-[110px] rounded-xl border border-[#2A3240] bg-[#1E2430] flex flex-col overflow-hidden">
       <Handle type="target" position={Position.Left} />
 
-      <div className="relative py-3 px-6 w-full text-center flex items-center justify-center min-h-[48px]">
+      <div className="relative w-full flex-1 flex flex-col justify-center items-center">
         {data.credits !== undefined && (
           <span className="absolute top-2 right-2 text-[10px] font-medium text-gray-400">
             {data.credits} cr.
           </span>
         )}
-        <span className="text-white text-sm font-semibold">{data.name}</span>
+        <span className="text-white text-sm font-semibold leading-tight text-center px-5 mt-2">
+          {data.name}
+        </span>
       </div>
 
       <div className="border-t border-[#2A3240] bg-black/20 flex justify-between items-center px-3 py-2">
