@@ -22,11 +22,6 @@ const nodeTypes = {
 
 // ─── Constantes de layout ───────────────────────────────────────────
 const COLUMN_WIDTH = 320;    // ancho
-const NODE_HEIGHT = 80;      // alto
-const NODE_GAP_Y = 80;       // espacio vertical entre cursos del mismo ciclo
-const HEADER_HEIGHT = 40;    // alto de la etiqueta de ciclo
-const PADDING_TOP = 80;      // margen superior general
-const PADDING_LEFT = 40;     // margen izquierdo
 
 // ─── Estilos de nodo ────────────────────────────────────────────────
 
@@ -88,15 +83,16 @@ function CurriculumInner({ data }: Props) {
 
     for (const cycle of sortedCycles) {
       const coursesInCycle = [...(coursesByCycle.get(cycle) || [])].sort((a, b) => a.code.localeCompare(b.code));
-      const x = (cycle - 1) * COLUMN_WIDTH;
 
       // Nodos de cursos
-      coursesInCycle.forEach((course, idx) => {
-        const y = PADDING_TOP + idx * (NODE_HEIGHT + NODE_GAP_Y);
+      coursesInCycle.forEach((course) => {
         courseNodes.push({
           id: String(course.course_id),
           type: 'course',
-          position: { x, y },
+          position: { 
+            x: course.pos_x ?? 0, 
+            y: course.pos_y ?? 0 
+          },
           data: {
             name: course.name,
             code: course.code,
@@ -219,16 +215,6 @@ function CurriculumInner({ data }: Props) {
       window.location.href = `/curso/${code}`;
     }
   }, []);
-
-  // ─── Calcular dimensiones del canvas ────────────────────────────
-  const maxCoursesInCycle = Math.max(
-    ...Array.from(coursesByCycle.values()).map((c) => c.length),
-    1
-  );
-  const canvasHeight = Math.max(
-    500,
-    PADDING_TOP + maxCoursesInCycle * (NODE_HEIGHT + NODE_GAP_Y) + 40
-  );
 
   return (
     <div
