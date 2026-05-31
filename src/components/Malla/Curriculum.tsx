@@ -127,7 +127,6 @@ function CurriculumInner({ data }: Props) {
         const perfectX = (cycle - 1) * COLUMN_WIDTH;
         return {
           code: n.data?.code,
-          cycle: cycle,
           x: perfectX,
           y: Math.round(n.position.y)
         };
