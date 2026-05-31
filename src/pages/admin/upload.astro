@@ -649,8 +649,14 @@ import Layout from "../../layouts/Layout.astro";
       const resourceKind = String(formData.get("resource_kind") ?? "").trim();
       const file = (formData.get("file") as File) || null;
 
+      // Validación explícita: course_code debe tener valor (seleccionado del dropdown)
+      if (!courseCode) {
+        alert("Debes seleccionar un curso válido del listado.");
+        courseSearch.focus();
+        return;
+      }
+
       if (
-        !courseCode ||
         !cycle ||
         !examType ||
         !resourceKind ||
