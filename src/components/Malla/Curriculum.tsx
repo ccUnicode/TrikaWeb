@@ -21,7 +21,7 @@ const nodeTypes = {
 };
 
 // ─── Constantes de layout ───────────────────────────────────────────
-const COLUMN_WIDTH = 275;    // ancho
+const COLUMN_WIDTH = 320;    // ancho
 const NODE_HEIGHT = 80;      // alto
 const NODE_GAP_Y = 80;       // espacio vertical entre cursos del mismo ciclo
 const HEADER_HEIGHT = 40;    // alto de la etiqueta de ciclo
@@ -233,7 +233,7 @@ function CurriculumInner({ data }: Props) {
   return (
     <div
       ref={containerRef}
-      className={`w-full border border-global-border rounded-xl overflow-hidden relative bg-[#0f1117] ${isFullscreen ? '!h-screen !rounded-none' : 'h-[calc(100vh-220px)]'}`}
+      className={`w-full border border-global-border rounded-xl overflow-hidden relative bg-[#0f1117] ${isFullscreen ? '!h-screen !rounded-none' : 'h-[calc(100vh-170px)]'}`}
     >
       {/* Panel de Controles Flotante */}
       <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
@@ -317,7 +317,7 @@ function CurriculumInner({ data }: Props) {
         onNodeMouseLeave={() => setHoveredNode(null)}
         minZoom={0.2}
         maxZoom={1.5}
-        translateExtent={[[-200, -100], [3500, 2000]]}
+        translateExtent={[[-200, -100], [3500, 2500]]}
         fitViewOptions={{ padding: 0.1 }}
         onInit={(reactFlowInstance) => reactFlowInstance.fitView({ duration: 800, padding: 0.1 })}
         defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
