@@ -16,6 +16,7 @@ const { data: sheet, error } = await supa
   .select(
     `
     id,
+    is_hidden,
     exam_type,
     cycle,
     teacher_hint,
@@ -34,6 +35,10 @@ const { data: sheet, error } = await supa
   .single();
 
 if (error || !sheet) {
+  return Astro.redirect("/cursos");
+}
+
+if (sheet.is_hidden) {
   return Astro.redirect("/cursos");
 }
 

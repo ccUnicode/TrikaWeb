@@ -89,6 +89,8 @@ create unique index if not exists uq_sheets_course_cycle_title
 
 --Índice para búsqueda
 create index if not exists ix_sheets_course on sheets (course_id);
+create index if not exists ix_sheets_exam_storage_path on sheets (exam_storage_path);
+create index if not exists ix_sheets_thumb_storage_path on sheets (thumb_storage_path);
 
 --RLS y public read
 alter table sheets enable row level security;
