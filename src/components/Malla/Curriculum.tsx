@@ -22,6 +22,7 @@ const nodeTypes = {
 
 // ─── Constantes de layout ───────────────────────────────────────────
 const COLUMN_WIDTH = 320;    // ancho
+const ROW_HEIGHT = 160;      // alto
 
 // ─── Estilos de nodo ────────────────────────────────────────────────
 
@@ -90,8 +91,8 @@ function CurriculumInner({ data }: Props) {
           id: String(course.course_id),
           type: 'course',
           position: { 
-            x: course.pos_x ?? 0, 
-            y: course.pos_y ?? 0 
+            x: (course.cycle - 1) * COLUMN_WIDTH, 
+            y: ((course.row_index || 1) - 1) * ROW_HEIGHT 
           },
           data: {
             name: course.name,
@@ -115,20 +116,7 @@ function CurriculumInner({ data }: Props) {
     setNodes(initialNodes);
   }, [initialNodes, setNodes]);
 
-  const logPositions = () => {
-    const positions = nodes
-      .filter(n => n.type === 'course')
-      .map(n => {
-        const cycle = Number(n.data?.cycle) || 1;
-        const perfectX = (cycle - 1) * COLUMN_WIDTH;
-        return {
-          code: n.data?.code,
-          x: perfectX,
-          y: Math.round(n.position.y)
-        };
-      });
-    console.log(JSON.stringify(positions, null, 2));
-  };
+
 
   const toggleFullScreen = useCallback(() => {
     const nextState = !isFullscreen;
@@ -291,16 +279,6 @@ function CurriculumInner({ data }: Props) {
           )}
         </button>
 
-        {/* Botón Log Coordenadas */}
-        {isDev && (
-          <button
-            onClick={logPositions}
-            className="flex items-center justify-center px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
-            title="Log Coordenadas en Consola"
-          >
-            💾 Log Coordenadas
-          </button>
-        )}
       </div>
 
       <ReactFlow

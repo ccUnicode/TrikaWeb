@@ -62,7 +62,7 @@ if (planId) {
     const { data: planCourses, error: pcError } = await supabaseAdmin
         .from("plan_courses")
         .select(
-            "plan_id, course_id, cycle, pos_x, pos_y, courses (id, code, name, credits, evaluation_systems (system_cod))",
+            "plan_id, course_id, cycle, row_index, courses (id, code, name, credits, evaluation_systems (system_cod))",
         )
         .eq("plan_id", planId);
 
@@ -90,8 +90,7 @@ if (planId) {
             credits: pc.courses?.credits ?? undefined,
             evaluation_system:
                 pc.courses?.evaluation_systems?.system_cod ?? "N/A",
-            pos_x: pc.pos_x,
-            pos_y: pc.pos_y,
+            row_index: pc.row_index,
         }));
     }
 } else {
