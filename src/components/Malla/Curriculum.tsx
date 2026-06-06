@@ -40,7 +40,7 @@ export default function MallaCurricular(props: Props) {
 
 function CurriculumInner({ data }: Props) {
   const isDev = import.meta.env.DEV;
-  const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const { zoomIn, zoomOut, fitView, setViewport } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInteractable, setIsInteractable] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -130,29 +130,18 @@ function CurriculumInner({ data }: Props) {
     console.log(JSON.stringify(positions, null, 2));
   };
 
-  useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    return () => document.removeEventListener('fullscreenchange', handleFsChange);
-  }, []);
+  const toggleFullScreen = useCallback(() => {
+    const nextState = !isFullscreen;
+    setIsFullscreen(nextState);
 
-  const handleFullScreen = () => {
-    if (!containerRef.current) return;
-    const element = containerRef.current;
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => { });
-    } else {
-      if (element.requestFullscreen) {
-        element.requestFullscreen();
-      } else if ((element as any).webkitRequestFullscreen) {
-        (element as any).webkitRequestFullscreen();
-      } else if ((element as any).msRequestFullscreen) {
-        (element as any).msRequestFullscreen();
+    setTimeout(() => {
+      if (nextState) {
+        fitView({ padding: 0.1, duration: 800 });
+      } else {
+        setViewport({ x: 100, y: 50, zoom: 0.85 }, { duration: 800 });
       }
-    }
-  };
+    }, 150);
+  }, [isFullscreen, fitView, setViewport]);
 
   // ─── Generar aristas ────────────────────────────────────────────
   const edges: Edge[] = useMemo(() => {
@@ -217,10 +206,33 @@ function CurriculumInner({ data }: Props) {
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className={`w-full border border-global-border rounded-xl overflow-hidden relative bg-[#0f1117] ${isFullscreen ? '!h-screen !rounded-none' : 'h-[calc(100vh-170px)]'}`}
-    >
+    <div className={
+      isFullscreen 
+        ? "fixed inset-0 z-[100] flex w-screen h-screen bg-global-bg p-4" 
+        : "flex flex-col lg:flex-row gap-4 w-full h-[calc(100vh-260px)] mt-4"
+    }>
+      {/* Panel Lateral (Sidebar) */}
+      {!isFullscreen && (
+        <div className="w-full lg:w-[350px] xl:w-[400px] h-full bg-[#1e2430] border border-gray-800 rounded-xl p-6 flex flex-col">
+          <div className="flex flex-col gap-4 h-full">
+            <h2 className="text-white text-xl font-bold border-b border-gray-700 pb-2">Detalles del Curso</h2>
+            <div className="flex flex-col gap-3 mt-2">
+              <div className="h-6 bg-gray-800 rounded w-3/4 animate-pulse"></div>
+              <div className="h-4 bg-gray-800 rounded w-1/2 animate-pulse"></div>
+            </div>
+            <div className="h-32 bg-gray-800 rounded w-full mt-4 animate-pulse"></div>
+            <p className="text-gray-500 text-sm mt-auto text-center">
+              Haz clic en cualquier curso de la malla para ver su sumilla, profesores y pre-requisitos.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Contenedor del Lienzo */}
+      <div
+        ref={containerRef}
+        className="flex-1 h-full border border-global-border rounded-xl overflow-hidden relative bg-global-bg"
+      >
       {/* Panel de Controles Flotante */}
       <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
         {/* Indicador de Candado */}
@@ -235,10 +247,10 @@ function CurriculumInner({ data }: Props) {
             zoomIn();
             setIsInteractable(true);
           }}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] font-bold text-base"
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240]"
           title="Acercar (Desbloquea vista)"
         >
-          +
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
         </button>
 
         {/* Botón Zoom Out */}
@@ -247,31 +259,36 @@ function CurriculumInner({ data }: Props) {
             zoomOut();
             setIsInteractable(true);
           }}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] font-bold text-base"
+          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240]"
           title="Alejar (Desbloquea vista)"
         >
-          -
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
         </button>
 
         {/* Botón Reset */}
         <button
           onClick={() => {
-            fitView({ duration: 500 });
+            setViewport({ x: 100, y: 50, zoom: 0.85 }, { duration: 800 });
             setIsInteractable(false);
           }}
-          className="flex items-center justify-center px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+          className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
           title="Restaurar y Bloquear Vista"
         >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
           Reset
         </button>
 
         {/* Botón Fullscreen */}
         <button
-          onClick={handleFullScreen}
-          className="flex items-center justify-center px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+          onClick={toggleFullScreen}
+          className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
           title="Pantalla Completa"
         >
-          {isFullscreen ? 'Salir' : 'Full'}
+          {isFullscreen ? (
+            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> Salir</>
+          ) : (
+            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> Full</>
+          )}
         </button>
 
         {/* Botón Log Coordenadas */}
@@ -291,7 +308,10 @@ function CurriculumInner({ data }: Props) {
         edges={edges}
         nodeTypes={nodeTypes}
         colorMode="dark"
-        fitView
+        minZoom={0.2}
+        maxZoom={1.2}
+        translateExtent={[[-100, -100], [3300, 2600]]}
+        defaultViewport={{ x: 100, y: 50, zoom: 0.85 }}
         panOnDrag={isInteractable}
         zoomOnScroll={false}
         zoomOnPinch={false}
@@ -301,16 +321,11 @@ function CurriculumInner({ data }: Props) {
         onNodeClick={onNodeClick}
         onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
         onNodeMouseLeave={() => setHoveredNode(null)}
-        minZoom={0.2}
-        maxZoom={1.5}
-        translateExtent={[[-200, -100], [3500, 2500]]}
-        fitViewOptions={{ padding: 0.1 }}
-        onInit={(reactFlowInstance) => reactFlowInstance.fitView({ duration: 800, padding: 0.1 })}
-        defaultViewport={{ x: 0, y: 0, zoom: 0.6 }}
         proOptions={{ hideAttribution: true }}
       >
         <Background color="#2A3240" gap={20} size={1} />
       </ReactFlow>
+    </div>
     </div>
   );
 }
