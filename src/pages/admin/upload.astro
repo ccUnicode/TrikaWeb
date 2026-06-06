@@ -340,7 +340,9 @@ if (!isAdmin) {
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="solution-file"
               >
-                PDF del Solucionario
+                PDF del Solucionario <span class="text-global-text-muted"
+                  >(opcional)</span
+                >
               </label>
               <label
                 for="solution-file"
@@ -910,18 +912,33 @@ if (!isAdmin) {
       "course-combobox-container",
     );
 
-    const cycleSearchInput = document.getElementById(
-      "cycle-search",
-    ) as HTMLInputElement;
-    const cycleCodeHidden = document.getElementById(
-      "cycle-code",
-    ) as HTMLInputElement;
-    const cycleDropdown = document.getElementById(
-      "cycle-dropdown",
-    ) as HTMLUListElement;
+    const cycleSearchInput = document.getElementById("cycle-search") as HTMLInputElement;
+    const cycleCodeHidden = document.getElementById("cycle-code") as HTMLInputElement;
+    const cycleDropdown = document.getElementById("cycle-dropdown") as HTMLUListElement;
     const cycleContainer = document.getElementById("cycle-combobox-container");
 
     let allCycles: string[] = [];
+
+    function compareCyclesDesc(a: string, b: string) {
+      const parse = (cycle: string) => {
+        const match = cycle.match(/^(\d{4})-(I|II)$/i);
+
+        if (!match) {
+          return { year: 0, period: 0 };
+        }
+
+        return {
+          year: Number(match[1]),
+          period: match[2].toUpperCase() === "II" ? 2 : 1,
+        };
+      };
+
+      const ca = parse(a);
+      const cb = parse(b);
+
+      if (cb.year !== ca.year) return cb.year - ca.year;
+      return cb.period - ca.period;
+    }
 
     async function loadCycles() {
       try {
@@ -929,13 +946,12 @@ if (!isAdmin) {
         const data = await res.json();
 
         if (data.ok) {
-          allCycles = data.cycles.map((c: any) => c.cycle_code);
+          allCycles = data.cycles
+          .map((c: any) => c.cycle_code)
+          .sort(compareCyclesDesc);
         }
       } catch (e) {
         console.error("Error cargando ciclos:", e);
-        courseSearchInput.placeholder =
-          "⚠️ Error al cargar cursos. Recarga la página.";
-        courseSearchInput.classList.add("border-red-500/50");
       }
     }
 
@@ -1025,13 +1041,11 @@ if (!isAdmin) {
       cycles.forEach((cycle) => {
         const li = document.createElement("li");
         li.textContent = cycle;
-        li.className =
-          "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
+        li.className = "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
 
-        li.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          cycleSearchInput.value = cycle;
+        li.addEventListener("click", () => {
           cycleCodeHidden.value = cycle;
+          cycleSearchInput.value = cycle;
           cycleDropdown.classList.add("hidden");
         });
 
