@@ -1,0 +1,320 @@
+import { useState, useMemo, useEffect } from 'react';
+import { GripVertical } from 'lucide-react';
+
+interface CourseData {
+  id: number;
+  code: string;
+  name: string;
+  credits?: number;
+}
+
+interface PlacedCourse extends CourseData {
+  cycle: number;
+  row_index: number;
+}
+
+interface CurriculumBuilderProps {
+  planId: string;
+  plan: {
+    id: string;
+    year: number;
+    grid_rows: number;
+    is_current: boolean;
+    specialties?: {
+      name: string;
+    };
+  };
+  initialCourses: CourseData[];
+}
+
+export default function CurriculumBuilder({ planId, plan, initialCourses }: CurriculumBuilderProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [placedCourses, setPlacedCourses] = useState<PlacedCourse[]>([]);
+  const [draggedCourseId, setDraggedCourseId] = useState<number | null>(null);
+
+  // Filtrar lista de cursos en el sidebar
+  const filteredCourses = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return initialCourses;
+    return initialCourses.filter(
+      (c) =>
+        c.code.toLowerCase().includes(query) ||
+        c.name.toLowerCase().includes(query)
+    );
+  }, [searchQuery, initialCourses]);
+
+  const onDragStart = (event: React.DragEvent, course: CourseData) => {
+    event.dataTransfer.setData('application/json', JSON.stringify(course));
+    event.dataTransfer.effectAllowed = 'move';
+    setDraggedCourseId(course.id);
+  };
+
+  const onDragEnd = () => {
+    setDraggedCourseId(null);
+  };
+
+  const handleRemoveCourse = (courseId: number) => {
+    setPlacedCourses(prev => prev.filter(p => p.id !== courseId));
+  };
+
+  useEffect(() => {
+    const btn = document.getElementById('trigger-save-malla');
+    if (!btn) return;
+
+    const handleSave = () => {
+      console.log('Cursos colocados:', placedCourses);
+    };
+
+    btn.addEventListener('click', handleSave);
+    return () => btn.removeEventListener('click', handleSave);
+  }, [placedCourses]);
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-180px)] w-full">
+      {/* Sidebar - Cursos disponibles */}
+      <aside className="w-full lg:w-[350px] flex-shrink-0 flex flex-col h-full overflow-hidden bg-[#1e2430] border border-gray-800 rounded-xl p-4">
+        <div className="border-b border-gray-800 pb-4 mb-4">
+          <h2 className="text-base font-bold text-white mb-1 flex items-center justify-between">
+            <span>Cursos Disponibles</span>
+            <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold border border-indigo-500/20">
+              {filteredCourses.length}
+            </span>
+          </h2>
+          <p className="text-xs text-gray-400 mb-3">
+            Arrastra las tarjetas al lienzo. Filtra la lista escribiendo abajo.
+          </p>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Buscar por código o nombre..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-xl border border-gray-800 bg-[#161b22] px-4 py-2 pl-9 text-xs text-white placeholder-gray-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+            />
+            <svg
+              className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              ></path>
+            </svg>
+          </div>
+        </div>
+
+        {/* Lista de tarjetas arrastrables */}
+        <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-2">
+          {searchQuery.length < 2 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-4">
+              <p className="text-gray-500 text-xs">Escribe el nombre o código de un curso para buscar</p>
+            </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 text-xs">
+              No se encontraron cursos
+            </div>
+          ) : (
+            filteredCourses.map((course) => {
+              const isOnCanvas = placedCourses.some((n) => n.id === course.id);
+              return (
+                <div
+                  key={course.id}
+                  draggable={!isOnCanvas}
+                  onDragStart={(e) => onDragStart(e, course)}
+                  onDragEnd={onDragEnd}
+                  className={`group relative p-3 rounded-xl border transition-all select-none flex items-start gap-2 ${isOnCanvas
+                      ? 'bg-[#161b22]/50 border-gray-800/50 opacity-40 cursor-not-allowed'
+                      : 'bg-[#1a202c] hover:bg-[#222938] border-gray-800 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing hover:shadow-md hover:shadow-indigo-500/5'
+                    }`}
+                >
+                  {!isOnCanvas && (
+                    <div className="mt-1 text-gray-500 group-hover:text-indigo-400 transition-colors">
+                      <GripVertical size={16} />
+                    </div>
+                  )}
+                  {isOnCanvas && (
+                    <div className="mt-1 w-4" /> // placeholder for alignment
+                  )}
+
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start gap-2 mb-1">
+                      <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase">
+                        {course.code}
+                      </span>
+                      {course.credits !== undefined && (
+                        <span className="text-[10px] text-gray-400 font-medium bg-gray-800/50 px-1.5 py-0.5 rounded">
+                          {course.credits} cr.
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-xs font-semibold text-white leading-tight group-hover:text-indigo-400 transition-colors">
+                      {course.name}
+                    </h3>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </aside>
+
+      {/* Canvas - Área de CSS Grid Nativo */}
+      <main className="flex-1 h-full w-full bg-[#11151c] border border-global-border rounded-xl relative overflow-auto custom-scrollbar">
+        <div className="w-[1100px] p-4 flex flex-col">
+          {/* Cabeceras de Ciclos */}
+          <div className="grid grid-cols-10 gap-2 mb-4">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div key={`header-${i + 1}`} className="text-center font-bold text-white bg-[#1e2430] border border-gray-800 rounded-lg p-2 shadow-sm text-xs">
+                CICLO {i + 1}
+              </div>
+            ))}
+          </div>
+
+          {/* Cuadrícula Principal (Columnas y Slots) */}
+          <div className="grid grid-cols-10 gap-2 flex-1 pb-10">
+            {Array.from({ length: 10 }).map((_, colIndex) => {
+              const cycle = colIndex + 1;
+              return (
+                <div key={`col-${cycle}`} className="flex flex-col gap-2">
+                  {Array.from({ length: 15 }).map((_, rowIndex) => {
+                    const row_index = rowIndex + 1;
+                    const placedCourse = placedCourses.find(c => c.cycle === cycle && c.row_index === row_index);
+
+                    return (
+                      <Slot
+                        key={`slot-${cycle}-${row_index}`}
+                        cycle={cycle}
+                        row_index={row_index}
+                        placedCourse={placedCourse}
+                        onDropCourse={(course) => {
+                          setPlacedCourses(prev => {
+                            const filtered = prev.filter(p => p.id !== course.id);
+                            return [...filtered, { ...course, cycle, row_index }];
+                          });
+                        }}
+                        onDragStartCourse={(e) => {
+                          if (placedCourse) {
+                            onDragStart(e, placedCourse);
+                          }
+                        }}
+                        onDragEndCourse={onDragEnd}
+                        draggedCourseId={draggedCourseId}
+                        onRemoveCourse={handleRemoveCourse}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Componente Slot Interno
+function Slot({
+  cycle,
+  row_index,
+  placedCourse,
+  onDropCourse,
+  onDragStartCourse,
+  onDragEndCourse,
+  draggedCourseId,
+  onRemoveCourse
+}: {
+  cycle: number;
+  row_index: number;
+  placedCourse?: PlacedCourse;
+  onDropCourse: (course: CourseData) => void;
+  onDragStartCourse: (e: React.DragEvent) => void;
+  onDragEndCourse: () => void;
+  draggedCourseId: number | null;
+  onRemoveCourse: (id: number) => void;
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); // Permite el drop
+    if (draggedCourseId !== placedCourse?.id) {
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (draggedCourseId !== placedCourse?.id) {
+      setIsDragOver(true);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    // Si ya hay un curso en este slot y estamos intentando soltar algo distinto, evitamos sobrescribirlo (opcional)
+    // Pero si es un movimiento válido, continuamos.
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      if (data) {
+        const course = JSON.parse(data);
+        onDropCourse(course);
+      }
+    } catch (err) {
+      console.error('Error parsing drop data:', err);
+    }
+  };
+
+  if (placedCourse) {
+    return (
+      <div
+        draggable
+        onDragStart={onDragStartCourse}
+        onDragEnd={onDragEndCourse}
+        title={placedCourse.name}
+        className="h-[45px] w-full rounded-lg bg-[#2a3441] border border-indigo-500 shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-[#323d4d] transition-colors group relative"
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveCourse(placedCourse.id);
+          }}
+          className="absolute -top-1.5 -right-1.5 bg-red-500/20 hover:bg-red-500/80 text-red-200 hover:text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10"
+          title="Remover curso de la malla"
+        >
+          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+
+        <span className="text-xs font-bold tracking-wider text-indigo-400 uppercase truncate px-2">
+          {placedCourse.code}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onDragOver={handleDragOver}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={`h-[45px] w-full border border-dashed rounded-lg flex items-center justify-center transition-all duration-200 ${isDragOver
+          ? 'border-green-500 bg-green-500/10 scale-[1.02]'
+          : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
+        }`}
+    >
+      {isDragOver && (
+        <span className="text-xs font-bold text-green-500 tracking-wide uppercase">Soltar aquí</span>
+      )}
+    </div>
+  );
+}
