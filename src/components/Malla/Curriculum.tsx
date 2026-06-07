@@ -92,7 +92,7 @@ function CurriculumInner({ data }: Props) {
           type: 'course',
           position: { 
             x: (course.cycle - 1) * COLUMN_WIDTH, 
-            y: ((course.row_index || 1) - 1) * ROW_HEIGHT 
+            y: (course.row_index || 1) * ROW_HEIGHT 
           },
           data: {
             name: course.name,

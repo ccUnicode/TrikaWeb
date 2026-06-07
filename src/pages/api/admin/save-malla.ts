@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
+import { createClient } from '@supabase/supabase-js';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -11,6 +11,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ ok: false, error: 'Sesión inválida' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
+    const adminSession = cookies.get('admin_session')?.value;
+    const supabase = createClient(
+      import.meta.env.PUBLIC_SUPABASE_URL,
+      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${adminSession}`
+          }
+        }
+      }
+    );
+
     const body = await request.json();
     const { planId, placedCourses } = body;
 
@@ -19,7 +32,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // 1. Eliminar los cursos previos de este plan
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await supabase
       .from('plan_courses')
       .delete()
       .eq('plan_id', planId);
@@ -38,7 +51,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         row_index: pc.row_index
       }));
 
-      const { error: insertError } = await supabaseAdmin
+      const { error: insertError } = await supabase
         .from('plan_courses')
         .insert(inserts);
 

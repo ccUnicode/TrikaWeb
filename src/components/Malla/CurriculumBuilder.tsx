@@ -201,7 +201,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
       <main className="flex-1 h-full w-full bg-[#11151c] border border-global-border rounded-xl relative overflow-auto custom-scrollbar">
         <div className="w-[1100px] p-4 flex flex-col">
           {/* Cabeceras de Ciclos */}
-          <div className="grid grid-cols-10 gap-2 mb-4">
+          <div className="grid grid-cols-10 gap-1.5 mb-2">
             {Array.from({ length: 10 }).map((_, i) => (
               <div key={`header-${i + 1}`} className="text-center font-bold text-white bg-[#1e2430] border border-gray-800 rounded-lg p-2 shadow-sm text-xs">
                 CICLO {i + 1}
@@ -210,11 +210,11 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
           </div>
 
           {/* Cuadrícula Principal (Columnas y Slots) */}
-          <div className="grid grid-cols-10 gap-2 flex-1">
+          <div className="grid grid-cols-10 gap-1.5 flex-1">
             {Array.from({ length: 10 }).map((_, colIndex) => {
               const cycle = colIndex + 1;
               return (
-                <div key={`col-${cycle}`} className="flex flex-col gap-2">
+                <div key={`col-${cycle}`} className="flex flex-col gap-1.5">
                   {Array.from({ length: 15 }).map((_, rowIndex) => {
                     const row_index = rowIndex + 1;
                     const placedCourse = placedCourses.find(c => c.cycle === cycle && c.row_index === row_index);
@@ -316,7 +316,7 @@ function Slot({
         onDragStart={onDragStartCourse}
         onDragEnd={onDragEndCourse}
         title={placedCourse.name}
-        className="h-[45px] w-full rounded-lg bg-[#2a3441] border border-indigo-500 shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-[#323d4d] transition-colors group relative"
+        className="h-10 w-full rounded-lg bg-[#2a3441] border border-indigo-500 shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-[#323d4d] transition-colors group relative"
       >
         <button
           onClick={(e) => {
@@ -342,8 +342,8 @@ function Slot({
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`h-[45px] w-full border border-dashed rounded-lg flex items-center justify-center transition-all duration-200 ${isDragOver
-          ? 'border-green-500 bg-green-500/10 scale-[1.02]'
+      className={`h-10 w-full border border-dashed rounded-lg flex items-center justify-center transition-all duration-200 ${isDragOver
+          ? 'border-green-500 bg-green-500/10'
           : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
         }`}
     >
