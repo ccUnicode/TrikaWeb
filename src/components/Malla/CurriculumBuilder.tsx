@@ -32,6 +32,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
   const [searchQuery, setSearchQuery] = useState('');
   const [placedCourses, setPlacedCourses] = useState<PlacedCourse[]>(initialPlacedCourses);
   const [draggedCourseId, setDraggedCourseId] = useState<number | null>(null);
+  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
   // Filtrar lista de cursos en el sidebar
   const filteredCourses = useMemo(() => {
@@ -86,13 +87,16 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
 
         const result = await response.json();
         if (result.ok) {
-          alert('¡Malla guardada correctamente!');
+          setNotification({ message: '¡Malla guardada correctamente!', type: 'success' });
+          setTimeout(() => setNotification(null), 3000);
         } else {
-          alert('Error al guardar la malla: ' + (result.error || 'Intente de nuevo.'));
+          setNotification({ message: 'Error al guardar la malla: ' + (result.error || 'Intente de nuevo.'), type: 'error' });
+          setTimeout(() => setNotification(null), 3000);
         }
       } catch (err) {
         console.error("Error al guardar la malla:", err);
-        alert('Error de conexión al guardar la malla.');
+        setNotification({ message: 'Error de conexión al guardar la malla.', type: 'error' });
+        setTimeout(() => setNotification(null), 3000);
       } finally {
         btn.innerText = originalText;
         btn.removeAttribute('disabled');
@@ -115,8 +119,8 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
               {filteredCourses.length}
             </span>
           </h2>
-          <p className="text-xs text-gray-400 mb-3">
-            Arrastra las tarjetas al lienzo. Filtra la lista escribiendo abajo.
+          <p className="text-sm text-gray-400 mb-3">
+            Arrastra cursos desde el panel lateral al lienzo o muévelos dentro de la cuadrícula para organizar el plan de estudios. Filtra la lista escribiendo abajo.
           </p>
           <div className="relative">
             <input
@@ -195,6 +199,21 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
             })
           )}
         </div>
+
+        {/* Panel de Estadísticas */}
+        <div className="mt-auto border-t border-gray-800 pt-4 flex flex-col gap-1.5">
+          <div className="bg-[#161b22] border border-gray-800 rounded-lg p-3 flex flex-col gap-2 shadow-inner">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400 font-medium">Cursos en malla</span>
+              <span className="text-sm font-bold text-white">{placedCourses.length}</span>
+            </div>
+            <div className="h-px w-full bg-gray-800"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-400 font-medium">Créditos Totales</span>
+              <span className="text-sm font-bold text-[#22C55E]">{placedCourses.reduce((sum, n) => sum + (n.credits || 0), 0)}</span>
+            </div>
+          </div>
+        </div>
       </aside>
 
       {/* Canvas - Área de CSS Grid Nativo */}
@@ -248,6 +267,22 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
           </div>
         </div>
       </main>
+
+      {/* Snackbar Notificación */}
+      {notification && (
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl border z-50 flex items-center gap-3 transition-all animate-in fade-in slide-in-from-bottom-4 ${
+          notification.type === 'success' 
+            ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+            : 'bg-red-500/10 border-red-500/20 text-red-400'
+        }`}>
+          {notification.type === 'success' ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          )}
+          <span className="font-medium text-sm">{notification.message}</span>
+        </div>
+      )}
     </div>
   );
 }

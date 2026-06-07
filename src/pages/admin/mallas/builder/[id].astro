@@ -93,16 +93,18 @@ const initialPlacedCourses = planCourses ? planCourses.map((pc: any) => ({
                         <span>/</span>
                         <span class="text-global-text-muted">Constructor Visual</span>
                     </div>
-                    <h1 class="text-2xl font-bold text-global-text">
-                        Constructor de Malla: {specialtyName} ({plan.year})
-                    </h1>
-                    <p class="text-sm text-global-text-muted">
-                        Arrastra cursos desde el panel lateral al lienzo o muévelos dentro de la cuadrícula para organizar el plan de estudios.
-                    </p>
+                    <div class="flex items-center gap-3">
+                        <h1 class="text-2xl font-bold text-global-text">
+                            Edición de Malla
+                        </h1>
+                        <span class="px-2.5 py-1 text-xs font-semibold rounded-md bg-global-primary/10 text-global-primary border border-global-primary/20">
+                            {specialtyName} - {plan.year}
+                        </span>
+                    </div>
                 </div>
                 <div>
-                    <button id="trigger-save-malla" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-green-900/20 transition-all active:scale-95">
-                        Guardar Malla
+                    <button id="trigger-save-malla" class="bg-global-primary hover:bg-global-primary-hover text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md shadow-global-primary/10 transition-all active:scale-95 cursor-pointer">
+                        {initialPlacedCourses.length > 0 ? "Actualizar Malla" : "Guardar Malla"}
                     </button>
                 </div>
             </div>
