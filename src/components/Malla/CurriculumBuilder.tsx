@@ -32,7 +32,8 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
   const [searchQuery, setSearchQuery] = useState('');
   const [placedCourses, setPlacedCourses] = useState<PlacedCourse[]>(initialPlacedCourses);
   const [draggedCourseId, setDraggedCourseId] = useState<number | null>(null);
-  const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
+  const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
 
   // Filtrar lista de cursos en el sidebar
   const filteredCourses = useMemo(() => {
@@ -113,15 +114,43 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
       {/* Sidebar - Cursos disponibles */}
       <aside className="w-full lg:w-[350px] flex-shrink-0 flex flex-col h-full overflow-hidden bg-[#1e2430] border border-gray-800 rounded-xl p-4">
         <div className="border-b border-gray-800 pb-4 mb-4">
-          <h2 className="text-base font-bold text-white mb-1 flex items-center justify-between">
-            <span>Cursos Disponibles</span>
+          <h2 className="text-base font-bold text-white mb-3 flex items-center justify-between relative">
+            <span className="flex items-center gap-1.5">
+              Cursos Disponibles
+              <button
+                type="button"
+                onClick={() => setShowInfo(!showInfo)}
+                className="text-gray-500 hover:text-indigo-400 transition-colors focus:outline-none cursor-pointer"
+                title="Información de la página"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </button>
+              {showInfo && (
+                <div className="absolute left-0 top-7 w-72 p-3.5 bg-global-card border border-global-border rounded-xl shadow-2xl z-50 text-xs text-gray-400 font-normal leading-relaxed">
+                  <h4 className="font-semibold text-white mb-1.5 flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    ¿Cómo funciona esta página?
+                  </h4>
+                  <p className="mb-2">
+                    Esta sección es el Constructor Visual de Mallas. Te permite diseñar y estructurar la malla académica de forma interactiva:
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li><strong>Agregar:</strong> Arrastra un curso desde la lista de abajo hacia cualquier espacio vacío en la cuadrícula derecha.</li>
+                    <li><strong>Mover:</strong> Puedes reubicar los cursos ya asignados arrastrándolos a otro ciclo o casilla.</li>
+                    <li><strong>Remover:</strong> Coloca el cursor sobre un curso colocado en la cuadrícula y presiona la <span className="text-red-400">"X"</span> roja.</li>
+                    <li><strong>Filtrar:</strong> Utiliza el buscador para ubicar cursos específicos rápidamente.</li>
+                  </ul>
+                </div>
+              )}
+            </span>
             <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold border border-indigo-500/20">
               {filteredCourses.length}
             </span>
           </h2>
-          <p className="text-sm text-gray-400 mb-3">
-            Arrastra cursos desde el panel lateral al lienzo o muévelos dentro de la cuadrícula para organizar el plan de estudios. Filtra la lista escribiendo abajo.
-          </p>
           <div className="relative">
             <input
               type="text"
@@ -166,8 +195,8 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                   onDragStart={(e) => onDragStart(e, course)}
                   onDragEnd={onDragEnd}
                   className={`group relative p-3 rounded-xl border transition-all select-none flex items-start gap-2 ${isOnCanvas
-                      ? 'bg-[#161b22]/50 border-gray-800/50 opacity-40 cursor-not-allowed'
-                      : 'bg-[#1a202c] hover:bg-[#222938] border-gray-800 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing hover:shadow-md hover:shadow-indigo-500/5'
+                    ? 'bg-[#161b22]/50 border-gray-800/50 opacity-40 cursor-not-allowed'
+                    : 'bg-[#1a202c] hover:bg-[#222938] border-gray-800 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing hover:shadow-md hover:shadow-indigo-500/5'
                     }`}
                 >
                   {!isOnCanvas && (
@@ -270,11 +299,10 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
 
       {/* Snackbar Notificación */}
       {notification && (
-        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl border z-50 flex items-center gap-3 transition-all animate-in fade-in slide-in-from-bottom-4 ${
-          notification.type === 'success' 
-            ? 'bg-green-500/10 border-green-500/20 text-green-400' 
+        <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl border z-50 flex items-center gap-3 transition-all animate-in fade-in slide-in-from-bottom-4 ${notification.type === 'success'
+            ? 'bg-green-500/10 border-green-500/20 text-green-400'
             : 'bg-red-500/10 border-red-500/20 text-red-400'
-        }`}>
+          }`}>
           {notification.type === 'success' ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
           ) : (
@@ -345,10 +373,23 @@ function Slot({
   };
 
   if (placedCourse) {
+    const handleLocalDragStart = (e: React.DragEvent) => {
+      const btn = e.currentTarget.querySelector('button');
+      if (btn) {
+        btn.style.display = 'none';
+      }
+      onDragStartCourse(e);
+      setTimeout(() => {
+        if (btn) {
+          btn.style.display = '';
+        }
+      }, 0);
+    };
+
     return (
       <div
         draggable
-        onDragStart={onDragStartCourse}
+        onDragStart={handleLocalDragStart}
         onDragEnd={onDragEndCourse}
         title={placedCourse.name}
         className="h-10 w-full rounded-lg bg-[#2a3441] border border-indigo-500 shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-[#323d4d] transition-colors group relative"
@@ -358,7 +399,7 @@ function Slot({
             e.stopPropagation();
             onRemoveCourse(placedCourse.id);
           }}
-          className="absolute -top-1.5 -right-1.5 bg-red-500/20 hover:bg-red-500/80 text-red-200 hover:text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10"
+          className="absolute -top-1.5 -right-1.5 bg-red-500/20 hover:bg-red-500/80 text-red-200 hover:text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10 cursor-pointer"
           title="Remover curso de la malla"
         >
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -378,8 +419,8 @@ function Slot({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`h-10 w-full border border-dashed rounded-lg flex items-center justify-center transition-all duration-200 ${isDragOver
-          ? 'border-green-500 bg-green-500/10'
-          : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
+        ? 'border-green-500 bg-green-500/10'
+        : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
         }`}
     >
       {isDragOver && (
