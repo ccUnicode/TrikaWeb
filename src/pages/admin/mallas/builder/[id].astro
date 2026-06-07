@@ -58,6 +58,25 @@ const { data: courses, error: coursesError } = await supabaseAdmin
 if (coursesError) {
     console.error("Error fetching courses:", coursesError);
 }
+
+// Obtener los cursos ya asignados a esta malla
+const { data: planCourses, error: planCoursesError } = await supabaseAdmin
+    .from("plan_courses")
+    .select("course_id, cycle, row_index, courses (id, code, name, credits)")
+    .eq("plan_id", id);
+
+if (planCoursesError) {
+    console.error("Error fetching plan courses:", planCoursesError);
+}
+
+const initialPlacedCourses = planCourses ? planCourses.map((pc: any) => ({
+    id: pc.courses?.id,
+    code: pc.courses?.code || "",
+    name: pc.courses?.name || "",
+    credits: pc.courses?.credits,
+    cycle: pc.cycle,
+    row_index: pc.row_index
+})).filter(c => c.id !== undefined) : [];
 ---
 
 <Layout title={`Constructor de Malla (${specialtyName} - ${plan.year}) | TrikaWeb Admin`}>
@@ -90,7 +109,7 @@ if (coursesError) {
 
             <!-- Canvas Container -->
             <div class="w-full">
-                <CurriculumBuilder client:load planId={formattedPlan.id} plan={formattedPlan} initialCourses={courses || []} />
+                <CurriculumBuilder client:load planId={formattedPlan.id} plan={formattedPlan} initialCourses={courses || []} initialPlacedCourses={initialPlacedCourses} />
             </div>
         </div>
     </div>

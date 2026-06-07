@@ -25,11 +25,12 @@ interface CurriculumBuilderProps {
     };
   };
   initialCourses: CourseData[];
+  initialPlacedCourses: PlacedCourse[];
 }
 
-export default function CurriculumBuilder({ planId, plan, initialCourses }: CurriculumBuilderProps) {
+export default function CurriculumBuilder({ planId, plan, initialCourses, initialPlacedCourses = [] }: CurriculumBuilderProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [placedCourses, setPlacedCourses] = useState<PlacedCourse[]>([]);
+  const [placedCourses, setPlacedCourses] = useState<PlacedCourse[]>(initialPlacedCourses);
   const [draggedCourseId, setDraggedCourseId] = useState<number | null>(null);
 
   // Filtrar lista de cursos en el sidebar
@@ -61,13 +62,47 @@ export default function CurriculumBuilder({ planId, plan, initialCourses }: Curr
     const btn = document.getElementById('trigger-save-malla');
     if (!btn) return;
 
-    const handleSave = () => {
-      console.log('Cursos colocados:', placedCourses);
+    const handleSave = async () => {
+      const originalText = btn.innerText;
+      btn.innerText = 'Guardando...';
+      btn.setAttribute('disabled', 'true');
+      btn.style.opacity = '0.5';
+
+      try {
+        const response = await fetch('/api/admin/save-malla', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            planId,
+            placedCourses: placedCourses.map(c => ({
+              course_id: c.id,
+              cycle: c.cycle,
+              row_index: c.row_index
+            }))
+          })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+          alert('¡Malla guardada correctamente!');
+        } else {
+          alert('Error al guardar la malla: ' + (result.error || 'Intente de nuevo.'));
+        }
+      } catch (err) {
+        console.error("Error al guardar la malla:", err);
+        alert('Error de conexión al guardar la malla.');
+      } finally {
+        btn.innerText = originalText;
+        btn.removeAttribute('disabled');
+        btn.style.opacity = '1';
+      }
     };
 
     btn.addEventListener('click', handleSave);
     return () => btn.removeEventListener('click', handleSave);
-  }, [placedCourses]);
+  }, [placedCourses, planId]);
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-180px)] w-full">
@@ -175,7 +210,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses }: Curr
           </div>
 
           {/* Cuadrícula Principal (Columnas y Slots) */}
-          <div className="grid grid-cols-10 gap-2 flex-1 pb-10">
+          <div className="grid grid-cols-10 gap-2 flex-1">
             {Array.from({ length: 10 }).map((_, colIndex) => {
               const cycle = colIndex + 1;
               return (
@@ -313,7 +348,7 @@ function Slot({
         }`}
     >
       {isDragOver && (
-        <span className="text-xs font-bold text-green-500 tracking-wide uppercase">Soltar aquí</span>
+        <span className="text-xs font-bold text-green-500 tracking-wide uppercase pointer-events-none">Soltar aquí</span>
       )}
     </div>
   );
