@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { GripVertical, Link2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { GripVertical, Link2, Loader2 } from 'lucide-react';
 
 interface CourseData {
   id: number;
@@ -36,6 +37,12 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [showInfo, setShowInfo] = useState(false);
   const [selectedCourseForPrereqs, setSelectedCourseForPrereqs] = useState<PlacedCourse | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveRoot, setSaveRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setSaveRoot(document.getElementById('react-save-button-root'));
+  }, []);
 
   // Filtrar lista de cursos en el sidebar
   const filteredCourses = useMemo(() => {
@@ -62,58 +69,56 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
     setPlacedCourses(prev => prev.filter(p => p.id !== courseId));
   };
 
-  useEffect(() => {
-    const btn = document.getElementById('trigger-save-malla');
-    if (!btn) return;
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/admin/save-malla', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          planId,
+          placedCourses: placedCourses.map(c => ({
+            course_id: c.id,
+            cycle: c.cycle,
+            row_index: c.row_index,
+            prerequisites: c.prerequisites || []
+          }))
+        })
+      });
 
-    const handleSave = async () => {
-      const originalText = btn.innerText;
-      btn.innerText = 'Guardando...';
-      btn.setAttribute('disabled', 'true');
-      btn.style.opacity = '0.5';
-
-      try {
-        const response = await fetch('/api/admin/save-malla', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            planId,
-            placedCourses: placedCourses.map(c => ({
-              course_id: c.id,
-              cycle: c.cycle,
-              row_index: c.row_index,
-              prerequisites: c.prerequisites || []
-            }))
-          })
-        });
-
-        const result = await response.json();
-        if (result.ok) {
-          setNotification({ message: '¡Malla guardada correctamente!', type: 'success' });
-          setTimeout(() => setNotification(null), 3000);
-        } else {
-          setNotification({ message: 'Error al guardar la malla: ' + (result.error || 'Intente de nuevo.'), type: 'error' });
-          setTimeout(() => setNotification(null), 3000);
-        }
-      } catch (err) {
-        console.error("Error al guardar la malla:", err);
-        setNotification({ message: 'Error de conexión al guardar la malla.', type: 'error' });
+      const result = await response.json();
+      if (result.ok) {
+        setNotification({ message: '¡Malla guardada correctamente!', type: 'success' });
         setTimeout(() => setNotification(null), 3000);
-      } finally {
-        btn.innerText = originalText;
-        btn.removeAttribute('disabled');
-        btn.style.opacity = '1';
+      } else {
+        setNotification({ message: 'Error al guardar la malla: ' + (result.error || 'Intente de nuevo.'), type: 'error' });
+        setTimeout(() => setNotification(null), 3000);
       }
-    };
+    } catch (err) {
+      console.error("Error al guardar la malla:", err);
+      setNotification({ message: 'Error de conexión al guardar la malla.', type: 'error' });
+      setTimeout(() => setNotification(null), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-    btn.addEventListener('click', handleSave);
-    return () => btn.removeEventListener('click', handleSave);
-  }, [placedCourses, planId]);
+  const saveButton = (
+    <button
+      onClick={handleSave}
+      disabled={isSaving}
+      className="bg-global-primary hover:bg-global-primary-hover text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-md shadow-global-primary/10 transition-all active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+    >
+      {isSaving && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+      {isSaving ? "Guardando..." : (placedCourses.length > 0 ? "Actualizar Malla" : "Guardar Malla")}
+    </button>
+  );
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-180px)] w-full">
+      {saveRoot && createPortal(saveButton, saveRoot)}
       {/* Sidebar - Cursos disponibles */}
       <aside className="w-full lg:w-[350px] flex-shrink-0 flex flex-col h-full overflow-hidden bg-[#1e2430] border border-gray-800 rounded-xl p-4">
         <div className="border-b border-gray-800 pb-4 mb-4">

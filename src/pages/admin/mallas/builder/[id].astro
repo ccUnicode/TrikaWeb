@@ -102,11 +102,7 @@ const initialPlacedCourses = planCourses ? planCourses.map((pc: any) => ({
                         </span>
                     </div>
                 </div>
-                <div>
-                    <button id="trigger-save-malla" class="bg-global-primary hover:bg-global-primary-hover text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-md shadow-global-primary/10 transition-all active:scale-95 cursor-pointer">
-                        {initialPlacedCourses.length > 0 ? "Actualizar Malla" : "Guardar Malla"}
-                    </button>
-                </div>
+                <div id="react-save-button-root"></div>
             </div>
 
             <!-- Canvas Container -->
