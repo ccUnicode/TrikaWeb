@@ -136,16 +136,16 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                     <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                    ¿Cómo funciona esta página?
+                    ¿Cómo funciona?
                   </h4>
                   <p className="mb-2">
-                    Esta sección es el Constructor Visual de Mallas. Te permite diseñar y estructurar la malla académica de forma interactiva:
+                    Constructor interactivo para estructurar la malla académica:
                   </p>
                   <ul className="list-disc pl-4 space-y-1">
-                    <li><strong>Agregar:</strong> Arrastra un curso desde la lista de abajo hacia cualquier espacio vacío en la cuadrícula derecha.</li>
-                    <li><strong>Mover:</strong> Puedes reubicar los cursos ya asignados arrastrándolos a otro ciclo o casilla.</li>
-                    <li><strong>Remover:</strong> Coloca el cursor sobre un curso colocado en la cuadrícula y presiona la <span className="text-red-400">"X"</span> roja.</li>
-                    <li><strong>Filtrar:</strong> Utiliza el buscador para ubicar cursos específicos rápidamente.</li>
+                    <li><strong>Organizar:</strong> Arrastra cursos a la cuadrícula para agregarlos o moverlos.</li>
+                    <li><strong>Quitar:</strong> Pasa el cursor sobre un curso en la malla y haz clic en la <span className="text-red-400">"X"</span>.</li>
+                    <li><strong>Prerrequisitos:</strong> Haz clic en un curso posicionado para gestionar sus requisitos.</li>
+                    <li><strong>Buscar:</strong> Escribe en el buscador para filtrar asignaturas rápidamente.</li>
                   </ul>
                 </div>
               )}
