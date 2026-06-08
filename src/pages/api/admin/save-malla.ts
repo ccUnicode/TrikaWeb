@@ -59,6 +59,39 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         console.error("Error al insertar cursos en plan_courses:", insertError);
         throw insertError;
       }
+
+      // 3. Persistir Pre-requisitos
+      for (const pc of placedCourses) {
+        // Eliminar pre-requisitos previos
+        const { error: delPrereqError } = await supabase
+          .from('course_prerequisites')
+          .delete()
+          .eq('course_id', pc.course_id)
+          .eq('plan_id', planId);
+
+        if (delPrereqError) {
+           console.error("Error al eliminar pre-requisitos:", delPrereqError);
+           throw delPrereqError;
+        }
+
+        // Insertar nuevos pre-requisitos si existen
+        if (pc.prerequisites && pc.prerequisites.length > 0) {
+          const prereqInserts = pc.prerequisites.map((prereqId: number) => ({
+            plan_id: planId,
+            course_id: pc.course_id,
+            prerequisite_id: prereqId
+          }));
+
+          const { error: insPrereqError } = await supabase
+            .from('course_prerequisites')
+            .insert(prereqInserts);
+
+          if (insPrereqError) {
+            console.error("Error al insertar pre-requisitos:", insPrereqError);
+            throw insPrereqError;
+          }
+        }
+      }
     }
 
     return new Response(JSON.stringify({
