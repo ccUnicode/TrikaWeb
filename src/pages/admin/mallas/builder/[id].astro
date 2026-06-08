@@ -69,13 +69,26 @@ if (planCoursesError) {
     console.error("Error fetching plan courses:", planCoursesError);
 }
 
+// Obtener los prerrequisitos de esta malla
+const { data: prerequisites, error: prerequisitesError } = await supabaseAdmin
+    .from("course_prerequisites")
+    .select("course_id, prerequisite_id")
+    .eq("plan_id", id);
+
+if (prerequisitesError) {
+    console.error("Error fetching prerequisites:", prerequisitesError);
+}
+
 const initialPlacedCourses = planCourses ? planCourses.map((pc: any) => ({
     id: pc.courses?.id,
     code: pc.courses?.code || "",
     name: pc.courses?.name || "",
     credits: pc.courses?.credits,
     cycle: pc.cycle,
-    row_index: pc.row_index
+    row_index: pc.row_index,
+    prerequisites: prerequisites 
+        ? prerequisites.filter((p: any) => p.course_id === pc.courses?.id).map((p: any) => p.prerequisite_id)
+        : []
 })).filter(c => c.id !== undefined) : [];
 ---
 
