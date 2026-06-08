@@ -432,7 +432,7 @@ function Slot({
         </button>
 
         {placedCourse.prerequisites && placedCourse.prerequisites.length > 0 && (
-          <div className="absolute -bottom-1.5 -left-1.5 bg-global-primary/20 border border-global-primary/30 text-global-primary rounded-full p-0.5 shadow-sm" title={`${placedCourse.prerequisites.length} pre-requisito(s)`}>
+          <div className="absolute bottom-1 left-1 bg-global-primary/20 border border-global-primary/30 text-global-primary rounded-full p-0.5 shadow-sm" title={`${placedCourse.prerequisites.length} pre-requisito(s)`}>
             <Link2 size={12} />
           </div>
         )}
