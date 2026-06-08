@@ -123,7 +123,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
               <button
                 type="button"
                 onClick={() => setShowInfo(!showInfo)}
-                className="text-gray-500 hover:text-indigo-400 transition-colors focus:outline-none cursor-pointer"
+                className="text-gray-500 hover:text-green-400 transition-colors focus:outline-none cursor-pointer"
                 title="Información de la página"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +133,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
               {showInfo && (
                 <div className="absolute left-0 top-7 w-72 p-3.5 bg-global-card border border-global-border rounded-xl shadow-2xl z-50 text-xs text-gray-400 font-normal leading-relaxed">
                   <h4 className="font-semibold text-white mb-1.5 flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     ¿Cómo funciona esta página?
@@ -150,7 +150,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                 </div>
               )}
             </span>
-            <span className="text-xs bg-indigo-500/10 text-indigo-400 px-2.5 py-0.5 rounded-full font-semibold border border-indigo-500/20">
+            <span className="text-xs bg-green-500/10 text-green-400 px-2.5 py-0.5 rounded-full font-semibold border border-green-500/20">
               {filteredCourses.length}
             </span>
           </h2>
