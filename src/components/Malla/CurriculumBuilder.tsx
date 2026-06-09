@@ -39,6 +39,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
   const [selectedCourseForPrereqs, setSelectedCourseForPrereqs] = useState<PlacedCourse | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveRoot, setSaveRoot] = useState<HTMLElement | null>(null);
+  const [hasBeenSaved, setHasBeenSaved] = useState(initialPlacedCourses.length > 0);
 
   useEffect(() => {
     setSaveRoot(document.getElementById('react-save-button-root'));
@@ -91,6 +92,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
       const result = await response.json();
       if (result.ok) {
         setNotification({ message: '¡Malla guardada correctamente!', type: 'success' });
+        setHasBeenSaved(true);
         setTimeout(() => setNotification(null), 3000);
       } else {
         setNotification({ message: 'Error al guardar la malla: ' + (result.error || 'Intente de nuevo.'), type: 'error' });
@@ -112,7 +114,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
       className="bg-global-primary hover:bg-global-primary-hover text-black px-4 py-2 rounded-lg text-sm font-semibold shadow-md shadow-global-primary/10 transition-all active:scale-95 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       {isSaving && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
-      {isSaving ? "Guardando..." : (placedCourses.length > 0 ? "Actualizar Malla" : "Guardar Malla")}
+      {isSaving ? "Guardando..." : (hasBeenSaved ? "Actualizar Malla" : "Guardar Malla")}
     </button>
   );
 
