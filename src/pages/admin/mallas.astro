@@ -45,33 +45,56 @@ if (specError) {
                     <div class="space-y-4">
                         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                             <div>
-                                <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="specialty-select">Especialidad *</label>
-                                <select id="specialty-select" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors">
-                                    <option value="">Seleccione una carrera</option>
-                                    {specialties?.map((spec: any) => (
-                                        <option value={spec.id}>{spec.name}</option>
-                                    ))}
-                                </select>
+                                <label class="block text-sm font-medium text-global-text-muted mb-1.5">Especialidad *</label>
+                                <div class="relative" id="custom-select-container">
+                                    <!-- Hidden Input to preserve functionality -->
+                                    <input type="hidden" id="specialty-select" value="" />
+                                    
+                                    <!-- Trigger Button -->
+                                    <button type="button" id="custom-select-trigger" class="w-full flex items-center justify-between rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text-muted outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-all cursor-pointer">
+                                        <span id="custom-select-label">Seleccione una carrera</span>
+                                        <svg id="custom-select-chevron" class="h-4 w-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                    </button>
+
+                                    <!-- Dropdown List -->
+                                    <div id="custom-select-dropdown" class="absolute z-50 left-0 right-0 mt-1.5 max-h-60 overflow-y-auto rounded-xl border border-global-border bg-global-card p-1 shadow-2xl hidden custom-select-scrollbar">
+                                        <div class="px-4 py-2 text-sm text-global-text-muted hover:bg-[#222938] hover:text-white rounded-lg cursor-pointer transition-colors" data-value="">
+                                            Seleccione una carrera
+                                        </div>
+                                        {specialties?.map((spec: any) => (
+                                            <div class="px-4 py-2 text-sm text-global-text hover:bg-[#222938] hover:text-white rounded-lg cursor-pointer transition-colors" data-value={spec.id}>
+                                                {spec.name}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="malla-year">Año de Publicación *</label>
-                                <input id="malla-year" type="number" placeholder="Ej: 2021" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
+                                <div class="relative">
+                                    <svg class="absolute left-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    <input id="malla-year" type="number" placeholder="Ej: 2021" class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="malla-rows">Filas de la cuadrícula *</label>
-                                <input id="malla-rows" type="number" value="15" placeholder="Ej: 15" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
+                                <input id="malla-rows" type="number" value="15" min="8" max="15" placeholder="Ej: 15" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
+                                <span class="text-xs text-gray-400 mt-1 block">Rango permitido: 8 a 15</span>
                             </div>
                             <div class="flex flex-col justify-center mt-2 sm:mt-0">
-                                <label class="flex items-center gap-2 cursor-pointer mt-5">
-                                    <input type="checkbox" id="malla-current" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-global-primary focus:ring-global-primary focus:ring-offset-gray-800" />
-                                    <span class="text-sm font-medium text-global-text">¿Es la malla actual?</span>
+                                <label class="flex items-center gap-3 cursor-pointer mt-5 group">
+                                    <div class="relative flex items-center justify-center">
+                                        <input type="checkbox" id="malla-current" class="peer appearance-none w-5 h-5 rounded-md border border-gray-600 bg-gray-800 checked:bg-green-500 checked:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-[#161b22] transition-all cursor-pointer" />
+                                        <svg class="absolute w-3.5 h-3.5 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                    </div>
+                                    <span class="text-sm font-medium text-global-text group-hover:text-white transition-colors">¿Es la malla actual?</span>
                                 </label>
                             </div>
                         </div>
                         <div class="flex gap-3 items-center">
-                            <button id="add-malla-btn" type="button" class="rounded-xl bg-global-primary px-6 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer inline-flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                Guardar Malla
+                            <button id="add-malla-btn" type="button" class="rounded-xl bg-global-primary px-6 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer inline-flex items-center gap-2 shadow-lg shadow-global-primary/20 active:scale-95">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14m7-7H5"></path></svg>
+                                Añadir malla
                             </button>
                             <span id="add-feedback" class="text-sm hidden"></span>
                         </div>
@@ -95,6 +118,7 @@ if (specError) {
                                 <tr>
                                     <th scope="col" class="px-6 py-3">Especialidad</th>
                                     <th scope="col" class="px-6 py-3 text-center">Año</th>
+                                    <th scope="col" class="px-6 py-3 text-center">Cursos</th>
                                     <th scope="col" class="px-6 py-3 text-center">Filas (Grid)</th>
                                     <th scope="col" class="px-6 py-3 text-center">Estado</th>
                                     <th scope="col" class="px-6 py-3 text-right">Acciones</th>
@@ -142,10 +166,17 @@ if (specError) {
         
         // Inputs
         const addMallaBtn = document.getElementById("add-malla-btn");
-        const specSelect = document.getElementById("specialty-select") as HTMLSelectElement;
+        const specSelect = document.getElementById("specialty-select") as HTMLInputElement;
         const yearInput = document.getElementById("malla-year") as HTMLInputElement;
         const rowsInput = document.getElementById("malla-rows") as HTMLInputElement;
         const currentCheck = document.getElementById("malla-current") as HTMLInputElement;
+
+        // Custom Select Elements
+        const customSelectContainer = document.getElementById("custom-select-container");
+        const customSelectTrigger = document.getElementById("custom-select-trigger");
+        const customSelectDropdown = document.getElementById("custom-select-dropdown");
+        const customSelectLabel = document.getElementById("custom-select-label");
+        const customSelectChevron = document.getElementById("custom-select-chevron");
 
         async function loadMallas(page: number = 1) {
             currentPage = page;
@@ -188,17 +219,23 @@ if (specError) {
             if (!mallasList) return;
             mallasList.innerHTML = plans.map(p => {
                 const isCurrentBadge = p.is_current 
-                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">Vigente</span>'
-                    : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20">Histórica</span>';
+                    ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Vigente</span>'
+                    : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">Histórica</span>';
                 
+                const coursesCount = p.plan_courses?.[0]?.count || 0;
+                const coursesBadge = coursesCount > 0 
+                    ? `<span class="font-medium text-white">${coursesCount}</span>` 
+                    : `<span class="text-gray-500">0</span>`;
+
                 return `
                     <tr class="hover:bg-global-bg/50 transition-colors">
                         <td class="px-6 py-4 font-medium text-global-text">${p.specialties?.name || 'Desconocida'}</td>
-                        <td class="px-6 py-4 text-center">${p.year}</td>
-                        <td class="px-6 py-4 text-center">${p.grid_rows}</td>
+                        <td class="px-6 py-4 text-center text-white">${p.year}</td>
+                        <td class="px-6 py-4 text-center">${coursesBadge}</td>
+                        <td class="px-6 py-4 text-center text-global-text-muted">${p.grid_rows}</td>
                         <td class="px-6 py-4 text-center">${isCurrentBadge}</td>
                         <td class="px-6 py-4 text-right">
-                            <a href="/admin/mallas/builder/${p.id}" class="text-global-primary hover:text-global-primary-hover text-xs font-semibold inline-flex items-center gap-1 cursor-pointer">
+                            <a href="/admin/mallas/builder/${p.id}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover transition-all text-xs font-semibold shadow-md shadow-global-primary/10 cursor-pointer active:scale-95">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 Armar Malla
                             </a>
@@ -235,6 +272,12 @@ if (specError) {
                     showFeedback("Malla guardada correctamente", "success");
                     yearInput.value = "";
                     currentCheck.checked = false;
+                    if (specSelect) specSelect.value = "";
+                    if (customSelectLabel) {
+                        customSelectLabel.textContent = "Seleccione una carrera";
+                        customSelectLabel.classList.add("text-global-text-muted");
+                        customSelectLabel.classList.remove("text-white");
+                    }
                     loadMallas(1);
                 } else {
                     showFeedback(data.error || "Error al guardar", "error");
@@ -263,6 +306,69 @@ if (specError) {
         nextBtn?.addEventListener("click", () => loadMallas(currentPage + 1));
         addMallaBtn?.addEventListener("click", addMalla);
 
+        // Custom Select Events
+        customSelectTrigger?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const isHidden = customSelectDropdown?.classList.contains("hidden");
+            if (isHidden) {
+                customSelectDropdown?.classList.remove("hidden");
+                customSelectChevron?.classList.add("rotate-180");
+                customSelectTrigger?.classList.add("border-global-primary", "ring-1", "ring-global-primary");
+            } else {
+                closeCustomSelect();
+            }
+        });
+
+        function closeCustomSelect() {
+            customSelectDropdown?.classList.add("hidden");
+            customSelectChevron?.classList.remove("rotate-180");
+            customSelectTrigger?.classList.remove("border-global-primary", "ring-1", "ring-global-primary");
+        }
+
+        document.addEventListener("click", (e) => {
+            if (!customSelectContainer?.contains(e.target as Node)) {
+                closeCustomSelect();
+            }
+        });
+
+        customSelectDropdown?.querySelectorAll("[data-value]").forEach(item => {
+            item.addEventListener("click", () => {
+                const val = item.getAttribute("data-value") || "";
+                const text = item.textContent?.trim() || "";
+                if (specSelect) {
+                    specSelect.value = val;
+                }
+                if (customSelectLabel) {
+                    customSelectLabel.textContent = text;
+                    if (val === "") {
+                        customSelectLabel.classList.add("text-global-text-muted");
+                        customSelectLabel.classList.remove("text-white");
+                    } else {
+                        customSelectLabel.classList.remove("text-global-text-muted");
+                        customSelectLabel.classList.add("text-white");
+                    }
+                }
+                closeCustomSelect();
+            });
+        });
+
         loadMallas();
     </script>
+
+    <style>
+        .custom-select-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-select-scrollbar::-webkit-scrollbar-track {
+            background: #ffffff;
+            border-radius: 0 12px 12px 0;
+        }
+        .custom-select-scrollbar::-webkit-scrollbar-thumb {
+            background: #888888;
+            border-radius: 4px;
+        }
+        .custom-select-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555555;
+        }
+    </style>
 </Layout>
