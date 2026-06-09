@@ -271,7 +271,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
               const cycle = colIndex + 1;
               return (
                 <div key={`col-${cycle}`} className="flex flex-col gap-1.5">
-                  {Array.from({ length: 15 }).map((_, rowIndex) => {
+                  {Array.from({ length: plan.grid_rows }).map((_, rowIndex) => {
                     const row_index = rowIndex + 1;
                     const placedCourse = placedCourses.find(c => c.cycle === cycle && c.row_index === row_index);
 
