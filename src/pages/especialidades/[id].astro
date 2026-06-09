@@ -9,144 +9,96 @@ import type {
     CoursePrerequisite,
 } from "../../lib/curriculumTypes";
 
-console.log("========== [Malla] Inicio de queries ==========");
+const { id } = Astro.params;
 
-// 1. Buscar la especialidad por nombre
-const { data: specialty, error: specError } = await supabaseAdmin
-    .from("specialties")
-    .select("id, name")
-    .eq("name", "Ingeniería de Software")
+// Validar formato UUID
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (!id || !uuidRegex.test(id)) {
+    return Astro.redirect("/especialidades");
+}
+
+// 1. Buscar el plan de estudios por ID (solo si está publicado)
+const { data: plan, error: planError } = await supabaseAdmin
+    .from("study_plans")
+    .select(`
+        id,
+        year,
+        is_current,
+        specialty_id,
+        specialties (
+            id,
+            name
+        )
+    `)
+    .eq("id", id)
+    .eq("is_published", true)
     .single();
 
-console.log("[Malla] Query 1 — specialty:", JSON.stringify(specialty));
-if (specError) {
-    console.error(
-        "[Malla] Query 1 — ERROR specialty:",
-        JSON.stringify(specError),
-    );
+if (planError || !plan) {
+    return Astro.redirect("/especialidades");
 }
 
-// 2. Buscar el plan vigente de esa especialidad
-let planYear = "2021";
-let planId: number | null = null;
+const specialtyData = Array.isArray(plan.specialties) ? plan.specialties[0] : plan.specialties;
+const specialtyName = (specialtyData as any)?.name || "Especialidad Desconocida";
+const planYear = String(plan.year);
 
-if (specialty) {
-    const { data: plan, error: planError } = await supabaseAdmin
-        .from("study_plans")
-        .select("id, year, is_current")
-        .eq("specialty_id", specialty.id)
-        .eq("is_current", true)
-        .single();
-
-    console.log("[Malla] Query 2 — plan:", JSON.stringify(plan));
-    if (planError) {
-        console.error(
-            "[Malla] Query 2 — ERROR plan:",
-            JSON.stringify(planError),
-        );
-    }
-
-    if (plan) {
-        planId = plan.id;
-        planYear = String(plan.year);
-    }
-} else {
-    console.warn("[Malla] Specialty no encontrada, saltando queries 2-4.");
-}
-
-console.log("[Malla] planId resuelto:", planId, "| planYear:", planYear);
-
-// 3. Obtener los cursos del plan (join con courses para code y name)
+// 2. Obtener los cursos del plan (join con courses para code, name, credits y evaluation_systems)
 let courses: CurriculumCourse[] = [];
-if (planId) {
-    const { data: planCourses, error: pcError } = await supabaseAdmin
-        .from("plan_courses")
-        .select(
-            "plan_id, course_id, cycle, row_index, courses (id, code, name, credits, evaluation_systems (system_cod))",
-        )
-        .eq("plan_id", planId);
+const { data: planCourses, error: pcError } = await supabaseAdmin
+    .from("plan_courses")
+    .select(
+        "plan_id, course_id, cycle, row_index, courses (id, code, name, credits, evaluation_systems (system_cod))",
+    )
+    .eq("plan_id", plan.id);
 
-    console.log(
-        "[Malla] Query 3 — planCourses count:",
-        planCourses?.length ?? 0,
-    );
-    console.log(
-        "[Malla] Query 3 — planCourses (primeros 3):",
-        JSON.stringify(planCourses?.slice(0, 3)),
-    );
-    if (pcError) {
-        console.error(
-            "[Malla] Query 3 — ERROR planCourses:",
-            JSON.stringify(pcError),
-        );
-    }
-
-    if (planCourses) {
-        courses = planCourses.map((pc: any) => ({
-            course_id: pc.course_id,
-            code: pc.courses?.code ?? "",
-            name: pc.courses?.name ?? "",
-            cycle: pc.cycle,
-            credits: pc.courses?.credits ?? undefined,
-            evaluation_system:
-                pc.courses?.evaluation_systems?.system_cod ?? "N/A",
-            row_index: pc.row_index,
-        }));
-    }
-} else {
-    console.warn("[Malla] planId es null, saltando query de cursos.");
+if (pcError) {
+    console.error("[Malla Dinámica] Error obteniendo cursos:", pcError);
 }
 
-// 4. Obtener los pre-requisitos del plan
+if (planCourses) {
+    courses = planCourses.map((pc: any) => ({
+        course_id: pc.course_id,
+        code: pc.courses?.code ?? "",
+        name: pc.courses?.name ?? "",
+        cycle: pc.cycle,
+        credits: pc.courses?.credits ?? undefined,
+        evaluation_system:
+            pc.courses?.evaluation_systems?.system_cod ?? "N/A",
+        row_index: pc.row_index,
+    }));
+}
+
+// 3. Obtener los pre-requisitos del plan
 let prerequisites: CoursePrerequisite[] = [];
-if (planId) {
-    const { data: prereqs, error: prError } = await supabaseAdmin
-        .from("course_prerequisites")
-        .select("course_id, prerequisite_id")
-        .eq("plan_id", planId);
+const { data: prereqs, error: prError } = await supabaseAdmin
+    .from("course_prerequisites")
+    .select("course_id, prerequisite_id")
+    .eq("plan_id", plan.id);
 
-    console.log("[Malla] Query 4 — prereqs count:", prereqs?.length ?? 0);
-    console.log(
-        "[Malla] Query 4 — prereqs (primeros 3):",
-        JSON.stringify(prereqs?.slice(0, 3)),
-    );
-    if (prError) {
-        console.error(
-            "[Malla] Query 4 — ERROR prereqs:",
-            JSON.stringify(prError),
-        );
-    }
-
-    if (prereqs) {
-        prerequisites = prereqs.map((pr: any) => ({
-            course_id: pr.course_id,
-            prerequisite_id: pr.prerequisite_id,
-        }));
-    }
-} else {
-    console.warn("[Malla] planId es null, saltando query de pre-requisitos.");
+if (prError) {
+    console.error("[Malla Dinámica] Error obteniendo pre-requisitos:", prError);
 }
 
-// 5. Estructurar data para el componente
+if (prereqs) {
+    prerequisites = prereqs.map((pr: any) => ({
+        course_id: pr.course_id,
+        prerequisite_id: pr.prerequisite_id,
+    }));
+}
+
+// 4. Estructurar data para el componente
 const curriculumData: CurriculumData = {
-    specialtyName: specialty?.name ?? "Ingeniería de Software",
+    specialtyName,
     planYear,
     courses,
     prerequisites,
 };
-
-console.log("========== [Malla] Resumen final ==========");
-console.log(`  specialtyName: ${curriculumData.specialtyName}`);
-console.log(`  planYear: ${curriculumData.planYear}`);
-console.log(`  courses: ${curriculumData.courses.length}`);
-console.log(`  prerequisites: ${curriculumData.prerequisites.length}`);
-console.log("============================================");
 ---
 
 <Layout
     title={`Malla Curricular - ${curriculumData.specialtyName} | TrikaWeb`}
     description={`Plan de estudios ${curriculumData.planYear} de ${curriculumData.specialtyName} en la Universidad Nacional de Ingeniería. Visualiza cursos, ciclos y pre-requisitos.`}
-    keywords="malla curricular, ingeniería de software, plan de estudios, uni, universidad nacional de ingenieria, cursos, pre-requisitos"
+    keywords={`malla curricular, ${curriculumData.specialtyName.toLowerCase()}, plan de estudios, uni, universidad nacional de ingenieria, cursos, pre-requisitos`}
 >
     <div
         class="flex min-h-screen w-full flex-col items-center gap-4 mt-4 sm:mt-6 px-4 pb-4"
@@ -172,7 +124,7 @@ console.log("============================================");
                             stroke-linecap="round"
                             stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg
                         >
-                        <span class="text-global-text">Especialidades</span>
+                        <a href="/especialidades" class="hover:text-global-primary transition-colors">Especialidades</a>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="14"
