@@ -1,6 +1,8 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import ModalConfirm from "../../components/ModalConfirm.astro";
+
 
 // Obtener especialidades para el select
 const { data: specialties, error: specError } = await supabaseAdmin
@@ -121,6 +123,7 @@ if (specError) {
                                     <th scope="col" class="px-6 py-3 text-center">Cursos</th>
                                     <th scope="col" class="px-6 py-3 text-center">Filas (Grid)</th>
                                     <th scope="col" class="px-6 py-3 text-center">Estado</th>
+                                    <th scope="col" class="px-6 py-3 text-center">Visibilidad</th>
                                     <th scope="col" class="px-6 py-3 text-right">Acciones</th>
                                 </tr>
                             </thead>
@@ -148,6 +151,54 @@ if (specError) {
                 </div>
             </section>
         </div>
+
+        <!-- Edit Modal -->
+        <div id="edit-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div class="w-full max-w-md rounded-2xl bg-[#1e2430] border border-gray-800 p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-white">Editar Malla</h3>
+                    <button id="close-edit-modal-btn" class="text-gray-400 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="flex flex-col gap-4">
+                    <input type="hidden" id="edit-malla-id" />
+                    <input type="hidden" id="edit-specialty-id" />
+                    <div>
+                        <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="edit-malla-year">Año *</label>
+                        <input id="edit-malla-year" type="number" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="edit-malla-rows">Filas de la cuadrícula *</label>
+                        <input id="edit-malla-rows" type="number" min="8" max="15" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
+                    </div>
+                    <label class="flex items-center gap-3 cursor-pointer mt-2 group">
+                        <div class="relative flex items-center justify-center">
+                            <input type="checkbox" id="edit-malla-current" class="peer appearance-none w-5 h-5 rounded-md border border-gray-600 bg-gray-800 checked:bg-green-500 checked:border-green-500 focus:ring-2 focus:ring-green-500 transition-all cursor-pointer" />
+                            <svg class="absolute w-3.5 h-3.5 text-black pointer-events-none opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <span class="text-sm font-medium text-global-text group-hover:text-white transition-colors">¿Es la malla actual (Vigente)?</span>
+                    </label>
+                    <div class="flex justify-end gap-3 mt-4">
+                        <button id="cancel-edit-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-global-text bg-gray-800 hover:bg-gray-700 transition-colors">Cancelar</button>
+                        <button id="save-edit-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-black bg-global-primary hover:bg-global-primary-hover transition-colors shadow-lg shadow-global-primary/20">Guardar Cambios</button>
+                    </div>
+                    <span id="edit-feedback" class="text-sm hidden text-center"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Modal -->
+        <input type="hidden" id="delete-malla-id" />
+        <ModalConfirm 
+            id="delete-modal"
+            title="¿Eliminar malla?"
+            message="Esta acción borrará la malla y todos sus cursos posicionados. Esta acción no se puede deshacer."
+            confirmId="confirm-delete-btn"
+            cancelId="cancel-delete-btn"
+            feedbackId="delete-feedback"
+        />
+
     </div>
 
     <script>
@@ -163,6 +214,10 @@ if (specError) {
         const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
         const pageInfo = document.getElementById("page-info");
         const addFeedback = document.getElementById("add-feedback");
+        
+        // Modal Elements
+        const editModal = document.getElementById("edit-modal");
+        const deleteModal = document.getElementById("delete-modal");
         
         // Inputs
         const addMallaBtn = document.getElementById("add-malla-btn");
@@ -222,10 +277,16 @@ if (specError) {
                     ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Vigente</span>'
                     : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">Histórica</span>';
                 
+                const isPublishedBadge = p.is_published 
+                    ? `<button onclick="toggleMallaState('${p.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 cursor-pointer hover:bg-blue-500/20 transition-all active:scale-95" title="Clic para ocultar del público"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>Público</button>`
+                    : `<button onclick="toggleMallaState('${p.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20 cursor-pointer hover:bg-gray-500/20 transition-all active:scale-95" title="Clic para publicar al público"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path></svg>Oculto</button>`;
+
                 const coursesCount = p.plan_courses?.[0]?.count || 0;
                 const coursesBadge = coursesCount > 0 
                     ? `<span class="font-medium text-white">${coursesCount}</span>` 
                     : `<span class="text-gray-500">0</span>`;
+
+                const escapedPlan = JSON.stringify({id: p.id, specialty_id: p.specialties?.id, year: p.year, grid_rows: p.grid_rows, is_current: p.is_current}).replace(/"/g, '&quot;');
 
                 return `
                     <tr class="hover:bg-global-bg/50 transition-colors">
@@ -234,16 +295,46 @@ if (specError) {
                         <td class="px-6 py-4 text-center">${coursesBadge}</td>
                         <td class="px-6 py-4 text-center text-global-text-muted">${p.grid_rows}</td>
                         <td class="px-6 py-4 text-center">${isCurrentBadge}</td>
+                        <td class="px-6 py-4 text-center">${isPublishedBadge}</td>
                         <td class="px-6 py-4 text-right">
-                            <a href="/admin/mallas/builder/${p.id}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover transition-all text-xs font-semibold shadow-md shadow-global-primary/10 cursor-pointer active:scale-95">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                Armar Malla
-                            </a>
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="/admin/mallas/builder/${p.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover transition-all text-xs font-semibold shadow-md shadow-global-primary/10 cursor-pointer active:scale-95" title="Armar Malla">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                </a>
+                                <button onclick="openEditModal(${escapedPlan})" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-all text-xs font-semibold cursor-pointer active:scale-95" title="Editar Configuración">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                                <button onclick="openDeleteModal('${p.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all text-xs font-semibold cursor-pointer active:scale-95" title="Eliminar Malla">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
             }).join('');
         }
+
+        // Toggle de publicar/ocultar malla
+        (window as any).toggleMallaState = async function(planId: string) {
+            try {
+                const res = await fetch("/api/admin/toggle-malla", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ planId })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    showFeedback(data.is_published ? "Malla publicada" : "Malla ocultada", "success");
+                    loadMallas(currentPage);
+                } else {
+                    showFeedback(data.error || "Error al cambiar estado", "error");
+                }
+            } catch (err) {
+                showFeedback("Error de conexión", "error");
+            }
+        };
 
         async function addMalla() {
             const specialty_id = specSelect?.value;
@@ -300,6 +391,141 @@ if (specError) {
             if (type !== "info") setTimeout(() => addFeedback.classList.add("hidden"), 4000);
             else addFeedback.classList.remove("hidden");
         }
+
+        // --- Modals Logic ---
+        
+        // Editar Malla
+        const editId = document.getElementById("edit-malla-id") as HTMLInputElement;
+        const editSpecId = document.getElementById("edit-specialty-id") as HTMLInputElement;
+        const editYear = document.getElementById("edit-malla-year") as HTMLInputElement;
+        const editRows = document.getElementById("edit-malla-rows") as HTMLInputElement;
+        const editCurrent = document.getElementById("edit-malla-current") as HTMLInputElement;
+        const editFeedback = document.getElementById("edit-feedback");
+
+        (window as any).openEditModal = function(plan: any) {
+            editId.value = plan.id;
+            editSpecId.value = plan.specialty_id;
+            editYear.value = plan.year;
+            editRows.value = plan.grid_rows;
+            editCurrent.checked = plan.is_current;
+            
+            if (editFeedback) editFeedback.classList.add("hidden");
+            editModal?.classList.remove("hidden");
+            editModal?.classList.add("flex");
+        };
+
+        function closeEditModal() {
+            editModal?.classList.add("hidden");
+            editModal?.classList.remove("flex");
+        }
+
+        async function submitEditMalla() {
+            const id = editId.value;
+            const specialty_id = editSpecId.value;
+            const year = parseInt(editYear.value);
+            const grid_rows = parseInt(editRows.value);
+            const is_current = editCurrent.checked;
+
+            if (!year || !grid_rows) return;
+
+            const saveBtn = document.getElementById("save-edit-btn");
+            saveBtn?.classList.add("opacity-50", "pointer-events-none");
+            if (editFeedback) {
+                editFeedback.textContent = "Guardando...";
+                editFeedback.className = "text-sm text-global-text-muted mt-4 block";
+            }
+
+            try {
+                const res = await fetch("/api/admin/edit-malla", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ id, specialty_id, year, grid_rows, is_current })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    closeEditModal();
+                    showFeedback("Malla actualizada correctamente", "success");
+                    loadMallas(currentPage);
+                } else {
+                    if (editFeedback) {
+                        editFeedback.textContent = data.error || "Error al actualizar";
+                        editFeedback.className = "text-sm text-red-400 mt-4 block";
+                    }
+                }
+            } catch (err) {
+                if (editFeedback) {
+                    editFeedback.textContent = "Error de conexión";
+                    editFeedback.className = "text-sm text-red-400 mt-4 block";
+                }
+            } finally {
+                saveBtn?.classList.remove("opacity-50", "pointer-events-none");
+            }
+        }
+
+        // Eliminar Malla
+        const deleteId = document.getElementById("delete-malla-id") as HTMLInputElement;
+        const deleteFeedback = document.getElementById("delete-feedback");
+
+        (window as any).openDeleteModal = function(id: string) {
+            deleteId.value = id;
+            if (deleteFeedback) deleteFeedback.classList.add("hidden");
+            deleteModal?.classList.remove("hidden");
+            deleteModal?.classList.add("flex");
+        };
+
+        function closeDeleteModal() {
+            deleteModal?.classList.add("hidden");
+            deleteModal?.classList.remove("flex");
+        }
+
+        async function submitDeleteMalla() {
+            const id = deleteId.value;
+            const confBtn = document.getElementById("confirm-delete-btn");
+            confBtn?.classList.add("opacity-50", "pointer-events-none");
+            
+            if (deleteFeedback) {
+                deleteFeedback.textContent = "Eliminando...";
+                deleteFeedback.className = "text-sm text-global-text-muted mt-3 block text-left";
+            }
+
+            try {
+                const res = await fetch("/api/admin/delete-malla", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ id })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    closeDeleteModal();
+                    showFeedback("Malla eliminada correctamente", "success");
+                    loadMallas(currentPage);
+                } else {
+                    if (deleteFeedback) {
+                        deleteFeedback.textContent = data.error || "Error al eliminar";
+                        deleteFeedback.className = "text-sm text-red-400 mt-3 block text-left";
+                    }
+                }
+            } catch (err) {
+                if (deleteFeedback) {
+                    deleteFeedback.textContent = "Error de conexión";
+                    deleteFeedback.className = "text-sm text-red-400 mt-3 block text-left";
+                }
+            } finally {
+                confBtn?.classList.remove("opacity-50", "pointer-events-none");
+            }
+        }
+
+        // Event Listeners para Modales
+        document.getElementById("close-edit-modal-btn")?.addEventListener("click", closeEditModal);
+        document.getElementById("cancel-edit-btn")?.addEventListener("click", closeEditModal);
+        document.getElementById("save-edit-btn")?.addEventListener("click", submitEditMalla);
+        
+        document.getElementById("cancel-delete-btn")?.addEventListener("click", closeDeleteModal);
+        document.getElementById("confirm-delete-btn")?.addEventListener("click", submitDeleteMalla);
 
         refreshBtn?.addEventListener("click", () => loadMallas(currentPage));
         prevBtn?.addEventListener("click", () => loadMallas(currentPage - 1));
