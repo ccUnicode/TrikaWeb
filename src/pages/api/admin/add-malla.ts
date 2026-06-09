@@ -26,8 +26,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .eq('specialty_id', specialty_id);
 
       if (updateError) {
-        console.error("Error actualizando mallas antiguas:", updateError);
-        throw new Error("No se pudo actualizar el estado de las mallas anteriores");
+        console.error("Error real al actualizar mallas previas:", updateError);
+        // No lanzamos excepción para no detener el flujo si es la primera malla
       }
     }
 

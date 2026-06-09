@@ -28,10 +28,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         specialties (
           id,
           name
-        )
+        ),
+        plan_courses (count)
       `, { count: 'exact' });
 
     const { data: plans, error: fetchError, count } = await query
+      .order('specialty_id', { ascending: true })
       .order('year', { ascending: false })
       .range(start, end);
 
