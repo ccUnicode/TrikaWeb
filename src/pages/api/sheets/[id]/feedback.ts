@@ -20,7 +20,8 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const { stars, content } = body;
+  const stars = body.stars;
+  const content = typeof body.content === 'string' ? body.content.trim() : body.content;
 
   if (!stars || stars < 1 || stars > 5) {
     return new Response(
@@ -29,9 +30,9 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  if (!content || typeof content !== 'string' || content.trim().length === 0) {
+  if (!content || typeof content !== 'string' || content.length === 0) {
     return new Response(
-      JSON.stringify({ error: 'El comentario de texto es obligatorio' }),
+      JSON.stringify({ error: 'El comentario de texto es obligatorio y no puede estar vacío' }),
       { status: 400 }
     );
   }
@@ -211,9 +212,6 @@ export const GET: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Filtrar null/empty content en memoria como respaldo
-  const filteredList = (feedbackList ?? []).filter((f: any) => f.content && f.content.trim().length > 0);
-
   // Verificar si el device_id ya dejó feedback
   let userFeedback = null;
   if (deviceId) {
@@ -242,7 +240,7 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   return new Response(
     JSON.stringify({
-      feedback: filteredList,
+      feedback: feedbackList ?? [],
       total: count ?? 0,
       avgRating,
       page,
