@@ -13,24 +13,26 @@ export const POST: APIRoute = async ({ cookies }) => {
         );
     }
 
-    // Conteo de teacher_ratings pendientes de revisión
-    const { count: teacherCount, error: teacherError } = await supabaseAdmin
+    const teacherPromise = supabaseAdmin
         .from("teacher_ratings")
         .select("id", { count: "exact", head: true })
         .eq("needs_review", true)
         .eq("is_hidden", false);
 
-    if (teacherError) {
-        console.error("Error counting teacher pending:", teacherError);
-    }
-
-    // Conteo de sheet_feedback pendientes de revisión
-    const { count: sheetCountRaw, error: sheetError } = await supabaseAdmin
+    const sheetPromise = supabaseAdmin
         .from("sheet_feedback")
         .select("id", { count: "exact", head: true })
         .eq("needs_review", true)
         .eq("is_hidden", false);
 
+    const [
+        { count: teacherCount, error: teacherError },
+        { count: sheetCountRaw, error: sheetError }
+    ] = await Promise.all([teacherPromise, sheetPromise]);
+
+    if (teacherError) {
+        console.error("Error counting teacher pending:", teacherError);
+    }
     if (sheetError) {
         console.error("Error counting sheet pending:", sheetError);
     }
