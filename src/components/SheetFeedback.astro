@@ -191,6 +191,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     const feedbackEmpty = document.getElementById("feedback-empty");
     const feedbackLoading = document.getElementById("feedback-loading");
     const totalBadge = document.getElementById("feedback-total-badge");
+    const avgBadge = document.getElementById("feedback-avg-badge");
     const paginationEl = document.getElementById("feedback-pagination");
     const prevBtn = document.getElementById("feedback-prev-btn") as HTMLButtonElement;
     const nextBtn = document.getElementById("feedback-next-btn") as HTMLButtonElement;
@@ -204,6 +205,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     // Local State (Optimistic UI)
     let localComments: any[] = [];
     let totalComments = 0;
+    let currentAvgRating = 0;
     
     let selectedStars = 0;
     let hoverStars = 0;
@@ -354,6 +356,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
         if (cancelBtn) cancelBtn.classList.add("hidden");
         
         renderFeedbackList();
+        loadFeedback(1);
         
       } catch {
         if (formStatus) {
@@ -404,6 +407,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
           localComments = localComments.filter((c: any) => c.id !== idToDelete);
           userFeedbackId = null;
           totalComments = Math.max(0, totalComments - 1);
+          loadFeedback(1);
         } else {
           alert("Error al eliminar");
         }
@@ -674,6 +678,11 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
 
         totalComments = data.total ?? 0;
         totalPages = Math.ceil(totalComments / pageSize) || 1;
+        currentAvgRating = data.avgRating || 0;
+
+        if (avgBadge) {
+          avgBadge.textContent = currentAvgRating.toFixed(1);
+        }
 
         if (data.userFeedback) {
           userFeedbackId = data.userFeedback.id;
