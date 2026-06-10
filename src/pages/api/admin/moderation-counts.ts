@@ -25,22 +25,16 @@ export const POST: APIRoute = async ({ cookies }) => {
     }
 
     // Conteo de sheet_feedback pendientes de revisión
-    let sheetCount = 0;
-    try {
-        const { count, error: sheetError } = await supabaseAdmin
-            .from("sheet_feedback")
-            .select("id", { count: "exact", head: true })
-            .eq("needs_review", true)
-            .eq("is_hidden", false);
+    const { count: sheetCountRaw, error: sheetError } = await supabaseAdmin
+        .from("sheet_feedback")
+        .select("id", { count: "exact", head: true })
+        .eq("needs_review", true)
+        .eq("is_hidden", false);
 
-        if (sheetError) {
-            console.error("Error counting sheet pending:", sheetError);
-        } else {
-            sheetCount = count ?? 0;
-        }
-    } catch (e) {
-        console.error("sheet_feedback count failed (table may not exist):", e);
+    if (sheetError) {
+        console.error("Error counting sheet pending:", sheetError);
     }
+    let sheetCount = sheetCountRaw ?? 0;
 
     return new Response(
         JSON.stringify({
