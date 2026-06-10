@@ -226,17 +226,8 @@ export const GET: APIRoute = async ({ params, request }) => {
   }
 
   // Calcular promedio de estrellas para este sheet_id
-  const { data: allStars } = await supa
-    .from('sheet_feedback')
-    .select('stars')
-    .eq('sheet_id', sheetId)
-    .eq('is_hidden', false)
-    .neq('content', '');
-
-  let avgRating = 0;
-  if (allStars && allStars.length > 0) {
-    avgRating = allStars.reduce((acc: number, curr: any) => acc + curr.stars, 0) / allStars.length;
-  }
+  const { data: avgStars } = await supa.rpc('get_average_stars', { p_sheet_id: sheetId });
+  const avgRating = avgStars ?? 0;
 
   return new Response(
     JSON.stringify({
