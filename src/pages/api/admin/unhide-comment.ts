@@ -26,12 +26,12 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  const ratingId = Number(body?.rating_id ?? 0);
+  const recordId = Number(body?.recordId ?? body?.id ?? 0);
   const table = (body?.table ?? "teacher_ratings") as string;
 
-  if (!ratingId) {
+  if (!recordId) {
     return Response.json(
-      { ok: false, error: "Falta rating_id" },
+      { ok: false, error: "Falta recordId o id" },
       { status: 400 }
     );
   }
@@ -47,7 +47,7 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
   const { data, error } = await supabaseAdmin
     .from(table)
     .update({ is_hidden: false })
-    .eq("id", ratingId)
+    .eq("id", recordId)
     .select("id")
     .single();
 
@@ -69,7 +69,7 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
   return Response.json(
     {
       ok: true,
-      rating_id: ratingId,
+      recordId: recordId,
       hidden: false,
     },
     { status: 200 }
