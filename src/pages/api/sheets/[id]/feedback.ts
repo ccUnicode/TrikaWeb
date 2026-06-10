@@ -270,22 +270,12 @@ export const DELETE: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin;
 
-  const { data: existing } = await supa
-    .from('sheet_feedback')
-    .select('id')
-    .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
-    .maybeSingle();
-
-  if (!existing) {
-    return new Response(JSON.stringify({ error: 'No hay comentario para eliminar' }), { status: 404 });
-  }
-
-  const { error } = await supa
+  const { data, error } = await supa
     .from('sheet_feedback')
     .delete()
     .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId);
+    .eq('device_id', deviceId)
+    .select();
 
   if (error) {
     console.error('Error al eliminar feedback:', error);
@@ -293,6 +283,10 @@ export const DELETE: APIRoute = async ({ params, request }) => {
       JSON.stringify({ error: 'Error al eliminar', details: error.message }),
       { status: 500 }
     );
+  }
+
+  if (!data || data.length === 0) {
+    return new Response(JSON.stringify({ error: 'No hay comentario para eliminar' }), { status: 404 });
   }
 
   return new Response(
