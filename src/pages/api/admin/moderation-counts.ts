@@ -30,11 +30,9 @@ export const POST: APIRoute = async ({ cookies }) => {
         { count: sheetCountRaw, error: sheetError }
     ] = await Promise.all([teacherPromise, sheetPromise]);
 
-    if (teacherError) {
-        console.error("Error counting teacher pending:", teacherError);
-    }
-    if (sheetError) {
-        console.error("Error counting sheet pending:", sheetError);
+    if (teacherError || sheetError) {
+        console.error("Error counting pending records:", teacherError || sheetError);
+        return Response.json({ ok: false, error: "Error en la base de datos" }, { status: 500 });
     }
     let sheetCount = sheetCountRaw ?? 0;
 
