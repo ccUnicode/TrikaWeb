@@ -10,9 +10,9 @@ type AllowedTable = typeof ALLOWED_TABLES[number];
 export const PATCH: APIRoute = async ({ request, cookies }) => {
   const isValid = await validateAdminSession(cookies);
   if (!isValid) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Sesión inválida" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "Sesión inválida" },
+      { status: 401 }
     );
   }
 
@@ -20,26 +20,26 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ ok: false, error: "JSON inválido" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
+    return Response.json(
+      { ok: false, error: "JSON inválido" },
+      { status: 400 }
+    );
   }
 
   const ratingId = Number(body?.rating_id ?? 0);
   const table = (body?.table ?? "teacher_ratings") as string;
 
   if (!ratingId) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Falta rating_id" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "Falta rating_id" },
+      { status: 400 }
     );
   }
 
   if (!ALLOWED_TABLES.includes(table as AllowedTable)) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Tabla no válida" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "Tabla no válida" },
+      { status: 400 }
     );
   }
 
@@ -60,18 +60,18 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
     if (status === 500) {
       console.error("Error unhide-comment:", error);
     }
-    return new Response(
-      JSON.stringify({ ok: false, error: message }),
-      { status, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: message },
+      { status }
     );
   }
 
-  return new Response(
-    JSON.stringify({
+  return Response.json(
+    {
       ok: true,
       rating_id: ratingId,
       hidden: false,
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
+    },
+    { status: 200 }
   );
 };
