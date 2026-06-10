@@ -7,7 +7,7 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 const ALLOWED_TABLES = ["teacher_ratings", "sheet_feedback"] as const;
 type AllowedTable = typeof ALLOWED_TABLES[number];
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const PATCH: APIRoute = async ({ request, cookies }) => {
   const isValid = await validateAdminSession(cookies);
   if (!isValid) {
     return new Response(
