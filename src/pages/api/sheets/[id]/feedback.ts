@@ -188,7 +188,7 @@ export const GET: APIRoute = async ({ params, request }) => {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data: feedbackList, count, error: listError } = await supa
+  const feedbackPromise = supa
     .from('sheet_feedback')
     .select('id, stars, content, created_at', { count: 'exact', head: false })
     .eq('sheet_id', sheetId)
@@ -196,6 +196,27 @@ export const GET: APIRoute = async ({ params, request }) => {
     .neq('content', '')
     .order('created_at', { ascending: false })
     .range(from, to);
+
+  const userFeedbackPromise = deviceId
+    ? supa
+        .from('sheet_feedback')
+        .select('id, stars, content, created_at')
+        .eq('sheet_id', sheetId)
+        .eq('device_id', deviceId)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+
+  const avgStarsPromise = supa.rpc('get_average_stars', { p_sheet_id: sheetId });
+
+  const [
+    { data: feedbackList, count, error: listError },
+    { data: existing },
+    { data: avgStars }
+  ] = await Promise.all([
+    feedbackPromise,
+    userFeedbackPromise,
+    avgStarsPromise
+  ]);
 
   if (listError) {
     console.error('Error fetching sheet feedback:', listError);
@@ -212,21 +233,7 @@ export const GET: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Verificar si el device_id ya dejó feedback
-  let userFeedback = null;
-  if (deviceId) {
-    const { data: existing } = await supa
-      .from('sheet_feedback')
-      .select('id, stars, content, created_at')
-      .eq('sheet_id', sheetId)
-      .eq('device_id', deviceId)
-      .maybeSingle();
-
-    userFeedback = existing || null;
-  }
-
-  // Calcular promedio de estrellas para este sheet_id
-  const { data: avgStars } = await supa.rpc('get_average_stars', { p_sheet_id: sheetId });
+  const userFeedback = existing || null;
   const avgRating = avgStars ?? 0;
 
   return new Response(
