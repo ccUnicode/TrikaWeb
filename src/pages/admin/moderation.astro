@@ -693,10 +693,10 @@ if (!isAdmin) {
 
             try {
                 const res = await fetch("/api/admin/unhide-comment", {
-                    method: "POST",
+                    method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ rating_id: id, table }),
+                    body: JSON.stringify({ recordId: id, table }),
                 });
                 const data = await res.json();
 
