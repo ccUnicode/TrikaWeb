@@ -8,7 +8,7 @@ export default defineConfig({
   adapter: vercel(),
   trailingSlash: 'never',
   devToolbar: {
-    enabled: false
+    enabled: false,
   },
   vite: {
     plugins: [tailwindcss()],
