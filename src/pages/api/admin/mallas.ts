@@ -23,7 +23,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .select(`
         id,
         year,
-        grid_rows,
         is_current,
         is_published,
         specialties (

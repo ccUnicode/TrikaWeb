@@ -12,9 +12,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const body = await request.json();
-    const { specialty_id, year, grid_rows, is_current } = body;
+    const { specialty_id, year, is_current } = body;
 
-    if (!specialty_id || !year || !grid_rows) {
+    if (!specialty_id || !year) {
       return new Response(JSON.stringify({ error: 'Faltan campos obligatorios' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -37,7 +37,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .insert({
         specialty_id,
         year,
-        grid_rows,
         is_current: is_current || false
       })
       .select()

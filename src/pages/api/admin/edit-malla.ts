@@ -15,9 +15,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
 
         const body = await request.json();
-        const { id, specialty_id, year, grid_rows, is_current } = body;
+        const { id, specialty_id, year, is_current } = body;
 
-        if (!id || !specialty_id || !year || !grid_rows) {
+        if (!id || !specialty_id || !year) {
             return new Response(
                 JSON.stringify({ ok: false, error: 'Faltan campos obligatorios' }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }
@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // Actualizar la malla
         const { error: updateError } = await supabaseAdmin
             .from('study_plans')
-            .update({ year, grid_rows, is_current })
+            .update({ year, is_current })
             .eq('id', id);
 
         if (updateError) {

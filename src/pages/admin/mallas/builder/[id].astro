@@ -19,7 +19,6 @@ const { data: plan, error: planError } = await supabaseAdmin
     .select(`
         id,
         year,
-        grid_rows,
         is_current,
         specialty_id,
         specialties (
@@ -42,7 +41,6 @@ const specialtyName = specialtyData?.name || "Especialidad Desconocida";
 const formattedPlan = {
     id: plan.id,
     year: plan.year,
-    grid_rows: plan.grid_rows,
     is_current: plan.is_current,
     specialties: {
         name: specialtyName
