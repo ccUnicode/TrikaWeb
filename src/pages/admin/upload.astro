@@ -69,13 +69,19 @@ import Layout from "../../layouts/Layout.astro";
                 class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
                 placeholder="Buscar curso... ej: BMA02, Física"
               />
-              <input id="course-code" name="course_code" type="hidden" required />
+              <input
+                id="course-code"
+                name="course_code"
+                type="hidden"
+                required
+              />
               <!-- Dropdown list -->
               <ul
                 id="course-dropdown"
                 class="absolute z-50 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-global-border bg-global-card shadow-xl hidden"
                 role="listbox"
-              ></ul>
+              >
+              </ul>
             </div>
             <div>
               <label
@@ -128,7 +134,12 @@ import Layout from "../../layouts/Layout.astro";
               >
                 <option value="">-- Ingresa un curso primero --</option>
               </select>
-              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">Cargando profesores...</p>
+              <p
+                id="teacher-loading"
+                class="hidden mt-1 text-xs text-global-text-muted"
+              >
+                Cargando profesores...
+              </p>
             </div>
           </div>
 
@@ -383,7 +394,8 @@ import Layout from "../../layouts/Layout.astro";
         });
 
         if (!res.ok) {
-          if (syncMessage) syncMessage.textContent = `❌ Error del servidor (${res.status})`;
+          if (syncMessage)
+            syncMessage.textContent = `❌ Error del servidor (${res.status})`;
           return;
         }
 
@@ -431,38 +443,52 @@ import Layout from "../../layouts/Layout.astro";
     });
 
     // ── RF-30: Course Autocomplete + Teacher Dropdown ───────────
-    const courseSearch = document.getElementById("course-search") as HTMLInputElement;
-    const courseHidden = document.getElementById("course-code") as HTMLInputElement;
-    const courseDropdown = document.getElementById("course-dropdown") as HTMLUListElement;
-    const teacherSelect = document.getElementById("teacher-select") as HTMLSelectElement;
+    const courseSearch = document.getElementById(
+      "course-search",
+    ) as HTMLInputElement;
+    const courseHidden = document.getElementById(
+      "course-code",
+    ) as HTMLInputElement;
+    const courseDropdown = document.getElementById(
+      "course-dropdown",
+    ) as HTMLUListElement;
+    const teacherSelect = document.getElementById(
+      "teacher-select",
+    ) as HTMLSelectElement;
     const teacherLoading = document.getElementById("teacher-loading");
 
-    interface CourseItem { id: number; code: string; name: string; }
-    let allCourses: CourseItem[] = [];
+    interface CourseItem {
+      id: number;
+      code: string;
+      name: string;
+    }
     let lastFetchedCode = "";
     let highlightIndex = -1;
+    let searchTimeout: ReturnType<typeof setTimeout>;
+    let currentResults: CourseItem[] = [];
 
-    // Normalize for accent-insensitive matching
-    const norm = (s: string) =>
-      s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // ── Fetch all courses once on page load ──
-    (async () => {
+    // ── Fetch courses from server with search query ──
+    async function fetchCourses(query: string) {
       try {
-        const res = await fetch("/api/cursos");
+        const params = query ? `?q=${encodeURIComponent(query)}` : "";
+        const res = await fetch(`/api/cursos${params}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         if (data.ok) {
-          allCourses = data.cursos;
+          currentResults = data.cursos;
+          renderDropdown(currentResults);
         } else {
           throw new Error(data.error || "Respuesta inválida");
         }
       } catch (e) {
-        console.error("Error cargando cursos:", e);
-        courseSearch.placeholder = "⚠️ Error al cargar cursos. Recarga la página.";
-        courseSearch.classList.add("border-red-500/50");
+        console.error("Error buscando cursos:", e);
+        currentResults = [];
+        courseDropdown.classList.add("hidden");
       }
-    })();
+    }
+
+    // Cargar cursos iniciales al montar la página
+    fetchCourses("");
 
     function renderDropdown(items: CourseItem[]) {
       courseDropdown.innerHTML = "";
@@ -496,14 +522,6 @@ import Layout from "../../layouts/Layout.astro";
       courseDropdown.classList.remove("hidden");
     }
 
-    function filterCourses(query: string) {
-      const q = norm(query);
-      if (!q) return allCourses.slice(0, 20);
-      return allCourses.filter(
-        (c) => norm(c.code).includes(q) || norm(c.name).includes(q)
-      );
-    }
-
     function selectCourse(c: CourseItem) {
       courseSearch.value = `${c.code} – ${c.name}`;
       courseHidden.value = c.code;
@@ -524,16 +542,24 @@ import Layout from "../../layouts/Layout.astro";
       // Clear hidden value while user is editing
       courseHidden.value = "";
       lastFetchedCode = "";
-      teacherSelect.innerHTML = '<option value="">-- Selecciona un curso primero --</option>';
+      teacherSelect.innerHTML =
+        '<option value="">-- Selecciona un curso primero --</option>';
       teacherSelect.disabled = true;
 
-      const filtered = filterCourses(courseSearch.value);
-      renderDropdown(filtered);
+      // Debounce: buscar en servidor tras 300ms sin escribir
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        fetchCourses(courseSearch.value.trim());
+      }, 300);
     });
 
     courseSearch?.addEventListener("focus", () => {
-      const filtered = filterCourses(courseSearch.value);
-      renderDropdown(filtered);
+      // Mostrar resultados actuales o buscar si no hay
+      if (currentResults.length > 0) {
+        renderDropdown(currentResults);
+      } else {
+        fetchCourses(courseSearch.value.trim());
+      }
     });
 
     courseSearch?.addEventListener("blur", () => {
@@ -542,7 +568,9 @@ import Layout from "../../layouts/Layout.astro";
     });
 
     courseSearch?.addEventListener("keydown", (e) => {
-      const items = courseDropdown.querySelectorAll("li") as NodeListOf<HTMLLIElement>;
+      const items = courseDropdown.querySelectorAll(
+        "li",
+      ) as NodeListOf<HTMLLIElement>;
       if (!items.length) return;
 
       if (e.key === "ArrowDown") {
@@ -557,8 +585,7 @@ import Layout from "../../layouts/Layout.astro";
         e.preventDefault();
         if (highlightIndex >= 0) {
           const idx = highlightIndex;
-          const filtered = filterCourses(courseSearch.value);
-          if (filtered[idx]) selectCourse(filtered[idx]);
+          if (currentResults[idx]) selectCourse(currentResults[idx]);
         }
       } else if (e.key === "Escape") {
         courseDropdown.classList.add("hidden");
@@ -584,12 +611,15 @@ import Layout from "../../layouts/Layout.astro";
       teacherSelect.innerHTML = '<option value="">Cargando...</option>';
 
       try {
-        const res = await fetch(`/api/cursos/${encodeURIComponent(trimmed)}/profesores`);
+        const res = await fetch(
+          `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
+        );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
         if (data.ok && data.profesores.length > 0) {
-          teacherSelect.innerHTML = '<option value="">-- Selecciona un docente --</option>';
+          teacherSelect.innerHTML =
+            '<option value="">-- Selecciona un docente --</option>';
           for (const prof of data.profesores) {
             const opt = document.createElement("option");
             opt.value = prof.full_name;
@@ -598,7 +628,8 @@ import Layout from "../../layouts/Layout.astro";
           }
           teacherSelect.disabled = false;
         } else {
-          teacherSelect.innerHTML = '<option value="">Sin profesores asociados</option>';
+          teacherSelect.innerHTML =
+            '<option value="">Sin profesores asociados</option>';
           teacherSelect.disabled = true;
         }
       } catch (err) {
@@ -623,7 +654,6 @@ import Layout from "../../layouts/Layout.astro";
     const submitBtn = document.getElementById(
       "upload-submit-btn",
     ) as HTMLButtonElement;
-
 
     async function generatePdfThumbnail(file: File): Promise<Blob | null> {
       try {
@@ -651,7 +681,6 @@ import Layout from "../../layouts/Layout.astro";
         return null;
       }
     }
-
 
     function setUploadUI(msg: string, pct: number, showSpinner = true) {
       uploadStatus?.classList.remove("hidden");
@@ -688,13 +717,7 @@ import Layout from "../../layouts/Layout.astro";
         return;
       }
 
-      if (
-        !cycle ||
-        !examType ||
-        !resourceKind ||
-        !file ||
-        file.size === 0
-      ) {
+      if (!cycle || !examType || !resourceKind || !file || file.size === 0) {
         alert("Por favor completa todos los campos y selecciona un archivo.");
         return;
       }
@@ -772,7 +795,8 @@ import Layout from "../../layouts/Layout.astro";
         courseSearch.value = "";
         courseHidden.value = "";
         // Reset teacher dropdown
-        teacherSelect.innerHTML = '<option value="">-- Selecciona un curso primero --</option>';
+        teacherSelect.innerHTML =
+          '<option value="">-- Selecciona un curso primero --</option>';
         teacherSelect.disabled = true;
         lastFetchedCode = "";
 
