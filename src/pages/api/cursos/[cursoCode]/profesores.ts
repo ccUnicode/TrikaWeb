@@ -11,8 +11,9 @@ interface TeacherRow {
   full_name: string;
 }
 
-interface CourseTeacherJoin {
-  teachers: TeacherRow | null;
+interface CourseWithTeachers {
+  id: number;
+  courses_teachers: { teachers: TeacherRow | null }[];
 }
 
 export const GET: APIRoute = async ({ params }) => {
@@ -31,7 +32,7 @@ export const GET: APIRoute = async ({ params }) => {
       .from("courses")
       .select("id, courses_teachers ( teachers:teacher_id ( id, full_name ) )")
       .ilike("code", cursoCode)
-      .maybeSingle();
+      .maybeSingle<CourseWithTeachers>();
 
     if (queryError) {
       console.error("Error buscando curso y profesores:", queryError);
@@ -48,8 +49,7 @@ export const GET: APIRoute = async ({ params }) => {
       );
     }
 
-    const joins = (course.courses_teachers ?? []) as unknown as CourseTeacherJoin[];
-    const profesores = joins
+    const profesores = (course.courses_teachers ?? [])
       .map((row) => row.teachers)
       .filter((t): t is TeacherRow => t !== null && t !== undefined)
       .map((t) => ({ id: t.id, full_name: t.full_name }))
