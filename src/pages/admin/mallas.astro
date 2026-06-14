@@ -78,11 +78,6 @@ if (specError) {
                                     <input id="malla-year" type="number" placeholder="Ej: 2021" class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
                                 </div>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="malla-rows">Filas de la cuadrícula *</label>
-                                <input id="malla-rows" type="number" value="15" min="8" max="15" placeholder="Ej: 15" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
-                                <span class="text-xs text-gray-400 mt-1 block">Rango permitido: 8 a 15</span>
-                            </div>
                             <div class="flex flex-col justify-center mt-2 sm:mt-0">
                                 <label class="flex items-center gap-3 cursor-pointer mt-5 group">
                                     <div class="relative flex items-center justify-center">
@@ -121,7 +116,6 @@ if (specError) {
                                     <th scope="col" class="px-6 py-3">Especialidad</th>
                                     <th scope="col" class="px-6 py-3 text-center">Año</th>
                                     <th scope="col" class="px-6 py-3 text-center">Cursos</th>
-                                    <th scope="col" class="px-6 py-3 text-center">Filas (Grid)</th>
                                     <th scope="col" class="px-6 py-3 text-center">Estado</th>
                                     <th scope="col" class="px-6 py-3 text-center">Visibilidad</th>
                                     <th scope="col" class="px-6 py-3 text-right">Acciones</th>
@@ -167,10 +161,6 @@ if (specError) {
                     <div>
                         <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="edit-malla-year">Año *</label>
                         <input id="edit-malla-year" type="number" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="edit-malla-rows">Filas de la cuadrícula *</label>
-                        <input id="edit-malla-rows" type="number" min="8" max="15" class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors" />
                     </div>
                     <label class="flex items-center gap-3 cursor-pointer mt-2 group">
                         <div class="relative flex items-center justify-center">
@@ -223,7 +213,6 @@ if (specError) {
         const addMallaBtn = document.getElementById("add-malla-btn");
         const specSelect = document.getElementById("specialty-select") as HTMLInputElement;
         const yearInput = document.getElementById("malla-year") as HTMLInputElement;
-        const rowsInput = document.getElementById("malla-rows") as HTMLInputElement;
         const currentCheck = document.getElementById("malla-current") as HTMLInputElement;
 
         // Custom Select Elements
@@ -286,14 +275,13 @@ if (specError) {
                     ? `<span class="font-medium text-white">${coursesCount}</span>` 
                     : `<span class="text-gray-500">0</span>`;
 
-                const escapedPlan = JSON.stringify({id: p.id, specialty_id: p.specialties?.id, year: p.year, grid_rows: p.grid_rows, is_current: p.is_current}).replace(/"/g, '&quot;');
+                const escapedPlan = JSON.stringify({id: p.id, specialty_id: p.specialties?.id, year: p.year, is_current: p.is_current}).replace(/"/g, '&quot;');
 
                 return `
                     <tr class="hover:bg-global-bg/50 transition-colors">
                         <td class="px-6 py-4 font-medium text-global-text">${p.specialties?.name || 'Desconocida'}</td>
                         <td class="px-6 py-4 text-center text-white">${p.year}</td>
                         <td class="px-6 py-4 text-center">${coursesBadge}</td>
-                        <td class="px-6 py-4 text-center text-global-text-muted">${p.grid_rows}</td>
                         <td class="px-6 py-4 text-center">${isCurrentBadge}</td>
                         <td class="px-6 py-4 text-center">${isPublishedBadge}</td>
                         <td class="px-6 py-4 text-right">
@@ -339,10 +327,9 @@ if (specError) {
         async function addMalla() {
             const specialty_id = specSelect?.value;
             const year = parseInt(yearInput?.value);
-            const grid_rows = parseInt(rowsInput?.value);
             const is_current = currentCheck?.checked;
 
-            if (!specialty_id || !year || !grid_rows) {
+            if (!specialty_id || !year) {
                 showFeedback("Llene los campos obligatorios", "error");
                 return;
             }
@@ -355,7 +342,7 @@ if (specError) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ specialty_id, year, grid_rows, is_current })
+                    body: JSON.stringify({ specialty_id, year, is_current })
                 });
                 const data = await res.json();
                 
@@ -398,7 +385,6 @@ if (specError) {
         const editId = document.getElementById("edit-malla-id") as HTMLInputElement;
         const editSpecId = document.getElementById("edit-specialty-id") as HTMLInputElement;
         const editYear = document.getElementById("edit-malla-year") as HTMLInputElement;
-        const editRows = document.getElementById("edit-malla-rows") as HTMLInputElement;
         const editCurrent = document.getElementById("edit-malla-current") as HTMLInputElement;
         const editFeedback = document.getElementById("edit-feedback");
 
@@ -406,7 +392,6 @@ if (specError) {
             editId.value = plan.id;
             editSpecId.value = plan.specialty_id;
             editYear.value = plan.year;
-            editRows.value = plan.grid_rows;
             editCurrent.checked = plan.is_current;
             
             if (editFeedback) editFeedback.classList.add("hidden");
@@ -423,10 +408,9 @@ if (specError) {
             const id = editId.value;
             const specialty_id = editSpecId.value;
             const year = parseInt(editYear.value);
-            const grid_rows = parseInt(editRows.value);
             const is_current = editCurrent.checked;
 
-            if (!year || !grid_rows) return;
+            if (!year) return;
 
             const saveBtn = document.getElementById("save-edit-btn");
             saveBtn?.classList.add("opacity-50", "pointer-events-none");
@@ -440,7 +424,7 @@ if (specError) {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({ id, specialty_id, year, grid_rows, is_current })
+                    body: JSON.stringify({ id, specialty_id, year, is_current })
                 });
                 const data = await res.json();
                 
