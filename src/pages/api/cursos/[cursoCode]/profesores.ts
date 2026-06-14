@@ -26,15 +26,15 @@ export const GET: APIRoute = async ({ params }) => {
   }
 
   try {
-    // 1. Buscar el curso por código
-    const { data: course, error: courseError } = await supabaseClient
+    // Consulta única con JOIN implícito: courses → courses_teachers → teachers
+    const { data: course, error: queryError } = await supabaseClient
       .from("courses")
-      .select("id")
+      .select("id, courses_teachers ( teachers:teacher_id ( id, full_name ) )")
       .ilike("code", cursoCode)
       .maybeSingle();
 
-    if (courseError) {
-      console.error("Error buscando curso:", courseError);
+    if (queryError) {
+      console.error("Error buscando curso y profesores:", queryError);
       return new Response(
         JSON.stringify({ ok: false, error: "Error al buscar el curso" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -48,21 +48,8 @@ export const GET: APIRoute = async ({ params }) => {
       );
     }
 
-    // 2. Obtener profesores asociados al curso via courses_teachers
-    const { data: rows, error: joinError } = await supabaseClient
-      .from("courses_teachers")
-      .select("teachers:teacher_id ( id, full_name )")
-      .eq("course_id", course.id);
-
-    if (joinError) {
-      console.error("Error obteniendo profesores del curso:", joinError);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error al obtener profesores" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    const profesores = ((rows || []) as unknown as CourseTeacherJoin[])
+    const joins = (course.courses_teachers ?? []) as unknown as CourseTeacherJoin[];
+    const profesores = joins
       .map((row) => row.teachers)
       .filter((t): t is TeacherRow => t !== null && t !== undefined)
       .map((t) => ({ id: t.id, full_name: t.full_name }))
