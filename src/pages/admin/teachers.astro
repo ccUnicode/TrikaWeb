@@ -289,6 +289,39 @@ const courses = await getCourses();
         </div>
     </div>
 
+    <div
+        id="delete-teacher-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+    >
+        <div
+            class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300"
+        >
+            <h3 class="text-lg font-bold text-global-text mb-2">
+                ¿Eliminar profesor?
+            </h3>
+            <p class="text-global-text-muted text-sm mb-6">
+                Se eliminarán permanentemente todas sus calificaciones y
+                asociaciones a cursos. Esta acción no se puede deshacer.
+            </p>
+            <div class="flex justify-end gap-3">
+                <button
+                    id="cancel-delete-teacher-btn"
+                    type="button"
+                    class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
+                >
+                    Cancelar
+                </button>
+                <button
+                    id="confirm-delete-teacher-btn"
+                    type="button"
+                    class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium"
+                >
+                    Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentPage = 1;
         let currentSearch = "";
@@ -324,6 +357,80 @@ const courses = await getCourses();
             "teacher-courses",
         ) as HTMLSelectElement;
         const addFeedback = document.getElementById("add-feedback");
+
+        const deleteTeacherModal = document.getElementById(
+            "delete-teacher-modal",
+        ) as HTMLDivElement;
+        const cancelDeleteTeacherBtn = document.getElementById(
+            "cancel-delete-teacher-btn",
+        ) as HTMLButtonElement;
+        const confirmDeleteTeacherBtn = document.getElementById(
+            "confirm-delete-teacher-btn",
+        ) as HTMLButtonElement;
+
+        let teacherIdPendingDelete: number | null = null;
+
+        function showDeleteTeacherModal(id: number) {
+            teacherIdPendingDelete = id;
+            deleteTeacherModal.classList.remove(
+                "opacity-0",
+                "pointer-events-none",
+            );
+            deleteTeacherModal.firstElementChild?.classList.remove("scale-95");
+            deleteTeacherModal.firstElementChild?.classList.add("scale-100");
+        }
+
+        function hideDeleteTeacherModal() {
+            deleteTeacherModal.classList.add(
+                "opacity-0",
+                "pointer-events-none",
+            );
+            deleteTeacherModal.firstElementChild?.classList.remove("scale-100");
+            deleteTeacherModal.firstElementChild?.classList.add("scale-95");
+            teacherIdPendingDelete = null;
+        }
+
+        cancelDeleteTeacherBtn?.addEventListener("click", hideDeleteTeacherModal);
+
+        confirmDeleteTeacherBtn?.addEventListener("click", async () => {
+            if (teacherIdPendingDelete == null) return;
+            const id = teacherIdPendingDelete;
+            hideDeleteTeacherModal();
+
+            const card = document.querySelector(
+                `[data-teacher-id="${id}"]`,
+            ) as HTMLElement | null;
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/delete-teacher", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ teacher_id: id }),
+                });
+
+                const data = await res.json().catch(() => null);
+
+                if (data?.ok) {
+                    loadTeachers(currentPage, currentSearch);
+                } else {
+                    alert(
+                        "Error: " +
+                            (data?.error ?? "No se pudo eliminar al profesor"),
+                    );
+                    if (card)
+                        card.classList.remove(
+                            "opacity-50",
+                            "pointer-events-none",
+                        );
+                }
+            } catch {
+                alert("Error de red al eliminar");
+                if (card)
+                    card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        });
 
         interface Teacher {
             id: number;
@@ -499,6 +606,11 @@ const courses = await getCourses();
             }
         };
 
+        (window as any).deleteTeacher = function (id: number) {
+            showDeleteTeacherModal(id);
+        };
+
+
         async function addTeacher() {
             const name = teacherNameInput?.value?.trim();
             const bio = teacherBioInput?.value?.trim() || "";
@@ -587,7 +699,7 @@ const courses = await getCourses();
             loadTeachers(currentPage + 1, currentSearch),
         );
 
-        let searchTimeout: number;
+        let searchTimeout: ReturnType<typeof setTimeout>;
         searchInput?.addEventListener("input", () => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
