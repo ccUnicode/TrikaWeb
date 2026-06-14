@@ -43,8 +43,8 @@ export const GET: APIRoute = async ({ params }) => {
 
     if (!course) {
       return new Response(
-        JSON.stringify({ ok: true, profesores: [] }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ ok: false, error: "Curso no encontrado" }),
+        { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
 
