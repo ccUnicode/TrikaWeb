@@ -33,9 +33,14 @@ export const GET: APIRoute = async ({ url }) => {
       );
     }
 
+    const headers = {
+      "Content-Type": "application/json",
+      "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
+    };
+
     return new Response(
       JSON.stringify({ ok: true, cursos: data || [] }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers }
     );
   } catch (err) {
     console.error("Error inesperado en /api/cursos:", err);
