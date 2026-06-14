@@ -294,6 +294,8 @@ function CurriculumInner({ data }: Props) {
         zoomOnScroll={false}
         zoomOnPinch={false}
         nodesDraggable={isDev ? isInteractable : false}
+        fitView
+        fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
         nodesConnectable={false}
         onNodesChange={onNodesChange}
         onNodeClick={onNodeClick}
