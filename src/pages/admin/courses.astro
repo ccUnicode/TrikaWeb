@@ -788,7 +788,7 @@ import Layout from "../../layouts/Layout.astro";
 
     try {
       const res = await fetch("/api/admin/toggle-course", {
-        method: "POST",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
@@ -819,9 +819,9 @@ import Layout from "../../layouts/Layout.astro";
 
   async function loadSystems() {
     const res = await fetch("/api/admin/evaluation-systems");
-    const systems = await res.json();
+    const data = await res.json().catch(() => null);
 
-    cachedSystems = systems || [];
+    cachedSystems = data?.systems || [];
 
     systemSearchInput.placeholder = "Buscar sistema por letra o descripción...";
   }

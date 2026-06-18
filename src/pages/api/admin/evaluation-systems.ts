@@ -8,8 +8,8 @@ export const GET: APIRoute = async ({ cookies }) => {
   try {
     const isAdmin = await validateAdminSession(cookies);
     if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "No autorizado" }),
+      return Response.json(
+        { ok: false, error: "No autorizado" },
         { status: 401 }
       );
     }
@@ -18,14 +18,15 @@ export const GET: APIRoute = async ({ cookies }) => {
 
     if (error) throw error;
 
-    return new Response(JSON.stringify(data), {
-      status: 200,
-    });
+    return Response.json(
+      { ok: true, systems: data },
+      { status: 200 }
+    );
 
   } catch (err) {
     console.error(err);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno" }),
+    return Response.json(
+      { ok: false, error: "Error interno del servidor" },
       { status: 500 }
     );
   }

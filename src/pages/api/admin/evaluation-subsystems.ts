@@ -8,8 +8,8 @@ export const GET: APIRoute = async ({ cookies }) => {
   try {
     const isAdmin = await validateAdminSession(cookies);
     if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "No autorizado" }),
+      return Response.json(
+        { ok: false, error: "No autorizado" },
         { status: 401 }
       );
     }
@@ -19,23 +19,23 @@ export const GET: APIRoute = async ({ cookies }) => {
     );
 
     if (error) {
-      console.error(error);
-      return new Response(
-        JSON.stringify({ ok: false, error: error.message }),
+      console.error("Error obteniendo subsistemas de evaluación:", error);
+      return Response.json(
+        { ok: false, error: "Error al obtener subsistemas" },
         { status: 500 }
       );
     }
 
-    return new Response(
-      JSON.stringify({ ok: true, subsystems: data }),
+    return Response.json(
+      { ok: true, subsystems: data },
       { status: 200 }
     );
 
   } catch (err) {
     console.error("Error en evaluation-subsystems:", err);
 
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno" }),
+    return Response.json(
+      { ok: false, error: "Error interno del servidor" },
       { status: 500 }
     );
   }

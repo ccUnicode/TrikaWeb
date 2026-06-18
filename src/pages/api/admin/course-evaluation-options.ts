@@ -9,15 +9,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const isAdmin = await validateAdminSession(cookies);
 
         if (!isAdmin) {
-            return new Response(
-                JSON.stringify({
+            return Response.json(
+                {
                     ok: false,
                     error: "No autorizado",
-                }),
-                {
-                    status: 401,
-                    headers: { "Content-Type": "application/json" },
-                }
+                },
+                { status: 401 }
             );
         }
 
@@ -25,15 +22,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const system_id = Number(body?.system_id);
 
         if (!Number.isInteger(system_id) || system_id <= 0) {
-            return new Response(
-                JSON.stringify({
+            return Response.json(
+                {
                     ok: false,
                     error: "system_id inválido",
-                }),
-                {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                }
+                },
+                { status: 400 }
             );
         }
 
@@ -46,40 +40,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (error) {
             console.error("Error RPC get_variable_evaluations_by_system:", error);
-            return new Response(
-                JSON.stringify({
-                    ok: false,
-                    error: error.message || "Error obteniendo evaluaciones",
-                }),
+            return Response.json(
                 {
-                    status: 500,
-                    headers: { "Content-Type": "application/json" },
-                }
+                    ok: false,
+                    error: "Error obteniendo evaluaciones",
+                },
+                { status: 500 }
             );
         }
 
-        return new Response(
-            JSON.stringify({
+        return Response.json(
+            {
                 ok: true,
                 evaluations: data || [],
-            }),
-            {
-                status: 200,
-                headers: { "Content-Type": "application/json" },
-            }
+            },
+            { status: 200 }
         );
     } catch (err) {
         console.error("Error en course-evaluation-options:", err);
 
-        return new Response(
-            JSON.stringify({
-                ok: false,
-                error: err instanceof Error ? err.message : "Error interno",
-            }),
+        return Response.json(
             {
-                status: 500,
-                headers: { "Content-Type": "application/json" },
-            }
+                ok: false,
+                error: "Error interno del servidor",
+            },
+            { status: 500 }
         );
     }
 };

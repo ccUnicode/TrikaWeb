@@ -8,10 +8,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     try {
         const isValid = await validateAdminSession(cookies);
         if (!isValid) {
-            return new Response(JSON.stringify({ ok: false, error: 'Sesión inválida' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Response.json({ ok: false, error: 'Sesión inválida' }, { status: 401 });
         }
 
         let body: any = {};
@@ -38,47 +35,48 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             query = query.or(`code.ilike.${pattern},name.ilike.${pattern}`);
         }
 
-        const { data, count, error } = await query.range(from, to);
+        const [coursesResult, visibleCountRes, hiddenCountRes] = await Promise.all([
+            query.range(from, to),
+            supabaseAdmin.from('courses').select('*', { count: 'exact', head: true }).eq('is_hidden', false),
+            supabaseAdmin.from('courses').select('*', { count: 'exact', head: true }).eq('is_hidden', true)
+        ]);
+
+        const { data, count, error } = coursesResult;
 
         if (error) {
             console.error('Error fetching courses:', error);
-            return new Response(JSON.stringify({ ok: false, error: 'Error al obtener cursos' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Response.json({ ok: false, error: 'Error al obtener cursos' }, { status: 500 });
+        }
+
+        if (visibleCountRes.error || hiddenCountRes.error) {
+            console.error('Error fetching course counts:', visibleCountRes.error || hiddenCountRes.error);
         }
 
         const total = count ?? 0;
         const totalPages = total > 0 ? Math.ceil(total / safeSize) : 0;
 
         const courses = (data || []).map((c: any) => ({
-        id: c.id,
-        code: c.code,
-        name: c.name,
-        credits: c.credits ?? 0,
-        is_hidden: c.is_hidden ?? false,
+            id: c.id,
+            code: c.code,
+            name: c.name,
+            credits: c.credits ?? 0,
+            is_hidden: c.is_hidden ?? false,
         }));
 
-        const visibleCount = courses.filter(c => !c.is_hidden).length;
-        const hiddenCount = courses.filter(c => c.is_hidden).length;
+        const visibleCount = visibleCountRes.count ?? 0;
+        const hiddenCount = hiddenCountRes.count ?? 0;
 
-        return new Response(
-            JSON.stringify({
-                ok: true,
-                courses,
-                counts: {
-                    visible: visibleCount,
-                    hidden: hiddenCount,
-                },
-                pagination: { page: safePage, pageSize: safeSize, total, totalPages },
-            }),
-            { status: 200, headers: { 'Content-Type': 'application/json' } }
-        );
+        return Response.json({
+            ok: true,
+            courses,
+            counts: {
+                visible: visibleCount,
+                hidden: hiddenCount,
+            },
+            pagination: { page: safePage, pageSize: safeSize, total, totalPages },
+        }, { status: 200 });
     } catch (err) {
         console.error('courses API error:', err);
-        return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ ok: false, error: 'Error interno del servidor' }, { status: 500 });
     }
 };
