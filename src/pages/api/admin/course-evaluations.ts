@@ -9,15 +9,12 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     const isValid = await validateAdminSession(cookies);
 
     if (!isValid) {
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: false,
           error: "Sesión inválida",
-        }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        }
+        },
+        { status: 401 }
       );
     }
 
@@ -25,15 +22,12 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     const courseId = Number(courseIdParam);
 
     if (!Number.isInteger(courseId) || courseId <= 0) {
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: false,
           error: "course_id inválido",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
+        },
+        { status: 400 }
       );
     }
 
@@ -45,15 +39,12 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     if (courseEvaluationsError) {
       console.error("Error fetching course_evaluations:", courseEvaluationsError);
 
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: false,
           error: "Error al obtener evaluaciones del curso",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
+        },
+        { status: 500 }
       );
     }
 
@@ -62,15 +53,12 @@ export const GET: APIRoute = async ({ url, cookies }) => {
       .filter((id): id is number => Number.isInteger(id));
 
     if (evaluationIds.length === 0) {
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: true,
           evaluations: [],
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
+        },
+        { status: 200 }
       );
     }
 
@@ -83,40 +71,31 @@ export const GET: APIRoute = async ({ url, cookies }) => {
     if (evaluationsError) {
       console.error("Error fetching evaluation_type:", evaluationsError);
 
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: false,
           error: "Error al obtener detalle de evaluaciones",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
+        },
+        { status: 500 }
       );
     }
 
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: true,
         evaluations: evaluations ?? [],
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+      },
+      { status: 200 }
     );
   } catch (err) {
     console.error("course-evaluations API error:", err);
 
-    return new Response(
-      JSON.stringify({
-        ok: false,
-        error: err instanceof Error ? err.message : "Error interno del servidor",
-      }),
+    return Response.json(
       {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+        ok: false,
+        error: "Error interno del servidor",
+      },
+      { status: 500 }
     );
   }
 };

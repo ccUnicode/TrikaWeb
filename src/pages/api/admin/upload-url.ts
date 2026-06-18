@@ -12,12 +12,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   // Validate admin session via cookie
   const isAdmin = await validateAdminSession(cookies);
   if (!isAdmin) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
         error: "No autorizado. Inicia sesión como admin.",
-      }),
-      { status: 401, headers: { "Content-Type": "application/json" } },
+      },
+      { status: 401 }
     );
   }
 
@@ -26,10 +26,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     body = await request.json();
   } catch {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Body JSON inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return Response.json({ ok: false, error: "Body JSON inválido" }, { status: 400 });
   }
 
   const courseId = Number(body.course_id);
@@ -53,27 +50,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     evaluationId <= 0 ||
     !resourceKind
   ) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
         error: "Faltan campos obligatorios o son inválidos",
-      }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
       },
+      { status: 400 }
     );
   }
 
   // Validate cycle code in DB
   if (!/^\d{4}-(I|II|III)$/.test(cycle)) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
-        error:
-          "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+        error: "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
+      },
+      { status: 400 }
     );
   }
 
@@ -82,32 +75,29 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .upsert({ cycle_code: cycle }, { onConflict: "cycle_code" });
 
   if (cycleUpsertError) {
-    return new Response(
-      JSON.stringify({
+    console.error("Error upserting cycle:", cycleUpsertError);
+    return Response.json(
+      {
         ok: false,
-        error: `No se pudo registrar el ciclo: ${cycleUpsertError.message}`,
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+        error: "No se pudo registrar el ciclo en la base de datos.",
+      },
+      { status: 500 }
     );
   }
 
   // If marked as teacher-specific, teacher_hint is required
   if (isTeacherSpecific && !teacherHint) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
-        error:
-          "Debes indicar el docente para una plancha de profesor específico",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+        error: "Debes indicar el docente para una plancha de profesor específico",
+      },
+      { status: 400 }
     );
   }
 
   if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "resource_kind inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return Response.json({ ok: false, error: "resource_kind inválido" }, { status: 400 });
   }
 
   const { data: evaluation, error: evaluationError } = await supabaseAdmin
@@ -117,15 +107,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .single();
 
   if (evaluationError || !evaluation) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
         error: "No se encontró la evaluación seleccionada",
-      }),
-      {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
       },
+      { status: 404 }
     );
   }
 
@@ -134,15 +121,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .toUpperCase();
 
   if (!examType) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
         error: "La evaluación seleccionada no tiene abreviatura válida",
-      }),
-      {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
       },
+      { status: 400 }
     );
   }
 
@@ -154,10 +138,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .single();
 
   if (courseError || !course) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "course_id no encontrado" }),
-      { status: 404, headers: { "Content-Type": "application/json" } },
-    );
+    return Response.json({ ok: false, error: "course_id no encontrado" }, { status: 404 });
   }
 
   const normalizedCode = String(course.code ?? "")
@@ -165,13 +146,46 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .toUpperCase();
 
   if (!normalizedCode || normalizedCode !== courseCode) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
         error: "El course_id no coincide con el course_code enviado",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+      },
+      { status: 400 }
     );
+  }
+
+  // Si se quiere subir un SOLUCIONARIO, validar que la PLANCHA ya exista en la base de datos
+  if (resourceKind === "SOLUCIONARIO") {
+    let sheetQuery = supabaseAdmin
+      .from("sheets")
+      .select("id")
+      .eq("course_id", courseId)
+      .eq("cycle", cycle)
+      .eq("evaluation_id", evaluationId);
+
+    if (isTeacherSpecific && teacherHint) {
+      sheetQuery = sheetQuery.eq("teacher_hint", teacherHint);
+    } else {
+      sheetQuery = sheetQuery.or("teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos");
+    }
+
+    const { data: existingSheet, error: lookupError } = await sheetQuery.maybeSingle();
+
+    if (lookupError) {
+      console.error("Error al buscar plancha existente para solucionario:", lookupError);
+      return Response.json(
+        { ok: false, error: "Error al validar la existencia de la plancha" },
+        { status: 500 }
+      );
+    }
+
+    if (!existingSheet) {
+      return Response.json(
+        { ok: false, error: "Primero debes subir la plancha antes de adjuntar un solucionario" },
+        { status: 400 }
+      );
+    }
   }
 
   // Build storage path & bucket
@@ -214,12 +228,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         pError,
         sError,
       );
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: false,
           error: "No se pudo generar URLs de subida conjunta.",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
+        },
+        { status: 500 }
       );
     }
     signedUrl = pData.signedUrl;
@@ -233,12 +247,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (signedError || !signedData) {
       console.error("Error creating signed upload URL:", signedError);
-      return new Response(
-        JSON.stringify({
+      return Response.json(
+        {
           ok: false,
           error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
-        }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
+        },
+        { status: 500 }
       );
     }
     signedUrl = signedData.signedUrl;
@@ -266,8 +280,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
   }
 
-  return new Response(
-    JSON.stringify({
+  return Response.json(
+    {
       ok: true,
       signedUrl,
       token,
@@ -279,7 +293,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       thumbPath,
       solutionSignedUrl,
       solutionPath,
-    }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
+    },
+    { status: 200 }
   );
 };

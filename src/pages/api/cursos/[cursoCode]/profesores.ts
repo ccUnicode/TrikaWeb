@@ -19,9 +19,9 @@ export const GET: APIRoute = async ({ params }) => {
   const cursoCode = (params.cursoCode ?? "").trim().toUpperCase();
 
   if (!cursoCode) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Código de curso requerido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "Código de curso requerido" },
+      { status: 400 }
     );
   }
 
@@ -35,16 +35,16 @@ export const GET: APIRoute = async ({ params }) => {
 
     if (courseError) {
       console.error("Error buscando curso:", courseError);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error al buscar el curso" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+      return Response.json(
+        { ok: false, error: "Error al buscar el curso" },
+        { status: 500 }
       );
     }
 
     if (!course) {
-      return new Response(
-        JSON.stringify({ ok: true, profesores: [] }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+      return Response.json(
+        { ok: true, profesores: [] },
+        { status: 200 }
       );
     }
 
@@ -56,9 +56,9 @@ export const GET: APIRoute = async ({ params }) => {
 
     if (joinError) {
       console.error("Error obteniendo profesores del curso:", joinError);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error al obtener profesores" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+      return Response.json(
+        { ok: false, error: "Error al obtener profesores" },
+        { status: 500 }
       );
     }
 
@@ -68,15 +68,15 @@ export const GET: APIRoute = async ({ params }) => {
       .map((t) => ({ id: t.id, full_name: t.full_name }))
       .sort((a, b) => a.full_name.localeCompare(b.full_name));
 
-    return new Response(
-      JSON.stringify({ ok: true, profesores }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: true, profesores },
+      { status: 200 }
     );
   } catch (err) {
     console.error("Error inesperado en /api/cursos/[cursoCode]/profesores:", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno del servidor" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "Error interno del servidor" },
+      { status: 500 }
     );
   }
 };

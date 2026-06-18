@@ -5,21 +5,18 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
 export const GET: APIRoute = () => {
-  return new Response(
-    JSON.stringify({ ok: true, route: "/api/admin/upload" }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
+  return Response.json({ ok: true, route: "/api/admin/upload" }, { status: 200 });
 };
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const isAdmin = await validateAdminSession(cookies);
   if (!isAdmin) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
         error: "No autorizado. Inicia sesión como admin.",
-      }),
-      { status: 401, headers: { "Content-Type": "application/json" } },
+      },
+      { status: 401 }
     );
   }
 
@@ -27,10 +24,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     body = await request.json();
   } catch {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Body JSON inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return Response.json({ ok: false, error: "Body JSON inválido" }, { status: 400 });
   }
 
   const courseId = Number(body.course_id);
@@ -56,28 +50,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     !resourceKind ||
     !storagePath
   ) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return Response.json({ ok: false, error: "Faltan campos requeridos" }, { status: 400 });
   }
 
   // If marked as teacher-specific, teacher_hint is required
   if (isTeacherSpecific && !teacherHint) {
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: false,
-        error:
-          "Debes indicar el docente para una plancha de profesor específico",
-      }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+        error: "Debes indicar el docente para una plancha de profesor específico",
+      },
+      { status: 400 }
     );
   }
 
   if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "resource_kind inválido" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
+    return Response.json({ ok: false, error: "resource_kind inválido" }, { status: 400 });
+  }
+
+  // 1. Validar el formato del ciclo antes de interactuar con la BD
+  const match = cycle.match(/^(\d{4})-(I|II|III)$/i);
+  if (!match) {
+    return Response.json(
+      {
+        ok: false,
+        error: "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
+      },
+      { status: 400 }
     );
   }
 
@@ -109,26 +108,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .maybeSingle();
 
     if (cycleError) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error validando ciclo" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
+      console.error("Error al validar ciclo:", cycleError);
+      return Response.json({ ok: false, error: "Error validando ciclo" }, { status: 500 });
     }
 
     if (!cycleExists) {
-      const match = cycle.match(/^(\d{4})-(I|II|III)$/i);
-
-      if (!match) {
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error:
-              "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
-        );
-      }
-
       const year = parseInt(match[1], 10);
       const term = match[2].toUpperCase();
 
@@ -138,14 +122,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (insertError) {
         console.error("Error insertando nuevo ciclo:", insertError);
-
-        return new Response(
-          JSON.stringify({
-            ok: false,
-            error: "Error creando nuevo ciclo",
-          }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
-        );
+        return Response.json({ ok: false, error: "Error creando nuevo ciclo" }, { status: 500 });
       }
     }
 
@@ -154,10 +131,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (lookupError) {
       console.error("Error al buscar sheet existente:", lookupError);
-      return new Response(
-        JSON.stringify({ ok: false, error: "No se pudo validar la plancha" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
+      return Response.json({ ok: false, error: "No se pudo validar la plancha" }, { status: 500 });
     }
 
     if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
@@ -205,13 +179,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (updateError) {
           console.error("Error al actualizar sheet:", updateError);
-          return new Response(
-            JSON.stringify({
+          return Response.json(
+            {
               ok: false,
-              error:
-                "El archivo se subió, pero no se pudo actualizar la plancha",
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
+              error: "El archivo se subió, pero no se pudo actualizar la plancha",
+            },
+            { status: 500 }
           );
         }
       } else {
@@ -221,23 +194,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (insertError) {
           console.error("Error al insertar sheet:", insertError);
-          return new Response(
-            JSON.stringify({
+          return Response.json(
+            {
               ok: false,
               error: "Archivo subido, pero falló el registro de la plancha",
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
+            },
+            { status: 500 }
           );
         }
       }
     } else {
       if (!existingSheet) {
-        return new Response(
-          JSON.stringify({
+        return Response.json(
+          {
             ok: false,
             error: "Primero sube la plancha antes de adjuntar un solucionario",
-          }),
-          { status: 400, headers: { "Content-Type": "application/json" } },
+          },
+          { status: 400 }
         );
       }
 
@@ -251,12 +224,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (updateSolutionError) {
         console.error("Error al actualizar solucionario:", updateSolutionError);
-        return new Response(
-          JSON.stringify({
+        return Response.json(
+          {
             ok: false,
             error: "Archivo subido, pero no se pudo registrar el solucionario",
-          }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
+          },
+          { status: 500 }
         );
       }
     }
@@ -268,19 +241,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ? "Plancha"
           : "Solucionario";
 
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: true,
         message: `${action} guardado correctamente`,
         path: storagePath,
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } },
+      },
+      { status: 200 }
     );
   } catch (err) {
     console.error("Error inesperado en /api/admin/upload:", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno en el servidor" }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+    return Response.json(
+      { ok: false, error: "Error interno en el servidor" },
+      { status: 500 }
     );
   }
 };

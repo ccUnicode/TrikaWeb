@@ -346,17 +346,12 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
                 Cargando profesores...
               </p>
             </div>
-            <ul
-              id="teacher-dropdown"
-              class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-            >
-            </ul>
           </div>
 
           <!-- Toggle: Plancha de profesor específico -->
           <div
             id="teacher-specific-toggle"
-            class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-colors"
+            class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-all duration-300"
           >
             <label
               class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5"
