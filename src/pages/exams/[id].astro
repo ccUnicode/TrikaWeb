@@ -4,6 +4,10 @@ import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { getUserSession } from "../../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const sheetId = Number(Astro.params.id);
 if (!sheetId) {
@@ -135,6 +139,7 @@ function getYouTubeId(url: string) {
           <button
             id="favorite-btn"
             data-sheet-id={sheet.id}
+            data-is-logged-in={isLoggedIn ? "true" : "false"}
             type="button"
             class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-global-border hover:border-red-500 px-4 py-2 text-sm font-semibold text-global-text transition-all group cursor-pointer"
             title="Guardar plancha"
@@ -322,6 +327,7 @@ function getYouTubeId(url: string) {
               sheetId={sheet.id}
               avg={sheet.avg_difficulty}
               count={sheet.rating_count}
+              isLoggedIn={isLoggedIn}
             />
           </div>
         </div>
@@ -542,6 +548,11 @@ function getYouTubeId(url: string) {
 
     // Handle click
     btn.addEventListener("click", () => {
+      const logged = btn.dataset.isLoggedIn === "true";
+      if (!logged) {
+        window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+        return;
+      }
       const nowFavorited = toggleFavorite(sheetId);
       updateUI(nowFavorited);
 
@@ -652,6 +663,23 @@ function getYouTubeId(url: string) {
         }
       };
 
+      const logged = widget.getAttribute("data-is-logged-in") === "true";
+
+      // Verificar si ya votó si está logueado
+      if (logged && sheetId) {
+        fetch(`/api/sheets/${sheetId}/rate`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.hasVoted) {
+              userVoted = true;
+              currentUserScore = data.rating?.score ?? 0;
+              highlight(widget, currentUserScore);
+              updateRemoveButton(true);
+            }
+          })
+          .catch(err => console.error("Error cargando voto:", err));
+      }
+
       // Handler para quitar voto
       if (removeBtn) {
         removeBtn.addEventListener("click", async (e) => {
@@ -660,14 +688,18 @@ function getYouTubeId(url: string) {
 
           if (!sheetId) return;
 
+          const loggedCheck = widget.getAttribute("data-is-logged-in") === "true";
+          if (!loggedCheck) {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
+
           widget.classList.add("opacity-80", "pointer-events-none");
 
           try {
-            const deviceId = ensureDeviceId();
             const response = await fetch(`/api/sheets/${sheetId}/rate`, {
               method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ device_id: deviceId }),
+              headers: { "Content-Type": "application/json" }
             });
 
             if (!response.ok) {
@@ -724,16 +756,22 @@ function getYouTubeId(url: string) {
         btn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
+
+          const loggedCheck = widget.getAttribute("data-is-logged-in") === "true";
+          if (!loggedCheck) {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
+
           const score = Number((btn as HTMLElement).dataset.score);
           if (!Number.isFinite(score) || !sheetId) return;
           highlight(widget, score);
           widget.classList.add("opacity-80", "pointer-events-none");
           try {
-            const deviceId = ensureDeviceId();
             const response = await fetch(`/api/sheets/${sheetId}/rate`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ score, device_id: deviceId }),
+              body: JSON.stringify({ score }),
             });
             if (!response.ok) {
               const error = await response.json().catch(() => ({}));

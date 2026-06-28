@@ -4,9 +4,11 @@ import { getUserSession } from '../lib/auth';
 
 // Si ya está logueado
 const { user } = await getUserSession(Astro.cookies);
+const redirectUrl = Astro.url.searchParams.get('redirect') || '/profile';
+const safeRedirect = redirectUrl.startsWith('/') ? redirectUrl : '/profile';
 
 if (user) {
-  return Astro.redirect('/profile');
+  return Astro.redirect(safeRedirect);
 }
 ---
 
@@ -100,7 +102,10 @@ if (user) {
             throw new Error(data.error || 'Error iniciando sesión');
           }
 
-          window.location.href = '/profile';
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect') || '/profile';
+          const safeRedirect = redirect.startsWith('/') ? redirect : '/profile';
+          window.location.href = safeRedirect;
 
         } catch (err: any) {
 

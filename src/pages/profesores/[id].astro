@@ -4,6 +4,10 @@ import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
 import TeacherAvatar from "../../components/TeacherAvatar.astro";
 import { getTeacherDetail } from "../../lib/data";
+import { getUserSession } from "../../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const teacherId = Number(Astro.params.id);
 const page = Number(Astro.url.searchParams.get("page") ?? 1);
@@ -130,6 +134,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
           <button
             id="open-rating-modal"
             type="button"
+            data-is-logged-in={isLoggedIn ? "true" : "false"}
             class="rounded-2xl bg-global-primary text-black font-semibold text-center py-3 hover:bg-global-primary-hover transition cursor-pointer"
           >
             Califica al profesor
@@ -255,10 +260,11 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                       class="rounded-xl border border-global-border-subtle px-4 py-3 space-y-2"
                       style="background-color: #2A3240;"
                     >
-                      {" "}
                       <header class="flex items-center justify-between text-sm">
                         <div class="leading-tight">
-                          <span class="font-semibold block">Anonimo</span>
+                          <span class="font-semibold block">
+                            {review.is_anonymous === false ? review.user_name || "Estudiante" : "Anónimo"}
+                          </span>
                           <time class="text-[11px] text-global-text-muted/80">
                             {formatDate(review.created_at)}
                           </time>
@@ -369,7 +375,14 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
   const modal = document.getElementById("rating-modal");
   const closeBtn = document.getElementById("close-rating-modal");
 
-  const openModal = () => modal?.classList.remove("hidden");
+  const openModal = () => {
+    const logged = openBtn?.dataset.isLoggedIn === "true";
+    if (!logged) {
+      window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    modal?.classList.remove("hidden");
+  };
   const closeModal = () => modal?.classList.add("hidden");
 
   openBtn?.addEventListener("click", openModal);
@@ -383,8 +396,6 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 </script>
 
 <script>
-  import { ensureDeviceId } from "../../lib/client/device";
-
   const initDeleteRating = async () => {
     const deleteBtn = document.getElementById(
       "delete-rating-btn",
@@ -396,12 +407,13 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
     const teacherId = deleteBtn.dataset.teacherId;
     if (!teacherId) return;
 
-    const deviceId = ensureDeviceId();
+    const logged = document.getElementById("open-rating-modal")?.dataset.isLoggedIn === "true";
+    if (!logged) return;
 
     // Verificar si el usuario ya votó
     try {
       const response = await fetch(
-        `/api/profesores/${teacherId}/rate?device_id=${deviceId}`,
+        `/api/profesores/${teacherId}/rate`
       );
       if (response.ok) {
         const data = await response.json();
@@ -429,8 +441,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
       try {
         const response = await fetch(`/api/profesores/${teacherId}/rate`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_id: deviceId }),
+          headers: { "Content-Type": "application/json" }
         });
 
         if (!response.ok) {

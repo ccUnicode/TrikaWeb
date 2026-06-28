@@ -1,6 +1,10 @@
 ---
 import type { SheetSummary } from "../lib/data";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { getUserSession } from "../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 /* 1. Definimos las "props" (las variables) que la tarjeta va a recibir */
 export interface Props {
@@ -74,6 +78,7 @@ const noCheckIcon = `
     class="absolute right-3 top-3 z-50 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white/80 backdrop-blur-sm transition hover:scale-110 hover:bg-black/40 hover:text-global-primary cursor-pointer"
     data-fav-btn
     data-sheet-id={sheet?.id}
+    data-is-logged-in={isLoggedIn ? "true" : "false"}
     aria-label="Guardar plancha"
     aria-pressed="false"
   >
@@ -178,6 +183,12 @@ const noCheckIcon = `
         e.stopPropagation(); // Stop bubbling to card link
 
         const target = e.currentTarget as HTMLElement;
+        const logged = target.dataset.isLoggedIn === "true";
+        if (!logged) {
+          window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+          return;
+        }
+
         const id = Number(target.dataset.sheetId);
 
         if (Number.isInteger(id)) {
