@@ -1,42 +1,61 @@
 import type { APIRoute } from 'astro';
-import { supabaseClient } from '../../../lib/supabase.client';
+import { getFirebaseAdminAuth, hasFirebaseAdminEnv } from '../../../lib/firebase-admin';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { idToken } = body;
 
-    if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Faltan campos requeridos' }), { status: 400 });
+    if (!idToken) {
+      return new Response(JSON.stringify({ error: 'Falta el token de Firebase' }), { status: 400 });
     }
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password,
+    if (!hasFirebaseAdminEnv()) {
+      return new Response(
+        JSON.stringify({
+          error: 'Faltan las variables de entorno de Firebase Admin en el servidor',
+        }),
+        { status: 503 }
+      );
+    }
+
+    const auth = getFirebaseAdminAuth();
+
+    if (!auth) {
+      return new Response(
+        JSON.stringify({
+          error: 'No se pudo inicializar Firebase Admin en el servidor',
+        }),
+        { status: 503 }
+      );
+    }
+
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const email = decodedToken.email?.toLowerCase();
+
+    if (!email || !email.endsWith('@uni.pe')) {
+      return new Response(JSON.stringify({ error: 'Solo se permiten correos @uni.pe' }), { status: 403 });
+    }
+
+    const expiresIn = 1000 * 60 * 60 * 24 * 5;
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
+
+    cookies.set('firebase_session', sessionCookie, {
+      path: '/',
+      secure: true,
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: expiresIn / 1000,
     });
 
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 400 });
-    }
-
-    if (data.session) {
-      cookies.set('sb-access-token', data.session.access_token, {
-        path: '/',
-        secure: true,
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: data.session.expires_in
-      });
-      cookies.set('sb-refresh-token', data.session.refresh_token, {
-        path: '/',
-        secure: true,
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60 // 30 days
-      });
-    }
-
-    return new Response(JSON.stringify({ success: true, user: data.user }), { status: 200 });
+    return new Response(JSON.stringify({
+      success: true,
+      user: {
+        uid: decodedToken.uid,
+        email,
+        name: decodedToken.name ?? null,
+      },
+    }), { status: 200 });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }

@@ -1,4 +1,4 @@
-import { supabaseClient } from './supabase.client';
+import { getFirebaseAdminAuth } from './firebase-admin';
 
 export interface UserProfile {
   id: string;
@@ -8,36 +8,36 @@ export interface UserProfile {
 }
 
 export async function getUserSession(cookies: any): Promise<{ user: any, profile: UserProfile | null }> {
-  const accessToken = cookies.get('sb-access-token');
-  const refreshToken = cookies.get('sb-refresh-token');
+  const firebaseSession = cookies.get('firebase_session');
 
-  if (!accessToken?.value || !refreshToken?.value) {
+  if (!firebaseSession?.value) {
     return { user: null, profile: null };
   }
 
   try {
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.setSession({
-      access_token: accessToken.value,
-      refresh_token: refreshToken.value,
-    });
+    const auth = getFirebaseAdminAuth();
 
-    if (sessionError || !session?.user) {
+    if (!auth) {
       return { user: null, profile: null };
     }
 
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
+    const decoded = await auth.verifySessionCookie(firebaseSession.value, true);
+    const email = decoded.email?.toLowerCase();
 
-    if (profileError) {
-      console.error('Error fetching profile:', profileError);
+    if (!email || !email.endsWith('@uni.pe')) {
+      return { user: null, profile: null };
     }
 
+    const profile: UserProfile = {
+      id: decoded.uid,
+      email,
+      full_name: decoded.name || email.split('@')[0] || 'Estudiante',
+      role: 'student',
+    };
+
     return { 
-      user: session.user, 
-      profile: profile as UserProfile 
+      user: decoded, 
+      profile 
     };
   } catch (err) {
     console.error('Unexpected error in getUserSession:', err);

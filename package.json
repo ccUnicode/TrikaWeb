@@ -20,6 +20,8 @@
     "@types/node": "^24.10.1",
     "astro": "^5.14.8",
     "dotenv": "^17.2.3",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.1.0",
     "googleapis": "^167.0.0",
     "pdfjs-dist": "^5.5.207",
     "tailwindcss": "^4.1.15",

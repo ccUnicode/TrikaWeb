@@ -1,10 +1,24 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getUserSession } from "../lib/auth";
+import { validateAdminSession } from "../lib/adminAuth";
 
 const { user, profile } = await getUserSession(Astro.cookies);
 
-const initialProfile = profile ?? null;
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const isAdminSession = await validateAdminSession(Astro.cookies);
+
+const initialProfile =
+  profile ?? {
+    id: user.uid,
+    email: user.email || "",
+    full_name: user.name || "Estudiante",
+    role: isAdminSession ? "admin" : "student",
+  };
+
 const isStudent = initialProfile?.role === "student";
 const isAdmin = initialProfile?.role === "admin";
 ---
@@ -146,87 +160,26 @@ const isAdmin = initialProfile?.role === "admin";
 </Layout>
 
 <script>
-  import { supabaseClient } from "../lib/supabase.client";
-
-  const hasServerSession = Boolean(
-    document.getElementById("profile-email")?.textContent &&
-    !document
-      .getElementById("profile-email")
-      ?.textContent?.includes("Verificando"),
-  );
-
-  async function loadSupabaseProfile() {
-    if (hasServerSession) return;
-
-    const { data: sessionData } = await supabaseClient.auth.getSession();
-    const session = sessionData.session;
-
-    if (!session?.user) {
-      window.location.href = "/login";
-      return;
-    }
-
-    const email = session.user.email?.toLowerCase() || "";
-
-    if (!email.endsWith("@uni.pe")) {
-      await supabaseClient.auth.signOut();
-      window.location.href = "/login";
-      return;
-    }
-
-    const fullName =
-      session.user.user_metadata?.full_name ||
-      session.user.user_metadata?.name ||
-      "Estudiante";
-
-    let profile = {
-      email,
-      full_name: fullName,
-      role: "student",
-    };
-
-    const { data: existingProfile } = await supabaseClient
-      .from("profiles")
-      .select("email, full_name, role")
-      .eq("id", session.user.id)
-      .maybeSingle();
-
-    if (existingProfile) {
-      profile = existingProfile;
-    }
-
-    const profileName = document.getElementById("profile-name") as HTMLElement;
-
-    const profileEmail = document.getElementById(
-      "profile-email",
-    ) as HTMLElement;
-
-    const profileInitial = document.getElementById(
-      "profile-initial",
-    ) as HTMLElement;
-
-    const profileRole = document.getElementById("profile-role") as HTMLElement;
-
-    profileName.textContent = profile.full_name || "Estudiante";
-
-    profileEmail.textContent = profile.email;
-
-    profileInitial.textContent = (profile.full_name || profile.email || "?")
-      .charAt(0)
-      .toUpperCase();
-
-    profileRole.textContent = `Rol: ${profile.role.toUpperCase()}`;
-
-    if (profile.role === "admin") {
-      document.getElementById("admin-link")?.classList.remove("hidden");
-    }
-  }
+  import {
+    auth,
+    signOut as firebaseSignOut,
+  } from "../../firebase/firebaseConfig.js";
 
   document
     .getElementById("logout-form")
-    ?.addEventListener("submit", async () => {
-      await supabaseClient.auth.signOut();
-    });
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
 
-  loadSupabaseProfile();
+      try {
+        await firebaseSignOut(auth);
+      } catch {
+        // Ignore client-side sign-out failures and clear the server cookie anyway.
+      }
+
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      window.location.href = "/login";
+    });
 </script>

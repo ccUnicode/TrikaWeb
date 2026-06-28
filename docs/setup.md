@@ -5,6 +5,7 @@
 - Node.js 18+
 - npm
 - Proyecto de Supabase (DB + Storage)
+- Proyecto de Firebase (Auth para estudiantes)
 
 ## Instalacion local
 
@@ -26,6 +27,9 @@ Fuente base: `.env.example`
 - `SUPABASE_SERVICE_KEY`
 - `IP_SALT`
 - `ADMIN_PASS`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
 - `GOOGLE_APPLICATION_CREDENTIALS` (si usas sync Drive)
 - `DRIVE_EXAMS_FOLDER_ID` (si usas sync Drive)
 - `DRIVE_SOLUTIONS_FOLDER_ID` (si usas sync Drive)
@@ -34,6 +38,8 @@ Fuente base: `.env.example`
 
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_ANON_KEY`
+
+Nota: Supabase sigue siendo la base de datos y storage; Firebase queda como proveedor de autenticación para estudiantes.
 
 ## Base de datos
 
@@ -64,5 +70,6 @@ Crear buckets:
 ## Notas operativas
 
 - `SUPABASE_SERVICE_KEY` no debe exponerse en cliente.
+- `FIREBASE_PRIVATE_KEY` debe mantenerse como secreto de servidor.
 - Si ejecutas scripts de Drive, valida acceso al archivo JSON de cuenta de servicio.
 - El endpoint `api/admin/upload` requiere `admin_pass` en el formulario.

@@ -14,8 +14,6 @@ if (user) {
   <div class="flex min-h-[calc(100vh-100px)] w-full items-center justify-center px-4 py-12">
     <div class="w-full max-w-md overflow-hidden rounded-2xl border-2 border-global-border bg-global-surface shadow-2xl">
       <div class="p-8">
-
-        <!-- Header -->
         <div class="text-center mb-8">
           <img
             src="/img/mascota.png"
@@ -23,128 +21,29 @@ if (user) {
             class="mx-auto h-20 w-20 object-contain drop-shadow-md mb-4"
           />
 
-          <h1
-            id="form-title"
-            class="text-2xl font-bold text-global-text"
-          >
-            Iniciar Sesión
-          </h1>
+          <h1 class="text-2xl font-bold text-global-text">Iniciar Sesión</h1>
 
-          <p
-            id="form-subtitle"
-            class="text-sm text-global-text-muted mt-2"
-          >
-            Accede con tu cuenta institucional de la UNI
+          <p class="text-sm text-global-text-muted mt-2">
+            Accede con tu cuenta institucional @uni.pe
           </p>
         </div>
 
-        <!-- FORM -->
-        <form id="auth-form" class="space-y-6">
+        <div
+          id="error-message"
+          class="hidden mb-4 rounded-lg bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20"
+        ></div>
 
-          <div
-            id="error-message"
-            class="hidden rounded-lg bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20"
-          ></div>
-
-          <div
-            id="fullname-field"
-            class="space-y-2 hidden"
-          >
-            <label
-              for="fullName"
-              class="block text-sm font-medium text-global-text"
-            >
-              Nombre completo
-            </label>
-
-            <input
-              type="text"
-              id="fullName"
-              placeholder="Juan Pérez"
-              class="w-full rounded-xl border border-global-border bg-global-background px-4 py-3 text-global-text focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary transition-all"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <label
-              for="email"
-              class="block text-sm font-medium text-global-text"
-            >
-              Correo Electrónico
-            </label>
-
-            <input
-              id="email"
-              type="email"
-              required
-              placeholder="tu.correo@uni.pe"
-              pattern=".*@uni\.pe$"
-              class="w-full rounded-xl border border-global-border bg-global-background px-4 py-3 text-global-text focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary transition-all"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <label
-              for="password"
-              class="block text-sm font-medium text-global-text"
-            >
-              Contraseña
-            </label>
-
-            <input
-              id="password"
-              type="password"
-              required
-              minlength="6"
-              placeholder="••••••••"
-              class="w-full rounded-xl border border-global-border bg-global-background px-4 py-3 text-global-text focus:border-global-primary focus:outline-none focus:ring-1 focus:ring-global-primary transition-all"
-            />
-          </div>
-
-          <button
-            id="submit-btn"
-            type="submit"
-            class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
-          >
-            Ingresar
-          </button>
-
-        </form>
-
-        <!-- Divider -->
-        <div class="my-6 flex items-center gap-3">
-          <div class="h-px flex-1 bg-global-border"></div>
-          <span class="text-xs text-global-text-muted">o</span>
-          <div class="h-px flex-1 bg-global-border"></div>
-        </div>
-
-        <!-- GOOGLE -->
         <button
           id="google-login-btn"
           type="button"
-          class="w-full rounded-xl border border-global-border bg-global-background py-3 px-4 text-sm font-bold text-global-text transition-all hover:border-global-primary hover:text-global-primary"
+          class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
         >
           Continuar con Google
         </button>
 
-        <!-- Toggle -->
-        <div class="mt-6 text-center text-sm">
-          <p class="text-global-text-muted">
-
-            <span id="toggle-text">
-              ¿No tienes cuenta?
-            </span>
-
-            <button
-              id="toggle-mode"
-              type="button"
-              class="ml-1 font-semibold text-global-primary hover:underline"
-            >
-              Regístrate aquí
-            </button>
-
-          </p>
-        </div>
+        <p class="mt-4 text-center text-xs text-global-text-muted">
+          Solo se permiten correos institucionales de la UNI.
+        </p>
 
       </div>
     </div>
@@ -152,47 +51,19 @@ if (user) {
 </Layout>
 
 <script>
-  import { supabaseClient } from '../lib/supabase.client';
+  import {
+    auth,
+    provider,
+    signInWithPopup,
+    signOut as firebaseSignOut,
+  } from '../../firebase/firebaseConfig.js';
 
   document.addEventListener('DOMContentLoaded', () => {
-
-    let isLogin = true;
-
-    const form =
-      document.getElementById('auth-form') as HTMLFormElement;
-
-    const title =
-      document.getElementById('form-title')!;
-
-    const subtitle =
-      document.getElementById('form-subtitle')!;
-
-    const toggleBtn =
-      document.getElementById('toggle-mode') as HTMLButtonElement;
-
-    const toggleText =
-      document.getElementById('toggle-text')!;
-
-    const fullnameField =
-      document.getElementById('fullname-field')!;
-
-    const submitBtn =
-      document.getElementById('submit-btn') as HTMLButtonElement;
-
     const googleBtn =
       document.getElementById('google-login-btn') as HTMLButtonElement;
 
     const errorBox =
       document.getElementById('error-message')!;
-
-    const fullNameInput =
-      document.getElementById('fullName') as HTMLInputElement;
-
-    const emailInput =
-      document.getElementById('email') as HTMLInputElement;
-
-    const passwordInput =
-      document.getElementById('password') as HTMLInputElement;
 
     function showError(message: string) {
       errorBox.textContent = message;
@@ -204,82 +75,32 @@ if (user) {
       errorBox.textContent = '';
     }
 
-    toggleBtn?.addEventListener('click', () => {
-
-      isLogin = !isLogin;
-
-      clearError();
-
-      if (isLogin) {
-
-        title.textContent =
-          'Iniciar Sesión';
-
-        subtitle.textContent =
-          'Accede con tu cuenta institucional de la UNI';
-
-        toggleText.textContent =
-          '¿No tienes cuenta?';
-
-        toggleBtn.textContent =
-          'Regístrate aquí';
-
-        fullnameField.classList.add('hidden');
-
-        fullNameInput.required =
-          false;
-
-        submitBtn.textContent =
-          'Ingresar';
-
-      } else {
-
-        title.textContent =
-          'Crear Cuenta';
-
-        subtitle.textContent =
-          'Únete a la comunidad TrikaWeb';
-
-        toggleText.textContent =
-          '¿Ya tienes cuenta?';
-
-        toggleBtn.textContent =
-          'Inicia sesión';
-
-        fullnameField.classList.remove('hidden');
-
-        fullNameInput.required =
-          true;
-
-        submitBtn.textContent =
-          'Registrarse';
-      }
-    });
-
     googleBtn?.addEventListener(
       'click',
       async () => {
 
         try {
+          clearError();
 
-          const { error } =
-            await supabaseClient.auth.signInWithOAuth({
+          const result = await signInWithPopup(auth, provider);
+          const idToken = await result.user.getIdToken(true);
 
-              provider: 'google',
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ idToken })
+          });
 
-              options: {
+          const data = await response.json();
 
-                redirectTo:
-                  `${window.location.origin}/profile`,
+          if (!response.ok) {
+            await firebaseSignOut(auth);
+            throw new Error(data.error || 'Error iniciando sesión');
+          }
 
-                queryParams: {
-                  hd: 'uni.pe',
-                  prompt: 'select_account'
-                }
-              }
-            });
-
-          if (error) throw error;
+          window.location.href = '/profile';
 
         } catch (err: any) {
 
@@ -287,104 +108,6 @@ if (user) {
             err.message ||
             'Error iniciando sesión'
           );
-        }
-      }
-    );
-
-    form?.addEventListener(
-      'submit',
-      async (e) => {
-
-        e.preventDefault();
-
-        clearError();
-
-        const email =
-          emailInput.value
-            .trim()
-            .toLowerCase();
-
-        const password =
-          passwordInput.value;
-
-        if (!email.endsWith('@uni.pe')) {
-
-          showError(
-            'Solo se permiten correos @uni.pe'
-          );
-
-          return;
-        }
-
-        const originalText =
-          submitBtn.textContent;
-
-        submitBtn.disabled =
-          true;
-
-        submitBtn.textContent =
-          'Cargando...';
-
-        try {
-
-          const endpoint =
-            isLogin
-              ? '/api/auth/login'
-              : '/api/auth/register';
-
-          const payload =
-            isLogin
-              ? {
-                  email,
-                  password
-                }
-              : {
-                  email,
-                  password,
-                  full_name:
-                    fullNameInput.value.trim()
-                };
-
-          const response =
-            await fetch(endpoint, {
-
-              method: 'POST',
-
-              headers: {
-                'Content-Type':
-                  'application/json'
-              },
-
-              body:
-                JSON.stringify(payload)
-            });
-
-          const data =
-            await response.json();
-
-          if (!response.ok) {
-
-            throw new Error(
-              data.error ||
-              'Error procesando solicitud'
-            );
-          }
-
-          window.location.href =
-            '/profile';
-
-        } catch (err: any) {
-
-          showError(
-            err.message ||
-            'Error inesperado'
-          );
-
-          submitBtn.disabled =
-            false;
-
-          submitBtn.textContent =
-            originalText || 'Ingresar';
         }
       }
     );
