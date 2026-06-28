@@ -71,7 +71,7 @@ function CurriculumInner({ data }: Props) {
   const handleResize = useCallback(() => {
     if (!containerRef.current) return;
     const { clientWidth } = containerRef.current;
-    
+
     const calculatedMinZoom = clientWidth / EXTENT_WIDTH;
     setMinZoom(calculatedMinZoom);
 
@@ -79,8 +79,8 @@ function CurriculumInner({ data }: Props) {
     // Si la vista está en el inicio o cerca de minZoom, forzar el encuadre
     if (!hasInitialized.current || zoom <= calculatedMinZoom + 0.02) {
       setViewport({
-        x: X_PADDING * calculatedMinZoom, 
-        y: Y_PADDING * calculatedMinZoom, 
+        x: X_PADDING * calculatedMinZoom,
+        y: Y_PADDING * calculatedMinZoom,
         zoom: calculatedMinZoom
       });
       hasInitialized.current = true;
@@ -129,9 +129,9 @@ function CurriculumInner({ data }: Props) {
     const courseNodes: Node[] = data.courses.map((course) => ({
       id: String(course.course_id),
       type: 'course',
-      position: { 
-        x: (course.cycle - 1) * COLUMN_WIDTH, 
-        y: (course.row_index || 1) * ROW_HEIGHT 
+      position: {
+        x: (course.cycle - 1) * COLUMN_WIDTH,
+        y: (course.row_index || 1) * ROW_HEIGHT
       },
       data: {
         name: course.name,
@@ -224,9 +224,9 @@ function CurriculumInner({ data }: Props) {
 
   return (
     <div className={
-      isFullscreen 
-        ? "fixed inset-0 z-[100] flex w-screen h-screen bg-global-bg p-4" 
-        : "flex flex-col lg:flex-row gap-4 w-full h-[calc(100vh-260px)] mt-4"
+      isFullscreen
+        ? "fixed inset-0 z-[100] flex w-screen h-screen bg-global-bg p-4"
+        : "flex flex-col lg:flex-row gap-4 w-full h-[calc(100vh-240px)] mt-4"
     }>
       {/* Panel Lateral (Sidebar) */}
       {!isFullscreen && (
@@ -250,78 +250,78 @@ function CurriculumInner({ data }: Props) {
         ref={containerRef}
         className="flex-1 h-full border border-global-border rounded-xl overflow-hidden relative bg-global-bg"
       >
-      {/* Panel de Controles Flotante */}
-      <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
-        {/* Indicador de Estado */}
-        <div className="flex items-center gap-1.5 px-2 text-xs font-medium border-r border-global-border pr-3 mr-1 text-gray-400">
-          <span className={`w-2 h-2 rounded-full ${isZoomedIn ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
-          <span>{isZoomedIn ? 'Libre' : 'Centrado'}</span>
+        {/* Panel de Controles Flotante */}
+        <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
+          {/* Indicador de Estado */}
+          <div className="flex items-center gap-1.5 px-2 text-xs font-medium border-r border-global-border pr-3 mr-1 text-gray-400">
+            <span className={`w-2 h-2 rounded-full ${isZoomedIn ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
+            <span>{isZoomedIn ? 'Libre' : 'Centrado'}</span>
+          </div>
+
+          {/* Botón Zoom In */}
+          <button
+            onClick={() => zoomIn()}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240]"
+            title="Acercar"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+          </button>
+
+          {/* Botón Zoom Out */}
+          <button
+            onClick={() => zoomOut()}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240]"
+            title="Alejar"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+          </button>
+
+          {/* Botón Reset */}
+          <button
+            onClick={handleReset}
+            className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+            title="Restaurar y Centrar"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            Reset
+          </button>
+
+          {/* Botón Fullscreen */}
+          <button
+            onClick={toggleFullScreen}
+            className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
+            title="Pantalla Completa"
+          >
+            {isFullscreen ? (
+              <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> Salir</>
+            ) : (
+              <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> Full</>
+            )}
+          </button>
+
         </div>
 
-        {/* Botón Zoom In */}
-        <button
-          onClick={() => zoomIn()}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240]"
-          title="Acercar"
+        <ReactFlow
+          nodes={initialNodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          colorMode="dark"
+          minZoom={minZoom}
+          maxZoom={1.2}
+          translateExtent={[[-X_PADDING, -Y_PADDING], [EXTENT_WIDTH - X_PADDING, maxY]]}
+          panOnDrag={true}
+          zoomOnScroll={true}
+          zoomOnPinch={true}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          onNodeClick={onNodeClick}
+          onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
+          onNodeMouseLeave={() => setHoveredNode(null)}
+          proOptions={{ hideAttribution: true }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-        </button>
-
-        {/* Botón Zoom Out */}
-        <button
-          onClick={() => zoomOut()}
-          className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240]"
-          title="Alejar"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-        </button>
-
-        {/* Botón Reset */}
-        <button
-          onClick={handleReset}
-          className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
-          title="Restaurar y Centrar"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-          Reset
-        </button>
-
-        {/* Botón Fullscreen */}
-        <button
-          onClick={toggleFullScreen}
-          className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold"
-          title="Pantalla Completa"
-        >
-          {isFullscreen ? (
-            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> Salir</>
-          ) : (
-            <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> Full</>
-          )}
-        </button>
-
+          <Background color="#2A3240" gap={20} size={1} />
+        </ReactFlow>
       </div>
-
-      <ReactFlow
-        nodes={initialNodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        colorMode="dark"
-        minZoom={minZoom}
-        maxZoom={1.2}
-        translateExtent={[[-X_PADDING, -Y_PADDING], [EXTENT_WIDTH - X_PADDING, maxY]]}
-        panOnDrag={true}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        onNodeClick={onNodeClick}
-        onNodeMouseEnter={(_, node) => setHoveredNode(node.id)}
-        onNodeMouseLeave={() => setHoveredNode(null)}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background color="#2A3240" gap={20} size={1} />
-      </ReactFlow>
-    </div>
     </div>
   );
 }
