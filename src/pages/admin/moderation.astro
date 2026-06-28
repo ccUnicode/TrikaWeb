@@ -109,6 +109,9 @@ if (!isAdmin) {
             comment: string;
             created_at: string;
             teacher_id: string;
+            is_anonymous?: boolean;
+            user_name?: string | null;
+            user_email?: string | null;
             teachers: {
                 id: string;
                 full_name: string;
@@ -182,6 +185,12 @@ if (!isAdmin) {
                   ${teacherName}
                 </a>
                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
+                <p class="text-[11px] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 font-semibold rounded-full ${c.is_anonymous ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}">
+                    ${c.is_anonymous ? 'Anónimo' : 'Público'}
+                  </span>
+                  <span class="text-global-text-muted">Por: <strong>${c.user_name || 'Estudiante'}</strong> (${c.user_email || 'Sin correo'})</span>
+                </p>
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-yellow-400 text-sm">${stars}</span>
