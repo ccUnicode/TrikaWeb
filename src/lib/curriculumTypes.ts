@@ -12,6 +12,12 @@ export interface CurriculumCourse {
   row_index?: number;
   sumilla?: string | null;
   is_elective?: boolean;
+  avg_difficulty?: number;
+  teachers?: Array<{
+    id: number;
+    full_name: string;
+    avatar_url: string | null;
+  }>;
 }
 
 /** Relación de pre-requisito entre dos cursos del plan */
