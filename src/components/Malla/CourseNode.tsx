@@ -6,12 +6,19 @@ interface CourseNodeProps {
     code: string;
     evaluation_system: string;
     credits?: number;
+    isSelected?: boolean;
   };
 }
 
 export default function CourseNode({ data }: CourseNodeProps) {
+  const isSelected = data.isSelected === true;
+
   return (
-    <div className="w-[220px] h-[110px] rounded-xl border border-[#2A3240] bg-[#1E2430] flex flex-col overflow-hidden">
+    <div className={`w-[220px] h-[110px] rounded-xl border ${
+      isSelected
+        ? 'border-[#22c55e] shadow-lg shadow-[#22c55e]/20 ring-1 ring-[#22c55e]/30'
+        : 'border-[#2A3240]'
+    } bg-[#1E2430] flex flex-col overflow-hidden transition-all duration-200`}>
       <Handle type="target" position={Position.Left} />
 
       <div className="relative w-full flex-1 flex flex-col justify-center items-center">
