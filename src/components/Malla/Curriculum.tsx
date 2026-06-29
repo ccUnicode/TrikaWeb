@@ -14,6 +14,7 @@ import '@xyflow/react/dist/style.css';
 import type { CurriculumData } from '../../lib/curriculumTypes';
 import CourseNode from './CourseNode';
 import CycleHeaderNode from './CycleHeaderNode';
+import CourseDetailPanel from './CourseDetailPanel';
 
 const nodeTypes = {
   course: CourseNode,
@@ -24,9 +25,6 @@ const nodeTypes = {
 const COLUMN_WIDTH = 320;    // ancho
 const ROW_HEIGHT = 160;      // alto
 
-// ─── Estilos de nodo ────────────────────────────────────────────────
-
-// ─── Componente principal ───────────────────────────────────────────
 interface Props {
   data: CurriculumData;
 }
@@ -40,10 +38,11 @@ export default function MallaCurricular(props: Props) {
 }
 
 function CurriculumInner({ data }: Props) {
-  const { zoomIn, zoomOut, getViewport, setViewport } = useReactFlow();
+  const { zoomIn, zoomOut, getViewport, setViewport, getNode, setCenter } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   const [minZoom, setMinZoom] = useState(0.2);
   const [currentZoom, setCurrentZoom] = useState(0.85);
@@ -114,6 +113,12 @@ function CurriculumInner({ data }: Props) {
     return map;
   }, [data.courses]);
 
+  // Buscar el curso seleccionado
+  const selectedCourse = useMemo(() => {
+    if (!selectedCourseId) return null;
+    return data.courses.find(c => String(c.course_id) === selectedCourseId) || null;
+  }, [selectedCourseId, data.courses]);
+
   // 2. Generar nodos iniciales
   const initialNodes: Node[] = useMemo(() => {
     const TOTAL_CYCLES = 10;
@@ -139,13 +144,14 @@ function CurriculumInner({ data }: Props) {
         evaluation_system: course.evaluation_system,
         credits: course.credits,
         cycle: course.cycle,
+        isSelected: String(course.course_id) === selectedCourseId,
       },
       draggable: false,
       connectable: false,
     }));
 
     return [...headerNodes, ...courseNodes];
-  }, [data.courses]);
+  }, [data.courses, selectedCourseId]);
 
   const handleReset = useCallback(() => {
     if (!containerRef.current) return;
@@ -214,13 +220,21 @@ function CurriculumInner({ data }: Props) {
       });
   }, [data.prerequisites, courseIdToCode, hoveredNode]);
 
-  // ─── Click en nodo → navegar a detalle del curso ────────────────
+  // ─── Click en nodo → mostrar detalles en el panel ─────────────
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
-    const code = node.data?.code as string | undefined;
-    if (code) {
-      window.location.href = `/curso/${code}`;
-    }
+    if (node.type === 'cycleHeader') return;
+    setSelectedCourseId(node.id);
   }, []);
+
+  // ─── Navegación espacial de pre-requisitos ────────────────────
+  const handlePrerequisiteClick = useCallback((prerequisiteId: string) => {
+    const node = getNode(prerequisiteId);
+    if (node) {
+      // Centrar en el nodo (mitad del ancho 220/2=110, mitad del alto 110/2=55)
+      setCenter(node.position.x + 110, node.position.y + 55, { duration: 800, zoom: 1 });
+    }
+    setSelectedCourseId(prerequisiteId);
+  }, [getNode, setCenter]);
 
   return (
     <div className={
@@ -231,17 +245,26 @@ function CurriculumInner({ data }: Props) {
       {/* Panel Lateral (Sidebar) */}
       {!isFullscreen && (
         <div className="w-full lg:w-[350px] xl:w-[400px] h-full bg-[#1e2430] border border-gray-800 rounded-xl p-6 flex flex-col">
-          <div className="flex flex-col gap-4 h-full">
-            <h2 className="text-white text-xl font-bold border-b border-gray-700 pb-2">Detalles del Curso</h2>
-            <div className="flex flex-col gap-3 mt-2">
-              <div className="h-6 bg-gray-800 rounded w-3/4 animate-pulse"></div>
-              <div className="h-4 bg-gray-800 rounded w-1/2 animate-pulse"></div>
+          {selectedCourse ? (
+            <CourseDetailPanel
+              course={selectedCourse}
+              prerequisites={data.prerequisites}
+              allCourses={data.courses}
+              onPrerequisiteClick={handlePrerequisiteClick}
+            />
+          ) : (
+            <div className="flex flex-col gap-4 h-full">
+              <h2 className="text-white text-xl font-bold border-b border-gray-700 pb-2">Detalles del Curso</h2>
+              <div className="flex flex-col gap-3 mt-2">
+                <div className="h-6 bg-gray-800 rounded w-3/4 animate-pulse"></div>
+                <div className="h-4 bg-gray-800 rounded w-1/2 animate-pulse"></div>
+              </div>
+              <div className="h-32 bg-gray-800 rounded w-full mt-4 animate-pulse"></div>
+              <p className="text-gray-500 text-sm mt-auto text-center">
+                Haz clic en cualquier curso de la malla para ver su sumilla, profesores y pre-requisitos.
+              </p>
             </div>
-            <div className="h-32 bg-gray-800 rounded w-full mt-4 animate-pulse"></div>
-            <p className="text-gray-500 text-sm mt-auto text-center">
-              Haz clic en cualquier curso de la malla para ver su sumilla, profesores y pre-requisitos.
-            </p>
-          </div>
+          )}
         </div>
       )}
 
