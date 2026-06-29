@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Flame, Users, User, FileText } from 'lucide-react';
 import type { CurriculumCourse, CoursePrerequisite } from '../../lib/curriculumTypes';
 
 export interface CourseDetailPanelProps {
@@ -28,8 +29,10 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
   }, [course.course_id, prerequisites, allCourses]);
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-y-auto custom-scrollbar pr-1">
-      {/* Header: Código + Nombre */}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Contenido Scrollable */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-4">
+        {/* Header: Código + Nombre */}
       <div>
         <span className="text-[#22c55e] font-mono text-sm font-bold tracking-wider uppercase">
           {course.code}
@@ -68,6 +71,13 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
             {course.evaluation_system}
           </span>
         )}
+
+        {course.avg_difficulty && course.avg_difficulty > 0 ? (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Dificultad Percibida">
+            <Flame className="w-3.5 h-3.5" />
+            {Number(course.avg_difficulty).toFixed(1)} / 5
+          </span>
+        ) : null}
       </div>
 
       {/* Separador */}
@@ -154,18 +164,50 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
         </div>
       )}
 
-      {/* Espacio para futuras secciones (Planchas, Dificultad, Profesores) */}
+      {/* Docentes */}
+      <div>
+        <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-1.5">
+          <Users className="w-4 h-4 text-gray-400" />
+          Docentes
+        </h3>
+        {course.teachers && course.teachers.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {course.teachers.map(teacher => (
+              <a
+                key={teacher.id}
+                href={`/profesores/${teacher.id}`}
+                className="inline-flex items-center gap-1.5 pr-3 py-1 rounded-full bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors group text-left cursor-pointer"
+              >
+                {teacher.avatar_url ? (
+                  <img src={teacher.avatar_url} alt={teacher.full_name} className="w-5 h-5 rounded-full object-cover bg-gray-900 ml-1" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 ml-1">
+                    <User className="w-3 h-3" />
+                  </div>
+                )}
+                <span className="text-xs text-gray-300 font-medium group-hover:text-white truncate max-w-[150px]">
+                  {teacher.full_name}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-sm italic">
+            Docentes por confirmar.
+          </p>
+        )}
+      </div>
 
-      {/* Link a la página del curso */}
-      <div className="mt-auto pt-4 border-t border-gray-800">
+      </div>
+
+      {/* Footer Fijo con Link a la página del curso */}
+      <div className="p-4 border-t border-gray-800 bg-[#1e2430] mt-auto">
         <a
           href={`/curso/${course.code}`}
-          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-xl bg-[#161b22] border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition-all text-sm font-medium group"
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-global-primary hover:bg-global-primary-hover text-black transition-all text-sm font-bold shadow-lg shadow-global-primary/20 active:scale-95"
         >
-          <svg className="w-4 h-4 text-gray-400 group-hover:text-[#22c55e] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-          Ver página del curso
+          <FileText className="w-4 h-4" />
+          Ver planchas
         </a>
       </div>
     </div>

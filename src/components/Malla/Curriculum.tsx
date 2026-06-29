@@ -244,7 +244,7 @@ function CurriculumInner({ data }: Props) {
     }>
       {/* Panel Lateral (Sidebar) */}
       {!isFullscreen && (
-        <div className="w-full lg:w-[350px] xl:w-[400px] h-full bg-[#1e2430] border border-gray-800 rounded-xl p-6 flex flex-col">
+        <div className="w-full lg:w-[350px] xl:w-[400px] h-full bg-[#1e2430] border border-gray-800 rounded-xl flex flex-col overflow-hidden">
           {selectedCourse ? (
             <CourseDetailPanel
               course={selectedCourse}
@@ -253,7 +253,7 @@ function CurriculumInner({ data }: Props) {
               onPrerequisiteClick={handlePrerequisiteClick}
             />
           ) : (
-            <div className="flex flex-col gap-4 h-full">
+            <div className="flex flex-col gap-4 h-full p-6">
               <h2 className="text-white text-xl font-bold border-b border-gray-700 pb-2">Detalles del Curso</h2>
               <div className="flex flex-col gap-3 mt-2">
                 <div className="h-6 bg-gray-800 rounded w-3/4 animate-pulse"></div>
