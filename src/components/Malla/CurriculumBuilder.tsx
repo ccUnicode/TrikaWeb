@@ -256,7 +256,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
 
       {/* Canvas - Área de CSS Grid Nativo */}
       <main className="flex-1 h-full w-full bg-[#11151c] border border-global-border rounded-xl relative overflow-auto custom-scrollbar">
-        <div className="w-[1100px] p-4 flex flex-col">
+        <div className="w-[1116px] p-4 flex flex-col">
           {/* Cabeceras de Ciclos */}
           <div className="grid grid-cols-10 gap-1.5 mb-2">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -310,8 +310,8 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
       {/* Snackbar Notificación */}
       {notification && (
         <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-xl border z-50 flex items-center gap-3 transition-all animate-in fade-in slide-in-from-bottom-4 ${notification.type === 'success'
-            ? 'bg-green-500/10 border-green-500/20 text-green-400'
-            : 'bg-red-500/10 border-red-500/20 text-red-400'
+          ? 'bg-green-500/10 border-green-500/20 text-green-400'
+          : 'bg-red-500/10 border-red-500/20 text-red-400'
           }`}>
           {notification.type === 'success' ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
@@ -329,9 +329,9 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
           placedCourses={placedCourses}
           onClose={() => setSelectedCourseForPrereqs(null)}
           onApply={(prereqIds) => {
-            setPlacedCourses(prev => prev.map(c => 
-              c.id === selectedCourseForPrereqs.id 
-                ? { ...c, prerequisites: prereqIds } 
+            setPlacedCourses(prev => prev.map(c =>
+              c.id === selectedCourseForPrereqs.id
+                ? { ...c, prerequisites: prereqIds }
                 : c
             ));
             setSelectedCourseForPrereqs(null);
@@ -514,13 +514,13 @@ function PrereqsModal({ course, placedCourses, onClose, onApply }: PrereqsModalP
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
           </button>
         </div>
-        
+
         <div className="p-5 flex-1 overflow-y-auto max-h-[60vh] custom-scrollbar">
           <div className="mb-4 bg-[#161b22] border border-gray-800 p-3 rounded-xl flex items-center gap-2">
             <span className="font-mono text-global-primary font-bold">{course.code}</span>
             <span className="text-sm text-gray-300 font-medium">{course.name}</span>
           </div>
-          
+
           <p className="text-xs text-gray-400 mb-4">
             Selecciona los cursos que deben aprobarse antes de llevar esta materia.
           </p>
@@ -535,7 +535,7 @@ function PrereqsModal({ course, placedCourses, onClose, onApply }: PrereqsModalP
             />
             <svg className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </div>
-          
+
           {sortedCycles.length === 0 ? (
             <div className="text-center p-6 bg-gray-800/30 rounded-xl border border-gray-800/50">
               <p className="text-sm text-gray-500">No se encontraron cursos disponibles.</p>
@@ -557,8 +557,8 @@ function PrereqsModal({ course, placedCourses, onClose, onApply }: PrereqsModalP
                     {coursesByCycle[cycle].map(c => (
                       <label key={c.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors select-none ${selectedIds.includes(c.id) ? 'bg-green-500/10 border-green-500/50' : 'bg-[#161b22] border-gray-800 hover:border-gray-700'}`}>
                         <div className="flex-shrink-0 relative flex items-center justify-center w-5 h-5">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             checked={selectedIds.includes(c.id)}
                             onChange={() => togglePrereq(c.id)}
                             className="peer appearance-none w-5 h-5 border border-gray-600 rounded-md bg-[#1a202c] checked:bg-green-500 checked:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-[#161b22] transition-all cursor-pointer"
@@ -567,7 +567,7 @@ function PrereqsModal({ course, placedCourses, onClose, onApply }: PrereqsModalP
                             <svg className="w-3.5 h-3.5 text-white absolute pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
                           )}
                         </div>
-                        
+
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-mono text-green-500 font-bold uppercase">{c.code}</span>
@@ -582,7 +582,7 @@ function PrereqsModal({ course, placedCourses, onClose, onApply }: PrereqsModalP
             </div>
           )}
         </div>
-        
+
         <div className="p-4 border-t border-gray-800 bg-[#1a202c] flex justify-end gap-3">
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">
             Cancelar
