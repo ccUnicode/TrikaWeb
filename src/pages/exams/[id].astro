@@ -55,6 +55,14 @@ const description =
   sheet.teacher_hint ||
   `${sheet.exam_type || "Evaluacion"} - ${sheet.cycle || "Sin ciclo"}`;
 
+const isImage = (path: string | null) => {
+  if (!path) return false;
+  const ext = path.split('.').pop()?.toLowerCase();
+  return ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+};
+
+const examIsImage = isImage(sheet.exam_storage_path);
+
 let examUrl: string | null = null;
 if (sheet.exam_storage_path) {
   const { data } = await supa.storage
@@ -277,11 +285,17 @@ function getYouTubeId(url: string) {
               >
                 <iframe
                   id="pdf-viewer-iframe"
-                  src={`${examUrl}#toolbar=0&navpanes=0&view=FitH`}
+                  src={examIsImage ? "" : `${examUrl}#toolbar=0&navpanes=0&view=FitH`}
                   data-exam-url={examUrl}
-                  class="absolute inset-0 h-full w-full rounded-xl border-0"
+                  class={`absolute inset-0 h-full w-full rounded-xl border-0 ${examIsImage ? "hidden" : ""}`}
                   loading="lazy"
                   allowfullscreen
+                />
+                <img
+                  id="image-viewer"
+                  src={examIsImage ? examUrl : ""}
+                  alt="Visor de recurso"
+                  class={`absolute inset-0 h-full w-full object-contain rounded-xl ${examIsImage ? "" : "hidden"}`}
                 />
               </div>
             ) : (
@@ -350,6 +364,9 @@ function getYouTubeId(url: string) {
     const iframe = document.getElementById(
       "pdf-viewer-iframe",
     ) as HTMLIFrameElement;
+    const imgViewer = document.getElementById(
+      "image-viewer",
+    ) as HTMLImageElement;
     const container = document.getElementById("viewer-container");
     const solutionBtn = document.getElementById("view-solution-btn");
     const examBtn = document.getElementById("view-exam-btn");
@@ -358,11 +375,18 @@ function getYouTubeId(url: string) {
     ) as HTMLAnchorElement;
     const downloadText = document.getElementById("action-download-text");
 
-    if (!iframe || !container) return;
+    if (!iframe || !container || !imgViewer) return;
 
     // Helper classes
     const pdfClasses = ["sm:aspect-[3/4]", "min-h-[500px]", "sm:min-h-0"];
     const videoClasses = ["aspect-video"];
+
+    const isImageUrl = (url: string | null) => {
+      if (!url) return false;
+      const cleanUrl = url.split('?')[0].split('#')[0];
+      const ext = cleanUrl.split('.').pop()?.toLowerCase();
+      return ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+    };
 
     // Handle "Ver solucionario" button
     if (solutionBtn) {
@@ -395,6 +419,8 @@ function getYouTubeId(url: string) {
         if (solutionType === "video" && videoUrl) {
           const videoId = getYouTubeId(videoUrl);
           if (videoId) {
+            imgViewer.classList.add("hidden");
+            iframe.classList.remove("hidden");
             iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             iframe.setAttribute(
               "allow",
@@ -405,9 +431,19 @@ function getYouTubeId(url: string) {
             container.classList.add(...videoClasses);
           }
         } else if (solutionUrl) {
-          // Change iframe src to solution PDF
-          iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
-          iframe.removeAttribute("allow");
+          // Change iframe src or img src depending on format
+          const isImg = isImageUrl(solutionUrl);
+          if (isImg) {
+            iframe.classList.add("hidden");
+            iframe.src = "";
+            imgViewer.src = solutionUrl;
+            imgViewer.classList.remove("hidden");
+          } else {
+            imgViewer.classList.add("hidden");
+            iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
+            iframe.classList.remove("hidden");
+            iframe.removeAttribute("allow");
+          }
           // Ensure container is in PDF mode
           container.classList.remove(...videoClasses);
           container.classList.add(...pdfClasses);
@@ -443,9 +479,19 @@ function getYouTubeId(url: string) {
 
         if (!examUrl) return;
 
-        // Change iframe src back to exam PDF
-        iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
-        iframe.removeAttribute("allow");
+        // Change iframe src or img src depending on format
+        const isImg = isImageUrl(examUrl);
+        if (isImg) {
+          iframe.classList.add("hidden");
+          iframe.src = "";
+          imgViewer.src = examUrl;
+          imgViewer.classList.remove("hidden");
+        } else {
+          imgViewer.classList.add("hidden");
+          iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
+          iframe.classList.remove("hidden");
+          iframe.removeAttribute("allow");
+        }
 
         // Ensure container is in PDF mode
         container.classList.remove(...videoClasses);

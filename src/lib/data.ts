@@ -17,6 +17,7 @@ export interface SheetSummary {
   teacher_hint: string | null;
   solution_kind?: string | null;
   thumb_storage_path?: string | null;
+  exam_storage_path?: string | null;
   course_code?: string;
   course_name?: string;
 }
@@ -89,6 +90,7 @@ const sheetSelect = `
   teacher_hint,
   solution_kind,
   thumb_storage_path,
+  exam_storage_path,
   courses:course_id (code,name)
 `;
 

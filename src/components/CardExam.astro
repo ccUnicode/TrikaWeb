@@ -44,6 +44,27 @@ if (sheet?.thumb_storage_path) {
   } catch (error) {
     console.error("Error signing thumb url:", error);
   }
+} else if (sheet?.exam_storage_path) {
+  // Si no hay miniatura pero el archivo de examen original es una imagen, la usamos como miniatura
+  const path = sheet.exam_storage_path;
+  const ext = path.split('.').pop()?.toLowerCase();
+  const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+
+  if (isImg) {
+    try {
+      const storagePath = path.startsWith("exams/")
+        ? path.replace("exams/", "")
+        : path;
+
+      const supa = supabaseAdmin;
+      const { data } = await supa.storage
+        .from("exams")
+        .createSignedUrl(storagePath, 3600);
+      thumbUrl = data?.signedUrl ?? null;
+    } catch (error) {
+      console.error("Error signing exam image as thumbnail:", error);
+    }
+  }
 }
 
 /* 2. Definimos los iconos (los metemos aqui) */
