@@ -1,0 +1,185 @@
+---
+export const prerender = false;
+
+import Layout from "../../layouts/Layout.astro";
+import { supabaseAdmin } from "../../lib/supabaseAdmin";
+
+const { id } = Astro.params;
+
+if (!id) {
+  return Astro.redirect("/");
+}
+
+// 1. Obtener el historial de aportes aprobados (RF-20)
+const { data: contributions, error: contribError } = await supabaseAdmin
+  .from("contributions")
+  .select("*, courses(code, name)")
+  .eq("user_id", id)
+  .eq("status", "approved")
+  .order("created_at", { ascending: false });
+
+// 2. Obtener información del perfil público del estudiante (con fallback si es usuario Firebase y no está en la tabla profiles de Supabase)
+let studentProfile = {
+  id: id,
+  full_name: "Estudiante",
+  email: "",
+  avatar_url: null as string | null,
+  role: "student"
+};
+
+const { data: profileDb } = await supabaseAdmin
+  .from("profiles")
+  .select("id, full_name, email, avatar_url, role")
+  .eq("id", id)
+  .maybeSingle();
+
+if (profileDb) {
+  studentProfile = profileDb;
+} else if (contributions && contributions.length > 0) {
+  studentProfile.full_name = contributions[0].user_name || "Estudiante";
+  studentProfile.email = contributions[0].user_email || "";
+} else {
+  // Si no hay perfil ni aportes, redirigir
+  return Astro.redirect("/");
+}
+
+// 3. Obtener planchas publicadas para crear los enlaces
+let sheetMap = new Map<string, number>();
+if (contributions && contributions.length > 0) {
+  const courseIds = [...new Set(contributions.map((c) => c.course_id))];
+  const { data: sheets } = await supabaseAdmin
+    .from("sheets")
+    .select("id, course_id, cycle, exam_type")
+    .in("course_id", courseIds);
+
+  if (sheets) {
+    sheets.forEach((sheet) => {
+      const key = `${sheet.course_id}_${sheet.cycle}_${sheet.exam_type}`.toLowerCase();
+      sheetMap.set(key, sheet.id);
+    });
+  }
+}
+
+const totalAportes = contributions?.length ?? 0;
+
+// Construir inicial para avatar si no hay imagen
+const initial = studentProfile.full_name
+  ? studentProfile.full_name.charAt(0).toUpperCase()
+  : studentProfile.email
+    ? studentProfile.email.charAt(0).toUpperCase()
+    : "?";
+
+// Resolver url de avatar
+const toAvatarUrl = (src?: string | null) => {
+  if (!src) return null;
+  if (src.startsWith("http")) return src;
+  const base = import.meta.env.PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  return `${base}/storage/v1/object/public/avatars/${src}`;
+};
+const avatarUrl = toAvatarUrl(studentProfile.avatar_url);
+---
+
+<Layout title={`Perfil de ${studentProfile.full_name} - TrikaWeb`}>
+  <main class="mx-auto max-w-4xl px-4 py-10 min-h-screen text-global-text">
+    <!-- Card de Perfil -->
+    <div class="rounded-3xl border border-global-border bg-global-surface p-6 sm:p-10 shadow-2xl mb-8">
+      <div class="flex flex-col sm:flex-row items-center gap-6">
+        <!-- Avatar -->
+        <div class="flex-shrink-0">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={studentProfile.full_name}
+              class="h-24 w-24 rounded-full object-cover border-4 border-global-primary/30 shadow-lg"
+            />
+          ) : (
+            <div class="flex h-24 w-24 items-center justify-center rounded-full bg-global-primary/20 text-4xl font-bold text-global-primary border-4 border-global-primary/30 shadow-lg">
+              {initial}
+            </div>
+          )}
+        </div>
+
+        <!-- Info -->
+        <div class="text-center sm:text-left flex-1">
+          <h1 class="text-3xl font-bold">{studentProfile.full_name}</h1>
+          <p class="text-global-text-muted mt-1">Colaborador en TrikaWeb</p>
+          <div class="mt-4 flex flex-wrap justify-center sm:justify-start gap-4">
+            <div class="bg-global-background border border-global-border rounded-xl px-4 py-2 text-center">
+              <span class="block text-2xl font-bold text-global-primary">{totalAportes}</span>
+              <span class="text-[10px] uppercase font-bold text-global-text-muted">Aportes Aprobados</span>
+            </div>
+            <div class="bg-global-background border border-global-border rounded-xl px-4 py-2 text-center flex items-center justify-center">
+              <span class="text-xs font-semibold text-global-text-muted">
+                Estudiante UNI
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historial de Aportes Aprobados -->
+    <div class="rounded-3xl border border-global-border bg-global-surface p-6 sm:p-8 shadow-xl">
+      <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-global-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        Historial de Contribuciones
+      </h2>
+
+      {contributions && contributions.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {contributions.map((contrib) => {
+            const key = `${contrib.course_id}_${contrib.cycle}_${contrib.exam_type}`.toLowerCase();
+            const sheetId = sheetMap.get(key);
+
+            return (
+              <div class="rounded-2xl border border-global-border bg-global-background/50 p-5 flex flex-col justify-between gap-4 transition hover:border-global-primary/40 shadow-sm">
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <span class="text-xs font-bold text-global-primary">
+                      {contrib.courses?.code}
+                    </span>
+                    <span class="text-xs text-global-text-muted">
+                      {contrib.cycle}
+                    </span>
+                    <span class="text-xs bg-global-border px-2 py-0.5 rounded text-global-text">
+                      {contrib.exam_type}
+                    </span>
+                  </div>
+                  <h3 class="text-base font-semibold line-clamp-2">
+                    {contrib.courses?.name}
+                  </h3>
+                  <p class="text-xs text-global-text-muted mt-2">
+                    Tipo de Aporte: <span class="font-medium text-global-text">{contrib.contribution_type === 'sheet' ? 'Plancha' : 'Solucionario'}</span>
+                  </p>
+                </div>
+
+                {sheetId ? (
+                  <a
+                    href={`/exams/${sheetId}`}
+                    class="inline-flex items-center justify-center rounded-xl bg-global-primary/10 border border-global-primary/20 py-2 text-xs font-bold text-global-primary hover:bg-global-primary hover:text-black transition-all"
+                  >
+                    Ver Recurso Público
+                  </a>
+                ) : (
+                  <span class="inline-flex items-center justify-center rounded-xl bg-global-border/40 border border-global-border/60 py-2 text-xs font-medium text-global-text-muted">
+                    Procesado
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div class="text-center py-12 border border-global-border border-dashed rounded-2xl text-global-text-muted">
+          <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 text-global-text-muted/60 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+          <p class="text-sm">Aún no hay aportes aprobados registrados para este estudiante.</p>
+        </div>
+      )}
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,416 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
+
+const isAdmin = await validateAdminSession(Astro.cookies);
+if (!isAdmin) {
+  return Astro.redirect("/admin/login");
+}
+---
+
+<Layout title="Moderación de Aportes | TrikaWeb Admin">
+  <div class="min-h-screen py-8 text-global-text">
+    <div class="mx-auto w-full max-w-5xl px-4">
+      <AdminHeader
+        title="Aportes de Alumnos"
+        description="Revisa, aprueba u descarta las donaciones de planchas y solucionarios enviadas por los estudiantes."
+      />
+
+      <!-- Sección Principal -->
+      <section class="rounded-2xl bg-global-surface border border-global-border p-6 shadow-xl">
+        <div class="flex items-center justify-between gap-4 flex-wrap mb-6">
+          <div class="flex gap-1 rounded-xl bg-global-bg p-1 border border-global-border">
+            <button
+              id="btn-filter-pending"
+              class="filter-tab rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer bg-global-primary text-black"
+              data-status="pending"
+            >
+              Pendientes
+            </button>
+            <button
+              id="btn-filter-history"
+              class="filter-tab rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer text-global-text-muted hover:text-global-text"
+              data-status="history"
+            >
+              Historial (Procesados)
+            </button>
+          </div>
+
+          <button
+            id="btn-refresh"
+            class="rounded-xl bg-global-card border border-global-border px-4 py-2 text-sm font-medium hover:bg-global-border transition cursor-pointer"
+          >
+            Actualizar
+          </button>
+        </div>
+
+        <div id="loading" class="py-12 text-center text-global-text-muted">
+          <div class="animate-spin h-8 w-8 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-3"></div>
+          Cargando aportes...
+        </div>
+
+        <div id="empty-state" class="hidden py-12 text-center text-global-text-muted">
+          No hay aportes para mostrar.
+        </div>
+
+        <div id="contributions-list" class="space-y-4"></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Modal de Revisión (Aprobación/Rechazo) -->
+  <div
+    id="review-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+  >
+    <div
+      class="bg-global-surface border border-global-border rounded-2xl p-6 max-w-lg w-full mx-4 shadow-2xl transform scale-95 transition-transform duration-300 relative"
+      id="review-modal-box"
+    >
+      <button
+        id="close-modal-btn"
+        class="absolute top-4 right-4 text-global-text-muted hover:text-global-text cursor-pointer"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <h3 id="modal-title" class="text-xl font-bold mb-4">Revisar Aporte</h3>
+
+      <div class="space-y-4 mb-6">
+        <div class="bg-global-background border border-global-border rounded-xl p-4 text-sm space-y-2">
+          <p><strong class="text-global-text-muted">Estudiante:</strong> <span id="info-student"></span></p>
+          <p><strong class="text-global-text-muted">Curso:</strong> <span id="info-course"></span></p>
+          <p><strong class="text-global-text-muted">Evaluación:</strong> <span id="info-eval"></span></p>
+          <p><strong class="text-global-text-muted">Tipo:</strong> <span id="info-type"></span></p>
+        </div>
+
+        <!-- Botón para ver archivo borrador -->
+        <a
+          id="btn-view-draft"
+          href="#"
+          target="_blank"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-global-primary/10 border border-global-primary/20 py-3 text-sm font-semibold text-global-primary hover:bg-global-primary hover:text-black transition-all"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Descargar / Ver Borrador del Alumno
+        </a>
+
+        <!-- Formulario de Aprobación/Rechazo -->
+        <form id="review-form" class="space-y-4 pt-4 border-t border-global-border">
+          <input type="hidden" name="contribution_id" id="modal-contrib-id" />
+          
+          <div>
+            <label class="block text-xs font-semibold text-global-text-muted mb-1.5">
+              Acción
+            </label>
+            <div class="flex gap-4">
+              <label class="flex items-center text-sm text-global-text cursor-pointer">
+                <input
+                  type="radio"
+                  name="action"
+                  value="approve"
+                  checked
+                  id="action-approve-radio"
+                  class="mr-2 accent-global-primary"
+                />
+                <span id="action-approve-label">Aprobar y publicar</span>
+              </label>
+              <label class="flex items-center text-sm text-global-text cursor-pointer">
+                <input
+                  type="radio"
+                  name="action"
+                  value="reject"
+                  id="action-reject-radio"
+                  class="mr-2 accent-global-primary"
+                />
+                Rechazar aporte
+              </label>
+            </div>
+          </div>
+
+
+
+          <div>
+            <label for="admin_notes" class="block text-xs font-semibold text-global-text-muted mb-1.5">
+              Notas / Retroalimentación para el Estudiante
+            </label>
+            <textarea
+              name="admin_notes"
+              id="admin_notes"
+              rows="3"
+              placeholder="Ej: Aprobado correctamente / Archivo borroso o incompleto..."
+              class="w-full rounded-xl border border-global-border bg-global-surface px-3 py-2 text-sm text-global-text outline-none focus:border-global-primary resize-none"
+            ></textarea>
+          </div>
+
+          <div
+            id="modal-status"
+            class="hidden p-3 text-xs rounded-xl border text-center"
+          ></div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              id="btn-cancel-modal"
+              class="rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium hover:bg-global-border transition cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              id="btn-submit-modal"
+              class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black hover:bg-global-primary-hover transition cursor-pointer"
+            >
+              Procesar Aporte
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    let currentFilter: "pending" | "history" = "pending";
+    let allContributions: any[] = [];
+
+    // DOM Elements
+    const listContainer = document.getElementById("contributions-list")!;
+    const loadingEl = document.getElementById("loading")!;
+    const emptyStateEl = document.getElementById("empty-state")!;
+    const btnPending = document.getElementById("btn-filter-pending")!;
+    const btnHistory = document.getElementById("btn-filter-history")!;
+    const btnRefresh = document.getElementById("btn-refresh")!;
+
+    // Modal elements
+    const modal = document.getElementById("review-modal")!;
+    const modalBox = document.getElementById("review-modal-box")!;
+    const closeModalBtn = document.getElementById("close-modal-btn")!;
+    const btnCancelModal = document.getElementById("btn-cancel-modal")!;
+    const btnSubmitModal = document.getElementById("btn-submit-modal") as HTMLButtonElement;
+    const reviewForm = document.getElementById("review-form") as HTMLFormElement;
+    const modalStatus = document.getElementById("modal-status")!;
+    const actionApproveLabel = document.getElementById("action-approve-label")!;
+
+
+    // Modal data fields
+    const modalTitle = document.getElementById("modal-title")!;
+    const modalContribId = document.getElementById("modal-contrib-id") as HTMLInputElement;
+    const infoStudent = document.getElementById("info-student")!;
+    const infoCourse = document.getElementById("info-course")!;
+    const infoEval = document.getElementById("info-eval")!;
+    const infoType = document.getElementById("info-type")!;
+    const btnViewDraft = document.getElementById("btn-view-draft") as HTMLAnchorElement;
+
+    // Fetch contributions
+    async function loadContributions() {
+      loadingEl.classList.remove("hidden");
+      listContainer.classList.add("hidden");
+      emptyStateEl.classList.add("hidden");
+
+      try {
+        const res = await fetch("/api/admin/contributions/list");
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        allContributions = data.contributions ?? [];
+        renderContributions();
+      } catch (err: any) {
+        console.error("Error loading contributions:", err);
+        listContainer.innerHTML = `<div class="p-4 text-center text-red-400 border border-red-500/20 bg-red-500/10 rounded-xl">Error: ${err.message || "No se pudieron cargar los aportes."}</div>`;
+        listContainer.classList.remove("hidden");
+      } finally {
+        loadingEl.classList.add("hidden");
+      }
+    }
+
+    // Render contributions
+    function renderContributions() {
+      listContainer.innerHTML = "";
+
+      const filtered = allContributions.filter((c) => {
+        if (currentFilter === "pending") {
+          return c.status === "pending";
+        } else {
+          return c.status !== "pending";
+        }
+      });
+
+      if (filtered.length === 0) {
+        emptyStateEl.classList.remove("hidden");
+        return;
+      }
+
+      filtered.forEach((contrib) => {
+        const isPending = contrib.status === "pending";
+        const isApproved = contrib.status === "approved";
+        const isRejected = contrib.status === "rejected";
+
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-global-border bg-global-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm";
+
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-bold text-global-primary">
+                ${contrib.courses?.code}
+              </span>
+              <span class="text-xs text-global-text-muted">
+                ${contrib.cycle}
+              </span>
+              <span class="text-xs bg-global-border px-2 py-0.5 rounded text-global-text">
+                ${contrib.exam_type}
+              </span>
+              <span class="text-xs font-semibold text-global-text-muted">
+                Autor: ${contrib.user_name || contrib.user_email || "Desconocido"}
+              </span>
+            </div>
+            <h3 class="text-sm font-semibold text-global-text mt-1.5">
+              ${contrib.courses?.name}
+            </h3>
+            <div class="flex items-center gap-2 mt-2">
+              <span class="text-xs text-global-text-muted">Tipo:</span>
+              <span class="text-xs font-medium text-global-text">
+                ${contrib.contribution_type === "sheet" ? "Plancha (Examen)" : "Solucionario"}
+              </span>
+            </div>
+            ${contrib.admin_notes ? `<p class="text-xs text-global-text-muted mt-2 bg-global-bg p-2 rounded-lg border border-global-border"><strong>Nota:</strong> ${contrib.admin_notes}</p>` : ""}
+          </div>
+          <div class="flex items-center gap-3">
+            ${
+              isPending
+                ? `<button class="btn-review px-4 py-2 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover font-semibold text-xs cursor-pointer transition-all" data-id="${contrib.id}">Revisar aporte</button>`
+                : `<span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold border uppercase tracking-wider ${
+                    isApproved
+                      ? "bg-green-950/30 text-green-400 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+                      : "bg-red-950/30 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.15)]"
+                  }">${isApproved ? "Aprobado" : "Rechazado"}</span>`
+            }
+          </div>
+        `;
+
+        listContainer.appendChild(card);
+      });
+
+      listContainer.classList.remove("hidden");
+
+      // Bind review buttons
+      document.querySelectorAll(".btn-review").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = Number(btn.getAttribute("data-id"));
+          openReviewModal(id);
+        });
+      });
+    }
+
+    // Modal Control
+    function openReviewModal(id: number) {
+      const contrib = allContributions.find((c) => c.id === id);
+      if (!contrib) return;
+
+      modalContribId.value = String(contrib.id);
+      infoStudent.textContent = `${contrib.user_name} (${contrib.user_email})`;
+      infoCourse.textContent = `[${contrib.courses?.code}] ${contrib.courses?.name}`;
+      infoEval.textContent = `${contrib.exam_type} - ${contrib.cycle}`;
+      infoType.textContent = contrib.contribution_type === "sheet" ? "Plancha" : "Solucionario";
+      btnViewDraft.href = contrib.signedUrl || "#";
+
+      // Cambiar texto de aprobación según el tipo de aporte
+      if (contrib.contribution_type === "sheet") {
+        actionApproveLabel.textContent = "Aprobar y publicar";
+      } else {
+        actionApproveLabel.textContent = "Aprobar aporte";
+      }
+
+      // Reset form
+      reviewForm.reset();
+      modalStatus.classList.add("hidden");
+      btnSubmitModal.disabled = false;
+      btnSubmitModal.textContent = "Procesar Aporte";
+
+
+
+      // Show modal
+      modal.classList.remove("pointer-events-none", "opacity-0");
+      modalBox.classList.remove("scale-95");
+      modalBox.classList.add("scale-100");
+    }
+
+    function closeReviewModal() {
+      modal.classList.add("pointer-events-none", "opacity-0");
+      modalBox.classList.remove("scale-100");
+      modalBox.classList.add("scale-95");
+    }
+
+
+
+    closeModalBtn.addEventListener("click", closeReviewModal);
+    btnCancelModal.addEventListener("click", closeReviewModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeReviewModal();
+    });
+
+    // Handle form submit
+    reviewForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      btnSubmitModal.disabled = true;
+      btnSubmitModal.textContent = "Procesando...";
+
+      modalStatus.className = "p-3 text-xs rounded-xl border bg-global-primary/10 border-global-primary/20 text-global-primary";
+      modalStatus.textContent = "Actualizando el aporte...";
+      modalStatus.classList.remove("hidden");
+
+      try {
+        const formData = new FormData(reviewForm);
+
+        const res = await fetch("/api/admin/contributions/review", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        modalStatus.className = "p-3 text-xs rounded-xl border bg-green-500/10 border-green-500/20 text-green-400";
+        modalStatus.textContent = "¡Aporte procesado con éxito!";
+
+        setTimeout(() => {
+          closeReviewModal();
+          loadContributions();
+        }, 1500);
+
+      } catch (err: any) {
+        modalStatus.className = "p-3 text-xs rounded-xl border bg-red-500/10 border-red-500/20 text-red-400";
+        modalStatus.textContent = err.message || "Error al procesar el aporte.";
+        btnSubmitModal.disabled = false;
+        btnSubmitModal.textContent = "Procesar Aporte";
+      }
+    });
+
+    // Tab button handlers
+    btnPending.addEventListener("click", () => {
+      currentFilter = "pending";
+      btnPending.className = "filter-tab rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer bg-global-primary text-black";
+      btnHistory.className = "filter-tab rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer text-global-text-muted hover:text-global-text";
+      renderContributions();
+    });
+
+    btnHistory.addEventListener("click", () => {
+      currentFilter = "history";
+      btnHistory.className = "filter-tab rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer bg-global-primary text-black";
+      btnPending.className = "filter-tab rounded-lg px-4 py-2 text-sm font-semibold transition-all cursor-pointer text-global-text-muted hover:text-global-text";
+      renderContributions();
+    });
+
+    btnRefresh.addEventListener("click", loadContributions);
+
+    // Initial load
+    loadContributions();
+  });
+</script>
