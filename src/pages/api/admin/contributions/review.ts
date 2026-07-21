@@ -205,7 +205,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       let finalNotes = adminNotes;
       if (!finalNotes) {
         if (contribution.contribution_type === 'solution') {
-          finalNotes = '¡Muchas gracias por contribuir! El equipo de Académica utilizará tu solucionario como guía para redactar y publicar la solución oficial tipeada.';
+          finalNotes = '¡Muchas gracias por tu aporte! Se utilizará como guía para redactar y publicar la solución oficial tipeada.';
         } else {
           finalNotes = 'Aprobado y publicado correctamente. ¡Gracias por tu aporte!';
         }

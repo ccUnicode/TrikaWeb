@@ -180,7 +180,7 @@ const { data: contributions } = await supabaseAdmin
                 Información
               </h2>
               <p class="text-sm text-global-text-muted leading-relaxed">
-                Estás conectado con tu cuenta institucional de la UNI. Aquí podrás ver tus planchas favoritas, gestionar tus donaciones para apoyar al área académica y cerrar tu sesión de forma segura.
+                Estás conectado con tu cuenta institucional de la UNI. Aquí podrás ver tus planchas favoritas, gestionar tus aportes y cerrar tu sesión de forma segura.
               </p>
             </div>
           </div>
@@ -421,7 +421,7 @@ const { data: contributions } = await supabaseAdmin
                       <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
                     </svg>
                     <p class="text-sm">Aún no has realizado aportes.</p>
-                    <p class="text-xs mt-1">¡Apoya a la comunidad académica subiendo material!</p>
+                    <p class="text-xs mt-1">¡Apoya a la comunidad subiendo material!</p>
                   </div>
                 )}
               </div>
@@ -595,7 +595,7 @@ const { data: contributions } = await supabaseAdmin
         }
 
         formStatus.className = "p-3 text-xs rounded-xl border bg-green-500/10 border-green-500/20 text-green-400 text-center";
-        formStatus.textContent = "¡Aporte recibido con éxito! Será revisado por el equipo de Académica.";
+        formStatus.textContent = "¡Aporte recibido con éxito! Será revisado pronto. ¡Muchas gracias por tu aporte!";
         form.reset();
         if (fileNameDisplay) {
           fileNameDisplay.textContent = "Sin archivo seleccionado";
