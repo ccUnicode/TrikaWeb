@@ -496,3 +496,306 @@ Sincronizar con Google Drive (placeholder).
 ```
 
 **Response:** `501 Not Implemented` - usar CLI: `npm run drive:sync`
+
+---
+
+### POST `/api/admin/upload-url`
+
+Generar URL firmada para subir PDFs directamente a Supabase Storage (evita límite de 4.5 MB de Vercel).
+
+**Request:**
+```http
+POST /api/admin/upload-url
+Content-Type: application/json
+
+{
+  "course_code": "MAT01",
+  "exam_type": "Parcial 1",
+  "cycle": "2024-1",
+  "resource_kind": "PLANCHA"
+}
+```
+
+**Campos:**
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `course_code` | ✅ | Código del curso (ej: `MAT01`) |
+| `exam_type` | ✅ | Tipo de examen |
+| `cycle` | ✅ | Ciclo académico (ej: `2024-1`) |
+| `resource_kind` | ✅ | `PLANCHA` o `SOLUCIONARIO` |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "signedUrl": "https://...",
+  "token": "...",
+  "path": "MAT01/Parcial_1/2024-1.pdf",
+  "bucket": "exams",
+  "courseId": 1
+}
+```
+
+**Errores:**
+- `400`: Campos requeridos faltantes o `resource_kind` inválido
+- `401`: Sesión admin inválida
+- `404`: `course_code` no encontrado
+- `500`: Error al generar URL firmada
+
+---
+
+### PATCH `/api/admin/toggle-course`
+
+Ocultar o mostrar un curso.
+
+**Request:**
+```http
+PATCH /api/admin/toggle-course
+Content-Type: application/json
+
+{ "course_id": 1, "is_hidden": true }
+```
+
+**Response (200):**
+```json
+{ "ok": true }
+```
+
+**Errores:**
+- `400`: ID de curso inválido o valor de visibilidad inválido
+- `401`: Sesión admin inválida
+- `404`: Curso no encontrado
+
+---
+
+### POST `/api/admin/courses`
+
+Listar cursos (panel admin, incluye ocultos).
+
+**Request:**
+```http
+POST /api/admin/courses
+Content-Type: application/json
+
+{ "page": 1, "pageSize": 50, "search": "cálculo" }
+```
+
+**Campos:**
+| Campo | Requerido | Default | Descripción |
+|-------|-----------|---------|-------------|
+| `page` | ❌ | `1` | Página actual |
+| `pageSize` | ❌ | `50` | Elementos por página (máx 100) |
+| `search` | ❌ | `""` | Filtrar por código o nombre |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "courses": [
+    { "id": 1, "code": "MAT01", "name": "Cálculo I", "credits": 4, "is_hidden": false }
+  ],
+  "counts": {
+    "visible": 45,
+    "hidden": 5
+  },
+  "pagination": { "page": 1, "pageSize": 50, "total": 50, "totalPages": 1 }
+}
+```
+
+---
+
+### POST `/api/admin/add-course`
+
+Crear un nuevo curso con sistema de evaluación.
+
+**Request:**
+```http
+POST /api/admin/add-course
+Content-Type: application/json
+
+{
+  "code": "MAT01",
+  "name": "Cálculo I",
+  "credits": 4,
+  "system_id": 1,
+  "subsystem_id": null,
+  "selected_evaluations": [1, 2, 3]
+}
+```
+
+**Campos:**
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `code` | ✅ | Código del curso (mín. 2 caracteres) |
+| `name` | ✅ | Nombre del curso (mín. 2 caracteres) |
+| `credits` | ✅ | Número entero mayor a 0 |
+| `system_id` | ✅ | ID del sistema de evaluación |
+| `subsystem_id` | ❌ | ID del subsistema de evaluación |
+| `selected_evaluations` | ❌ | Array de IDs de evaluaciones a asociar |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "course": { "id": 1, "code": "MAT01", "name": "Cálculo I" }
+}
+```
+
+**Errores:**
+- `400`: Validación de campos fallida o error retornado por la RPC
+- `401`: Sesión admin inválida
+- `500`: Error al crear curso
+
+---
+
+### POST `/api/admin/delete-course`
+
+Eliminar un curso (cascade elimina relaciones asociadas).
+
+**Request:**
+```http
+POST /api/admin/delete-course
+Content-Type: application/json
+
+{ "course_id": 1 }
+```
+
+**Response (200):**
+```json
+{ "ok": true }
+```
+
+**Errores:**
+- `400`: ID de curso inválido
+- `401`: Sesión admin inválida
+- `404`: Curso no encontrado
+
+---
+
+### POST `/api/admin/all-ratings`
+
+Listar todas las calificaciones de profesores (panel admin, solo visibles).
+
+**Request:**
+```http
+POST /api/admin/all-ratings
+Content-Type: application/json
+
+{ "page": 1, "pageSize": 20, "teacher_id": 5, "search": "excelente" }
+```
+
+**Campos:**
+| Campo | Requerido | Default | Descripción |
+|-------|-----------|---------|-------------|
+| `page` | ❌ | `1` | Página actual |
+| `pageSize` | ❌ | `20` | Elementos por página |
+| `teacher_id` | ❌ | `null` | Filtrar por profesor específico |
+| `search` | ❌ | `""` | Buscar por nombre de profesor o comentario |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "ratings": [
+    {
+      "id": 105,
+      "overall": 4.5,
+      "difficulty": 3,
+      "didactic": 5,
+      "resources": 4,
+      "responsability": 5,
+      "grading": 4,
+      "comment": "Excelente profesor",
+      "created_at": "2024-03-20T14:00:00Z",
+      "is_hidden": false,
+      "teacher_id": 5,
+      "teachers": { "id": 5, "full_name": "Juan Pérez" }
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "pageSize": 20,
+    "total": 120,
+    "totalPages": 6
+  }
+}
+```
+
+---
+
+### GET `/api/admin/evaluation-systems`
+
+Listar sistemas de evaluación disponibles (RPC `get_evaluation_systems`).
+
+**Request:**
+```http
+GET /api/admin/evaluation-systems
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "systems": [
+    { "id": 1, "name": "Sistema A", "description": "..." }
+  ]
+}
+```
+
+**Errores:**
+- `401`: Sesión admin inválida
+- `500`: Error al obtener sistemas
+
+---
+
+### GET `/api/admin/evaluation-subsystems`
+
+Listar subsistemas de evaluación disponibles (RPC `get_evaluation_subsystems`).
+
+**Request:**
+```http
+GET /api/admin/evaluation-subsystems
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "subsystems": [
+    { "id": 1, "name": "Subsistema A", "system_id": 1 }
+  ]
+}
+```
+
+**Errores:**
+- `401`: Sesión admin inválida
+- `500`: Error al obtener subsistemas
+
+---
+
+### POST `/api/admin/course-evaluation-options`
+
+Obtener opciones de evaluación variables para un sistema de evaluación dado (RPC `get_variable_evaluations_by_system`).
+
+**Request:**
+```http
+POST /api/admin/course-evaluation-options
+Content-Type: application/json
+
+{ "system_id": 1 }
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "evaluations": [
+    { "id": 1, "name": "Parcial", "weight": 30 }
+  ]
+}
+```
+
+**Errores:**
+- `400`: `system_id` inválido
+- `401`: Sesión admin inválida
+- `500`: Error al obtener evaluaciones
