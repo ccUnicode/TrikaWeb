@@ -203,9 +203,6 @@ import Layout from "../../layouts/Layout.astro";
               class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5"
             >
               Subsistema de evaluación
-              <span class="text-xs font-normal text-global-text-muted">
-                (opcional)
-              </span>
               <button
                 type="button"
                 id="subsystem-info-btn"
@@ -221,7 +218,7 @@ import Layout from "../../layouts/Layout.astro";
             >
               En caso el sistema considere prácticas, trabajos (monografías) y/o
               laboratorios, la suma de estos define el subsistema respectivo
-              (Ejm: 4 prácticas y 1 monografía = Subsistema S5 (4 + 1 = 5))
+              (Ejm: 4 prácticas y 1 monografía = Subsistema S5 (4 + 1 = 5)).
             </div>
 
             <input type="hidden" id="course-subsystem" />
@@ -259,9 +256,9 @@ import Layout from "../../layouts/Layout.astro";
               >
               </ul>
             </div>
-            <p class="mt-1.5 text-xs text-global-text-muted">
-              Puedes completar este dato posteriormente.
-            </p>
+            <p class="font-medium mt-1 text-xs text-green-400 italic">
+                Puedes registrar el curso sin este dato, pero no podrás subir archivos hasta completar su configuración.
+              </p>
           </div>
           <div id="evaluation-config-wrapper" class="sm:col-span-3 hidden">
             <label
@@ -674,6 +671,44 @@ import Layout from "../../layouts/Layout.astro";
   `;
   }
 
+  function renderVisibilityIcon(isHidden: boolean) {
+    if (isHidden) {
+      return `
+      <svg
+        class="h-4 w-4"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 3l18 18" />
+        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+        <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 10 8 10 8a15.2 15.2 0 0 1-2.2 3.7" />
+        <path d="M6.6 6.6C3.7 8.5 2 12 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6" />
+      </svg>
+    `;
+    }
+
+    return `
+    <svg
+      class="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  `;
+  }
+
   async function loadCourses(nextPage: number = 1) {
     page = nextPage;
     listEl.innerHTML =
@@ -735,37 +770,70 @@ import Layout from "../../layouts/Layout.astro";
 
             <div class="flex flex-wrap items-center justify-end gap-3 shrink-0">
               ${renderCourseStatus(c.status)}
-
-              <span
-                class="inline-flex h-8 w-[90px] items-center justify-center rounded-full border px-2 text-[10px] font-bold uppercase tracking-wide ${
-                  c.is_hidden
-                    ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
-                    : "bg-green-500/10 border-green-500/30 text-green-400"
-                }"
-              >
-                ${c.is_hidden ? "Oculto" : "Visible"}
-              </span>
-
               <button
                 type="button"
-                class="toggle-course-btn inline-flex h-8 w-[82px] items-center justify-center rounded-lg border px-3 text-xs font-medium transition cursor-pointer ${
+                class="toggle-course-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition cursor-pointer ${
                   c.is_hidden
-                    ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
-                    : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"
+                  ? "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"
+                  : "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
                 }"
                 data-course-id="${c.id}"
                 data-next-hidden="${c.is_hidden ? "false" : "true"}"
+                title="${c.is_hidden ? "Mostrar curso" : "Ocultar curso"}"
+                aria-label="${c.is_hidden ? "Mostrar curso" : "Ocultar curso"}"
               >
-                ${c.is_hidden ? "Mostrar" : "Ocultar"}
+                ${renderVisibilityIcon(c.is_hidden)}
               </button>
-
               <button
                 type="button"
-                class="delete-course-btn inline-flex h-8 w-[82px] items-center justify-center rounded-lg border border-red-600/30 bg-red-600/20 px-3 text-xs font-medium text-red-500 transition hover:bg-red-600/30 cursor-pointer"
+                class="delete-course-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-600/30 bg-red-600/20 text-red-500 transition hover:bg-red-600/30 cursor-pointer"
                 data-course-id="${c.id}"
+                title="Eliminar curso"
+                aria-label="Eliminar curso"
               >
-                Eliminar
+                <svg
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v5" />
+                  <path d="M14 11v5" />
+                </svg>
               </button>
+              <a
+                href="/admin/courses/${c.id}/edit"
+                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 transition hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-blue-300"
+                title="${
+                  c.status === "INCOMPLETO" ? "Completar configuración" : "Editar curso"
+                }"
+                aria-label="${
+                  c.status === "INCOMPLETO"
+                    ? "Completar configuración del curso"
+                    : "Editar curso"
+                }"
+              >
+                <svg
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </a>
             </div>
           </div>
         </div>
@@ -937,13 +1005,8 @@ import Layout from "../../layouts/Layout.astro";
         throw new Error(out?.error || "No se pudo actualizar");
       }
 
-      const card = btn.closest("[data-course-id]");
-      if (card) {
-        card.classList.toggle("opacity-70", nextHidden);
-      }
+      await loadCourses(page);
 
-      btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
-      btn.setAttribute("data-next-hidden", String(!nextHidden));
     } catch (err) {
       console.error(err);
     } finally {
