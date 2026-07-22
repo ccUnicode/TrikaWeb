@@ -1222,7 +1222,9 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     function filterCourses(query: string) {
       const q = norm(query);
 
-      if (!q) return allCourses.slice(0, 20);
+      if (!q){
+        return allCourses;
+      } 
 
       return allCourses.filter(
         (course) =>
@@ -1317,7 +1319,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         await loadCourseOptions();
       }
 
-      renderCourseDropdown(allCourses.slice(0, 20));
+      renderCourseDropdown(allCourses);
       courseDropdown?.classList.remove("hidden");
     });
 
