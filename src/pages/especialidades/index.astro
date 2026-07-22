@@ -27,6 +27,25 @@ if (plansError) {
 }
 
 const plans = publishedPlans || [];
+
+const uniqueSpecialties = new Map();
+plans.forEach((plan: any) => {
+    const specData = Array.isArray(plan.specialties) ? plan.specialties[0] : plan.specialties;
+    const specId = specData?.id;
+    if (!specId) return;
+
+    if (!uniqueSpecialties.has(specId)) {
+        uniqueSpecialties.set(specId, plan);
+    } else {
+        const existingPlan = uniqueSpecialties.get(specId);
+        if (!existingPlan.is_current && plan.is_current) {
+            uniqueSpecialties.set(specId, plan);
+        } else if (existingPlan.is_current === plan.is_current && plan.year > existingPlan.year) {
+            uniqueSpecialties.set(specId, plan);
+        }
+    }
+});
+const groupedPlans = Array.from(uniqueSpecialties.values());
 ---
 
 <Layout
@@ -46,7 +65,7 @@ const plans = publishedPlans || [];
 
             <!-- Cards Grid -->
             {
-                plans.length === 0 ? (
+                groupedPlans.length === 0 ? (
                     <div class="flex flex-col items-center justify-center py-20 text-global-text-muted rounded-2xl border border-dashed border-global-border bg-global-surface">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -74,7 +93,7 @@ const plans = publishedPlans || [];
                     </div>
                 ) : (
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 min-h-[720px] content-start">
-                        {plans.map((plan: any) => {
+                        {groupedPlans.map((plan: any) => {
                             const specData = Array.isArray(plan.specialties)
                                 ? plan.specialties[0]
                                 : plan.specialties;

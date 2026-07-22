@@ -12,7 +12,8 @@ import type {
 const { id } = Astro.params;
 
 // Validar formato UUID
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 if (!id || !uuidRegex.test(id)) {
     return Astro.redirect("/especialidades");
 }
@@ -20,7 +21,8 @@ if (!id || !uuidRegex.test(id)) {
 // 1. Buscar el plan de estudios por ID (solo si está publicado)
 const { data: plan, error: planError } = await supabaseAdmin
     .from("study_plans")
-    .select(`
+    .select(
+        `
         id,
         year,
         is_current,
@@ -29,7 +31,8 @@ const { data: plan, error: planError } = await supabaseAdmin
             id,
             name
         )
-    `)
+    `,
+    )
     .eq("id", id)
     .eq("is_published", true)
     .single();
@@ -38,9 +41,22 @@ if (planError || !plan) {
     return Astro.redirect("/especialidades");
 }
 
-const specialtyData = Array.isArray(plan.specialties) ? plan.specialties[0] : plan.specialties;
-const specialtyName = (specialtyData as any)?.name || "Especialidad Desconocida";
+const specialtyData = Array.isArray(plan.specialties)
+    ? plan.specialties[0]
+    : plan.specialties;
+const specialtyName =
+    (specialtyData as any)?.name || "Especialidad Desconocida";
 const planYear = String(plan.year);
+
+// 1.5 Obtener otras versiones del plan para el historial
+const { data: siblingPlans, error: siblingsError } = await supabaseAdmin
+    .from("study_plans")
+    .select("id, year, is_current")
+    .eq("specialty_id", plan.specialty_id)
+    .eq("is_published", true)
+    .order("year", { ascending: false });
+
+const planOptions = siblingPlans || [];
 
 // 2. Obtener los cursos del plan (join con courses para code, name, credits y evaluation_systems)
 let courses: CurriculumCourse[] = [];
@@ -62,15 +78,16 @@ if (planCourses) {
         name: pc.courses?.name ?? "",
         cycle: pc.cycle,
         credits: pc.courses?.credits ?? undefined,
-        evaluation_system:
-            pc.courses?.evaluation_systems?.system_cod ?? "N/A",
-        evaluation_formula:
-            pc.courses?.evaluation_systems?.formula ?? null,
+        evaluation_system: pc.courses?.evaluation_systems?.system_cod ?? "N/A",
+        evaluation_formula: pc.courses?.evaluation_systems?.formula ?? null,
         row_index: pc.row_index,
         summary: pc.courses?.summary ?? null,
         is_elective: pc.courses?.is_elective ?? false,
         avg_difficulty: pc.courses?.avg_difficulty ?? 0,
-        teachers: pc.courses?.courses_teachers?.map((ct: any) => ct.teachers).filter(Boolean) ?? [],
+        teachers:
+            pc.courses?.courses_teachers
+                ?.map((ct: any) => ct.teachers)
+                .filter(Boolean) ?? [],
     }));
 }
 
@@ -106,26 +123,81 @@ const curriculumData: CurriculumData = {
     description={`Plan de estudios ${curriculumData.planYear} de ${curriculumData.specialtyName} en la Universidad Nacional de Ingeniería. Visualiza cursos, ciclos y pre-requisitos.`}
     keywords={`malla curricular, ${curriculumData.specialtyName.toLowerCase()}, plan de estudios, uni, universidad nacional de ingenieria, cursos, pre-requisitos`}
 >
-    <div
-        class="flex w-full flex-col items-center gap-4 mt-4 sm:mt-6 px-4 pb-4"
-    >
-        <section
-            class="mx-auto flex w-full max-w-[1400px] flex-col gap-4"
-        >
-            <div class="flex flex-col md:flex-row justify-between items-end w-full gap-4">
+    <div class="flex w-full flex-col items-center gap-4 mt-4 sm:mt-6 px-4 pb-4">
+        <section class="mx-auto flex w-full max-w-[1400px] flex-col gap-2">
+            <div
+                class="flex flex-col md:flex-row justify-between items-end w-full gap-6"
+            >
                 <div class="flex flex-col items-start gap-2">
-
-
                     <!-- Title -->
-                    <div class="space-y-1">
-                        <h1 class="text-3xl sm:text-4xl font-bold text-global-text">
+                    <div class="space-y-5">
+                        <h1
+                            class="text-3xl sm:text-4xl font-bold text-global-text"
+                        >
                             {curriculumData.specialtyName}
                         </h1>
-                        <p class="text-global-text-muted text-base">
-                            Plan de Estudios {curriculumData.planYear} · {
-                                curriculumData.courses.length
-                            } cursos
-                        </p>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            {
+                                planOptions.length > 1 ? (
+                                    <div
+                                        class="relative"
+                                        id="plan-version-container"
+                                    >
+                                        <button
+                                            type="button"
+                                            id="plan-version-trigger"
+                                            class="flex items-center justify-between gap-3 rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text-muted outline-none hover:border-global-primary hover:text-global-text focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-all cursor-pointer"
+                                        >
+                                            <span id="plan-version-label">
+                                                Plan de Estudios{" "}
+                                                {curriculumData.planYear}
+                                            </span>
+                                            <svg
+                                                id="plan-version-chevron"
+                                                class="h-4 w-4 text-gray-400 transition-transform"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 9l-7 7-7-7"
+                                                />
+                                            </svg>
+                                        </button>
+                                        <div
+                                            id="plan-version-dropdown"
+                                            class="absolute z-50 left-0 mt-1.5 min-w-full max-h-60 overflow-y-auto rounded-xl border border-global-border bg-global-card p-1 shadow-2xl hidden"
+                                        >
+                                            {planOptions.map((opt: any) => (
+                                                <a
+                                                    href={`/especialidades/${opt.id}`}
+                                                    class:list={[
+                                                        "block px-4 py-2 text-sm rounded-lg cursor-pointer transition-colors whitespace-nowrap",
+                                                        opt.id === id
+                                                            ? "bg-global-primary/15 text-global-primary font-medium"
+                                                            : "text-global-text hover:bg-[#222938] hover:text-white",
+                                                    ]}
+                                                >
+                                                    Plan de Estudios {opt.year}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <span class="rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text-muted font-medium">
+                                        Plan de Estudios{" "}
+                                        {curriculumData.planYear}
+                                    </span>
+                                )
+                            }
+                            <span
+                                class="text-global-text-muted text-sm font-medium"
+                                >• {curriculumData.courses.length} cursos</span
+                            >
+                        </div>
                     </div>
                 </div>
 
@@ -202,4 +274,31 @@ const curriculumData: CurriculumData = {
             </div>
         </section>
     </div>
+
+    <script>
+        const container = document.getElementById("plan-version-container");
+        const trigger = document.getElementById("plan-version-trigger");
+        const dropdown = document.getElementById("plan-version-dropdown");
+        const chevron = document.getElementById("plan-version-chevron");
+
+        if (trigger && dropdown && container && chevron) {
+            trigger.addEventListener("click", () => {
+                const isOpen = !dropdown.classList.contains("hidden");
+                if (isOpen) {
+                    dropdown.classList.add("hidden");
+                    chevron.style.transform = "";
+                } else {
+                    dropdown.classList.remove("hidden");
+                    chevron.style.transform = "rotate(180deg)";
+                }
+            });
+
+            document.addEventListener("click", (e) => {
+                if (!container.contains(e.target as Node)) {
+                    dropdown.classList.add("hidden");
+                    chevron.style.transform = "";
+                }
+            });
+        }
+    </script>
 </Layout>

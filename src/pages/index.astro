@@ -25,7 +25,26 @@ const { data: publishedPlans } = await supabaseAdmin
   .eq("is_published", true)
   .order("year", { ascending: false });
 
-const homePlans = publishedPlans || [];
+const rawHomePlans = publishedPlans || [];
+
+const uniqueHomeSpecialties = new Map();
+rawHomePlans.forEach((plan: any) => {
+    const specData = Array.isArray(plan.specialties) ? plan.specialties[0] : plan.specialties;
+    const specId = specData?.id;
+    if (!specId) return;
+
+    if (!uniqueHomeSpecialties.has(specId)) {
+        uniqueHomeSpecialties.set(specId, plan);
+    } else {
+        const existingPlan = uniqueHomeSpecialties.get(specId);
+        if (!existingPlan.is_current && plan.is_current) {
+            uniqueHomeSpecialties.set(specId, plan);
+        } else if (existingPlan.is_current === plan.is_current && plan.year > existingPlan.year) {
+            uniqueHomeSpecialties.set(specId, plan);
+        }
+    }
+});
+const homePlans = Array.from(uniqueHomeSpecialties.values());
 ---
 
 <Layout 
