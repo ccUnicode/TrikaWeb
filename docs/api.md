@@ -184,6 +184,100 @@ GET /api/sheets/12/solution
 
 ---
 
+### GET `/api/sheets/:id/interest`
+
+Verificar si un dispositivo tiene interés en una plancha.
+
+**Request:**
+```http
+GET /api/sheets/12/interest?device_id=550e8400-e29b-41d4-a716-446655440000
+```
+
+**Response (200):**
+```json
+{ "interested": true }
+```
+
+---
+
+### POST `/api/sheets/:id/interest`
+
+Registrar o quitar interés en una plancha (toggle). Si el dispositivo ya tiene interés, se elimina; si no, se registra.
+
+**Request:**
+```http
+POST /api/sheets/12/interest
+Content-Type: application/json
+
+{
+  "device_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "interested": true,
+  "interest_count": 15
+}
+```
+
+**Errores:**
+- `400`: ID inválido o falta `device_id`
+- `429`: Rate limit excedido (300 req/hora)
+
+---
+
+### GET `/api/cursos`
+
+Listar todos los cursos (para autocomplete).
+
+**Request:**
+```http
+GET /api/cursos
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "cursos": [
+    { "id": 1, "code": "MAT01", "name": "Cálculo I" },
+    { "id": 2, "code": "MAT02", "name": "Cálculo II" }
+  ]
+}
+```
+
+---
+
+### GET `/api/cursos/:cursoCode/profesores`
+
+Obtener los profesores asociados a un curso dado su código.
+
+**Request:**
+```http
+GET /api/cursos/MAT01/profesores
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "profesores": [
+    { "id": 5, "full_name": "Juan Pérez" },
+    { "id": 8, "full_name": "María García" }
+  ]
+}
+```
+
+**Response si el curso no existe:**
+```json
+{ "ok": true, "profesores": [] }
+```
+
+---
+
 ### GET `/api/profesores/:id/detail`
 
 Detalle de profesor con stats y reseñas paginadas.
@@ -496,3 +590,151 @@ Sincronizar con Google Drive (placeholder).
 ```
 
 **Response:** `501 Not Implemented` - usar CLI: `npm run drive:sync`
+
+---
+
+### POST `/api/admin/upload-url`
+
+Generar URL firmada para subir PDFs directamente a Supabase Storage (evita límite de 4.5 MB de Vercel).
+
+**Request:**
+```http
+POST /api/admin/upload-url
+Content-Type: application/json
+
+{
+  "course_code": "MAT01",
+  "exam_type": "Parcial 1",
+  "cycle": "2024-1",
+  "resource_kind": "PLANCHA"
+}
+```
+
+**Campos:**
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `course_code` | ✅ | Código del curso (ej: `MAT01`) |
+| `exam_type` | ✅ | Tipo de examen |
+| `cycle` | ✅ | Ciclo académico (ej: `2024-1`) |
+| `resource_kind` | ✅ | `PLANCHA` o `SOLUCIONARIO` |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "signedUrl": "https://...",
+  "token": "...",
+  "path": "MAT01/Parcial_1/2024-1.pdf",
+  "bucket": "exams",
+  "courseId": 1
+}
+```
+
+**Errores:**
+- `400`: Campos requeridos faltantes o `resource_kind` inválido
+- `401`: Sesión admin inválida
+- `404`: `course_code` no encontrado
+- `500`: Error al generar URL firmada
+
+---
+
+### POST `/api/admin/reset-interest`
+
+Reiniciar el contador de interés de una plancha (elimina todos los registros de interés y pone `interest_count` en 0).
+
+**Request:**
+```http
+POST /api/admin/reset-interest
+Content-Type: application/json
+
+{ "sheet_id": 12 }
+```
+
+**Response (200):**
+```json
+{ "ok": true, "message": "Contador reiniciado" }
+```
+
+**Errores:**
+- `400`: `sheet_id` inválido
+- `401`: Sesión admin inválida
+- `404`: Plancha no encontrada
+
+---
+
+### GET `/api/admin/cycles`
+
+Listar ciclos académicos ordenados por año (descendente) y término (ascendente).
+
+**Request:**
+```http
+GET /api/admin/cycles
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "cycles": [
+    { "cycle_id": 1, "cycle_code": "2024-1", "year": 2024, "term": 1 },
+    { "cycle_id": 2, "cycle_code": "2024-2", "year": 2024, "term": 2 }
+  ]
+}
+```
+
+**Errores:**
+- `401`: Sesión admin inválida
+- `500`: Error al obtener ciclos
+
+---
+
+### GET `/api/admin/course-options`
+
+Listar cursos visibles para usar en dropdowns/selects del panel admin.
+
+**Request:**
+```http
+GET /api/admin/course-options
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "courses": [
+    { "id": 1, "code": "MAT01", "name": "Cálculo I" },
+    { "id": 2, "code": "MAT02", "name": "Cálculo II" }
+  ]
+}
+```
+
+**Errores:**
+- `401`: Sesión admin inválida
+- `500`: Error al obtener cursos
+
+---
+
+### GET `/api/admin/course-evaluations`
+
+Obtener los tipos de evaluación asociados a un curso específico.
+
+**Request:**
+```http
+GET /api/admin/course-evaluations?course_id=1
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "evaluations": [
+    { "evaluation_id": 1, "evaluation_name": "Parcial 1", "evaluation_abr": "PC1", "evaluation_category": "examen" },
+    { "evaluation_id": 2, "evaluation_name": "Parcial 2", "evaluation_abr": "PC2", "evaluation_category": "examen" }
+  ]
+}
+```
+
+**Errores:**
+- `400`: `course_id` inválido
+- `401`: Sesión admin inválida
+- `500`: Error al obtener evaluaciones
