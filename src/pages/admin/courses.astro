@@ -90,6 +90,35 @@ import Layout from "../../layouts/Layout.astro";
               required
             />
           </div>
+          <div class="sm:col-span-3">
+            <div class="mb-1.5 flex items-center justify-between gap-3">
+              <label
+                class="block text-sm font-medium text-global-text-muted"
+                for="course-summary"
+              >
+                Sumilla
+              </label>
+              <span
+                id="course-summary-counter"
+                class="text-xs text-global-text-muted"
+                aria-live="polite"
+              >
+                0/1000
+              </span>
+            </div>
+
+            <textarea
+              id="course-summary"
+              maxlength="1000"
+              required
+              class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition-colors placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary teacher-scroll"
+              placeholder="Describe brevemente el contenido y propósito del curso..."
+            ></textarea>
+
+            <p class="mt-1.5 text-xs text-global-text-muted">
+              La sumilla debe describir brevemente el contenido del curso.
+            </p>
+          </div>
           <div>
             <label
               class="block text-sm font-medium text-global-text-muted mb-1.5"
@@ -403,6 +432,14 @@ import Layout from "../../layouts/Layout.astro";
     "evaluation-options",
   ) as HTMLDivElement;
 
+  const summaryInput = document.getElementById(
+    "course-summary",
+  ) as HTMLTextAreaElement;
+  const summaryCounter = document.getElementById(
+    "course-summary-counter",
+  ) as HTMLSpanElement;
+  const SUMMARY_MAX_LENGTH = 1000;
+
   let page = 1;
   let pageSize = 30;
 
@@ -419,6 +456,30 @@ import Layout from "../../layouts/Layout.astro";
       .replaceAll(">", "&gt;")
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
+
+  function updateSummaryCounter() {
+    const currentLength = summaryInput.value.length;
+
+    summaryCounter.textContent = `${currentLength}/${SUMMARY_MAX_LENGTH}`;
+
+    const remaining = SUMMARY_MAX_LENGTH - currentLength;
+
+    summaryCounter.classList.remove(
+      "text-global-text-muted",
+      "text-yellow-400",
+      "text-red-400",
+    );
+
+    if (remaining === 0) {
+      summaryCounter.classList.add("text-red-400");
+    } else if (remaining <= 100) {
+      summaryCounter.classList.add("text-yellow-400");
+    } else {
+      summaryCounter.classList.add("text-global-text-muted");
+    }
+  }
+
+  summaryInput?.addEventListener("input", updateSummaryCounter);
 
   function renderEvaluationOptions() {
     const subsystem_id = Number(subsystemSelect.value);
@@ -1120,6 +1181,7 @@ import Layout from "../../layouts/Layout.astro";
 
     const code = (codeInput?.value || "").trim();
     const name = (nameInput?.value || "").trim();
+    const summary = (summaryInput?.value || "").trim();
     const credits = Number((creditsInput?.value || "").trim());
     const system_id = Number(systemSelect.value);
     const subsystem_id = subsystemSelect.value
@@ -1137,6 +1199,16 @@ import Layout from "../../layouts/Layout.astro";
     if (!Number.isInteger(credits) || credits <= 0) {
       setFeedback("Créditos inválidos (entero mayor a 0).", "error");
       addBtn.disabled = false;
+      return;
+    }
+
+    if (!summary) {
+      setFeedback("La sumilla del curso es obligatoria.", "error");
+      return;
+    }
+
+    if (summary.length > 1000) {
+      setFeedback("La sumilla no puede superar los 1000 caracteres.", "error");
       return;
     }
 
@@ -1175,6 +1247,7 @@ import Layout from "../../layouts/Layout.astro";
       body: JSON.stringify({
         code,
         name,
+        summary,
         credits,
         system_id,
         subsystem_id,
@@ -1194,11 +1267,14 @@ import Layout from "../../layouts/Layout.astro";
     setFeedback("Curso agregado.", "ok");
     codeInput.value = "";
     nameInput.value = "";
+    summaryInput.value = "";
     searchInput.value = "";
     creditsInput.value = "";
     systemSelect.value = "";
     systemSearchInput.value = "";
     selectedSystemRequiresSubsystem = false;
+
+    updateSummaryCounter();
 
     subsystemSelect.value = "";
     subsystemSearchInput.value = "";
@@ -1249,6 +1325,7 @@ import Layout from "../../layouts/Layout.astro";
   });
 
   document.addEventListener("DOMContentLoaded", async () => {
+    updateSummaryCounter();
     await Promise.all([loadSystems(), loadSubsystems(), loadCourses(1)]);
   });
 

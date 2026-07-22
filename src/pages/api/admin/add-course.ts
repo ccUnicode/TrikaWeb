@@ -14,6 +14,8 @@ const normalizeCredits = (value: unknown) => {
   return Number.isInteger(num) ? num : NaN;
 };
 
+const normalizeSummary = (value: unknown) => String(value ?? "").trim();
+
 const normalizeRequiredId = (value: unknown): number | null => {
   const num = Number(value);
 
@@ -70,6 +72,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const code = normalizeCode(body.code);
     const name = normalizeName(body.name);
+    const summary = normalizeSummary(body.summary);
     const credits = normalizeCredits(body.credits);
     const system_id = normalizeRequiredId(body.system_id);
 
@@ -89,6 +92,32 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           .filter((id: number) => Number.isInteger(id) && id > 0),
       ),
     ];
+
+    if (!summary) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "La sumilla del curso es obligatoria",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (summary.length > 1000) {
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "La sumilla no puede superar los 1000 caracteres",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    }
 
     if (system_id === null) {
       return new Response(
@@ -171,6 +200,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       {
         p_code: code,
         p_name: name,
+        p_summary: summary,
         p_credits: credits,
         p_system_id: system_id,
         p_subsystem_id: subsystem_id,
