@@ -140,45 +140,96 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
             />
           </div>
 
-          <div>
+          <div class="relative">
             <label
-              for="course-system"
               class="mb-1.5 block text-sm font-medium text-global-text-muted"
             >
               Sistema de evaluación
             </label>
 
-            <select
-              id="course-system"
-              required
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
-            >
-              <option value="">Cargando sistemas...</option>
-            </select>
+            <input type="hidden" id="course-system" />
+
+            <div id="system-combobox-container" class="relative">
+              <input
+                id="course-system-search"
+                type="text"
+                autocomplete="off"
+                required
+                class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none transition placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+                placeholder="Cargando sistemas..."
+              />
+
+              <div
+                class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+              >
+                <svg
+                  class="h-4 w-4 text-global-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+
+              <ul
+                id="system-dropdown"
+                class="teacher-scroll absolute left-0 top-full z-30 mt-1 hidden max-h-72 w-full overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg"
+              >
+              </ul>
+            </div>
           </div>
 
-          <div>
+          <div class="relative">
             <label
-              for="course-subsystem"
               class="mb-1.5 block text-sm font-medium text-global-text-muted"
             >
               Subsistema de evaluación
             </label>
 
-            <select
-              id="course-subsystem"
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary disabled:cursor-not-allowed disabled:opacity-60"
-              disabled
-            >
-              <option value="">Selecciona primero un sistema</option>
-            </select>
+            <input type="hidden" id="course-subsystem" />
 
-            <p
-              id="subsystem-help"
-              class="mt-1.5 text-xs text-global-text-muted"
-            >
-              Puedes completar este dato posteriormente, pero es requerido para
-              subir archivos.
+            <div id="subsystem-combobox-container" class="relative">
+              <input
+                id="course-subsystem-search"
+                type="text"
+                autocomplete="off"
+                disabled
+                class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none transition placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary disabled:cursor-not-allowed disabled:opacity-60"
+                placeholder="Selecciona primero un sistema"
+              />
+
+              <div
+                class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+              >
+                <svg
+                  class="h-4 w-4 text-global-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+
+              <ul
+                id="subsystem-dropdown"
+                class="teacher-scroll absolute left-0 top-full z-30 mt-1 hidden max-h-60 w-full overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg"
+              >
+              </ul>
+            </div>
+
+            <p class="font-medium mt-1 text-xs text-green-400 italic">
+              Puedes registrar el curso sin este dato, pero no podrás subir
+              archivos hasta completar su configuración.
             </p>
           </div>
 
@@ -218,7 +269,7 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 </Layout>
 
 <script>
-  type CourseStatus = "INCOMPLETO" | "COMPLETO" | "ARCHIVADO";
+  type CourseStatus = "INCOMPLETO" | "COMPLETO";
 
   type CourseDetails = {
     id: number;
@@ -273,11 +324,35 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 
   const systemSelect = document.getElementById(
     "course-system",
-  ) as HTMLSelectElement;
+  ) as HTMLInputElement;
+
+  const systemSearchInput = document.getElementById(
+    "course-system-search",
+  ) as HTMLInputElement;
+
+  const systemDropdown = document.getElementById(
+    "system-dropdown",
+  ) as HTMLUListElement;
+
+  const systemComboboxContainer = document.getElementById(
+    "system-combobox-container",
+  ) as HTMLDivElement;
 
   const subsystemSelect = document.getElementById(
     "course-subsystem",
-  ) as HTMLSelectElement;
+  ) as HTMLInputElement;
+
+  const subsystemSearchInput = document.getElementById(
+    "course-subsystem-search",
+  ) as HTMLInputElement;
+
+  const subsystemDropdown = document.getElementById(
+    "subsystem-dropdown",
+  ) as HTMLUListElement;
+
+  const subsystemComboboxContainer = document.getElementById(
+    "subsystem-combobox-container",
+  ) as HTMLDivElement;
 
   const statusEl = document.getElementById("course-status") as HTMLSpanElement;
 
@@ -303,12 +378,69 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 
   const SUMMARY_MAX_LENGTH = 1000;
 
+  const editForm = document.getElementById(
+    "edit-course-form",
+  ) as HTMLFormElement;
+
+  const saveFeedback = document.getElementById(
+    "save-feedback",
+  ) as HTMLSpanElement;
+
   let cachedSystems: EvaluationSystem[] = [];
   let cachedSubsystems: EvaluationSubsystem[] = [];
   let cachedEvaluations: VariableEvaluation[] = [];
 
   let currentCourse: CourseDetails | null = null;
   let selectedEvaluationIds: number[] = [];
+
+  function setSaveFeedback(
+    message: string,
+    kind: "ok" | "error" | "loading" = "ok",
+  ) {
+    saveFeedback.textContent = message;
+
+    saveFeedback.className = "text-sm";
+
+    if (kind === "error") {
+      saveFeedback.classList.add("text-red-400");
+      return;
+    }
+
+    if (kind === "loading") {
+      saveFeedback.classList.add("text-global-text-muted");
+      return;
+    }
+
+    saveFeedback.classList.add("text-green-400");
+  }
+
+  function updateEvaluationCheckboxLimits() {
+    const subsystemId = Number(subsystemSelect.value);
+
+    const subsystem = cachedSubsystems.find(
+      (item) => item.subsystem_id === subsystemId,
+    );
+
+    if (!subsystem) {
+      return;
+    }
+
+    const checkboxes = Array.from(
+      document.querySelectorAll(".course-evaluation-checkbox"),
+    ) as HTMLInputElement[];
+
+    const checkedCount = checkboxes.filter(
+      (checkbox) => checkbox.checked,
+    ).length;
+
+    const maximum = subsystem.practices_quantity;
+
+    evaluationHelp.textContent = `Selecciona exactamente ${maximum} evaluaciones. Actualmente: ${checkedCount}/${maximum}.`;
+
+    for (const checkbox of checkboxes) {
+      checkbox.disabled = !checkbox.checked && checkedCount >= maximum;
+    }
+  }
 
   function escapeHtml(value: string) {
     return value
@@ -361,16 +493,6 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
       return;
     }
 
-    if (status === "ARCHIVADO") {
-      statusEl.textContent = "Archivado";
-      statusEl.classList.add(
-        "border-gray-500/30",
-        "bg-gray-500/10",
-        "text-gray-400",
-      );
-      return;
-    }
-
     statusEl.textContent = "Configuración pendiente";
     statusEl.classList.add(
       "border-orange-500/30",
@@ -392,18 +514,165 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 
     cachedSystems = data.systems;
 
-    systemSelect.innerHTML = `
-      <option value="">Selecciona un sistema</option>
-      ${cachedSystems
-        .map(
-          (system) => `
-            <option value="${system.system_id}">
-              Sistema ${escapeHtml(system.system_cod)}
-            </option>
-          `,
-        )
-        .join("")}
+    systemSearchInput.placeholder = "Buscar sistema por letra o descripción...";
+  }
+
+  function formatSystemShort(system: EvaluationSystem) {
+    const description = String(system.system_description || "");
+
+    return description
+      .replaceAll("Promedio de trabajos calificados", "Trabajos")
+      .replaceAll("Promedio de prácticas", "Prácticas")
+      .replaceAll("promedio de prácticas", "Prácticas")
+      .replaceAll("promedio de trabajos calificados", "Trabajos")
+      .replaceAll("examen parcial", "EP")
+      .replaceAll("Examen parcial", "EP")
+      .replaceAll("examen final", "EF")
+      .replaceAll("Examen final", "EF")
+      .replaceAll("examen oral", "EO")
+      .replaceAll("Evaluación del proceso de aprendizaje", "EPA")
+      .replaceAll("trabajo final", "TF")
+      .replace(/\((\d+)\)/g, "×$1");
+  }
+
+  function renderSystemDropdown(systems: EvaluationSystem[]) {
+    if (!systems.length) {
+      systemDropdown.innerHTML = `
+      <li class="px-4 py-3 text-center text-sm text-global-text-muted">
+        No se encontraron sistemas.
+      </li>
     `;
+      return;
+    }
+
+    systemDropdown.innerHTML = systems
+      .map((system) => {
+        const shortDescription = formatSystemShort(system);
+
+        return `
+        <li
+          data-id="${system.system_id}"
+          data-code="${escapeHtml(system.system_cod)}"
+          class="cursor-pointer px-4 py-3 transition-colors hover:bg-black/30"
+        >
+          <div class="flex items-start gap-3">
+            <span
+              class="inline-flex h-7 min-w-7 items-center justify-center rounded-lg border border-global-border bg-global-card text-xs font-bold text-global-primary"
+            >
+              ${escapeHtml(system.system_cod)}
+            </span>
+
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-global-text">
+                Sistema ${escapeHtml(system.system_cod)}
+              </div>
+
+              <div class="text-xs leading-relaxed text-global-text-muted">
+                ${escapeHtml(shortDescription)}
+              </div>
+            </div>
+          </div>
+        </li>
+      `;
+      })
+      .join("");
+
+    systemDropdown.querySelectorAll("li[data-id]").forEach((item) => {
+      item.addEventListener("click", async () => {
+        const systemId = Number(item.getAttribute("data-id"));
+
+        const systemCode = item.getAttribute("data-code") || "";
+
+        systemSelect.value = String(systemId);
+        systemSearchInput.value = `Sistema ${systemCode}`;
+
+        selectedEvaluationIds = [];
+
+        systemDropdown.classList.add("hidden");
+
+        await handleSystemChange();
+      });
+    });
+  }
+
+  function renderSubsystemDropdown(subsystems: EvaluationSubsystem[]) {
+    if (!subsystems.length) {
+      subsystemDropdown.innerHTML = `
+      <li class="px-4 py-3 text-center text-sm text-global-text-muted">
+        No hay subsistemas disponibles.
+      </li>
+    `;
+      return;
+    }
+
+    subsystemDropdown.innerHTML = `
+    <li
+      data-pending="true"
+      class="cursor-pointer px-4 py-2.5 text-sm text-global-text transition-colors hover:bg-black/30"
+    >
+      <div class="font-medium">
+        Dejar pendiente
+      </div>
+      <div class="text-xs text-global-text-muted">
+        El curso se guardará como incompleto
+      </div>
+    </li>
+
+    ${subsystems
+      .map(
+        (subsystem) => `
+          <li
+            data-id="${subsystem.subsystem_id}"
+            data-code="${escapeHtml(subsystem.subsystem_cod)}"
+            class="cursor-pointer px-4 py-2.5 text-sm text-global-text transition-colors hover:bg-black/30"
+          >
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-medium">
+                ${escapeHtml(subsystem.subsystem_cod)}
+              </span>
+
+              <span class="text-xs text-global-text-muted">
+                ${subsystem.practices_quantity} eval.
+              </span>
+            </div>
+          </li>
+        `,
+      )
+      .join("")}
+  `;
+
+    subsystemDropdown
+      .querySelector("li[data-pending]")
+      ?.addEventListener("click", () => {
+        subsystemSelect.value = "";
+        subsystemSearchInput.value = "Configuración pendiente";
+
+        selectedEvaluationIds = [];
+
+        subsystemDropdown.classList.add("hidden");
+
+        evaluationOptions.innerHTML = "";
+        evaluationHelp.textContent = "";
+        evaluationWrapper.classList.add("hidden");
+      });
+
+    subsystemDropdown.querySelectorAll("li[data-id]").forEach((item) => {
+      item.addEventListener("click", () => {
+        const subsystemId = Number(item.getAttribute("data-id"));
+
+        const subsystemCode = item.getAttribute("data-code") || "";
+
+        subsystemSelect.value = String(subsystemId);
+
+        subsystemSearchInput.value = subsystemCode;
+
+        selectedEvaluationIds = [];
+
+        subsystemDropdown.classList.add("hidden");
+
+        renderEvaluationOptions();
+      });
+    });
   }
 
   async function loadSubsystems() {
@@ -444,7 +713,15 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
     summaryInput.value = currentCourse?.summary || "";
     creditsInput.value = String(currentCourse?.credits || "");
 
-    systemSelect.value = String(currentCourse?.system_id || "");
+    const currentSystem = cachedSystems.find(
+      (system) => system.system_id === currentCourse?.system_id,
+    );
+
+    systemSelect.value = currentSystem ? String(currentSystem.system_id) : "";
+
+    systemSearchInput.value = currentSystem
+      ? `Sistema ${currentSystem.system_cod}`
+      : "";
 
     renderStatus(currentCourse!.status);
     updateSummaryCounter();
@@ -454,7 +731,7 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
       selectedEvaluationIds,
     );
 
-    saveBtn.disabled = currentCourse?.status === "ARCHIVADO";
+    saveBtn.disabled = false;
   }
 
   async function handleSystemChange(
@@ -467,46 +744,44 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
       (system) => system.system_id === systemId,
     );
 
+    subsystemSelect.value = "";
+    subsystemSearchInput.value = "";
+    subsystemDropdown.classList.add("hidden");
+
     evaluationOptions.innerHTML = "";
     evaluationHelp.textContent = "";
     evaluationWrapper.classList.add("hidden");
+    cachedEvaluations = [];
 
     if (!selectedSystem) {
-      subsystemSelect.disabled = true;
-      subsystemSelect.innerHTML = `
-        <option value="">
-          Selecciona primero un sistema
-        </option>
-      `;
+      subsystemSearchInput.disabled = true;
+      subsystemSearchInput.placeholder = "Selecciona primero un sistema";
       return;
     }
 
     if (!selectedSystem.requires_subsystem) {
-      subsystemSelect.disabled = true;
-      subsystemSelect.innerHTML = `
-        <option value="">No aplica</option>
-      `;
+      subsystemSearchInput.disabled = true;
+      subsystemSearchInput.placeholder = "No aplica";
+      subsystemSearchInput.value = "No aplica";
       return;
     }
 
-    subsystemSelect.disabled = false;
+    subsystemSearchInput.disabled = false;
+    subsystemSearchInput.placeholder = "Buscar subsistema o dejar pendiente...";
 
-    subsystemSelect.innerHTML = `
-      <option value="">Dejar pendiente</option>
-      ${cachedSubsystems
-        .map(
-          (subsystem) => `
-            <option value="${subsystem.subsystem_id}">
-              ${escapeHtml(subsystem.subsystem_cod)}
-              (${subsystem.practices_quantity} evaluaciones)
-            </option>
-          `,
-        )
-        .join("")}
-    `;
+    if (preferredSubsystemId !== null) {
+      const preferredSubsystem = cachedSubsystems.find(
+        (subsystem) => subsystem.subsystem_id === preferredSubsystemId,
+      );
 
-    subsystemSelect.value =
-      preferredSubsystemId !== null ? String(preferredSubsystemId) : "";
+      if (preferredSubsystem) {
+        subsystemSelect.value = String(preferredSubsystem.subsystem_id);
+
+        subsystemSearchInput.value = preferredSubsystem.subsystem_cod;
+      }
+    } else {
+      subsystemSearchInput.value = "Configuración pendiente";
+    }
 
     await loadEvaluationOptions(systemId, preferredEvaluationIds);
   }
@@ -547,13 +822,12 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 
     if (!subsystem) {
       evaluationOptions.innerHTML = "";
+      evaluationHelp.textContent = "";
       evaluationWrapper.classList.add("hidden");
       return;
     }
 
     evaluationWrapper.classList.remove("hidden");
-
-    evaluationHelp.textContent = `Selecciona exactamente ${subsystem.practices_quantity} evaluaciones.`;
 
     evaluationOptions.innerHTML = cachedEvaluations
       .map((evaluation) => {
@@ -562,33 +836,377 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
         );
 
         return `
-            <label class="flex items-center gap-3 rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text">
-              <input
-                type="checkbox"
-                class="course-evaluation-checkbox"
-                value="${evaluation.evaluation_id}"
-                ${checked ? "checked" : ""}
-              />
+          <label
+            class="flex items-center gap-3 rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text"
+          >
+            <input
+              type="checkbox"
+              class="course-evaluation-checkbox"
+              value="${evaluation.evaluation_id}"
+              data-evaluation-name="${escapeHtml(evaluation.evaluation_name)}"
+              ${checked ? "checked" : ""}
+            />
 
-              <span>
-                ${escapeHtml(evaluation.evaluation_name)}
-              </span>
-            </label>
-          `;
+            <span>
+              ${escapeHtml(evaluation.evaluation_name)}
+            </span>
+          </label>
+        `;
       })
       .join("");
+
+    const checkboxes = Array.from(
+      document.querySelectorAll(".course-evaluation-checkbox"),
+    ) as HTMLInputElement[];
+
+    for (const checkbox of checkboxes) {
+      checkbox.addEventListener("change", () => {
+        const allCheckboxes = Array.from(
+          document.querySelectorAll(".course-evaluation-checkbox"),
+        ) as HTMLInputElement[];
+
+        if (checkbox.checked) {
+          const allowed = canCheckEvaluation(checkbox, allCheckboxes);
+
+          if (!allowed) {
+            checkbox.checked = false;
+
+            setSaveFeedback(
+              "Debes seleccionar las evaluaciones en orden.",
+              "error",
+            );
+
+            updateEvaluationCheckboxLimits();
+            return;
+          }
+        } else {
+          uncheckFollowingEvaluations(checkbox, allCheckboxes);
+        }
+
+        setSaveFeedback("", "ok");
+        updateEvaluationCheckboxLimits();
+      });
+    }
+
+    updateEvaluationCheckboxLimits();
+  }
+
+  function parseEvaluationLabel(label: string) {
+    const match = label.match(/^(.*?)(\d+)$/);
+
+    if (!match) {
+      return {
+        baseName: label.trim(),
+        order: null as number | null,
+      };
+    }
+
+    return {
+      baseName: match[1].trim(),
+      order: Number(match[2]),
+    };
+  }
+
+  function canCheckEvaluation(
+    target: HTMLInputElement,
+    checkboxes: HTMLInputElement[],
+  ) {
+    const parsed = parseEvaluationLabel(target.dataset.evaluationName || "");
+
+    if (parsed.order === null || parsed.order <= 1) {
+      return true;
+    }
+
+    for (let order = 1; order < parsed.order; order++) {
+      const requiredEvaluation = checkboxes.find((checkbox) => {
+        const current = parseEvaluationLabel(
+          checkbox.dataset.evaluationName || "",
+        );
+
+        return current.baseName === parsed.baseName && current.order === order;
+      });
+
+      if (!requiredEvaluation?.checked) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  function uncheckFollowingEvaluations(
+    target: HTMLInputElement,
+    checkboxes: HTMLInputElement[],
+  ) {
+    const parsed = parseEvaluationLabel(target.dataset.evaluationName || "");
+
+    if (parsed.order === null) {
+      return;
+    }
+
+    for (const checkbox of checkboxes) {
+      const current = parseEvaluationLabel(
+        checkbox.dataset.evaluationName || "",
+      );
+
+      if (
+        current.baseName === parsed.baseName &&
+        current.order !== null &&
+        current.order > parsed.order
+      ) {
+        checkbox.checked = false;
+      }
+    }
   }
 
   summaryInput.addEventListener("input", updateSummaryCounter);
 
-  systemSelect.addEventListener("change", async () => {
+  systemSearchInput.addEventListener("input", (event) => {
+    const query = (event.target as HTMLInputElement).value.trim().toLowerCase();
+
+    systemSelect.value = "";
     selectedEvaluationIds = [];
-    await handleSystemChange();
+
+    subsystemSelect.value = "";
+    subsystemSearchInput.value = "";
+    subsystemSearchInput.disabled = true;
+    subsystemSearchInput.placeholder = "Selecciona primero un sistema";
+
+    evaluationOptions.innerHTML = "";
+    evaluationHelp.textContent = "";
+    evaluationWrapper.classList.add("hidden");
+
+    const filteredSystems = cachedSystems.filter((system) => {
+      const haystack =
+        `${system.system_cod} ${system.system_description}`.toLowerCase();
+
+      return haystack.includes(query);
+    });
+
+    renderSystemDropdown(filteredSystems);
+    systemDropdown.classList.remove("hidden");
   });
 
-  subsystemSelect.addEventListener("change", () => {
+  systemSearchInput.addEventListener("focus", () => {
+    renderSystemDropdown(cachedSystems);
+    systemDropdown.classList.remove("hidden");
+  });
+
+  subsystemSearchInput.addEventListener("input", (event) => {
+    const query = (event.target as HTMLInputElement).value.trim().toLowerCase();
+
+    subsystemSelect.value = "";
     selectedEvaluationIds = [];
-    renderEvaluationOptions();
+
+    evaluationOptions.innerHTML = "";
+    evaluationHelp.textContent = "";
+    evaluationWrapper.classList.add("hidden");
+
+    const filteredSubsystems = cachedSubsystems.filter((subsystem) =>
+      subsystem.subsystem_cod.toLowerCase().includes(query),
+    );
+
+    renderSubsystemDropdown(filteredSubsystems);
+
+    subsystemDropdown.classList.remove("hidden");
+  });
+
+  subsystemSearchInput.addEventListener("focus", () => {
+    if (subsystemSearchInput.disabled) {
+      return;
+    }
+
+    renderSubsystemDropdown(cachedSubsystems);
+
+    subsystemDropdown.classList.remove("hidden");
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as Node;
+
+    if (!systemComboboxContainer.contains(target)) {
+      systemDropdown.classList.add("hidden");
+    }
+
+    if (!subsystemComboboxContainer.contains(target)) {
+      subsystemDropdown.classList.add("hidden");
+    }
+  });
+
+  editForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    if (saveBtn.disabled) {
+      return;
+    }
+
+    const course_id = Number(courseIdInput.value);
+
+    const code = codeInput.value.trim().toUpperCase();
+
+    const name = nameInput.value.trim();
+    const summary = summaryInput.value.trim();
+
+    const credits = Number(creditsInput.value);
+
+    const system_id = Number(systemSelect.value);
+
+    const subsystem_id = subsystemSelect.value
+      ? Number(subsystemSelect.value)
+      : null;
+
+    const selected_evaluations = Array.from(
+      document.querySelectorAll(".course-evaluation-checkbox:checked"),
+    )
+      .map((element) => Number((element as HTMLInputElement).value))
+      .filter(
+        (evaluationId) => Number.isInteger(evaluationId) && evaluationId > 0,
+      );
+
+    if (!Number.isInteger(course_id) || course_id <= 0) {
+      setSaveFeedback("Curso inválido.", "error");
+      return;
+    }
+
+    if (code.length < 2) {
+      setSaveFeedback("El código debe tener al menos 2 caracteres.", "error");
+      return;
+    }
+
+    if (name.length < 2) {
+      setSaveFeedback("El nombre debe tener al menos 2 caracteres.", "error");
+      return;
+    }
+
+    if (!summary) {
+      setSaveFeedback("La sumilla es obligatoria.", "error");
+      return;
+    }
+
+    if (summary.length > 1000) {
+      setSaveFeedback(
+        "La sumilla no puede superar los 1000 caracteres.",
+        "error",
+      );
+      return;
+    }
+
+    if (!Number.isInteger(credits) || credits <= 0) {
+      setSaveFeedback("Los créditos deben ser un entero mayor a 0.", "error");
+      return;
+    }
+
+    const selectedSystem = cachedSystems.find(
+      (system) => system.system_id === system_id,
+    );
+
+    if (!selectedSystem) {
+      setSaveFeedback("Debes seleccionar un sistema válido.", "error");
+      return;
+    }
+
+    if (selectedSystem.requires_subsystem && subsystem_id !== null) {
+      const selectedSubsystem = cachedSubsystems.find(
+        (subsystem) => subsystem.subsystem_id === subsystem_id,
+      );
+
+      if (!selectedSubsystem) {
+        setSaveFeedback("El subsistema seleccionado no es válido.", "error");
+        return;
+      }
+
+      if (
+        selected_evaluations.length !== selectedSubsystem.practices_quantity
+      ) {
+        setSaveFeedback(
+          `Debes seleccionar exactamente ${selectedSubsystem.practices_quantity} evaluaciones.`,
+          "error",
+        );
+        return;
+      }
+    }
+
+    if (
+      selectedSystem.requires_subsystem &&
+      subsystem_id === null &&
+      selected_evaluations.length > 0
+    ) {
+      setSaveFeedback(
+        "No puedes seleccionar evaluaciones mientras el subsistema esté pendiente.",
+        "error",
+      );
+      return;
+    }
+
+    if (
+      !selectedSystem.requires_subsystem &&
+      (subsystem_id !== null || selected_evaluations.length > 0)
+    ) {
+      setSaveFeedback(
+        "El sistema seleccionado no requiere subsistema ni evaluaciones variables.",
+        "error",
+      );
+      return;
+    }
+
+    saveBtn.disabled = true;
+    setSaveFeedback("Guardando cambios...", "loading");
+
+    try {
+      const response = await fetch("/api/admin/update-course", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          course_id,
+          code,
+          name,
+          summary,
+          credits,
+          system_id,
+          subsystem_id,
+          selected_evaluations,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.ok) {
+        throw new Error(data?.error || "No se pudo actualizar el curso");
+      }
+
+      const updatedStatus = data.course.status as CourseStatus;
+
+      renderStatus(updatedStatus);
+
+      selectedEvaluationIds = selected_evaluations;
+
+      if (currentCourse) {
+        currentCourse = {
+          ...currentCourse,
+          ...data.course,
+          selected_evaluations,
+        };
+      }
+
+      setSaveFeedback(
+        updatedStatus === "COMPLETO"
+          ? "Cambios guardados. La configuración del curso está completa."
+          : "Cambios guardados. El curso continúa con configuración pendiente.",
+        "ok",
+      );
+    } catch (error) {
+      console.error("Error actualizando curso:", error);
+
+      setSaveFeedback(
+        error instanceof Error ? error.message : "Ocurrió un error al guardar",
+        "error",
+      );
+    } finally {
+      saveBtn.disabled = false;
+    }
   });
 
   document.addEventListener("DOMContentLoaded", async () => {
