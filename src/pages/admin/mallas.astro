@@ -138,9 +138,9 @@ if (specError) {
 
                     <!-- Pagination -->
                     <div id="pagination" class="hidden flex items-center justify-center gap-4 py-4 mt-4">
-                        <button id="prev-btn" class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text hover:bg-global-border disabled:opacity-50">← Anterior</button>
+                        <button id="prev-btn" class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text hover:bg-global-border disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">← Anterior</button>
                         <span id="page-info" class="text-sm text-global-text-muted">Página 1</span>
-                        <button id="next-btn" class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text hover:bg-global-border disabled:opacity-50">Siguiente →</button>
+                        <button id="next-btn" class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text hover:bg-global-border disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed">Siguiente →</button>
                     </div>
                 </div>
             </section>
@@ -151,7 +151,7 @@ if (specError) {
             <div class="w-full max-w-md rounded-2xl bg-[#1e2430] border border-gray-800 p-6 shadow-2xl">
                 <div class="flex items-center justify-between mb-6">
                     <h3 class="text-xl font-bold text-white">Editar Malla</h3>
-                    <button id="close-edit-modal-btn" class="text-gray-400 hover:text-white transition-colors">
+                    <button id="close-edit-modal-btn" class="text-gray-400 hover:text-white transition-colors cursor-pointer">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
@@ -170,8 +170,8 @@ if (specError) {
                         <span class="text-sm font-medium text-global-text group-hover:text-white transition-colors">¿Es la malla actual (Vigente)?</span>
                     </label>
                     <div class="flex justify-end gap-3 mt-4">
-                        <button id="cancel-edit-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-global-text bg-gray-800 hover:bg-gray-700 transition-colors">Cancelar</button>
-                        <button id="save-edit-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-black bg-global-primary hover:bg-global-primary-hover transition-colors shadow-lg shadow-global-primary/20">Guardar Cambios</button>
+                        <button id="cancel-edit-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-global-text bg-gray-800 hover:bg-gray-700 transition-colors cursor-pointer">Cancelar</button>
+                        <button id="save-edit-btn" class="px-4 py-2 rounded-xl text-sm font-medium text-black bg-global-primary hover:bg-global-primary-hover transition-colors shadow-lg shadow-global-primary/20 cursor-pointer">Guardar Cambios</button>
                     </div>
                     <span id="edit-feedback" class="text-sm hidden text-center"></span>
                 </div>
