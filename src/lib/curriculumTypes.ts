@@ -10,7 +10,7 @@ export interface CurriculumCourse {
   credits?: number;
   evaluation_system?: string;
   row_index?: number;
-  sumilla?: string | null;
+  summary?: string | null;
   is_elective?: boolean;
   avg_difficulty?: number;
   teachers?: Array<{

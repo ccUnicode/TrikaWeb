@@ -91,9 +91,9 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
           </svg>
           Sumilla
         </h3>
-        {course.sumilla ? (
+        {course.summary ? (
           <p className="text-gray-300 text-sm leading-relaxed">
-            {course.sumilla}
+            {course.summary}
           </p>
         ) : (
           <p className="text-gray-500 text-sm italic">
