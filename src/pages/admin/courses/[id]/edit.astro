@@ -1,0 +1,607 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+
+const rawCourseId = Astro.params.id;
+const courseId = Number(rawCourseId);
+
+if (!Number.isInteger(courseId) || courseId <= 0) {
+  return Astro.redirect("/admin/courses");
+}
+---
+
+<Layout title="Editar Curso | TrikaWeb Admin">
+  <div class="min-h-screen py-8">
+    <div class="mx-auto w-full max-w-4xl px-4">
+      <div class="mb-6 w-full">
+        <a
+          href="/admin/courses"
+          class="group mb-5 inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 shadow-sm transition hover:border-emerald-400/50 hover:bg-emerald-500/15 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+        >
+          <svg
+            class="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M19 12H5"></path>
+            <path d="M12 19l-7-7 7-7"></path>
+          </svg>
+
+          <span>Volver a cursos</span>
+        </a>
+
+        <div class="flex w-full flex-wrap items-start justify-between gap-4">
+          <div class="min-w-0 flex-1">
+            <h1 class="text-2xl font-bold text-global-text">Editar curso</h1>
+
+            <p class="mt-1 text-sm text-global-text-muted">
+              Actualiza los datos y la configuración académica.
+            </p>
+          </div>
+
+          <span
+            id="course-status"
+            class="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border px-4 text-[10px] font-bold uppercase tracking-wide"
+          >
+            Cargando...
+          </span>
+        </div>
+      </div>
+
+      <section
+        class="rounded-2xl border border-global-border bg-global-surface p-6"
+      >
+        <div
+          id="page-feedback"
+          class="mb-4 hidden rounded-xl border px-4 py-3 text-sm"
+        >
+        </div>
+
+        <form id="edit-course-form" class="grid gap-4 sm:grid-cols-3">
+          <input type="hidden" id="course-id" value={courseId} />
+
+          <div>
+            <label
+              for="course-code"
+              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            >
+              Código
+            </label>
+
+            <input
+              id="course-code"
+              type="text"
+              required
+              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+            />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label
+              for="course-name"
+              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            >
+              Nombre
+            </label>
+
+            <input
+              id="course-name"
+              type="text"
+              required
+              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+            />
+          </div>
+
+          <div class="sm:col-span-3">
+            <div class="mb-1.5 flex items-center justify-between gap-3">
+              <label
+                for="course-summary"
+                class="block text-sm font-medium text-global-text-muted"
+              >
+                Sumilla
+              </label>
+
+              <span
+                id="course-summary-counter"
+                class="text-xs text-global-text-muted"
+                aria-live="polite"
+              >
+                0/1000
+              </span>
+            </div>
+
+            <textarea
+              id="course-summary"
+              maxlength="1000"
+              required
+              class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+            ></textarea>
+          </div>
+
+          <div>
+            <label
+              for="course-credits"
+              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            >
+              Créditos
+            </label>
+
+            <input
+              id="course-credits"
+              type="number"
+              min="1"
+              step="1"
+              required
+              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+            />
+          </div>
+
+          <div>
+            <label
+              for="course-system"
+              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            >
+              Sistema de evaluación
+            </label>
+
+            <select
+              id="course-system"
+              required
+              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+            >
+              <option value="">Cargando sistemas...</option>
+            </select>
+          </div>
+
+          <div>
+            <label
+              for="course-subsystem"
+              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            >
+              Subsistema de evaluación
+            </label>
+
+            <select
+              id="course-subsystem"
+              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary disabled:cursor-not-allowed disabled:opacity-60"
+              disabled
+            >
+              <option value="">Selecciona primero un sistema</option>
+            </select>
+
+            <p
+              id="subsystem-help"
+              class="mt-1.5 text-xs text-global-text-muted"
+            >
+              Puedes completar este dato posteriormente, pero es requerido para
+              subir archivos.
+            </p>
+          </div>
+
+          <div id="evaluation-config-wrapper" class="hidden sm:col-span-3">
+            <label
+              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            >
+              Evaluaciones del curso
+            </label>
+
+            <p
+              id="evaluation-config-help"
+              class="mb-2 text-xs text-global-text-muted"
+            >
+            </p>
+
+            <div id="evaluation-options" class="grid gap-2 sm:grid-cols-2">
+            </div>
+          </div>
+
+          <div class="sm:col-span-3 flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              id="save-course-btn"
+              class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              disabled
+            >
+              Guardar cambios
+            </button>
+
+            <span id="save-feedback" class="text-sm"></span>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  type CourseStatus = "INCOMPLETO" | "COMPLETO" | "ARCHIVADO";
+
+  type CourseDetails = {
+    id: number;
+    code: string;
+    name: string;
+    summary: string;
+    credits: number;
+    system_id: number;
+    subsystem_id: number | null;
+    status: CourseStatus;
+    is_hidden: boolean;
+    selected_evaluations: number[];
+  };
+
+  type EvaluationSystem = {
+    system_id: number;
+    system_cod: string;
+    system_description: string;
+    requires_subsystem: boolean;
+  };
+
+  type EvaluationSubsystem = {
+    subsystem_id: number;
+    subsystem_cod: string;
+    practices_quantity: number;
+  };
+
+  type VariableEvaluation = {
+    evaluation_id: number;
+    evaluation_name: string;
+  };
+
+  const courseIdInput = document.getElementById(
+    "course-id",
+  ) as HTMLInputElement;
+
+  const codeInput = document.getElementById("course-code") as HTMLInputElement;
+
+  const nameInput = document.getElementById("course-name") as HTMLInputElement;
+
+  const summaryInput = document.getElementById(
+    "course-summary",
+  ) as HTMLTextAreaElement;
+
+  const summaryCounter = document.getElementById(
+    "course-summary-counter",
+  ) as HTMLSpanElement;
+
+  const creditsInput = document.getElementById(
+    "course-credits",
+  ) as HTMLInputElement;
+
+  const systemSelect = document.getElementById(
+    "course-system",
+  ) as HTMLSelectElement;
+
+  const subsystemSelect = document.getElementById(
+    "course-subsystem",
+  ) as HTMLSelectElement;
+
+  const statusEl = document.getElementById("course-status") as HTMLSpanElement;
+
+  const evaluationWrapper = document.getElementById(
+    "evaluation-config-wrapper",
+  ) as HTMLDivElement;
+
+  const evaluationHelp = document.getElementById(
+    "evaluation-config-help",
+  ) as HTMLParagraphElement;
+
+  const evaluationOptions = document.getElementById(
+    "evaluation-options",
+  ) as HTMLDivElement;
+
+  const saveBtn = document.getElementById(
+    "save-course-btn",
+  ) as HTMLButtonElement;
+
+  const pageFeedback = document.getElementById(
+    "page-feedback",
+  ) as HTMLDivElement;
+
+  const SUMMARY_MAX_LENGTH = 1000;
+
+  let cachedSystems: EvaluationSystem[] = [];
+  let cachedSubsystems: EvaluationSubsystem[] = [];
+  let cachedEvaluations: VariableEvaluation[] = [];
+
+  let currentCourse: CourseDetails | null = null;
+  let selectedEvaluationIds: number[] = [];
+
+  function escapeHtml(value: string) {
+    return value
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function showPageError(message: string) {
+    pageFeedback.textContent = message;
+    pageFeedback.className =
+      "mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400";
+  }
+
+  function updateSummaryCounter() {
+    const currentLength = summaryInput.value.length;
+
+    summaryCounter.textContent = `${currentLength}/${SUMMARY_MAX_LENGTH}`;
+
+    summaryCounter.classList.remove(
+      "text-global-text-muted",
+      "text-yellow-400",
+      "text-red-400",
+    );
+
+    const remaining = SUMMARY_MAX_LENGTH - currentLength;
+
+    if (remaining === 0) {
+      summaryCounter.classList.add("text-red-400");
+    } else if (remaining <= 100) {
+      summaryCounter.classList.add("text-yellow-400");
+    } else {
+      summaryCounter.classList.add("text-global-text-muted");
+    }
+  }
+
+  function renderStatus(status: CourseStatus) {
+    statusEl.className =
+      "inline-flex h-8 items-center justify-center rounded-lg border px-4 text-[10px] font-bold uppercase tracking-wide";
+
+    if (status === "COMPLETO") {
+      statusEl.textContent = "Completo";
+      statusEl.classList.add(
+        "border-blue-500/30",
+        "bg-blue-500/10",
+        "text-blue-400",
+      );
+      return;
+    }
+
+    if (status === "ARCHIVADO") {
+      statusEl.textContent = "Archivado";
+      statusEl.classList.add(
+        "border-gray-500/30",
+        "bg-gray-500/10",
+        "text-gray-400",
+      );
+      return;
+    }
+
+    statusEl.textContent = "Configuración pendiente";
+    statusEl.classList.add(
+      "border-orange-500/30",
+      "bg-orange-500/10",
+      "text-orange-400",
+    );
+  }
+
+  async function loadSystems() {
+    const response = await fetch("/api/admin/evaluation-systems", {
+      credentials: "include",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.systems) {
+      throw new Error(data?.error || "No se pudieron cargar los sistemas");
+    }
+
+    cachedSystems = data.systems;
+
+    systemSelect.innerHTML = `
+      <option value="">Selecciona un sistema</option>
+      ${cachedSystems
+        .map(
+          (system) => `
+            <option value="${system.system_id}">
+              Sistema ${escapeHtml(system.system_cod)}
+            </option>
+          `,
+        )
+        .join("")}
+    `;
+  }
+
+  async function loadSubsystems() {
+    const response = await fetch("/api/admin/evaluation-subsystems", {
+      credentials: "include",
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.ok) {
+      throw new Error(data?.error || "No se pudieron cargar los subsistemas");
+    }
+
+    cachedSubsystems = data.subsystems || [];
+  }
+
+  async function loadCourse() {
+    const courseId = Number(courseIdInput.value);
+
+    const response = await fetch(
+      `/api/admin/course-details?course_id=${courseId}`,
+      {
+        credentials: "include",
+      },
+    );
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.ok) {
+      throw new Error(data?.error || "No se pudo cargar el curso");
+    }
+
+    currentCourse = data.course;
+    selectedEvaluationIds = currentCourse?.selected_evaluations || [];
+
+    codeInput.value = currentCourse?.code || "";
+    nameInput.value = currentCourse?.name || "";
+    summaryInput.value = currentCourse?.summary || "";
+    creditsInput.value = String(currentCourse?.credits || "");
+
+    systemSelect.value = String(currentCourse?.system_id || "");
+
+    renderStatus(currentCourse!.status);
+    updateSummaryCounter();
+
+    await handleSystemChange(
+      currentCourse?.subsystem_id ?? null,
+      selectedEvaluationIds,
+    );
+
+    saveBtn.disabled = currentCourse?.status === "ARCHIVADO";
+  }
+
+  async function handleSystemChange(
+    preferredSubsystemId: number | null = null,
+    preferredEvaluationIds: number[] = [],
+  ) {
+    const systemId = Number(systemSelect.value);
+
+    const selectedSystem = cachedSystems.find(
+      (system) => system.system_id === systemId,
+    );
+
+    evaluationOptions.innerHTML = "";
+    evaluationHelp.textContent = "";
+    evaluationWrapper.classList.add("hidden");
+
+    if (!selectedSystem) {
+      subsystemSelect.disabled = true;
+      subsystemSelect.innerHTML = `
+        <option value="">
+          Selecciona primero un sistema
+        </option>
+      `;
+      return;
+    }
+
+    if (!selectedSystem.requires_subsystem) {
+      subsystemSelect.disabled = true;
+      subsystemSelect.innerHTML = `
+        <option value="">No aplica</option>
+      `;
+      return;
+    }
+
+    subsystemSelect.disabled = false;
+
+    subsystemSelect.innerHTML = `
+      <option value="">Dejar pendiente</option>
+      ${cachedSubsystems
+        .map(
+          (subsystem) => `
+            <option value="${subsystem.subsystem_id}">
+              ${escapeHtml(subsystem.subsystem_cod)}
+              (${subsystem.practices_quantity} evaluaciones)
+            </option>
+          `,
+        )
+        .join("")}
+    `;
+
+    subsystemSelect.value =
+      preferredSubsystemId !== null ? String(preferredSubsystemId) : "";
+
+    await loadEvaluationOptions(systemId, preferredEvaluationIds);
+  }
+
+  async function loadEvaluationOptions(
+    systemId: number,
+    preferredEvaluationIds: number[] = [],
+  ) {
+    const response = await fetch("/api/admin/course-evaluation-options", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        system_id: systemId,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok || !data?.ok) {
+      cachedEvaluations = [];
+      return;
+    }
+
+    cachedEvaluations = data.evaluations || [];
+
+    renderEvaluationOptions(preferredEvaluationIds);
+  }
+
+  function renderEvaluationOptions(preferredEvaluationIds: number[] = []) {
+    const subsystemId = Number(subsystemSelect.value);
+
+    const subsystem = cachedSubsystems.find(
+      (item) => item.subsystem_id === subsystemId,
+    );
+
+    if (!subsystem) {
+      evaluationOptions.innerHTML = "";
+      evaluationWrapper.classList.add("hidden");
+      return;
+    }
+
+    evaluationWrapper.classList.remove("hidden");
+
+    evaluationHelp.textContent = `Selecciona exactamente ${subsystem.practices_quantity} evaluaciones.`;
+
+    evaluationOptions.innerHTML = cachedEvaluations
+      .map((evaluation) => {
+        const checked = preferredEvaluationIds.includes(
+          evaluation.evaluation_id,
+        );
+
+        return `
+            <label class="flex items-center gap-3 rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text">
+              <input
+                type="checkbox"
+                class="course-evaluation-checkbox"
+                value="${evaluation.evaluation_id}"
+                ${checked ? "checked" : ""}
+              />
+
+              <span>
+                ${escapeHtml(evaluation.evaluation_name)}
+              </span>
+            </label>
+          `;
+      })
+      .join("");
+  }
+
+  summaryInput.addEventListener("input", updateSummaryCounter);
+
+  systemSelect.addEventListener("change", async () => {
+    selectedEvaluationIds = [];
+    await handleSystemChange();
+  });
+
+  subsystemSelect.addEventListener("change", () => {
+    selectedEvaluationIds = [];
+    renderEvaluationOptions();
+  });
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      await Promise.all([loadSystems(), loadSubsystems()]);
+
+      await loadCourse();
+    } catch (error) {
+      console.error(error);
+
+      showPageError(
+        error instanceof Error ? error.message : "No se pudo cargar la página",
+      );
+    }
+  });
+</script>
