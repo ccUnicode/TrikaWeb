@@ -78,7 +78,7 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
 
         {course.evaluation_system && course.evaluation_system !== 'N/A' && (
           <div className="relative group/eval inline-block">
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/8 text-emerald-400/80 border border-emerald-500/15 cursor-help transition-all hover:bg-emerald-500/15 hover:border-emerald-500/30 shadow-sm">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/8 text-emerald-400/80 border border-emerald-500/15 cursor-pointer transition-all hover:bg-emerald-500/15 hover:border-emerald-500/30 shadow-sm">
               <Calculator className="w-3.5 h-3.5" />
               Sistema {course.evaluation_system}
             </span>
@@ -99,7 +99,7 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
         {course.avg_difficulty && course.avg_difficulty > 0 ? (
           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Dificultad Percibida">
             <Flame className="w-3.5 h-3.5" />
-            {Number(course.avg_difficulty).toFixed(1)}
+            {Number(course.avg_difficulty).toFixed(1)} / 5
           </span>
         ) : null}
       </div>
