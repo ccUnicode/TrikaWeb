@@ -616,6 +616,7 @@ Content-Type: application/json
 {
   "code": "MAT01",
   "name": "Cálculo I",
+  "summary": "Curso de introducción al cálculo diferencial e integral.",
   "credits": 4,
   "system_id": 1,
   "subsystem_id": null,
@@ -628,6 +629,7 @@ Content-Type: application/json
 |-------|-----------|-------------|
 | `code` | ✅ | Código del curso (mín. 2 caracteres) |
 | `name` | ✅ | Nombre del curso (mín. 2 caracteres) |
+| `summary` | ✅ | Sumilla del curso (obligatorio, máx. 1000 caracteres) |
 | `credits` | ✅ | Número entero mayor a 0 |
 | `system_id` | ✅ | ID del sistema de evaluación |
 | `subsystem_id` | ❌ | ID del subsistema de evaluación (puede ser `null`) |
@@ -646,6 +648,7 @@ Content-Type: application/json
     "id": 1,
     "code": "MAT01",
     "name": "Cálculo I",
+    "summary": "Curso de introducción al cálculo diferencial e integral.",
     "credits": 4,
     "system_id": 1,
     "subsystem_id": null,
@@ -659,6 +662,108 @@ Content-Type: application/json
 - `400`: Curso ya existe, sistema/subsistema inválido, evaluaciones repetidas, evaluaciones no corresponden al sistema, o validación de campos fallida
 - `401`: Sesión admin inválida
 - `500`: Error al crear curso
+
+---
+
+### GET `/api/admin/course-details`
+
+Obtener detalle completo de un curso (incluyendo evaluaciones seleccionadas) para el panel de administración.
+
+**Request:**
+```http
+GET /api/admin/course-details?course_id=1
+```
+
+**Parámetros:**
+| Parámetro | Requerido | Descripción |
+|-----------|-----------|-------------|
+| `course_id` | ✅ | ID del curso a consultar |
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "course": {
+    "id": 1,
+    "code": "MAT01",
+    "name": "Cálculo I",
+    "summary": "Curso de introducción al cálculo diferencial e integral.",
+    "credits": 4,
+    "system_id": 1,
+    "subsystem_id": null,
+    "status": "INCOMPLETO",
+    "is_hidden": false,
+    "selected_evaluations": [1, 2, 3]
+  }
+}
+```
+
+**Errores:**
+- `400`: `course_id` inválido
+- `401`: Sesión admin inválida
+- `404`: Curso no encontrado
+- `500`: Error al obtener el curso o sus evaluaciones
+
+---
+
+### PATCH `/api/admin/update-course`
+
+Actualizar un curso existente. Recalcula el `status` y reconstruye las evaluaciones asociadas según el sistema de evaluación.
+
+**Request:**
+```http
+PATCH /api/admin/update-course
+Content-Type: application/json
+
+{
+  "course_id": 1,
+  "code": "MAT01",
+  "name": "Cálculo I",
+  "summary": "Curso de introducción al cálculo diferencial e integral.",
+  "credits": 4,
+  "system_id": 1,
+  "subsystem_id": null,
+  "selected_evaluations": [1, 2, 3]
+}
+```
+
+**Campos:**
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `course_id` | ✅ | ID del curso a actualizar |
+| `code` | ✅ | Código del curso (mín. 2 caracteres) |
+| `name` | ✅ | Nombre del curso (mín. 2 caracteres) |
+| `summary` | ✅ | Sumilla del curso (obligatorio, máx. 1000 caracteres) |
+| `credits` | ✅ | Número entero mayor a 0 |
+| `system_id` | ✅ | ID del sistema de evaluación |
+| `subsystem_id` | ❌ | ID del subsistema de evaluación (puede ser `null`) |
+| `selected_evaluations` | ❌ | Array de IDs de evaluaciones a asociar |
+
+**Reglas de asignación de `status`:**
+Mismas reglas que `add-course`. El campo `is_hidden` conserva su valor actual.
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "course": {
+    "id": 1,
+    "code": "MAT01",
+    "name": "Cálculo I",
+    "summary": "Curso de introducción al cálculo diferencial e integral.",
+    "credits": 4,
+    "system_id": 1,
+    "subsystem_id": null,
+    "status": "INCOMPLETO",
+    "is_hidden": false
+  }
+}
+```
+
+**Errores:**
+- `400`: Curso inválido o no encontrado, validación de campos fallida, ya existe otro curso con ese código, sistema/subsistema inválido, evaluaciones repetidas o no corresponden al sistema
+- `401`: Sesión admin inválida
+- `500`: Error al actualizar curso
 
 ---
 
