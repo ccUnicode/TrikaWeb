@@ -44,6 +44,8 @@ Ejecutar en SQL Editor de Supabase, en este orden:
 3. `supabase/migrations/add_teacher_visibility.sql`
 4. `supabase/seed.sql` (opcional)
 
+> La función `create_course_with_evaluations` está incluida en `supabase/function_triggers.sql` y se ejecuta automáticamente en el paso 2.
+
 ## Storage buckets
 
 Crear buckets:

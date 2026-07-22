@@ -606,7 +606,7 @@ Content-Type: application/json
 
 ### POST `/api/admin/add-course`
 
-Crear un nuevo curso con sistema de evaluación.
+Crear un nuevo curso con sistema de evaluación. El estado (`status`) se asigna automáticamente según las reglas del sistema de evaluación.
 
 **Request:**
 ```http
@@ -630,19 +630,33 @@ Content-Type: application/json
 | `name` | ✅ | Nombre del curso (mín. 2 caracteres) |
 | `credits` | ✅ | Número entero mayor a 0 |
 | `system_id` | ✅ | ID del sistema de evaluación |
-| `subsystem_id` | ❌ | ID del subsistema de evaluación |
+| `subsystem_id` | ❌ | ID del subsistema de evaluación (puede ser `null`) |
 | `selected_evaluations` | ❌ | Array de IDs de evaluaciones a asociar |
+
+**Reglas de asignación de `status`:**
+- Si el sistema **no requiere subsistema** → `COMPLETO` (sin evaluaciones seleccionadas)
+- Si el sistema **requiere subsistema** y `subsystem_id` es `null` → `INCOMPLETO` (no se permiten evaluaciones seleccionadas)
+- Si el sistema **requiere subsistema** y `subsystem_id` está definido → `COMPLETO` (debe seleccionar exactamente `practices_quantity` evaluaciones)
 
 **Response (200):**
 ```json
 {
   "ok": true,
-  "course": { "id": 1, "code": "MAT01", "name": "Cálculo I" }
+  "course": {
+    "id": 1,
+    "code": "MAT01",
+    "name": "Cálculo I",
+    "credits": 4,
+    "system_id": 1,
+    "subsystem_id": null,
+    "status": "INCOMPLETO",
+    "is_hidden": false
+  }
 }
 ```
 
 **Errores:**
-- `400`: Validación de campos fallida o error retornado por la RPC
+- `400`: Curso ya existe, sistema/subsistema inválido, evaluaciones repetidas, evaluaciones no corresponden al sistema, o validación de campos fallida
 - `401`: Sesión admin inválida
 - `500`: Error al crear curso
 

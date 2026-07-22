@@ -3,7 +3,11 @@ create table if not exists courses (
   id bigserial primary key,
   code text not null,
   name text not null,
+  summary text,
   credits int,
+  subsystem_id bigint,
+  status varchar(20) not null default 'INCOMPLETO' check (status in ('INCOMPLETO', 'COMPLETO', 'ARCHIVADO')),
+  is_hidden boolean not null default false,
   constraint courses_code_format check (code ~ '^[A-Z]{3}[0-9]{2}$')
 );
 

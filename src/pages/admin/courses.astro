@@ -3,51 +3,53 @@ import Layout from "../../layouts/Layout.astro";
 ---
 
 <Layout title="Gestionar Cursos | TrikaWeb Admin">
-    <div class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-4xl px-4">
-            <!-- Header Section -->
-            <div class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap">
-                <div>
-                    <h1 class="text-2xl font-bold text-global-text">Gestionar Cursos</h1>
-                    <p class="mt-1 text-sm text-global-text-muted">
-                        Agrega cursos y revisa el listado existente
-                    </p>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <a
-                        href="/admin/upload"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Panel de subida
-                    </a>
-                    <a
-                        href="/admin/teachers"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Profesores
-                    </a>
-                    <a
-                        href="/admin/ratings"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Calificaciones
-                    </a>
-                    <a
-                        href="/admin/moderation"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Moderación
-                    </a>
-                    <form action="/api/admin/logout" method="POST">
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-                        >
-                            Cerrar Sesión
-                        </button>
-                    </form>
-                </div>
-            </div>
+  <div class="min-h-screen py-8">
+    <div class="mx-auto w-full max-w-4xl px-4">
+      <!-- Header Section -->
+      <div
+        class="mb-8 flex flex-row items-center justify-between gap-4 flex-wrap"
+      >
+        <div>
+          <h1 class="text-2xl font-bold text-global-text">Gestionar Cursos</h1>
+          <p class="mt-1 text-sm text-global-text-muted">
+            Agrega cursos y revisa el listado existente
+          </p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <a
+            href="/admin/upload"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+          >
+            Panel de subida
+          </a>
+          <a
+            href="/admin/teachers"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+          >
+            Profesores
+          </a>
+          <a
+            href="/admin/ratings"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+          >
+            Calificaciones
+          </a>
+          <a
+            href="/admin/moderation"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+          >
+            Moderación
+          </a>
+          <form action="/api/admin/logout" method="POST">
+            <button
+              type="submit"
+              class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+            >
+              Cerrar Sesión
+            </button>
+          </form>
+        </div>
+      </div>
 
       <!-- Create Course -->
       <section
@@ -172,7 +174,9 @@ import Layout from "../../layouts/Layout.astro";
               class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5"
             >
               Subsistema de evaluación
-
+              <span class="text-xs font-normal text-global-text-muted">
+                (opcional)
+              </span>
               <button
                 type="button"
                 id="subsystem-info-btn"
@@ -226,6 +230,9 @@ import Layout from "../../layouts/Layout.astro";
               >
               </ul>
             </div>
+            <p class="mt-1.5 text-xs text-global-text-muted">
+              Puedes completar este dato posteriormente.
+            </p>
           </div>
           <div id="evaluation-config-wrapper" class="sm:col-span-3 hidden">
             <label
@@ -312,12 +319,15 @@ import Layout from "../../layouts/Layout.astro";
     evaluation_name: string;
   }> = [];
 
+  type CourseStatus = "INCOMPLETO" | "COMPLETO" | "ARCHIVADO";
+
   type Course = {
     id: number;
     code: string;
     name: string;
     credits: number;
     is_hidden: boolean;
+    status: CourseStatus;
   };
 
   const listEl = document.getElementById("courses-list") as HTMLDivElement;
@@ -567,6 +577,42 @@ import Layout from "../../layouts/Layout.astro";
     evaluationConfigHelp.textContent = `Selecciona exactamente ${max} evaluaciones. Actualmente: ${checkedCount}/${max}.`;
   }
 
+  function renderCourseStatus(status: CourseStatus) {
+    const baseClasses =
+      "inline-flex h-8 w-[120px] items-center justify-center rounded-lg border px-3 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap";
+
+    if (status === "COMPLETO") {
+      return `
+      <span
+        class="${baseClasses} border-blue-500/30 bg-blue-500/10 text-blue-400"
+        title="La configuración académica del curso está completa"
+      >
+        Completo
+      </span>
+    `;
+    }
+
+    if (status === "ARCHIVADO") {
+      return `
+      <span
+        class="${baseClasses} border-gray-500/30 bg-gray-500/10 text-gray-400"
+        title="El curso se encuentra archivado"
+      >
+        Archivado
+      </span>
+    `;
+    }
+
+    return `
+    <span
+      class="${baseClasses} border-orange-500/30 bg-orange-500/10 text-orange-400"
+      title="El curso todavía tiene información académica pendiente"
+    >
+      Pendiente
+    </span>
+  `;
+  }
+
   async function loadCourses(nextPage: number = 1) {
     page = nextPage;
     listEl.innerHTML =
@@ -605,37 +651,64 @@ import Layout from "../../layouts/Layout.astro";
       listEl.innerHTML = courses
         .map(
           (c) => `
-                    <div class="rounded-xl bg-global-bg border border-global-border p-4 ${c.is_hidden ? "opacity-70" : ""}" data-course-id="${c.id}">
-                        <div class="flex items-center justify-between gap-4">
-                            <div class="min-w-0 flex-1">
-                                <div class="text-sm text-global-text-muted truncate">${escapeHtml(c.code)}</div>
-                                <div class="text-base font-semibold text-global-text truncate">${escapeHtml(c.name)}</div>
-                                <div class="text-xs text-global-text-muted">Créditos: ${c.credits}</div>
-                            </div>
-                            <div class="flex items-center gap-3 shrink-0">
-                                <span class="inline-flex items-center justify-center w-[68px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${c.is_hidden ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" : "bg-green-500/10 border-green-500/30 text-green-400"}">
-                                    ${c.is_hidden ? "Oculto" : "Visible"}
-                                </span>
-                                <button
-                                    type="button"
-                                    class="toggle-course-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${c.is_hidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}"
-                                    data-course-id="${c.id}"
-                                    data-next-hidden="${c.is_hidden ? "false" : "true"}"
-                                >
-                                    ${c.is_hidden ? "Mostrar" : "Ocultar"}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="delete-course-btn w-[72px] rounded-lg border border-red-600/30 bg-red-600/20 px-3 py-1.5 text-xs font-medium text-red-500 transition hover:bg-red-600/30 cursor-pointer"
-                                    data-course-id="${c.id}"
-                                >
-                                    Eliminar
-                                </button>
-                                <div class="text-xs text-global-text-muted w-10 text-right">ID: ${c.id}</div>
-                            </div>
-                        </div>
-                    </div>
-                `,
+        <div
+          class="rounded-xl bg-global-bg border border-global-border p-4 ${
+            c.is_hidden ? "opacity-70" : ""
+          }"
+          data-course-id="${c.id}"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="min-w-0 flex-1">
+              <div class="text-sm text-global-text-muted truncate">
+                ${escapeHtml(c.code)}
+              </div>
+
+              <div class="text-base font-semibold text-global-text truncate">
+                ${escapeHtml(c.name)}
+              </div>
+
+              <div class="text-xs text-global-text-muted">
+                Créditos: ${c.credits}
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-end gap-3 shrink-0">
+              ${renderCourseStatus(c.status)}
+
+              <span
+                class="inline-flex h-8 w-[90px] items-center justify-center rounded-full border px-2 text-[10px] font-bold uppercase tracking-wide ${
+                  c.is_hidden
+                    ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
+                    : "bg-green-500/10 border-green-500/30 text-green-400"
+                }"
+              >
+                ${c.is_hidden ? "Oculto" : "Visible"}
+              </span>
+
+              <button
+                type="button"
+                class="toggle-course-btn inline-flex h-8 w-[82px] items-center justify-center rounded-lg border px-3 text-xs font-medium transition cursor-pointer ${
+                  c.is_hidden
+                    ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
+                    : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"
+                }"
+                data-course-id="${c.id}"
+                data-next-hidden="${c.is_hidden ? "false" : "true"}"
+              >
+                ${c.is_hidden ? "Mostrar" : "Ocultar"}
+              </button>
+
+              <button
+                type="button"
+                class="delete-course-btn inline-flex h-8 w-[82px] items-center justify-center rounded-lg border border-red-600/30 bg-red-600/20 px-3 text-xs font-medium text-red-500 transition hover:bg-red-600/30 cursor-pointer"
+                data-course-id="${c.id}"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      `,
         )
         .join("");
       document.querySelectorAll(".delete-course-btn").forEach((btn) => {
@@ -916,7 +989,8 @@ import Layout from "../../layouts/Layout.astro";
 
     if (requires) {
       subsystemSearchInput.disabled = false;
-      subsystemSearchInput.placeholder = "Buscar subsistema...";
+      subsystemSearchInput.placeholder =
+        "Buscar subsistema o dejar pendiente...";
       subsystemSearchInput.classList.remove("opacity-60", "cursor-not-allowed");
     } else {
       subsystemSearchInput.disabled = true;
@@ -1000,8 +1074,15 @@ import Layout from "../../layouts/Layout.astro";
     systemSelect.value = "";
     selectedSystemRequiresSubsystem = false;
 
-    subsystemSelect.disabled = true;
     subsystemSelect.value = "";
+
+    subsystemSearchInput.value = "";
+    subsystemSearchInput.disabled = true;
+    subsystemSearchInput.placeholder = "Selecciona primero un sistema";
+    subsystemSearchInput.classList.add("opacity-60", "cursor-not-allowed");
+
+    subsystemDropdown.classList.add("hidden");
+
     evaluationOptions.innerHTML = "";
     evaluationConfigHelp.textContent = "";
     evaluationConfigWrapper.classList.add("hidden");
@@ -1009,6 +1090,7 @@ import Layout from "../../layouts/Layout.astro";
 
     const filtered = cachedSystems.filter((s) => {
       const haystack = `${s.system_cod} ${s.system_description}`.toLowerCase();
+
       return haystack.includes(query);
     });
 
@@ -1039,7 +1121,7 @@ import Layout from "../../layouts/Layout.astro";
     const code = (codeInput?.value || "").trim();
     const name = (nameInput?.value || "").trim();
     const credits = Number((creditsInput?.value || "").trim());
-    const system_id = Number(systemSelect.value) || null;
+    const system_id = Number(systemSelect.value);
     const subsystem_id = subsystemSelect.value
       ? Number(subsystemSelect.value)
       : null;
@@ -1062,6 +1144,14 @@ import Layout from "../../layouts/Layout.astro";
     const selectedSubsystem = cachedSubsystems.find(
       (s) => s.subsystem_id === subsystem_id,
     );
+
+    if (!Number.isInteger(system_id) || system_id <= 0) {
+      setFeedback(
+        "Debes seleccionar un sistema de evaluación válido.",
+        "error",
+      );
+      return;
+    }
 
     if (
       requires &&
@@ -1109,9 +1199,18 @@ import Layout from "../../layouts/Layout.astro";
     systemSelect.value = "";
     systemSearchInput.value = "";
     selectedSystemRequiresSubsystem = false;
+
     subsystemSelect.value = "";
     subsystemSearchInput.value = "";
     subsystemSearchInput.disabled = true;
+    subsystemSearchInput.placeholder = "Selecciona primero un sistema";
+    subsystemSearchInput.classList.add("opacity-60", "cursor-not-allowed");
+
+    evaluationOptions.innerHTML = "";
+    evaluationConfigHelp.textContent = "";
+    evaluationConfigWrapper.classList.add("hidden");
+    cachedVariableEvaluations = [];
+
     await loadCourses(1);
   });
 
