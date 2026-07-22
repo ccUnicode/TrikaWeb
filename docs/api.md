@@ -580,6 +580,128 @@ Crear nuevo profesor.
 
 ---
 
+### POST `/api/admin/add-course`
+
+Crear un nuevo curso con sistema de evaluación. El estado (`status`) se asigna automáticamente según las reglas del sistema de evaluación.
+
+**Request:**
+```http
+POST /api/admin/add-course
+Content-Type: application/json
+
+{
+  "code": "MAT01",
+  "name": "Cálculo I",
+  "summary": "Curso de introducción al cálculo diferencial e integral.",
+  "credits": 4,
+  "system_id": 1,
+  "subsystem_id": null,
+  "selected_evaluations": [1, 2, 3]
+}
+```
+
+**Campos:**
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `code` | ✅ | Código del curso (mín. 2 caracteres) |
+| `name` | ✅ | Nombre del curso (mín. 2 caracteres) |
+| `summary` | ✅ | Sumilla del curso (obligatorio, máx. 1000 caracteres) |
+| `credits` | ✅ | Número entero mayor a 0 |
+| `system_id` | ✅ | ID del sistema de evaluación |
+| `subsystem_id` | ❌ | ID del subsistema de evaluación (puede ser `null`) |
+| `selected_evaluations` | ❌ | Array de IDs de evaluaciones a asociar |
+
+**Reglas de asignación de `status`:**
+- Si el sistema **no requiere subsistema** → `COMPLETO` (sin evaluaciones seleccionadas)
+- Si el sistema **requiere subsistema** y `subsystem_id` es `null` → `INCOMPLETO` (no se permiten evaluaciones seleccionadas)
+- Si el sistema **requiere subsistema** y `subsystem_id` está definido → `COMPLETO` (debe seleccionar exactamente `practices_quantity` evaluaciones)
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "course": {
+    "id": 1,
+    "code": "MAT01",
+    "name": "Cálculo I",
+    "summary": "Curso de introducción al cálculo diferencial e integral.",
+    "credits": 4,
+    "system_id": 1,
+    "subsystem_id": null,
+    "status": "INCOMPLETO",
+    "is_hidden": false
+  }
+}
+```
+
+**Errores:**
+- `400`: Validación de campos fallida (código, nombre, sumilla, créditos), curso ya existe, sistema/subsistema inválido, evaluaciones repetidas o no corresponden al sistema
+- `401`: Sesión admin inválida
+- `500`: Error al crear curso
+
+---
+
+### POST `/api/admin/update-course`
+
+Actualizar un curso existente. Recalcula el `status` y reconstruye las evaluaciones asociadas según el sistema de evaluación.
+
+**Request:**
+```http
+POST /api/admin/update-course
+Content-Type: application/json
+
+{
+  "course_id": 1,
+  "code": "MAT01",
+  "name": "Cálculo I",
+  "summary": "Curso de introducción al cálculo diferencial e integral.",
+  "credits": 4,
+  "system_id": 1,
+  "subsystem_id": null,
+  "selected_evaluations": [1, 2, 3]
+}
+```
+
+**Campos:**
+| Campo | Requerido | Descripción |
+|-------|-----------|-------------|
+| `course_id` | ✅ | ID del curso a actualizar |
+| `code` | ✅ | Código del curso (mín. 2 caracteres) |
+| `name` | ✅ | Nombre del curso (mín. 2 caracteres) |
+| `summary` | ✅ | Sumilla del curso (obligatorio, máx. 1000 caracteres) |
+| `credits` | ✅ | Número entero mayor a 0 |
+| `system_id` | ✅ | ID del sistema de evaluación |
+| `subsystem_id` | ❌ | ID del subsistema de evaluación (puede ser `null`) |
+| `selected_evaluations` | ❌ | Array de IDs de evaluaciones a asociar |
+
+**Reglas de asignación de `status`:**
+Mismas reglas que `add-course`. Además, el campo `is_hidden` conserva su valor actual.
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "course": {
+    "id": 1,
+    "code": "MAT01",
+    "name": "Cálculo I",
+    "summary": "Curso de introducción al cálculo diferencial e integral.",
+    "credits": 4,
+    "system_id": 1,
+    "subsystem_id": null,
+    "status": "INCOMPLETO",
+    "is_hidden": false
+  }
+}
+```
+
+**Errores:**
+- `400`: Curso inválido o no encontrado, validación de campos fallida, ya existe otro curso con ese código, sistema/subsistema inválido, evaluaciones repetidas o no corresponden al sistema
+- `401`: Sesión admin inválida
+- `500`: Error al actualizar curso
+
+---
+
 ### POST `/api/admin/drive-sync`
 
 Sincronizar con Google Drive (placeholder).

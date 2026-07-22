@@ -235,7 +235,8 @@ erDiagram
         boolean is_hidden
         int system_id FK
         int subsystem_id FK
-        text sumilla
+        text summary
+        text status "INCOMPLETO | COMPLETO | ARCHIVADO"
         boolean is_elective
         numeric avg_difficulty
     }

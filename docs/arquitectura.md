@@ -175,7 +175,8 @@ Funciones almacenadas en PostgreSQL, invocadas desde la API del panel admin:
 
 | Función | Propósito |
 |---------|-----------|
-| `create_course_with_evaluations` | Crea un curso validando sistema/subsistema de evaluación y asociando evaluaciones correspondientes |
+| `create_course_with_evaluations` | Crea un curso validando `summary`, `credits`, sistema/subsistema, asigna `status` automático (`INCOMPLETO`/`COMPLETO`) y asocia evaluaciones |
+| `update_course_with_evaluations` | Actualiza un curso existente, recalcula `status` y reconstruye sus evaluaciones asociadas |
 | `get_evaluation_systems` | Lista todos los sistemas de evaluación (`system_cod`, `system_description`, `requires_subsystem`) |
 | `get_evaluation_subsystems` | Lista subsistemas de evaluación ordenados por cantidad de prácticas |
 | `get_variable_evaluations_by_system(p_system_id)` | Obtiene evaluaciones variables (prácticas, laboratorios, trabajos) para un sistema dado |
