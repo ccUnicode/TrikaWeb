@@ -59,6 +59,34 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
     event.dataTransfer.setData('application/json', JSON.stringify(course));
     event.dataTransfer.effectAllowed = 'move';
     setDraggedCourseId(course.id);
+
+    // Clonar la tarjeta exacta para mantener su diseño original pero con fondo firme y legible
+    try {
+      const target = event.currentTarget as HTMLElement;
+      if (target) {
+        const dragEl = target.cloneNode(true) as HTMLElement;
+        dragEl.style.position = 'absolute';
+        dragEl.style.top = '-9999px';
+        dragEl.style.left = '-9999px';
+        dragEl.style.width = `${target.offsetWidth}px`;
+        dragEl.style.backgroundColor = '#2a3441';
+        dragEl.style.borderColor = '#6366f1';
+        dragEl.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)';
+        dragEl.style.zIndex = '9999';
+        dragEl.style.pointerEvents = 'none';
+
+        document.body.appendChild(dragEl);
+        event.dataTransfer.setDragImage(dragEl, event.nativeEvent.offsetX || 20, event.nativeEvent.offsetY || 20);
+
+        setTimeout(() => {
+          if (document.body.contains(dragEl)) {
+            document.body.removeChild(dragEl);
+          }
+        }, 0);
+      }
+    } catch (e) {
+      console.error('Error setting drag image:', e);
+    }
   };
 
   const onDragEnd = () => {
@@ -197,6 +225,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
           ) : (
             filteredCourses.map((course) => {
               const isOnCanvas = placedCourses.some((n) => n.id === course.id);
+              const isDraggingThis = draggedCourseId === course.id;
               return (
                 <div
                   key={course.id}
@@ -205,6 +234,8 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                   onDragEnd={onDragEnd}
                   className={`group relative p-3 rounded-xl border transition-all select-none flex items-start gap-2 ${isOnCanvas
                     ? 'bg-[#161b22]/50 border-gray-800/50 opacity-40 cursor-not-allowed'
+                    : isDraggingThis
+                    ? 'bg-indigo-600/30 border-indigo-500 opacity-90 cursor-grabbing shadow-lg'
                     : 'bg-[#1a202c] hover:bg-[#222938] border-gray-800 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing hover:shadow-md hover:shadow-indigo-500/5'
                     }`}
                 >
@@ -214,12 +245,16 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                     </div>
                   )}
                   {isOnCanvas && (
-                    <div className="mt-1 w-4" /> // placeholder for alignment
+                    <div className="mt-1 flex items-center justify-center text-green-500/60" title="En la malla">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
                   )}
 
                   <div className="flex-1">
                     <div className="flex justify-between items-start gap-2 mb-1">
-                      <span className="text-[10px] font-mono font-bold tracking-wider text-indigo-400 uppercase">
+                      <span className={`text-[10px] font-mono font-bold tracking-wider uppercase ${isOnCanvas ? 'text-indigo-400/50' : 'text-indigo-400'}`}>
                         {course.code}
                       </span>
                       {course.credits !== undefined && (
@@ -228,7 +263,7 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                         </span>
                       )}
                     </div>
-                    <h3 className="text-xs font-semibold text-white leading-tight group-hover:text-indigo-400 transition-colors">
+                    <h3 className={`text-xs font-semibold leading-tight transition-colors ${isOnCanvas ? 'text-gray-400' : 'text-white group-hover:text-indigo-400'}`}>
                       {course.name}
                     </h3>
                   </div>
@@ -457,7 +492,7 @@ function Slot({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       className={`h-10 w-full border border-dashed rounded-lg flex items-center justify-center transition-all duration-200 ${isDragOver
-        ? 'border-green-500 bg-green-500/10'
+        ? 'border-green-400 bg-green-500/20 shadow-md shadow-green-500/20 scale-105 z-10'
         : 'border-gray-700 bg-gray-800/30 hover:border-gray-600 hover:bg-gray-800/50'
         }`}
     >
