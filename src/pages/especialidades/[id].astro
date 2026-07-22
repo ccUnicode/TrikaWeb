@@ -47,7 +47,7 @@ let courses: CurriculumCourse[] = [];
 const { data: planCourses, error: pcError } = await supabaseAdmin
     .from("plan_courses")
     .select(
-        "plan_id, course_id, cycle, row_index, courses (id, code, name, credits, summary, is_elective, avg_difficulty, evaluation_systems (system_cod), courses_teachers (teachers (id, full_name, avatar_url)))",
+        "plan_id, course_id, cycle, row_index, courses (id, code, name, credits, summary, is_elective, avg_difficulty, evaluation_systems (system_cod, formula), courses_teachers (teachers (id, full_name, avatar_url)))",
     )
     .eq("plan_id", plan.id);
 
@@ -64,6 +64,8 @@ if (planCourses) {
         credits: pc.courses?.credits ?? undefined,
         evaluation_system:
             pc.courses?.evaluation_systems?.system_cod ?? "N/A",
+        evaluation_formula:
+            pc.courses?.evaluation_systems?.formula ?? null,
         row_index: pc.row_index,
         summary: pc.courses?.summary ?? null,
         is_elective: pc.courses?.is_elective ?? false,

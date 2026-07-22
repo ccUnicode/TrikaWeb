@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Flame, Users, User, FileText, BookOpen, ChevronDown } from 'lucide-react';
+import { Flame, Users, User, FileText, BookOpen, ChevronDown, Calculator } from 'lucide-react';
 import type { CurriculumCourse, CoursePrerequisite } from '../../lib/curriculumTypes';
 
 export interface CourseDetailPanelProps {
@@ -39,20 +39,36 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
     <div className="flex flex-col h-full overflow-hidden">
       {/* Contenido Scrollable */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-4">
-        {/* Header: Código + Nombre */}
-      <div>
-        <span className="text-[#22c55e] font-mono text-sm font-bold tracking-wider uppercase">
-          {course.code}
-        </span>
-        <h2 className="text-white text-xl font-bold mt-1 leading-snug">
-          {course.name}
-        </h2>
-      </div>
+        {/* Header: Código + Tipo (Obligatorio/Electivo) + Nombre */}
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-[#22c55e] font-mono text-sm font-bold tracking-wider uppercase">
+              {course.code}
+            </span>
 
-      {/* Badges: Créditos + Tipo */}
-      <div className="flex flex-wrap gap-2">
+            {course.is_elective ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Electivo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-800 text-gray-400 border border-gray-700/80">
+                Obligatorio
+              </span>
+            )}
+          </div>
+
+          <h2 className="text-white text-xl font-bold leading-snug">
+            {course.name}
+          </h2>
+        </div>
+
+      {/* Badges en 1 sola fila: Créditos + Sistema + Dificultad */}
+      <div className="flex flex-wrap items-center gap-2">
         {course.credits !== undefined && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
@@ -60,29 +76,30 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
           </span>
         )}
 
-        {course.is_elective ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            Electivo
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">
-            Obligatorio
-          </span>
-        )}
+        {course.evaluation_system && course.evaluation_system !== 'N/A' && (
+          <div className="relative group/eval inline-block">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/8 text-emerald-400/80 border border-emerald-500/15 cursor-help transition-all hover:bg-emerald-500/15 hover:border-emerald-500/30 shadow-sm">
+              <Calculator className="w-3.5 h-3.5" />
+              Sistema {course.evaluation_system}
+            </span>
 
-        {course.evaluation_system && (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#22c55e]/10 text-[#22c55e] border border-[#22c55e]/20">
-            {course.evaluation_system}
-          </span>
+            {/* Tooltip: fórmula del sistema de evaluación */}
+            {course.evaluation_formula && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden group-hover/eval:block z-50 pointer-events-none">
+                <div className="flex items-center justify-center px-3 py-1.5 rounded-lg bg-[#161b22] border border-gray-700/80 shadow-xl shadow-black/40 whitespace-nowrap text-center">
+                  <span className="font-mono text-[12px] font-bold text-white">
+                    {course.evaluation_formula}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {course.avg_difficulty && course.avg_difficulty > 0 ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Dificultad Percibida">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Dificultad Percibida">
             <Flame className="w-3.5 h-3.5" />
-            {Number(course.avg_difficulty).toFixed(1)} / 5
+            {Number(course.avg_difficulty).toFixed(1)}
           </span>
         ) : null}
       </div>
@@ -119,7 +136,7 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
             {/* Transición fluida de altura usando CSS Grid */}
             <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isSumillaOpen ? 'grid-rows-[1fr] border-t border-gray-800/80' : 'grid-rows-[0fr]'}`}>
               <div className="overflow-hidden">
-                <div className="p-3.5 text-gray-300 text-xs leading-relaxed bg-[#0d1117]/50">
+                <div className="p-3.5 text-gray-300 text-xs leading-relaxed bg-[#0d1117]/50 text-justify">
                   {course.summary}
                 </div>
               </div>

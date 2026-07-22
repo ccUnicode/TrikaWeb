@@ -9,6 +9,7 @@ export interface CurriculumCourse {
   cycle: number;
   credits?: number;
   evaluation_system?: string;
+  evaluation_formula?: string | null;
   row_index?: number;
   summary?: string | null;
   is_elective?: boolean;
