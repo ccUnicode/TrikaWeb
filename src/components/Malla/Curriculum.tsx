@@ -247,6 +247,7 @@ function CurriculumInner({ data }: Props) {
         <div className="w-full lg:w-[350px] xl:w-[400px] h-full bg-[#1e2430] border border-gray-800 rounded-xl flex flex-col overflow-hidden">
           {selectedCourse ? (
             <CourseDetailPanel
+              key={selectedCourse.course_id}
               course={selectedCourse}
               prerequisites={data.prerequisites}
               allCourses={data.courses}

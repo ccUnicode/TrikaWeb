@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Flame, Users, User, FileText } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Flame, Users, User, FileText, BookOpen, ChevronDown } from 'lucide-react';
 import type { CurriculumCourse, CoursePrerequisite } from '../../lib/curriculumTypes';
 
 export interface CourseDetailPanelProps {
@@ -10,6 +10,13 @@ export interface CourseDetailPanelProps {
 }
 
 export default function CourseDetailPanel({ course, prerequisites, allCourses, onPrerequisiteClick }: CourseDetailPanelProps) {
+  const [isSumillaOpen, setIsSumillaOpen] = useState(false);
+
+  // Reset estado colapsable al cambiar de curso
+  useEffect(() => {
+    setIsSumillaOpen(false);
+  }, [course.course_id]);
+
   // Filtrar los prerrequisitos de este curso
   const coursePrereqs = useMemo(() => {
     const prereqIds = prerequisites
@@ -85,20 +92,49 @@ export default function CourseDetailPanel({ course, prerequisites, allCourses, o
 
       {/* Sumilla */}
       <div>
-        <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-1.5">
-          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          Sumilla
-        </h3>
         {course.summary ? (
-          <p className="text-gray-300 text-sm leading-relaxed">
-            {course.summary}
-          </p>
+          <div className="rounded-xl border border-gray-800 bg-[#161b22]/70 overflow-hidden transition-all duration-200 hover:border-gray-700 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setIsSumillaOpen(!isSumillaOpen)}
+              className="w-full flex items-center justify-between p-3 text-left cursor-pointer group select-none active:bg-gray-800/40 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-all">
+                  <BookOpen className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-white text-sm font-semibold group-hover:text-blue-400 transition-colors">
+                  Sumilla del curso
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
+                  {isSumillaOpen ? 'Ocultar' : 'Ver detalle'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isSumillaOpen ? 'rotate-180 text-blue-400' : ''}`} />
+              </div>
+            </button>
+
+            {/* Transición fluida de altura usando CSS Grid */}
+            <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isSumillaOpen ? 'grid-rows-[1fr] border-t border-gray-800/80' : 'grid-rows-[0fr]'}`}>
+              <div className="overflow-hidden">
+                <div className="p-3.5 text-gray-300 text-xs leading-relaxed bg-[#0d1117]/50">
+                  {course.summary}
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
-          <p className="text-gray-500 text-sm italic">
-            Sumilla pendiente de registro.
-          </p>
+          <div>
+            <h3 className="text-white text-sm font-semibold mb-1 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-gray-400" />
+              Sumilla
+            </h3>
+            <p className="text-gray-500 text-sm italic">
+              Sumilla pendiente de registro.
+            </p>
+          </div>
         )}
       </div>
 
