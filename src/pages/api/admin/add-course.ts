@@ -4,31 +4,41 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
-const normalizeCode = (value: unknown) =>
+const normalizeCode = (value: unknown): string =>
   String(value ?? "")
     .trim()
     .toUpperCase();
-const normalizeName = (value: unknown) => String(value ?? "").trim();
-const normalizeCredits = (value: unknown) => {
-  const num = Number(value);
-  return Number.isInteger(num) ? num : NaN;
+
+const normalizeName = (value: unknown): string => String(value ?? "").trim();
+
+const normalizeSummary = (value: unknown): string | null => {
+  const normalizedValue = String(value ?? "").trim();
+
+  return normalizedValue || null;
 };
 
-const normalizeSummary = (value: unknown) => String(value ?? "").trim();
+const normalizeCredits = (value: unknown): number => {
+  const normalizedValue = Number(value);
+
+  return Number.isInteger(normalizedValue) ? normalizedValue : Number.NaN;
+};
 
 const normalizeRequiredId = (value: unknown): number | null => {
-  const num = Number(value);
+  const normalizedValue = Number(value);
 
-  if (!Number.isInteger(num) || num <= 0) {
+  if (!Number.isInteger(normalizedValue) || normalizedValue <= 0) {
     return null;
   }
 
-  return num;
+  return normalizedValue;
 };
 
 const normalizeOptionalId = (
   value: unknown,
-): { value: number | null; valid: boolean } => {
+): {
+  value: number | null;
+  valid: boolean;
+} => {
   if (value === undefined || value === null || value === "") {
     return {
       value: null,
@@ -36,48 +46,73 @@ const normalizeOptionalId = (
     };
   }
 
-  const normalized = normalizeRequiredId(value);
+  const normalizedValue = normalizeRequiredId(value);
 
   return {
-    value: normalized,
-    valid: normalized !== null,
+    value: normalizedValue,
+    valid: normalizedValue !== null,
   };
 };
+
+const jsonError = (error: string, status: number): Response =>
+  Response.json(
+    {
+      ok: false,
+      error,
+    },
+    {
+      status,
+    },
+  );
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);
+
     if (!isValid) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Sesión inválida" }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return jsonError("Sesión inválida", 401);
     }
 
-    let body: any;
+    let body: Record<string, unknown>;
+
     try {
-      body = await request.json();
+      const parsedBody: unknown = await request.json();
+
+      if (
+        !parsedBody ||
+        typeof parsedBody !== "object" ||
+        Array.isArray(parsedBody)
+      ) {
+        return jsonError("Body JSON inválido", 400);
+      }
+
+      body = parsedBody as Record<string, unknown>;
     } catch {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Body JSON inválido" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return jsonError("Body JSON inválido", 400);
     }
 
     const code = normalizeCode(body.code);
     const name = normalizeName(body.name);
+
     const summary = normalizeSummary(body.summary);
+
     const credits = normalizeCredits(body.credits);
+
     const system_id = normalizeRequiredId(body.system_id);
 
     const normalizedSubsystem = normalizeOptionalId(body.subsystem_id);
+
     const subsystem_id = normalizedSubsystem.value;
+
+    if (
+      body.selected_evaluations !== undefined &&
+      !Array.isArray(body.selected_evaluations)
+    ) {
+      return jsonError(
+        "Las evaluaciones seleccionadas deben enviarse como una lista",
+        400,
+      );
+    }
 
     const rawSelectedEvaluations: unknown[] = Array.isArray(
       body.selected_evaluations,
@@ -88,110 +123,49 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const selected_evaluations: number[] = [
       ...new Set<number>(
         rawSelectedEvaluations
-          .map((id: unknown): number => Number(id))
-          .filter((id: number) => Number.isInteger(id) && id > 0),
+          .map((evaluationId: unknown) => Number(evaluationId))
+          .filter(
+            (evaluationId: number) =>
+              Number.isInteger(evaluationId) && evaluationId > 0,
+          ),
       ),
     ];
 
-    if (!summary) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "La sumilla del curso es obligatoria",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+    if (!code || code.length < 2) {
+      return jsonError("El código es requerido (mínimo 2 caracteres)", 400);
     }
 
-    if (summary.length > 1000) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "La sumilla no puede superar los 1000 caracteres",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+    if (!name || name.length < 2) {
+      return jsonError("El nombre es requerido (mínimo 2 caracteres)", 400);
+    }
+
+    /*
+     * La sumilla es opcional.
+     * Solo se valida el máximo cuando existe.
+     */
+    if (summary !== null && summary.length > 1000) {
+      return jsonError("La sumilla no puede superar los 1000 caracteres", 400);
+    }
+
+    if (!Number.isInteger(credits) || credits <= 0) {
+      return jsonError(
+        "Los créditos deben ser un número entero mayor a 0",
+        400,
       );
     }
 
     if (system_id === null) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "Sistema inválido" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return jsonError("Sistema inválido", 400);
     }
 
     if (!normalizedSubsystem.valid) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Subsistema inválido",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    if (!code || code.length < 2) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "El código es requerido (mínimo 2 caracteres)",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    if (!name || name.length < 2) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "El nombre es requerido (mínimo 2 caracteres)",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    if (!Number.isInteger(credits) || credits <= 0) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Los créditos deben ser un número entero mayor a 0",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return jsonError("Subsistema inválido", 400);
     }
 
     if (subsystem_id === null && selected_evaluations.length > 0) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error:
-            "No se pueden seleccionar evaluaciones sin un subsistema de evaluación",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
+      return jsonError(
+        "No se pueden seleccionar evaluaciones sin un subsistema de evaluación",
+        400,
       );
     }
 
@@ -210,49 +184,26 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (rpcError) {
       console.error("Error calling create_course_with_evaluations:", rpcError);
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Error al crear curso",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+
+      return jsonError("Error al crear curso", 500);
     }
 
     if (!result?.ok) {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: result?.error || "No se pudo crear el curso",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
+      return jsonError(result?.error || "No se pudo crear el curso", 400);
     }
 
-    return new Response(
-      JSON.stringify({
+    return Response.json(
+      {
         ok: true,
         course: result.course,
-      }),
+      },
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
       },
     );
-  } catch (err) {
-    console.error("add-course API error:", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno del servidor" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+  } catch (error) {
+    console.error("add-course API error:", error);
+
+    return jsonError("Error interno del servidor", 500);
   }
 };

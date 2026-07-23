@@ -96,7 +96,7 @@ import Layout from "../../layouts/Layout.astro";
                 class="block text-sm font-medium text-global-text-muted"
                 for="course-summary"
               >
-                Sumilla
+                Sumilla (opcional)
               </label>
               <span
                 id="course-summary-counter"
@@ -106,18 +106,12 @@ import Layout from "../../layouts/Layout.astro";
                 0/1000
               </span>
             </div>
-
             <textarea
               id="course-summary"
               maxlength="1000"
-              required
               class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition-colors placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary teacher-scroll"
               placeholder="Describe brevemente el contenido y propósito del curso..."
             ></textarea>
-
-            <p class="mt-1.5 text-xs text-global-text-muted">
-              La sumilla debe describir brevemente el contenido del curso.
-            </p>
           </div>
           <div>
             <label
@@ -1262,11 +1256,6 @@ import Layout from "../../layouts/Layout.astro";
     if (!Number.isInteger(credits) || credits <= 0) {
       setFeedback("Créditos inválidos (entero mayor a 0).", "error");
       addBtn.disabled = false;
-      return;
-    }
-
-    if (!summary) {
-      setFeedback("La sumilla del curso es obligatoria.", "error");
       return;
     }
 

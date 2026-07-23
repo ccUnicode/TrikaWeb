@@ -11,7 +11,11 @@ const normalizeCode = (value: unknown): string =>
 
 const normalizeName = (value: unknown): string => String(value ?? "").trim();
 
-const normalizeSummary = (value: unknown): string => String(value ?? "").trim();
+const normalizeSummary = (value: unknown): string | null => {
+  const normalizedValue = String(value ?? "").trim();
+
+  return normalizedValue || null;
+};
 
 const normalizeCredits = (value: unknown): number => {
   const normalizedValue = Number(value);
@@ -140,11 +144,7 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
       return jsonError("El nombre es requerido (mínimo 2 caracteres)", 400);
     }
 
-    if (!summary) {
-      return jsonError("La sumilla del curso es obligatoria", 400);
-    }
-
-    if (summary.length > 1000) {
+    if (summary !== null && summary.length > 1000) {
       return jsonError("La sumilla no puede superar los 1000 caracteres", 400);
     }
 

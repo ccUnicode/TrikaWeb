@@ -91,7 +91,6 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
             <input
               id="course-name"
               type="text"
-              required
               class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
             />
           </div>
@@ -102,7 +101,7 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
                 for="course-summary"
                 class="block text-sm font-medium text-global-text-muted"
               >
-                Sumilla
+                Sumilla (opcional)
               </label>
 
               <span
@@ -1075,11 +1074,6 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 
     if (name.length < 2) {
       setSaveFeedback("El nombre debe tener al menos 2 caracteres.", "error");
-      return;
-    }
-
-    if (!summary) {
-      setSaveFeedback("La sumilla es obligatoria.", "error");
       return;
     }
 
