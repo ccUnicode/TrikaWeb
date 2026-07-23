@@ -92,6 +92,7 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
               id="course-name"
               type="text"
               class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+              required
             />
           </div>
 
@@ -116,7 +117,6 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
             <textarea
               id="course-summary"
               maxlength="1000"
-              required
               class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
             ></textarea>
           </div>
