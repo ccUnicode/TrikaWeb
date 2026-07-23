@@ -263,13 +263,15 @@ function getYouTubeId(url: string) {
             examUrl ? (
               <div
                 id="viewer-container"
-                class="relative w-full overflow-hidden rounded-xl bg-black/40 shadow-lg min-h-[500px] sm:aspect-3/4 sm:min-h-0"
+                class="relative w-full bg-black/40 min-h-[500px] sm:aspect-3/4 sm:min-h-0"
+                style="will-change: transform; transform: translateZ(0); contain: strict;"
               >
                 <iframe
                   id="pdf-viewer-iframe"
                   src={`${examUrl}#toolbar=0&navpanes=0&view=FitH`}
                   data-exam-url={examUrl}
-                  class="absolute inset-0 h-full w-full rounded-xl border-0"
+                  class="absolute inset-0 h-full w-full border-0"
+                  style="will-change: transform; transform: translateZ(0);"
                   loading="lazy"
                   allowfullscreen
                 />
