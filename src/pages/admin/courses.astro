@@ -251,8 +251,9 @@ import Layout from "../../layouts/Layout.astro";
               </ul>
             </div>
             <p class="font-medium mt-1 text-xs text-green-400 italic">
-                Puedes registrar el curso sin este dato, pero no podrás subir archivos hasta completar su configuración.
-              </p>
+              Puedes registrar el curso sin este dato, pero no podrás subir
+              archivos hasta completar su configuración.
+            </p>
           </div>
           <div id="evaluation-config-wrapper" class="sm:col-span-3 hidden">
             <label
@@ -316,6 +317,49 @@ import Layout from "../../layouts/Layout.astro";
           </div>
         </div>
 
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div
+            class="flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Filtrar cursos por estado"
+          >
+            <button
+              type="button"
+              class="course-status-filter"
+              data-status=""
+              aria-pressed="true"
+            >
+              Todos
+            </button>
+
+            <button
+              type="button"
+              class="course-status-filter"
+              data-status="COMPLETO"
+              aria-pressed="false"
+            >
+              Completos
+            </button>
+
+            <button
+              type="button"
+              class="course-status-filter"
+              data-status="INCOMPLETO"
+              aria-pressed="false"
+            >
+              Pendientes
+            </button>
+          </div>
+
+          <button
+            id="clear-course-filters"
+            type="button"
+            class="hidden text-xs font-medium text-global-text-muted transition hover:text-global-text"
+          >
+            Limpiar filtros
+          </button>
+        </div>
+
         <div id="courses-list" class="space-y-3"></div>
 
         <div
@@ -339,6 +383,7 @@ import Layout from "../../layouts/Layout.astro";
     evaluation_name: string;
   }> = [];
 
+  type CourseStatusFilter = "" | "COMPLETO" | "INCOMPLETO";
   type CourseStatus = "INCOMPLETO" | "COMPLETO" | "ARCHIVADO";
 
   type Course = {
@@ -431,8 +476,16 @@ import Layout from "../../layouts/Layout.astro";
   ) as HTMLSpanElement;
   const SUMMARY_MAX_LENGTH = 1000;
 
+  const statusFilterButtons = Array.from(
+    document.querySelectorAll(".course-status-filter"),
+  ) as HTMLButtonElement[];
+  const clearFiltersBtn = document.getElementById(
+    "clear-course-filters",
+  ) as HTMLButtonElement;
+
   let page = 1;
   let pageSize = 30;
+  let selectedStatus: CourseStatusFilter = "";
 
   const setFeedback = (message: string, kind: "ok" | "error" = "ok") => {
     addFeedback.textContent = message;
@@ -448,6 +501,67 @@ import Layout from "../../layouts/Layout.astro";
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
 
+  function updateStatusFilterUI() {
+    const baseClasses =
+      "rounded-lg border px-3.5 py-2 text-xs font-semibold transition cursor-pointer";
+
+    const activeClasses =
+      "border-global-primary/40 bg-global-primary/15 text-global-primary";
+
+    const inactiveClasses =
+      "border-global-border bg-global-card text-global-text-muted hover:border-global-primary/30 hover:text-global-text";
+
+    for (const button of statusFilterButtons) {
+      const buttonStatus =
+        (button.dataset.status || "") as CourseStatusFilter;
+
+      const isActive =
+        buttonStatus === selectedStatus;
+
+      button.className = `${baseClasses} ${
+        isActive
+          ? activeClasses
+          : inactiveClasses
+      }`;
+
+      button.setAttribute(
+        "aria-pressed",
+        String(isActive),
+      );
+    }
+
+    clearFiltersBtn.classList.toggle(
+      "hidden",
+      selectedStatus === "",
+    );
+  }
+
+  for (const button of statusFilterButtons) {
+    button.addEventListener("click", () => {
+      const nextStatus =
+        (button.dataset.status || "") as CourseStatusFilter;
+
+      if (nextStatus === selectedStatus) {
+        return;
+      }
+
+      selectedStatus = nextStatus;
+
+      updateStatusFilterUI();
+
+      loadCourses(1);
+    });
+  }
+
+  clearFiltersBtn.addEventListener("click", () => {
+    selectedStatus = "";
+    searchInput.value = "";
+
+    updateStatusFilterUI();
+
+    loadCourses(1);
+  });
+    
   function updateSummaryCounter() {
     const currentLength = summaryInput.value.length;
 
@@ -714,7 +828,7 @@ import Layout from "../../layouts/Layout.astro";
     const res = await fetch("/api/admin/courses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, pageSize, search }),
+      body: JSON.stringify({ page, pageSize, search, status: selectedStatus || null, }),
     });
 
     const data = await res.json().catch(() => null);
@@ -735,8 +849,24 @@ import Layout from "../../layouts/Layout.astro";
     }
 
     if (!courses.length) {
-      listEl.innerHTML =
-        "<div class='text-sm text-global-text-muted'>No hay cursos para mostrar.</div>";
+      let emptyMessage =
+        "No hay cursos para mostrar.";
+
+      if (selectedStatus === "COMPLETO") {
+        emptyMessage =
+          "No se encontraron cursos con configuración completa.";
+      }
+
+      if (selectedStatus === "INCOMPLETO") {
+        emptyMessage =
+          "No se encontraron cursos pendientes de configuración.";
+      }
+
+      listEl.innerHTML = `
+        <div class="rounded-xl border border-global-border bg-global-bg px-4 py-6 text-center text-sm text-global-text-muted">
+          ${emptyMessage}
+        </div>
+      `;
     } else {
       listEl.innerHTML = courses
         .map(
@@ -768,8 +898,8 @@ import Layout from "../../layouts/Layout.astro";
                 type="button"
                 class="toggle-course-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition cursor-pointer ${
                   c.is_hidden
-                  ? "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"
-                  : "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
+                    ? "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"
+                    : "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
                 }"
                 data-course-id="${c.id}"
                 data-next-hidden="${c.is_hidden ? "false" : "true"}"
@@ -806,7 +936,9 @@ import Layout from "../../layouts/Layout.astro";
                 href="/admin/courses/${c.id}/edit"
                 class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 transition hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-blue-300"
                 title="${
-                  c.status === "INCOMPLETO" ? "Completar configuración" : "Editar curso"
+                  c.status === "INCOMPLETO"
+                    ? "Completar configuración"
+                    : "Editar curso"
                 }"
                 aria-label="${
                   c.status === "INCOMPLETO"
@@ -1000,7 +1132,6 @@ import Layout from "../../layouts/Layout.astro";
       }
 
       await loadCourses(page);
-
     } catch (err) {
       console.error(err);
     } finally {
@@ -1378,6 +1509,7 @@ import Layout from "../../layouts/Layout.astro";
 
   document.addEventListener("DOMContentLoaded", async () => {
     updateSummaryCounter();
+    updateStatusFilterUI();
     await Promise.all([loadSystems(), loadSubsystems(), loadCourses(1)]);
   });
 

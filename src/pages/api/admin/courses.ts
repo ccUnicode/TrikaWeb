@@ -6,6 +6,56 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 
 type CourseStatus = "INCOMPLETO" | "COMPLETO" | "ARCHIVADO";
 
+type CourseStatusFilter = "INCOMPLETO" | "COMPLETO";
+
+const normalizePositiveInteger = (
+  value: unknown,
+  defaultValue: number,
+): number => {
+  const normalizedValue = Number(value);
+
+  if (!Number.isInteger(normalizedValue) || normalizedValue <= 0) {
+    return defaultValue;
+  }
+
+  return normalizedValue;
+};
+
+const normalizeStatusFilter = (
+  value: unknown,
+): {
+  value: CourseStatusFilter | null;
+  valid: boolean;
+} => {
+  if (value === undefined || value === null || value === "") {
+    return {
+      value: null,
+      valid: true,
+    };
+  }
+
+  if (typeof value !== "string") {
+    return {
+      value: null,
+      valid: false,
+    };
+  }
+
+  const normalizedValue = value.trim().toUpperCase();
+
+  if (normalizedValue !== "COMPLETO" && normalizedValue !== "INCOMPLETO") {
+    return {
+      value: null,
+      valid: false,
+    };
+  }
+
+  return {
+    value: normalizedValue as CourseStatusFilter,
+    valid: true,
+  };
+};
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);
@@ -22,62 +72,142 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    let body: any = {};
+    let body: Record<string, unknown> = {};
 
     try {
-      body = await request.json();
+      const parsedBody: unknown = await request.json();
+
+      if (
+        parsedBody &&
+        typeof parsedBody === "object" &&
+        !Array.isArray(parsedBody)
+      ) {
+        body = parsedBody as Record<string, unknown>;
+      }
     } catch {
+      /*
+       * El body es opcional.
+       * Se utilizan los valores predeterminados.
+       */
       body = {};
     }
 
-    const { page = 1, pageSize = 50, search = "" } = body;
+    const safePage = normalizePositiveInteger(body.page, 1);
 
-    const safePage = Math.max(1, Math.floor(Number(page) || 1));
+    const requestedPageSize = normalizePositiveInteger(body.pageSize, 30);
 
-    const safeSize = Math.min(
-      100,
-      Math.max(1, Math.floor(Number(pageSize) || 50)),
-    );
+    /*
+     * Limita el número de registros por página
+     * para evitar consultas demasiado grandes.
+     */
+    const safeSize = Math.min(requestedPageSize, 100);
+
+    /*
+     * Limita la búsqueda para evitar cadenas
+     * innecesariamente extensas.
+     */
+    const normalizedSearch = String(body.search ?? "")
+      .trim()
+      .slice(0, 100);
+
+    const normalizedStatus = normalizeStatusFilter(body.status);
+
+    if (!normalizedStatus.valid) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Filtro de estado inválido",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    const status = normalizedStatus.value;
 
     const from = (safePage - 1) * safeSize;
+
     const to = from + safeSize - 1;
 
-    let query = supabaseAdmin
-      .from("courses")
-      .select("id, code, name, credits, is_hidden, status", {
+    /*
+     * Se construye primero la consulta base.
+     *
+     * Los filtros se aplican antes de:
+     * - ordenar;
+     * - paginar;
+     * - calcular el total.
+     */
+    let coursesQuery = supabaseAdmin.from("courses").select(
+      `
+          id,
+          code,
+          name,
+          credits,
+          is_hidden,
+          status
+        `,
+      {
         count: "exact",
-      })
-      .order("name", {
-        ascending: true,
-      });
+      },
+    );
 
-    const normalizedSearch = String(search || "").trim();
-
+    /*
+     * Búsqueda por código o nombre.
+     */
     if (normalizedSearch) {
       const pattern = `%${normalizedSearch}%`;
 
-      query = query.or(`code.ilike.${pattern},name.ilike.${pattern}`);
+      coursesQuery = coursesQuery.or(
+        `code.ilike.${pattern},name.ilike.${pattern}`,
+      );
     }
 
-    const [coursesResult, visibleCountRes, hiddenCountRes] = await Promise.all([
-      query.range(from, to),
+    /*
+     * Filtro por estado.
+     *
+     * null        → todos
+     * COMPLETO    → completos
+     * INCOMPLETO  → pendientes
+     */
+    if (status !== null) {
+      coursesQuery = coursesQuery.eq("status", status);
+    }
 
-      supabaseAdmin
-        .from("courses")
-        .select("id", {
-          count: "exact",
-          head: true,
-        })
-        .eq("is_hidden", false),
+    /*
+     * El orden y la paginación se aplican
+     * después de los filtros.
+     */
+    coursesQuery = coursesQuery
+      .order("name", {
+        ascending: true,
+      })
+      .range(from, to);
 
-      supabaseAdmin
-        .from("courses")
-        .select("id", {
-          count: "exact",
-          head: true,
-        })
-        .eq("is_hidden", true),
-    ]);
+    /*
+     * Los conteos de visibilidad permanecen globales.
+     * No dependen del filtro de estado.
+     */
+    const [coursesResult, visibleCountResult, hiddenCountResult] =
+      await Promise.all([
+        coursesQuery,
+
+        supabaseAdmin
+          .from("courses")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq("is_hidden", false),
+
+        supabaseAdmin
+          .from("courses")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq("is_hidden", true),
+      ]);
 
     const { data, count, error } = coursesResult;
 
@@ -95,29 +225,34 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    if (visibleCountRes.error || hiddenCountRes.error) {
+    if (visibleCountResult.error || hiddenCountResult.error) {
       console.error(
         "Error fetching course counts:",
-        visibleCountRes.error || hiddenCountRes.error,
+        visibleCountResult.error || hiddenCountResult.error,
       );
     }
 
+    /*
+     * Este total ya considera:
+     * - búsqueda;
+     * - filtro de estado.
+     */
     const total = count ?? 0;
 
     const totalPages = total > 0 ? Math.ceil(total / safeSize) : 0;
 
-    const courses = (data || []).map((c: any) => ({
-      id: c.id,
-      code: c.code,
-      name: c.name,
-      credits: c.credits ?? 0,
-      is_hidden: c.is_hidden ?? false,
-      status: c.status as CourseStatus,
+    const courses = (data ?? []).map((course) => ({
+      id: course.id,
+      code: course.code,
+      name: course.name,
+      credits: course.credits ?? 0,
+      is_hidden: course.is_hidden ?? false,
+      status: course.status as CourseStatus,
     }));
 
-    const visibleCount = visibleCountRes.count ?? 0;
+    const visibleCount = visibleCountResult.count ?? 0;
 
-    const hiddenCount = hiddenCountRes.count ?? 0;
+    const hiddenCount = hiddenCountResult.count ?? 0;
 
     return Response.json(
       {
@@ -126,6 +261,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         counts: {
           visible: visibleCount,
           hidden: hiddenCount,
+        },
+        filters: {
+          search: normalizedSearch,
+          status,
         },
         pagination: {
           page: safePage,
@@ -138,8 +277,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         status: 200,
       },
     );
-  } catch (err) {
-    console.error("courses API error:", err);
+  } catch (error) {
+    console.error("courses API error:", error);
 
     return Response.json(
       {
