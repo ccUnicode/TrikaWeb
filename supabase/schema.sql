@@ -1,196 +1,1950 @@
--- Tabla de cursos 
-create table if not exists courses (
-  id bigserial primary key,
-  code text not null,
-  name text not null,
-  summary text,
-  credits int,
-  subsystem_id bigint,
-  status varchar(20) not null default 'INCOMPLETO' check (status in ('INCOMPLETO', 'COMPLETO', 'ARCHIVADO')),
-  is_hidden boolean not null default false,
-  constraint courses_code_format check (code ~ '^[A-Z]{3}[0-9]{2}$')
+-- ============================================================================
+-- TrikaWeb - Esquema de la base de datos actualizada al 24-07-2026
+--
+-- Uso: base nueva o entorno local vacío.
+-- Para una base existente use migraciones; no ejecute este archivo encima.
+-- ============================================================================
+
+create extension if not exists pgcrypto;
+
+-- Tipos enumerados
+create type public.user_role as enum (
+  'student',
+  'admin'
 );
 
--- Unicidad por código 
-create unique index if not exists uq_courses_code_nocase
-  on courses (lower(code));
-
--- RLS y policy de lectura pública
-alter table courses enable row level security;
-create policy "public read courses" on courses
-  for select using (true);
-
---Tabla de profesores
-create table if not exists teachers (
-  id bigserial primary key,
-  full_name text not null,
-  bio text not null,
-  avg_overall numeric(3,2) default 0,
-  rating_count int default 0
-);
-
--- Unicidad por nombre
-create unique index if not exists uq_teachers_name_nocase
-  on teachers (lower(full_name));
-
-
--- RLS y policy de lectura pública
-alter table teachers enable row level security;
-create policy "public read teachers" on teachers
-  for select using (true);
-
---Tabla intermedia profesores_cursos
-create table if not exists courses_teachers(
-  course_id bigint not null references courses(id) on delete cascade,
-  teacher_id bigint not null references teachers(id) on delete cascade,
-  primary key (course_id, teacher_id)
-);
-
--- Índice para búsquedas por docente
-create index if not exists ix_courses_teachers__teacher
-  on courses_teachers (teacher_id);
-
---RLS y public read policy
-alter table courses_teachers enable row level security;
-create policy "public read courses_teachers" on courses_teachers
-  for select using (true);
-
-  --Tabla índice para las exámenes y solucionarios
-create table if not exists sheets(
-  id bigserial primary key,
-  course_id bigint not null references courses(id)  on delete cascade,
-  
-  --Metadata
+-- Tablas
+create table public.contributions (
+  id bigserial not null,
+  user_id text not null,
+  user_email text not null,
+  user_name text not null,
+  course_id bigint not null,
   cycle text not null,
   exam_type text not null,
-  teacher_hint text,
-
-  --Examen
-  exam_storage_path text not null,
-
-  --Solucionario
-  solution_kind text  check (solution_kind in ('pdf','video')),
-  solution_storage_path text,
-  solution_video_url text,
-  thumb_storage_path text,
-
-  --Métricas
-  avg_difficulty numeric(3,2) default 0,
-  rating_count int default 0,
-  view_count bigint default 0,
-
-  constraint sheets_solution_present_ck
-  check (
-    solution_kind is null
-    or (solution_kind = 'pdf'   and solution_storage_path is not null)
-    or (solution_kind = 'video' and solution_video_url     is not null)
-  )
+  contribution_type text not null,
+  file_storage_path text not null,
+  status text default 'pending'::text not null,
+  admin_notes text,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null
 );
 
---Índice para nicidad 
-create unique index if not exists uq_sheets_course_cycle_title
-  on sheets (course_id, cycle, lower(exam_type));
+create table public.course_evaluations (
+  course_id integer not null,
+  evaluation_id integer not null
+);
 
---Índice para búsqueda
-create index if not exists ix_sheets_course on sheets (course_id);
+create table public.course_prerequisites (
+  plan_id uuid not null,
+  course_id bigint not null,
+  prerequisite_id bigint not null
+);
 
---RLS y public read
-alter table sheets enable row level security;
-create policy "public read sheets" on sheets
-  for select using (true); 
+create table public.courses (
+  id bigserial not null,
+  code text not null,
+  name text not null,
+  credits integer,
+  is_hidden boolean default false,
+  system_id integer not null,
+  subsystem_id integer,
+  summary text,
+  is_elective boolean default false,
+  avg_difficulty numeric(3,2) default 0.00,
+  status varchar(20) default 'INCOMPLETO'::character varying not null
+);
 
---Tabla intermedia para las calificaciones
-create table if not exists sheet_ratings (
-  id bigserial primary key,
-  sheet_id bigint not null references sheets(id) on delete cascade,
+create table public.courses_teachers (
+  course_id bigint not null,
+  teacher_id bigint not null,
+  modality text
+);
+
+create table public.cycles (
+  cycle_id bigserial not null,
+  cycle_code varchar(10) not null,
+  year integer not null,
+  term varchar(3) not null
+);
+
+create table public.eval_system_grades (
+  grade_id serial not null,
+  grades_name text not null
+);
+
+create table public.evaluation_subsystems (
+  subsystem_id serial not null,
+  subsystem_cod varchar(4) not null,
+  practices_quantity integer not null
+);
+
+create table public.evaluation_systems (
+  system_id serial not null,
+  system_cod char(1) not null,
+  system_description text not null,
+  requires_subsystem boolean,
+  formula text
+);
+
+create table public.evaluation_type (
+  evaluation_id serial not null,
+  evaluation_name text,
+  evaluation_abr text,
+  evaluation_category text
+);
+
+create table public.grade_evaluation_type (
+  grade_id integer,
+  evaluation_id integer
+);
+
+create table public.plan_courses (
+  plan_id uuid not null,
+  course_id bigint not null,
+  cycle integer not null,
+  row_index integer default 1
+);
+
+create table public.profiles (
+  id uuid not null,
+  email text,
+  full_name text,
+  role public.user_role default 'student'::user_role not null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  username text,
+  avatar_url text
+);
+
+create table public.sheet_feedback (
+  id bigint generated BY DEFAULT as identity not null,
+  sheet_id bigint not null,
+  stars smallint not null,
+  content text,
+  device_id uuid not null,
+  ip_hash text,
+  is_hidden boolean default false,
+  needs_review boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table public.sheet_interests (
+  id bigserial not null,
+  sheet_id bigint not null,
   device_id uuid not null,
   ip_hash text not null,
-  score int not null check (score between 1 and 5),
-  created_at timestamptz default now(),
-  unique (sheet_id, device_id)
+  created_at timestamptz default now() not null
 );
 
---RLS y read policy
-alter table sheet_ratings enable row level security;
-create policy "public read sheet_ratings" on sheet_ratings
-  for select using (true);
+create table public.sheet_ratings (
+  id bigserial not null,
+  sheet_id bigint not null,
+  device_id uuid not null,
+  ip_hash text not null,
+  score integer not null,
+  created_at timestamptz default now()
+);
 
---Tabla intermedia para las visualizaciones
-create table if not exists sheet_views (
-  id bigserial primary key,
-  sheet_id bigint not null references sheets(id) on delete cascade,
-  type text not null check (type in ('view','download')),
+create table public.sheet_views (
+  id bigserial not null,
+  sheet_id bigint not null,
+  type text not null,
   device_id uuid not null,
   ip_hash text not null,
   occurred_at timestamptz default now()
 );
 
---RLS y read policy
-alter table sheet_views enable row level security;
-create policy "public read sheet_views" on sheet_views
-  for select using (true);
-
---Tabla para rate limiting por IP
-create table if not exists write_limits (
-  ip_hash text primary key,
-  last_at timestamptz not null default now(),
-  count_1h int not null default 0
+create table public.sheets (
+  id bigserial not null,
+  course_id bigint not null,
+  cycle text not null,
+  exam_type text not null,
+  teacher_hint text,
+  exam_storage_path text not null,
+  solution_kind text,
+  solution_storage_path text,
+  solution_video_url text,
+  thumb_storage_path text,
+  avg_difficulty numeric(3,2) default 0,
+  rating_count integer default 0,
+  view_count bigint default 0,
+  is_hidden boolean default false not null,
+  interest_count bigint default 0,
+  evaluation_id integer,
+  is_teacher_specific boolean default false not null
 );
 
---Tabla para guardar calificaciones de los profesores
-create table if not exists teacher_ratings (
-  id bigserial primary key,
-  teacher_id bigint not null references teachers(id) on delete cascade,
+create table public.specialties (
+  id uuid default gen_random_uuid() not null,
+  name text not null
+);
+
+create table public.study_plans (
+  id uuid default gen_random_uuid() not null,
+  specialty_id uuid,
+  year text not null,
+  is_current boolean default false,
+  is_published boolean default true
+);
+
+create table public.system_grades_consider (
+  system_id integer not null,
+  grade_id integer not null,
+  weight integer not null
+);
+
+create table public.teacher_ratings (
+  id bigserial not null,
+  teacher_id bigint not null,
   device_id uuid not null,
   ip_hash text not null,
-  overall int not null check( overall between 1 and 5),
-  difficulty int not null check (difficulty between 1 and 5),
-  didactic int not null check (didactic between 1 and 5),
-  resources int not null check (resources between 1 and 5),
-  responsability int not null check (responsability between 1 and 5),
-  grading int not null check (grading between 1 and 5),
+  overall numeric(3,2) not null,
+  difficulty integer not null,
+  didactic integer not null,
+  resources integer not null,
+  responsability integer not null,
+  grading integer not null,
   comment text,
-  is_hidden boolean not null default false,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  is_hidden boolean default false not null,
+  created_at timestamptz default now() not null,
+  updated_at timestamptz default now() not null,
+  needs_review boolean default true,
+  is_anonymous boolean default true not null,
+  user_name text,
+  user_email text
 );
 
---Índice para búsqueda
-create index if not exists idx_teacher_ratings_teacher_id
-  on teacher_ratings (teacher_id);
-
---RLS y read policy
-alter table teacher_ratings enable row level security;
-create policy "public read teacher_ratings" on teacher_ratings
-  for select using (true); 
-
---Tabla para almacenar los limties de escritura
-create table if not exists write_limits (
-  ip_hash text primary key,
-  last_at timestamptz not null default now(),
-  count_1h int not null default 0
+create table public.teachers (
+  id bigserial not null,
+  full_name text not null,
+  bio text not null,
+  avg_overall numeric(3,2) default 0,
+  rating_count integer default 0,
+  avatar_url text,
+  is_hidden boolean default false not null
 );
 
--- ========================================
--- PERMISOS (GRANTs) para roles de Supabase
--- ========================================
--- El rol 'anon' es usado por usuarios no autenticados (anon key)
--- El rol 'authenticated' es para usuarios logueados
+create table public.write_limits (
+  ip_hash text not null,
+  last_at timestamptz default now() not null,
+  count_1h integer default 0 not null
+);
 
--- Permisos de lectura
-GRANT SELECT ON courses TO anon, authenticated;
-GRANT SELECT ON sheets TO anon, authenticated;
-GRANT SELECT ON teachers TO anon, authenticated;
-GRANT SELECT ON courses_teachers TO anon, authenticated;
-GRANT SELECT ON sheet_ratings TO anon, authenticated;
-GRANT SELECT ON sheet_views TO anon, authenticated;
-GRANT SELECT ON teacher_ratings TO anon, authenticated;
+-- Restricciones
+alter table public.contributions add constraint contributions_contribution_type_check CHECK (contribution_type = ANY (ARRAY['sheet'::text, 'solution'::text]));
+alter table public.contributions add constraint contributions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+alter table public.contributions add constraint contributions_pkey PRIMARY KEY (id);
+alter table public.contributions add constraint contributions_status_check CHECK (status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text]));
 
--- Permisos de escritura para ratings y views (necesarios para votar)
-GRANT INSERT ON sheet_ratings TO anon, authenticated;
-GRANT INSERT ON sheet_views TO anon, authenticated;
-GRANT INSERT ON teacher_ratings TO anon, authenticated;
-GRANT INSERT, UPDATE ON write_limits TO anon, authenticated;
+alter table public.course_evaluations add constraint course_evaluations_course_evaluation_key UNIQUE (course_id, evaluation_id);
+alter table public.course_evaluations add constraint course_evaluations_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+alter table public.course_evaluations add constraint course_evaluations_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES public.evaluation_type(evaluation_id) ON DELETE CASCADE;
 
--- Permisos para usar secuencias (necesario para INSERT con bigserial)
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+alter table public.course_prerequisites add constraint course_prerequisites_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+alter table public.course_prerequisites add constraint course_prerequisites_pkey PRIMARY KEY (plan_id, course_id, prerequisite_id);
+alter table public.course_prerequisites add constraint course_prerequisites_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.study_plans(id) ON DELETE CASCADE;
+alter table public.course_prerequisites add constraint course_prerequisites_prerequisite_id_fkey FOREIGN KEY (prerequisite_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+
+alter table public.courses add constraint courses_code_format CHECK (code ~ '^[A-Z]{2,3}[0-9]{2,3}$'::text);
+alter table public.courses add constraint courses_code_key UNIQUE (code);
+alter table public.courses add constraint courses_pkey PRIMARY KEY (id);
+alter table public.courses add constraint courses_status_check CHECK (status::text = ANY (ARRAY['INCOMPLETO'::character varying, 'COMPLETO'::character varying, 'ARCHIVADO'::character varying]::text[]));
+alter table public.courses add constraint courses_subsystem_id_fkey FOREIGN KEY (subsystem_id) REFERENCES public.evaluation_subsystems(subsystem_id);
+alter table public.courses add constraint courses_summary_length_check CHECK (summary IS NULL OR char_length(btrim(summary)) >= 1 AND char_length(btrim(summary)) <= 1000);
+alter table public.courses add constraint courses_system_id_fkey FOREIGN KEY (system_id) REFERENCES public.evaluation_systems(system_id);
+
+alter table public.courses_teachers add constraint courses_teachers_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+alter table public.courses_teachers add constraint courses_teachers_pkey PRIMARY KEY (course_id, teacher_id);
+alter table public.courses_teachers add constraint courses_teachers_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id) ON DELETE CASCADE;
+
+alter table public.cycles add constraint cycles_cycle_code_key UNIQUE (cycle_code);
+alter table public.cycles add constraint cycles_pkey PRIMARY KEY (cycle_id);
+alter table public.cycles add constraint cycles_term_check CHECK (term::text = ANY (ARRAY['I'::character varying, 'II'::character varying, 'III'::character varying]::text[]));
+
+alter table public.eval_system_grades add constraint eval_system_grades_grades_name_key UNIQUE (grades_name);
+alter table public.eval_system_grades add constraint eval_system_grades_pkey PRIMARY KEY (grade_id);
+
+alter table public.evaluation_subsystems add constraint evaluation_subsystems_pkey PRIMARY KEY (subsystem_id);
+alter table public.evaluation_subsystems add constraint evaluation_subsystems_practices_quantity_check CHECK (practices_quantity > 0);
+alter table public.evaluation_subsystems add constraint evaluation_subsystems_subsystem_cod_key UNIQUE (subsystem_cod);
+
+alter table public.evaluation_systems add constraint evaluation_systems_pkey PRIMARY KEY (system_id);
+alter table public.evaluation_systems add constraint evaluation_systems_system_cod_key UNIQUE (system_cod);
+
+alter table public.evaluation_type add constraint evaluation_type_evaluation_abr_key UNIQUE (evaluation_abr);
+alter table public.evaluation_type add constraint evaluation_type_evaluation_category_check CHECK (evaluation_category = ANY (ARRAY['PRACTICA'::text, 'EXAMEN'::text, 'TRABAJO'::text, 'EVALUACION'::text, 'LABORATORIO'::text, 'PRUEBA'::text]));
+alter table public.evaluation_type add constraint evaluation_type_evaluation_name_key UNIQUE (evaluation_name);
+alter table public.evaluation_type add constraint evaluation_type_pkey PRIMARY KEY (evaluation_id);
+
+alter table public.grade_evaluation_type add constraint grade_evaluation_type_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES public.evaluation_type(evaluation_id);
+alter table public.grade_evaluation_type add constraint grade_evaluation_type_grade_id_fkey FOREIGN KEY (grade_id) REFERENCES public.eval_system_grades(grade_id);
+
+alter table public.plan_courses add constraint plan_courses_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+alter table public.plan_courses add constraint plan_courses_cycle_check CHECK (cycle >= 1 AND cycle <= 10);
+alter table public.plan_courses add constraint plan_courses_pkey PRIMARY KEY (plan_id, course_id);
+alter table public.plan_courses add constraint plan_courses_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.study_plans(id) ON DELETE CASCADE;
+
+alter table public.profiles add constraint profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
+alter table public.profiles add constraint profiles_pkey PRIMARY KEY (id);
+
+alter table public.sheet_feedback add constraint sheet_feedback_pkey PRIMARY KEY (id);
+alter table public.sheet_feedback add constraint sheet_feedback_sheet_id_fkey FOREIGN KEY (sheet_id) REFERENCES public.sheets(id) ON DELETE CASCADE;
+alter table public.sheet_feedback add constraint sheet_feedback_stars_check CHECK (stars >= 1 AND stars <= 5);
+
+alter table public.sheet_interests add constraint sheet_interests_pkey PRIMARY KEY (id);
+alter table public.sheet_interests add constraint sheet_interests_sheet_id_device_id_key UNIQUE (sheet_id, device_id);
+alter table public.sheet_interests add constraint sheet_interests_sheet_id_fkey FOREIGN KEY (sheet_id) REFERENCES public.sheets(id) ON DELETE CASCADE;
+
+alter table public.sheet_ratings add constraint sheet_ratings_pkey PRIMARY KEY (id);
+alter table public.sheet_ratings add constraint sheet_ratings_score_check CHECK (score >= 1 AND score <= 5);
+alter table public.sheet_ratings add constraint sheet_ratings_sheet_id_device_id_key UNIQUE (sheet_id, device_id);
+alter table public.sheet_ratings add constraint sheet_ratings_sheet_id_fkey FOREIGN KEY (sheet_id) REFERENCES public.sheets(id) ON DELETE CASCADE;
+
+alter table public.sheet_views add constraint sheet_views_pkey PRIMARY KEY (id);
+alter table public.sheet_views add constraint sheet_views_sheet_id_fkey FOREIGN KEY (sheet_id) REFERENCES public.sheets(id) ON DELETE CASCADE;
+alter table public.sheet_views add constraint sheet_views_type_check CHECK (type = ANY (ARRAY['view'::text, 'download'::text]));
+
+alter table public.sheets add constraint sheets_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+alter table public.sheets add constraint sheets_evaluation_id_fkey FOREIGN KEY (evaluation_id) REFERENCES public.evaluation_type(evaluation_id);
+alter table public.sheets add constraint sheets_pkey PRIMARY KEY (id);
+alter table public.sheets add constraint sheets_solution_kind_check CHECK (solution_kind = ANY (ARRAY['pdf'::text, 'video'::text]));
+alter table public.sheets add constraint sheets_solution_present_ck CHECK (solution_kind IS NULL OR solution_kind = 'pdf'::text AND solution_storage_path IS NOT NULL OR solution_kind = 'video'::text AND solution_video_url IS NOT NULL);
+
+alter table public.specialties add constraint specialties_name_key UNIQUE (name);
+alter table public.specialties add constraint specialties_pkey PRIMARY KEY (id);
+
+alter table public.study_plans add constraint study_plans_pkey PRIMARY KEY (id);
+alter table public.study_plans add constraint study_plans_specialty_id_fkey FOREIGN KEY (specialty_id) REFERENCES public.specialties(id) ON DELETE CASCADE;
+
+alter table public.system_grades_consider add constraint system_grades_consider_grade_id_fkey FOREIGN KEY (grade_id) REFERENCES public.eval_system_grades(grade_id);
+alter table public.system_grades_consider add constraint system_grades_consider_system_id_fkey FOREIGN KEY (system_id) REFERENCES public.evaluation_systems(system_id);
+alter table public.system_grades_consider add constraint system_grades_consider_weight_check CHECK (weight >= 0);
+
+alter table public.teacher_ratings add constraint teacher_ratings_didactic_check CHECK (didactic >= 1 AND didactic <= 5);
+alter table public.teacher_ratings add constraint teacher_ratings_difficulty_check CHECK (difficulty >= 1 AND difficulty <= 5);
+alter table public.teacher_ratings add constraint teacher_ratings_grading_check CHECK (grading >= 1 AND grading <= 5);
+alter table public.teacher_ratings add constraint teacher_ratings_overall_check CHECK (overall >= 1::numeric AND overall <= 5::numeric);
+alter table public.teacher_ratings add constraint teacher_ratings_pkey PRIMARY KEY (id);
+alter table public.teacher_ratings add constraint teacher_ratings_resources_check CHECK (resources >= 1 AND resources <= 5);
+alter table public.teacher_ratings add constraint teacher_ratings_responsability_check CHECK (responsability >= 1 AND responsability <= 5);
+alter table public.teacher_ratings add constraint teacher_ratings_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES public.teachers(id) ON DELETE CASCADE;
+
+alter table public.teachers add constraint teachers_pkey PRIMARY KEY (id);
+
+alter table public.write_limits add constraint write_limits_pkey PRIMARY KEY (ip_hash);
+
+-- Índices adicionales
+CREATE UNIQUE INDEX uq_courses_code_nocase ON public.courses USING btree (lower(code));
+CREATE INDEX ix_courses_teachers__teacher ON public.courses_teachers USING btree (teacher_id);
+CREATE UNIQUE INDEX uq_profiles_username_lower ON public.profiles USING btree (lower(username)) WHERE ((username IS NOT NULL) AND (btrim(username) <> ''::text));
+CREATE INDEX idx_sheet_feedback_device_sheet ON public.sheet_feedback USING btree (sheet_id, device_id);
+CREATE INDEX idx_sheet_feedback_needs_review ON public.sheet_feedback USING btree (needs_review) WHERE (needs_review = true);
+CREATE INDEX idx_sheet_feedback_sheet_id ON public.sheet_feedback USING btree (sheet_id);
+CREATE INDEX idx_sheet_interests_sheet_id ON public.sheet_interests USING btree (sheet_id);
+CREATE INDEX ix_sheets_course ON public.sheets USING btree (course_id);
+CREATE INDEX ix_sheets_exam_storage_path ON public.sheets USING btree (exam_storage_path);
+CREATE INDEX ix_sheets_thumb_storage_path ON public.sheets USING btree (thumb_storage_path);
+CREATE UNIQUE INDEX uq_sheets_course_cycle_type_teacher ON public.sheets USING btree (course_id, cycle, lower(exam_type), COALESCE(lower(teacher_hint), ''::text));
+CREATE INDEX idx_teacher_ratings_needs_review ON public.teacher_ratings USING btree (needs_review) WHERE (needs_review = true);
+CREATE INDEX idx_teacher_ratings_teacher_id ON public.teacher_ratings USING btree (teacher_id);
+CREATE INDEX idx_teachers_is_hidden ON public.teachers USING btree (is_hidden);
+CREATE UNIQUE INDEX uq_teachers_name_nocase ON public.teachers USING btree (lower(full_name));
+
+-- Funciones
+CREATE OR REPLACE FUNCTION public.create_course_with_evaluations(p_code text, p_name text, p_summary text, p_credits integer, p_system_id integer, p_subsystem_id integer, p_selected_evaluations integer[])
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE
+    v_created_course public.courses%rowtype;
+
+    v_system record;
+    v_subsystem record;
+
+    v_status public.courses.status%type;
+
+    v_selected_count integer := 0;
+    v_distinct_selected_count integer := 0;
+
+    v_all_evaluation_ids integer[] := '{}'::integer[];
+BEGIN
+    /* Normalización */
+    p_code := upper(
+        btrim(
+            coalesce(p_code, '')
+        )
+    );
+
+    p_name := btrim(
+        coalesce(p_name, '')
+    );
+
+    /*
+     * La sumilla es opcional.
+     * Vacío o espacios se convierten en NULL.
+     */
+    p_summary := nullif(
+        btrim(
+            coalesce(p_summary, '')
+        ),
+        ''
+    );
+
+    p_selected_evaluations := coalesce(
+        p_selected_evaluations,
+        '{}'::integer[]
+    );
+
+    /* Validaciones generales */
+    IF char_length(p_code) < 2 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'El código es requerido (mínimo 2 caracteres)'
+        );
+    END IF;
+
+    IF char_length(p_name) < 2 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'El nombre es requerido (mínimo 2 caracteres)'
+        );
+    END IF;
+
+    IF p_summary IS NOT NULL
+       AND char_length(p_summary) > 1000 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'La sumilla no puede superar los 1000 caracteres'
+        );
+    END IF;
+
+    IF p_credits IS NULL OR p_credits <= 0 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Los créditos deben ser un número entero mayor a 0'
+        );
+    END IF;
+
+    IF p_system_id IS NULL OR p_system_id <= 0 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Sistema inválido'
+        );
+    END IF;
+
+    /* Código único */
+    IF EXISTS (
+        SELECT 1
+        FROM public.courses
+        WHERE upper(btrim(code)) = p_code
+    ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Ya existe un curso con ese código'
+        );
+    END IF;
+
+    /* Verificar sistema */
+    SELECT *
+    INTO v_system
+    FROM public.evaluation_systems
+    WHERE system_id = p_system_id;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Sistema inválido'
+        );
+    END IF;
+
+    /* Validar IDs de evaluaciones */
+    IF EXISTS (
+        SELECT 1
+        FROM unnest(p_selected_evaluations)
+            AS selected(evaluation_id)
+        WHERE selected.evaluation_id IS NULL
+           OR selected.evaluation_id <= 0
+    ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas inválidas'
+        );
+    END IF;
+
+    v_selected_count :=
+        cardinality(p_selected_evaluations);
+
+    SELECT count(
+        DISTINCT selected.evaluation_id
+    )::integer
+    INTO v_distinct_selected_count
+    FROM unnest(p_selected_evaluations)
+        AS selected(evaluation_id);
+
+    IF v_selected_count <>
+       v_distinct_selected_count THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas repetidas'
+        );
+    END IF;
+
+    /* Validar subsistema y cantidad de evaluaciones */
+    IF v_system.requires_subsystem IS TRUE THEN
+        IF p_subsystem_id IS NULL THEN
+            IF v_selected_count > 0 THEN
+                RETURN json_build_object(
+                    'ok', false,
+                    'error',
+                    'No se pueden seleccionar evaluaciones mientras el subsistema esté pendiente'
+                );
+            END IF;
+        ELSE
+            SELECT *
+            INTO v_subsystem
+            FROM public.evaluation_subsystems
+            WHERE subsystem_id = p_subsystem_id;
+
+            IF NOT FOUND THEN
+                RETURN json_build_object(
+                    'ok', false,
+                    'error',
+                    'Subsistema inválido'
+                );
+            END IF;
+
+            IF v_selected_count <>
+               v_subsystem.practices_quantity THEN
+                RETURN json_build_object(
+                    'ok', false,
+                    'error',
+                    format(
+                        'Debe seleccionar exactamente %s evaluaciones',
+                        v_subsystem.practices_quantity
+                    )
+                );
+            END IF;
+        END IF;
+    ELSE
+        IF p_subsystem_id IS NOT NULL THEN
+            RETURN json_build_object(
+                'ok', false,
+                'error',
+                'El sistema seleccionado no requiere subsistema'
+            );
+        END IF;
+
+        IF v_selected_count > 0 THEN
+            RETURN json_build_object(
+                'ok', false,
+                'error',
+                'Este sistema no debe recibir evaluaciones seleccionadas manualmente'
+            );
+        END IF;
+    END IF;
+
+    /* Verificar que las evaluaciones existan */
+    IF v_selected_count > 0
+       AND EXISTS (
+            SELECT 1
+            FROM unnest(p_selected_evaluations)
+                AS selected(evaluation_id)
+            LEFT JOIN public.evaluation_type et
+                ON et.evaluation_id =
+                   selected.evaluation_id
+            WHERE et.evaluation_id IS NULL
+       ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas inválidas'
+        );
+    END IF;
+
+    /* Verificar que correspondan al sistema */
+    IF v_selected_count > 0
+       AND EXISTS (
+            SELECT 1
+            FROM unnest(p_selected_evaluations)
+                AS selected(evaluation_id)
+
+            LEFT JOIN (
+                SELECT DISTINCT
+                    get1.evaluation_id
+                FROM public.system_grades_consider sgc
+                JOIN public.grade_evaluation_type get1
+                    ON get1.grade_id =
+                       sgc.grade_id
+                JOIN public.evaluation_type et
+                    ON et.evaluation_id =
+                       get1.evaluation_id
+                WHERE sgc.system_id = p_system_id
+                  AND upper(
+                      coalesce(
+                          et.evaluation_category,
+                          ''
+                      )
+                  ) IN (
+                      'PRACTICA',
+                      'LABORATORIO',
+                      'TRABAJO'
+                  )
+            ) allowed
+                ON allowed.evaluation_id =
+                   selected.evaluation_id
+
+            WHERE allowed.evaluation_id IS NULL
+       ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas que no corresponden al sistema elegido'
+        );
+    END IF;
+
+    /*
+     * Estado final:
+     * - Sin sumilla: INCOMPLETO.
+     * - Sin subsistema requerido: INCOMPLETO.
+     * - Todo configurado: COMPLETO.
+     */
+    IF p_summary IS NULL
+       OR (
+           v_system.requires_subsystem IS TRUE
+           AND p_subsystem_id IS NULL
+       ) THEN
+        v_status := 'INCOMPLETO';
+    ELSE
+        v_status := 'COMPLETO';
+    END IF;
+
+    /* Registrar curso */
+    INSERT INTO public.courses (
+        code,
+        name,
+        summary,
+        credits,
+        system_id,
+        subsystem_id,
+        status,
+        is_hidden
+    )
+    VALUES (
+        p_code,
+        p_name,
+        p_summary,
+        p_credits,
+        p_system_id,
+        p_subsystem_id,
+        v_status,
+        false
+    )
+    RETURNING *
+    INTO v_created_course;
+
+    /* Construir evaluaciones del curso */
+    SELECT coalesce(
+        array_agg(
+            DISTINCT evaluations.evaluation_id
+        ) FILTER (
+            WHERE evaluations.evaluation_id
+                  IS NOT NULL
+        ),
+        '{}'::integer[]
+    )
+    INTO v_all_evaluation_ids
+    FROM (
+        /* Evaluaciones fijas */
+        SELECT get1.evaluation_id
+        FROM public.system_grades_consider sgc
+        JOIN public.grade_evaluation_type get1
+            ON get1.grade_id = sgc.grade_id
+        JOIN public.evaluation_type et
+            ON et.evaluation_id =
+               get1.evaluation_id
+        WHERE sgc.system_id = p_system_id
+          AND upper(
+              coalesce(
+                  et.evaluation_category,
+                  ''
+              )
+          ) NOT IN (
+              'PRACTICA',
+              'LABORATORIO',
+              'TRABAJO'
+          )
+
+        UNION
+
+        /* Evaluaciones variables */
+        SELECT selected.evaluation_id
+        FROM unnest(p_selected_evaluations)
+            AS selected(evaluation_id)
+
+        UNION
+
+        /* Examen sustitutorio */
+        SELECT et_es.evaluation_id
+        FROM public.evaluation_type et_es
+        WHERE upper(
+            coalesce(
+                et_es.evaluation_abr,
+                ''
+            )
+        ) = 'ES'
+          AND EXISTS (
+              SELECT 1
+              FROM public.system_grades_consider sgc
+              JOIN public.grade_evaluation_type get_ep
+                  ON get_ep.grade_id =
+                     sgc.grade_id
+              JOIN public.evaluation_type et_ep
+                  ON et_ep.evaluation_id =
+                     get_ep.evaluation_id
+              WHERE sgc.system_id = p_system_id
+                AND upper(
+                    coalesce(
+                        et_ep.evaluation_abr,
+                        ''
+                    )
+                ) = 'EP'
+          )
+          AND EXISTS (
+              SELECT 1
+              FROM public.system_grades_consider sgc
+              JOIN public.grade_evaluation_type get_ef
+                  ON get_ef.grade_id =
+                     sgc.grade_id
+              JOIN public.evaluation_type et_ef
+                  ON et_ef.evaluation_id =
+                     get_ef.evaluation_id
+              WHERE sgc.system_id = p_system_id
+                AND upper(
+                    coalesce(
+                        et_ef.evaluation_abr,
+                        ''
+                    )
+                ) = 'EF'
+          )
+
+        UNION
+
+        /* Prueba de entrada */
+        SELECT et_pe.evaluation_id
+        FROM public.evaluation_type et_pe
+        WHERE upper(
+            coalesce(
+                et_pe.evaluation_abr,
+                ''
+            )
+        ) = 'PE'
+    ) AS evaluations;
+
+    IF cardinality(v_all_evaluation_ids) > 0 THEN
+        INSERT INTO public.course_evaluations (
+            course_id,
+            evaluation_id
+        )
+        SELECT
+            v_created_course.id,
+            evaluation.evaluation_id
+        FROM unnest(v_all_evaluation_ids)
+            AS evaluation(evaluation_id);
+    END IF;
+
+    RETURN json_build_object(
+        'ok', true,
+        'course', json_build_object(
+            'id',
+                v_created_course.id,
+            'code',
+                v_created_course.code,
+            'name',
+                v_created_course.name,
+            'summary',
+                v_created_course.summary,
+            'credits',
+                v_created_course.credits,
+            'system_id',
+                v_created_course.system_id,
+            'subsystem_id',
+                v_created_course.subsystem_id,
+            'status',
+                v_created_course.status,
+            'is_hidden',
+                v_created_course.is_hidden
+        )
+    );
+
+EXCEPTION
+    WHEN unique_violation THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Ya existe un curso con ese código o se intentó duplicar una evaluación'
+        );
+
+    WHEN foreign_key_violation THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Uno de los registros relacionados no existe'
+        );
+
+    WHEN check_violation THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Uno de los valores no cumple las restricciones establecidas'
+        );
+
+    WHEN OTHERS THEN
+        RAISE LOG
+            'Error inesperado en create_course_with_evaluations. SQLSTATE: %, error: %',
+            SQLSTATE,
+            SQLERRM;
+
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'No se pudo registrar el curso'
+        );
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_average_stars(p_sheet_id bigint)
+ RETURNS numeric
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+  avg_val numeric;
+BEGIN
+  -- Calculamos el promedio solo de los comentarios visibles
+  SELECT avg(stars) INTO avg_val
+  FROM sheet_feedback
+  WHERE sheet_id = p_sheet_id 
+  AND is_hidden = false; 
+  
+  -- Si no hay comentarios, devolvemos 0 en lugar de nulo
+  RETURN COALESCE(avg_val, 0);
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_evaluation_subsystems()
+ RETURNS TABLE(subsystem_id integer, subsystem_cod character varying, practices_quantity integer)
+ LANGUAGE sql
+ SECURITY DEFINER
+AS $function$
+  select 
+    subsystem_id,
+    subsystem_cod,
+    practices_quantity
+  from evaluation_subsystems
+  order by practices_quantity asc;
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_evaluation_systems()
+ RETURNS TABLE(system_id integer, system_cod character, system_description text, requires_subsystem boolean)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+    select
+        system_id,
+        system_cod,
+        system_description,
+        requires_subsystem
+    from evaluation_systems
+    order by system_cod;
+$function$
+
+CREATE OR REPLACE FUNCTION public.get_variable_evaluations_by_system(p_system_id integer)
+ RETURNS TABLE(evaluation_id integer, evaluation_name text)
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+    select distinct
+        et.evaluation_id,
+        et.evaluation_name
+    from system_grades_consider sgc
+    join grade_evaluation_type get1
+        on get1.grade_id = sgc.grade_id
+    join evaluation_type et
+        on et.evaluation_id = get1.evaluation_id
+    where sgc.system_id = p_system_id
+      and upper(coalesce(et.evaluation_category, '')) in (
+          'PRACTICA',
+          'LABORATORIO',
+          'TRABAJO'
+      )
+    order by et.evaluation_name;
+$function$
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+begin
+  insert into public.profiles (id, email, full_name, role)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    'student'
+  )
+  on conflict (id) do update
+    set email = excluded.email;
+
+  return new;
+end;
+$function$
+
+CREATE OR REPLACE FUNCTION public.refresh_sheet_stats()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+DECLARE
+    v_sheet_ids bigint[];
+BEGIN
+    CASE TG_OP
+        WHEN 'INSERT' THEN
+            v_sheet_ids := ARRAY[NEW.sheet_id];
+        WHEN 'DELETE' THEN
+            v_sheet_ids := ARRAY[OLD.sheet_id];
+        WHEN 'UPDATE' THEN
+            v_sheet_ids := ARRAY[OLD.sheet_id, NEW.sheet_id];
+        ELSE
+            RAISE EXCEPTION 'Operación de trigger no soportada: %', TG_OP;
+    END CASE;
+
+    UPDATE public.sheets AS s
+    SET
+        avg_difficulty = COALESCE(
+            (
+                SELECT AVG(sr.score)::numeric(3, 2)
+                FROM public.sheet_ratings AS sr
+                WHERE sr.sheet_id = s.id
+            ),
+            0
+        ),
+        rating_count = (
+            SELECT COUNT(*)
+            FROM public.sheet_ratings AS sr
+            WHERE sr.sheet_id = s.id
+        )
+    WHERE s.id = ANY(v_sheet_ids);
+
+    RETURN NULL;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.refresh_teacher_stats()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+DECLARE
+    v_teacher_ids bigint[];
+BEGIN
+    CASE TG_OP
+        WHEN 'INSERT' THEN
+            v_teacher_ids := ARRAY[NEW.teacher_id];
+        WHEN 'DELETE' THEN
+            v_teacher_ids := ARRAY[OLD.teacher_id];
+        WHEN 'UPDATE' THEN
+            v_teacher_ids := ARRAY[OLD.teacher_id, NEW.teacher_id];
+        ELSE
+            RAISE EXCEPTION 'Operación de trigger no soportada: %', TG_OP;
+    END CASE;
+
+    UPDATE public.teachers AS t
+    SET
+        avg_overall = COALESCE(
+            (
+                SELECT AVG(tr.overall)::numeric(3, 2)
+                FROM public.teacher_ratings AS tr
+                WHERE tr.teacher_id = t.id
+            ),
+            0
+        ),
+        rating_count = (
+            SELECT COUNT(*)
+            FROM public.teacher_ratings AS tr
+            WHERE tr.teacher_id = t.id
+        )
+    WHERE t.id = ANY(v_teacher_ids);
+
+    RETURN NULL;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.refresh_view_count()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+DECLARE
+    v_sheet_ids bigint[];
+BEGIN
+    CASE TG_OP
+        WHEN 'INSERT' THEN
+            v_sheet_ids := ARRAY[NEW.sheet_id];
+        WHEN 'DELETE' THEN
+            v_sheet_ids := ARRAY[OLD.sheet_id];
+        WHEN 'UPDATE' THEN
+            v_sheet_ids := ARRAY[OLD.sheet_id, NEW.sheet_id];
+        ELSE
+            RAISE EXCEPTION 'Operación de trigger no soportada: %', TG_OP;
+    END CASE;
+
+    UPDATE public.sheets AS s
+    SET view_count = (
+        SELECT COUNT(*)
+        FROM public.sheet_views AS sv
+        WHERE sv.sheet_id = s.id
+    )
+    WHERE s.id = ANY(v_sheet_ids);
+
+    RETURN NULL;
+END;
+$function$
+
+CREATE OR REPLACE FUNCTION public.set_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$function$
+
+CREATE OR REPLACE FUNCTION public.update_course_with_evaluations(p_course_id integer, p_code text, p_name text, p_summary text, p_credits integer, p_system_id integer, p_subsystem_id integer, p_selected_evaluations integer[])
+ RETURNS json
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE
+    v_existing_course public.courses%rowtype;
+    v_updated_course public.courses%rowtype;
+
+    v_system record;
+    v_subsystem record;
+
+    v_status public.courses.status%type;
+
+    v_selected_count integer := 0;
+    v_distinct_selected_count integer := 0;
+
+    v_all_evaluation_ids integer[] := '{}'::integer[];
+BEGIN
+    /* Normalización */
+    p_code := upper(
+        btrim(
+            coalesce(p_code, '')
+        )
+    );
+
+    p_name := btrim(
+        coalesce(p_name, '')
+    );
+
+    p_summary := nullif(
+        btrim(
+            coalesce(p_summary, '')
+        ),
+        ''
+    );
+
+    p_selected_evaluations := coalesce(
+        p_selected_evaluations,
+        '{}'::integer[]
+    );
+
+    /* Validar curso */
+    IF p_course_id IS NULL
+       OR p_course_id <= 0 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Curso inválido'
+        );
+    END IF;
+
+    SELECT *
+    INTO v_existing_course
+    FROM public.courses
+    WHERE id = p_course_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Curso no encontrado'
+        );
+    END IF;
+
+    /* Validaciones generales */
+    IF char_length(p_code) < 2 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'El código es requerido (mínimo 2 caracteres)'
+        );
+    END IF;
+
+    IF char_length(p_name) < 2 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'El nombre es requerido (mínimo 2 caracteres)'
+        );
+    END IF;
+
+    IF p_summary IS NOT NULL
+       AND char_length(p_summary) > 1000 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'La sumilla no puede superar los 1000 caracteres'
+        );
+    END IF;
+
+    IF p_credits IS NULL OR p_credits <= 0 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Los créditos deben ser un número entero mayor a 0'
+        );
+    END IF;
+
+    IF p_system_id IS NULL OR p_system_id <= 0 THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Sistema inválido'
+        );
+    END IF;
+
+    /* Código único, excluyendo el curso actual */
+    IF EXISTS (
+        SELECT 1
+        FROM public.courses
+        WHERE upper(btrim(code)) = p_code
+          AND id <> p_course_id
+    ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Ya existe otro curso con ese código'
+        );
+    END IF;
+
+    /* Verificar sistema */
+    SELECT *
+    INTO v_system
+    FROM public.evaluation_systems
+    WHERE system_id = p_system_id;
+
+    IF NOT FOUND THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Sistema inválido'
+        );
+    END IF;
+
+    /* Validar IDs de evaluaciones */
+    IF EXISTS (
+        SELECT 1
+        FROM unnest(p_selected_evaluations)
+            AS selected(evaluation_id)
+        WHERE selected.evaluation_id IS NULL
+           OR selected.evaluation_id <= 0
+    ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas inválidas'
+        );
+    END IF;
+
+    v_selected_count :=
+        cardinality(p_selected_evaluations);
+
+    SELECT count(
+        DISTINCT selected.evaluation_id
+    )::integer
+    INTO v_distinct_selected_count
+    FROM unnest(p_selected_evaluations)
+        AS selected(evaluation_id);
+
+    IF v_selected_count <>
+       v_distinct_selected_count THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas repetidas'
+        );
+    END IF;
+
+    /* Validar subsistema */
+    IF v_system.requires_subsystem IS TRUE THEN
+        IF p_subsystem_id IS NULL THEN
+            IF v_selected_count > 0 THEN
+                RETURN json_build_object(
+                    'ok', false,
+                    'error',
+                    'No se pueden seleccionar evaluaciones mientras el subsistema esté pendiente'
+                );
+            END IF;
+        ELSE
+            SELECT *
+            INTO v_subsystem
+            FROM public.evaluation_subsystems
+            WHERE subsystem_id = p_subsystem_id;
+
+            IF NOT FOUND THEN
+                RETURN json_build_object(
+                    'ok', false,
+                    'error',
+                    'Subsistema inválido'
+                );
+            END IF;
+
+            IF v_selected_count <>
+               v_subsystem.practices_quantity THEN
+                RETURN json_build_object(
+                    'ok', false,
+                    'error',
+                    format(
+                        'Debe seleccionar exactamente %s evaluaciones',
+                        v_subsystem.practices_quantity
+                    )
+                );
+            END IF;
+        END IF;
+    ELSE
+        IF p_subsystem_id IS NOT NULL THEN
+            RETURN json_build_object(
+                'ok', false,
+                'error',
+                'El sistema seleccionado no requiere subsistema'
+            );
+        END IF;
+
+        IF v_selected_count > 0 THEN
+            RETURN json_build_object(
+                'ok', false,
+                'error',
+                'Este sistema no debe recibir evaluaciones seleccionadas manualmente'
+            );
+        END IF;
+    END IF;
+
+    /* Verificar existencia de evaluaciones */
+    IF v_selected_count > 0
+       AND EXISTS (
+            SELECT 1
+            FROM unnest(p_selected_evaluations)
+                AS selected(evaluation_id)
+            LEFT JOIN public.evaluation_type et
+                ON et.evaluation_id =
+                   selected.evaluation_id
+            WHERE et.evaluation_id IS NULL
+       ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas inválidas'
+        );
+    END IF;
+
+    /* Verificar que correspondan al sistema */
+    IF v_selected_count > 0
+       AND EXISTS (
+            SELECT 1
+            FROM unnest(p_selected_evaluations)
+                AS selected(evaluation_id)
+
+            LEFT JOIN (
+                SELECT DISTINCT
+                    get1.evaluation_id
+                FROM public.system_grades_consider sgc
+                JOIN public.grade_evaluation_type get1
+                    ON get1.grade_id =
+                       sgc.grade_id
+                JOIN public.evaluation_type et
+                    ON et.evaluation_id =
+                       get1.evaluation_id
+                WHERE sgc.system_id = p_system_id
+                  AND upper(
+                      coalesce(
+                          et.evaluation_category,
+                          ''
+                      )
+                  ) IN (
+                      'PRACTICA',
+                      'LABORATORIO',
+                      'TRABAJO'
+                  )
+            ) allowed
+                ON allowed.evaluation_id =
+                   selected.evaluation_id
+
+            WHERE allowed.evaluation_id IS NULL
+       ) THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Hay evaluaciones seleccionadas que no corresponden al sistema elegido'
+        );
+    END IF;
+
+    /* Calcular el estado final */
+    IF p_summary IS NULL
+       OR (
+           v_system.requires_subsystem IS TRUE
+           AND p_subsystem_id IS NULL
+       ) THEN
+        v_status := 'INCOMPLETO';
+    ELSE
+        v_status := 'COMPLETO';
+    END IF;
+
+    /* Actualizar curso */
+    UPDATE public.courses
+    SET
+        code = p_code,
+        name = p_name,
+        summary = p_summary,
+        credits = p_credits,
+        system_id = p_system_id,
+        subsystem_id = p_subsystem_id,
+        status = v_status
+    WHERE id = p_course_id
+    RETURNING *
+    INTO v_updated_course;
+
+    /* Construir evaluaciones */
+    SELECT coalesce(
+        array_agg(
+            DISTINCT evaluations.evaluation_id
+        ) FILTER (
+            WHERE evaluations.evaluation_id
+                  IS NOT NULL
+        ),
+        '{}'::integer[]
+    )
+    INTO v_all_evaluation_ids
+    FROM (
+        /* Evaluaciones fijas */
+        SELECT get1.evaluation_id
+        FROM public.system_grades_consider sgc
+        JOIN public.grade_evaluation_type get1
+            ON get1.grade_id = sgc.grade_id
+        JOIN public.evaluation_type et
+            ON et.evaluation_id =
+               get1.evaluation_id
+        WHERE sgc.system_id = p_system_id
+          AND upper(
+              coalesce(
+                  et.evaluation_category,
+                  ''
+              )
+          ) NOT IN (
+              'PRACTICA',
+              'LABORATORIO',
+              'TRABAJO'
+          )
+
+        UNION
+
+        /* Evaluaciones variables */
+        SELECT selected.evaluation_id
+        FROM unnest(p_selected_evaluations)
+            AS selected(evaluation_id)
+
+        UNION
+
+        /* Examen sustitutorio */
+        SELECT et_es.evaluation_id
+        FROM public.evaluation_type et_es
+        WHERE upper(
+            coalesce(
+                et_es.evaluation_abr,
+                ''
+            )
+        ) = 'ES'
+          AND EXISTS (
+              SELECT 1
+              FROM public.system_grades_consider sgc
+              JOIN public.grade_evaluation_type get_ep
+                  ON get_ep.grade_id =
+                     sgc.grade_id
+              JOIN public.evaluation_type et_ep
+                  ON et_ep.evaluation_id =
+                     get_ep.evaluation_id
+              WHERE sgc.system_id = p_system_id
+                AND upper(
+                    coalesce(
+                        et_ep.evaluation_abr,
+                        ''
+                    )
+                ) = 'EP'
+          )
+          AND EXISTS (
+              SELECT 1
+              FROM public.system_grades_consider sgc
+              JOIN public.grade_evaluation_type get_ef
+                  ON get_ef.grade_id =
+                     sgc.grade_id
+              JOIN public.evaluation_type et_ef
+                  ON et_ef.evaluation_id =
+                     get_ef.evaluation_id
+              WHERE sgc.system_id = p_system_id
+                AND upper(
+                    coalesce(
+                        et_ef.evaluation_abr,
+                        ''
+                    )
+                ) = 'EF'
+          )
+
+        UNION
+
+        /* Prueba de entrada */
+        SELECT et_pe.evaluation_id
+        FROM public.evaluation_type et_pe
+        WHERE upper(
+            coalesce(
+                et_pe.evaluation_abr,
+                ''
+            )
+        ) = 'PE'
+    ) AS evaluations;
+
+    /* Reconstruir relaciones */
+    DELETE FROM public.course_evaluations
+    WHERE course_id = p_course_id;
+
+    IF cardinality(v_all_evaluation_ids) > 0 THEN
+        INSERT INTO public.course_evaluations (
+            course_id,
+            evaluation_id
+        )
+        SELECT
+            p_course_id,
+            evaluation.evaluation_id
+        FROM unnest(v_all_evaluation_ids)
+            AS evaluation(evaluation_id);
+    END IF;
+
+    RETURN json_build_object(
+        'ok', true,
+        'course', json_build_object(
+            'id',
+                v_updated_course.id,
+            'code',
+                v_updated_course.code,
+            'name',
+                v_updated_course.name,
+            'summary',
+                v_updated_course.summary,
+            'credits',
+                v_updated_course.credits,
+            'system_id',
+                v_updated_course.system_id,
+            'subsystem_id',
+                v_updated_course.subsystem_id,
+            'status',
+                v_updated_course.status,
+            'is_hidden',
+                v_updated_course.is_hidden
+        )
+    );
+
+EXCEPTION
+    WHEN unique_violation THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Ya existe otro curso con ese código o se intentó duplicar una evaluación'
+        );
+
+    WHEN foreign_key_violation THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Uno de los registros relacionados no existe'
+        );
+
+    WHEN check_violation THEN
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'Uno de los valores no cumple las restricciones establecidas'
+        );
+
+    WHEN OTHERS THEN
+        RAISE LOG
+            'Error inesperado en update_course_with_evaluations. SQLSTATE: %, error: %',
+            SQLSTATE,
+            SQLERRM;
+
+        RETURN json_build_object(
+            'ok', false,
+            'error',
+            'No se pudo actualizar el curso'
+        );
+END;
+$function$
+
+-- Triggers
+CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+CREATE TRIGGER set_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER t_sheet_ratings_stats AFTER INSERT OR DELETE OR UPDATE ON public.sheet_ratings FOR EACH ROW EXECUTE FUNCTION public.refresh_sheet_stats();
+CREATE TRIGGER t_sheet_views_stats AFTER INSERT OR DELETE OR UPDATE ON public.sheet_views FOR EACH ROW EXECUTE FUNCTION public.refresh_view_count();
+CREATE TRIGGER t_teacher_ratings_stats AFTER INSERT OR DELETE OR UPDATE ON public.teacher_ratings FOR EACH ROW EXECUTE FUNCTION public.refresh_teacher_stats();
+
+-- Row Level Security
+alter table public.contributions enable row level security;
+alter table public.course_evaluations enable row level security;
+alter table public.course_prerequisites enable row level security;
+alter table public.courses enable row level security;
+alter table public.courses_teachers enable row level security;
+alter table public.cycles enable row level security;
+alter table public.eval_system_grades enable row level security;
+alter table public.evaluation_subsystems enable row level security;
+alter table public.evaluation_systems enable row level security;
+alter table public.evaluation_type enable row level security;
+alter table public.grade_evaluation_type disable row level security;
+alter table public.plan_courses enable row level security;
+alter table public.profiles enable row level security;
+alter table public.sheet_feedback enable row level security;
+alter table public.sheet_interests enable row level security;
+alter table public.sheet_ratings enable row level security;
+alter table public.sheet_views enable row level security;
+alter table public.sheets enable row level security;
+alter table public.specialties enable row level security;
+alter table public.study_plans enable row level security;
+alter table public.system_grades_consider enable row level security;
+alter table public.teacher_ratings enable row level security;
+alter table public.teachers enable row level security;
+alter table public.write_limits disable row level security;
+
+-- Políticas RLS
+create policy "contributions_insert_own"
+  on public.contributions
+  as permissive
+  for insert
+  to public
+  with check (true)
+;
+
+create policy "contributions_select_approved"
+  on public.contributions
+  as permissive
+  for select
+  to public
+  using ((status = 'approved'::text))
+;
+
+create policy "contributions_select_own"
+  on public.contributions
+  as permissive
+  for select
+  to public
+  using ((((auth.uid())::text = user_id) OR (( SELECT (auth.jwt() ->> 'email'::text)) = user_email)))
+;
+
+create policy "Permitir todo a usuarios logueados en course_prerequisites"
+  on public.course_prerequisites
+  as permissive
+  for all
+  to authenticated
+  using (true)
+;
+
+create policy "Prerequisitos visibles para todos"
+  on public.course_prerequisites
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read courses"
+  on public.courses
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read courses_teachers"
+  on public.courses_teachers
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Allow read cycles"
+  on public.cycles
+  as permissive
+  for select
+  to anon, authenticated
+  using (true)
+;
+
+create policy "public read eval_system_grades"
+  on public.eval_system_grades
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read evaluation_subsystems"
+  on public.evaluation_subsystems
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Permitir lectura publica de sistemas de evaluacion"
+  on public.evaluation_systems
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read evaluation_systems"
+  on public.evaluation_systems
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Cursos de plan visibles para todos"
+  on public.plan_courses
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Permitir anon temporalmente"
+  on public.plan_courses
+  as permissive
+  for all
+  to anon
+  using (true)
+;
+
+create policy "Permitir todo a usuarios logueados en plan_courses"
+  on public.plan_courses
+  as permissive
+  for all
+  to authenticated
+  using (true)
+;
+
+create policy "Los usuarios pueden leer su propio perfil"
+  on public.profiles
+  as permissive
+  for select
+  to public
+  using ((auth.uid() = id))
+;
+
+create policy "profiles_insert_own"
+  on public.profiles
+  as permissive
+  for insert
+  to public
+  with check ((auth.uid() = id))
+;
+
+create policy "profiles_select_own"
+  on public.profiles
+  as permissive
+  for select
+  to public
+  using ((auth.uid() = id))
+;
+
+create policy "profiles_update_own"
+  on public.profiles
+  as permissive
+  for update
+  to public
+  using ((auth.uid() = id))
+;
+
+create policy "Public can insert sheet feedback"
+  on public.sheet_feedback
+  as permissive
+  for insert
+  to public
+  with check (true)
+;
+
+create policy "Public can read visible sheet feedback"
+  on public.sheet_feedback
+  as permissive
+  for select
+  to public
+  using ((is_hidden = false))
+;
+
+create policy "allow delete sheet_interests"
+  on public.sheet_interests
+  as permissive
+  for delete
+  to public
+  using (true)
+;
+
+create policy "allow insert sheet_interests"
+  on public.sheet_interests
+  as permissive
+  for insert
+  to public
+  with check (true)
+;
+
+create policy "public read sheet_interests"
+  on public.sheet_interests
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read sheet_ratings"
+  on public.sheet_ratings
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read sheet_views"
+  on public.sheet_views
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read sheets"
+  on public.sheets
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Especialidades visibles para todos"
+  on public.specialties
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Permitir todo a usuarios en study_plans"
+  on public.study_plans
+  as permissive
+  for all
+  to authenticated
+  using (true)
+;
+
+create policy "Permitir todo a usuarios logueados"
+  on public.study_plans
+  as permissive
+  for all
+  to authenticated
+  using (true)
+;
+
+create policy "Planes de estudio visibles para todos"
+  on public.study_plans
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "Allow read for all"
+  on public.system_grades_consider
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read teacher_ratings"
+  on public.teacher_ratings
+  as permissive
+  for select
+  to public
+  using (true)
+;
+
+create policy "public read visible teachers"
+  on public.teachers
+  as permissive
+  for select
+  to public
+  using ((is_hidden = false))
+;
+
+-- Privilegios de tablas y secuencias
+grant USAGE on sequence public.contributions_id_seq to authenticated;
+grant USAGE on sequence public.contributions_id_seq to service_role;
+grant USAGE on sequence public.courses_id_seq to anon;
+grant USAGE on sequence public.courses_id_seq to authenticated;
+grant USAGE on sequence public.courses_id_seq to service_role;
+grant USAGE on sequence public.cycles_cycle_id_seq to anon;
+grant USAGE on sequence public.cycles_cycle_id_seq to authenticated;
+grant USAGE on sequence public.cycles_cycle_id_seq to service_role;
+grant USAGE on sequence public.eval_system_grades_grade_id_seq to anon;
+grant USAGE on sequence public.eval_system_grades_grade_id_seq to authenticated;
+grant USAGE on sequence public.eval_system_grades_grade_id_seq to service_role;
+grant USAGE on sequence public.evaluation_subsystems_subsystem_id_seq to anon;
+grant USAGE on sequence public.evaluation_subsystems_subsystem_id_seq to authenticated;
+grant USAGE on sequence public.evaluation_subsystems_subsystem_id_seq to service_role;
+grant USAGE on sequence public.evaluation_systems_system_id_seq to anon;
+grant USAGE on sequence public.evaluation_systems_system_id_seq to authenticated;
+grant USAGE on sequence public.evaluation_systems_system_id_seq to service_role;
+grant USAGE on sequence public.evaluation_type_evaluation_id_seq to anon;
+grant USAGE on sequence public.evaluation_type_evaluation_id_seq to authenticated;
+grant USAGE on sequence public.evaluation_type_evaluation_id_seq to service_role;
+grant USAGE on sequence public.sheet_feedback_id_seq to anon;
+grant USAGE on sequence public.sheet_feedback_id_seq to authenticated;
+grant USAGE on sequence public.sheet_feedback_id_seq to service_role;
+grant USAGE on sequence public.sheet_interests_id_seq to anon;
+grant USAGE on sequence public.sheet_interests_id_seq to authenticated;
+grant USAGE on sequence public.sheet_interests_id_seq to service_role;
+grant USAGE on sequence public.sheet_ratings_id_seq to anon;
+grant USAGE on sequence public.sheet_ratings_id_seq to authenticated;
+grant USAGE on sequence public.sheet_ratings_id_seq to service_role;
+grant USAGE on sequence public.sheet_views_id_seq to anon;
+grant USAGE on sequence public.sheet_views_id_seq to authenticated;
+grant USAGE on sequence public.sheet_views_id_seq to service_role;
+grant USAGE on sequence public.sheets_id_seq to anon;
+grant USAGE on sequence public.sheets_id_seq to authenticated;
+grant USAGE on sequence public.sheets_id_seq to service_role;
+grant USAGE on sequence public.teacher_ratings_id_seq to anon;
+grant USAGE on sequence public.teacher_ratings_id_seq to authenticated;
+grant USAGE on sequence public.teacher_ratings_id_seq to service_role;
+grant USAGE on sequence public.teachers_id_seq to anon;
+grant USAGE on sequence public.teachers_id_seq to authenticated;
+grant USAGE on sequence public.teachers_id_seq to service_role;
+grant INSERT, SELECT on table public.contributions to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.contributions to service_role;
+grant SELECT on table public.course_evaluations to anon;
+grant SELECT on table public.course_evaluations to authenticated;
+grant SELECT on table public.course_evaluations to service_role;
+grant SELECT on table public.course_prerequisites to anon;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.course_prerequisites to authenticated;
+grant SELECT on table public.course_prerequisites to service_role;
+grant SELECT on table public.courses to anon;
+grant SELECT on table public.courses to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.courses to service_role;
+grant SELECT on table public.courses_teachers to anon;
+grant SELECT on table public.courses_teachers to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.courses_teachers to service_role;
+grant SELECT on table public.cycles to anon;
+grant SELECT on table public.cycles to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.cycles to service_role;
+grant SELECT on table public.evaluation_systems to anon;
+grant SELECT on table public.evaluation_systems to authenticated;
+grant SELECT on table public.evaluation_systems to service_role;
+grant SELECT on table public.evaluation_type to anon;
+grant SELECT on table public.evaluation_type to authenticated;
+grant SELECT on table public.evaluation_type to service_role;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.plan_courses to anon;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.plan_courses to authenticated;
+grant SELECT on table public.plan_courses to service_role;
+grant SELECT on table public.profiles to anon;
+grant INSERT, SELECT, UPDATE on table public.profiles to authenticated;
+grant INSERT, SELECT on table public.sheet_feedback to anon;
+grant INSERT, SELECT on table public.sheet_feedback to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheet_feedback to service_role;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheet_interests to anon;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheet_interests to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheet_interests to service_role;
+grant INSERT, SELECT on table public.sheet_ratings to anon;
+grant INSERT, SELECT on table public.sheet_ratings to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheet_ratings to service_role;
+grant INSERT, SELECT on table public.sheet_views to anon;
+grant INSERT, SELECT on table public.sheet_views to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheet_views to service_role;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheets to anon;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheets to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.sheets to service_role;
+grant SELECT on table public.specialties to anon;
+grant SELECT on table public.specialties to authenticated;
+grant SELECT on table public.specialties to service_role;
+grant SELECT on table public.study_plans to anon;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.study_plans to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.study_plans to service_role;
+grant INSERT, SELECT on table public.teacher_ratings to anon;
+grant INSERT, SELECT on table public.teacher_ratings to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.teacher_ratings to service_role;
+grant SELECT on table public.teachers to anon;
+grant SELECT on table public.teachers to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.teachers to service_role;
+grant INSERT, UPDATE on table public.write_limits to anon;
+grant INSERT, UPDATE on table public.write_limits to authenticated;
+grant DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE on table public.write_limits to service_role;
+
+-- Privilegios de funciones (estado exportado)
+revoke execute on function public.create_course_with_evaluations(p_code text, p_name text, p_summary text, p_credits integer, p_system_id integer, p_subsystem_id integer, p_selected_evaluations integer[]) from public;
+grant execute on function public.create_course_with_evaluations(p_code text, p_name text, p_summary text, p_credits integer, p_system_id integer, p_subsystem_id integer, p_selected_evaluations integer[]) to service_role;
+grant execute on function public.get_average_stars(p_sheet_id bigint) to public;
+grant execute on function public.get_evaluation_subsystems() to public;
+grant execute on function public.get_evaluation_systems() to public;
+grant execute on function public.get_evaluation_systems() to anon;
+grant execute on function public.get_evaluation_systems() to authenticated;
+grant execute on function public.get_evaluation_systems() to service_role;
+grant execute on function public.get_variable_evaluations_by_system(p_system_id integer) to public;
+grant execute on function public.get_variable_evaluations_by_system(p_system_id integer) to anon;
+grant execute on function public.get_variable_evaluations_by_system(p_system_id integer) to authenticated;
+grant execute on function public.get_variable_evaluations_by_system(p_system_id integer) to service_role;
+grant execute on function public.handle_new_user() to public;
+revoke execute on function public.refresh_sheet_stats() from public;
+revoke execute on function public.refresh_teacher_stats() from public;
+revoke execute on function public.refresh_view_count() from public;
+grant execute on function public.set_updated_at() to public;
+revoke execute on function public.update_course_with_evaluations(p_course_id integer, p_code text, p_name text, p_summary text, p_credits integer, p_system_id integer, p_subsystem_id integer, p_selected_evaluations integer[]) from public;
+grant execute on function public.update_course_with_evaluations(p_course_id integer, p_code text, p_name text, p_summary text, p_credits integer, p_system_id integer, p_subsystem_id integer, p_selected_evaluations integer[]) to service_role;
+
+-- Fin del esquema
