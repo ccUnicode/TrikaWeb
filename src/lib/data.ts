@@ -136,6 +136,9 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
   } as CourseDetail;
 }
 
+/**
+ * getTopSheetsByDifficulty — Planchas con más votos, ordenadas por dificultad descendente.
+ */
 export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   const { data } = await supabaseClient
     .from('sheets')
@@ -150,6 +153,9 @@ export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   }));
 }
 
+/**
+ * getTopSheetsByViews — Planchas más vistas, ordenadas por view_count descendente.
+ */
 export async function getTopSheetsByViews(limit = 6, minViews = 5) {
   const { data } = await supabaseClient
     .from('sheets')

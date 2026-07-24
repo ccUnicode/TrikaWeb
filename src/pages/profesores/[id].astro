@@ -1,4 +1,12 @@
----
+"""
+Página de perfil de un profesor.
+Muestra:
+  - Avatar, nombre y puntuación general
+  - Barras de estadísticas por dimensión (didáctica, dificultad, etc.)
+  - Cursos asociados
+  - Comentarios paginados
+  - Modal para calificar y botón para eliminar calificación propia
+"""
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
@@ -61,11 +69,11 @@ const formatDate = (iso: string) => {
 };
 
 const getBarColor = (value: number | null): string => {
-  if (value === null || value === undefined) return "#6B7280"; // Gray for null
-  if (value <= 2.0) return "#EF4444"; // Red - Malo
-  if (value <= 3.0) return "#F97316"; // Orange - Regular
-  if (value <= 4.0) return "#EAB308"; // Yellow - Bueno
-  return "#22C55E"; // Green - Excelente
+  if (value === null || value === undefined) return "#6B7280";
+  if (value <= 2.0) return "#EF4444";
+  if (value <= 3.0) return "#F97316";
+  if (value <= 4.0) return "#EAB308";
+  return "#22C55E";
 };
 
 const safeBio =
@@ -385,6 +393,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 <script>
   import { ensureDeviceId } from "../../lib/client/device";
 
+  """Verifica si el usuario ya calificó y muestra el botón de eliminar"""
   const initDeleteRating = async () => {
     const deleteBtn = document.getElementById(
       "delete-rating-btn",
@@ -398,7 +407,6 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 
     const deviceId = ensureDeviceId();
 
-    // Verificar si el usuario ya votó
     try {
       const response = await fetch(
         `/api/profesores/${teacherId}/rate?device_id=${deviceId}`,
@@ -413,7 +421,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
       console.error("Error verificando votación:", err);
     }
 
-    // Handler para eliminar calificación
+    """Elimina la calificación del usuario y recarga la página"""
     deleteBtn.addEventListener("click", async () => {
       if (
         !confirm(
@@ -450,7 +458,6 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
           statusMsg.classList.add("text-green-500");
         }
 
-        // Recargar la página para actualizar estadísticas
         setTimeout(() => {
           window.location.reload();
         }, 1000);

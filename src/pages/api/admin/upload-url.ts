@@ -1,7 +1,15 @@
-// src/pages/api/admin/upload-url.ts
-// Generates a signed upload URL so the browser can upload PDFs
-// directly to Supabase Storage, bypassing Vercel's 4.5 MB body limit.
-
+/**
+ * POST /api/admin/upload-url
+ * Genera URLs de subida firmadas para que el navegador suba PDFs
+ * directamente a Supabase Storage (evitando el límite de 4.5 MB de Vercel).
+ *
+ * Soporta:
+ *  - resourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS"
+ *  - is_teacher_specific (docente específico vs plancha general)
+ *  - Miniaturas (thumbnails) de la primera página del PDF
+ *  - Validación de ciclo (formato AAAA-T) con auto-insert
+ *  - Validación de que exista plancha antes de subir solucionario
+ */
 export const prerender = false;
 
 import type { APIRoute } from "astro";

@@ -4,6 +4,12 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * GET /api/admin/course-evaluations?course_id=
+ * Retorna los tipos de evaluación disponibles para un curso específico.
+ * Busca en la tabla course_evaluations los evaluation_id asociados al course_id,
+ * luego resuelve los nombres desde evaluation_type.
+ */
 export const GET: APIRoute = async ({ url, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);

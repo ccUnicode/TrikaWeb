@@ -6,6 +6,12 @@ import { Buffer } from "node:buffer";
 const admin = () =>
   createClient(import.meta.env.SUPABASE_URL!, import.meta.env.SUPABASE_SERVICE_KEY!);
 
+/**
+ * GET /api/sheets/:id/file?mode=stream|redirect&type=exam|solution
+ * Sirve el PDF de una plancha o solucionario.
+ * - Modo stream: descarga el archivo y lo sirve como inline/attachment.
+ * - Modo redirect: genera una URL firmada de 120s y redirige.
+ */
 export const GET: APIRoute = async ({ params, request }) => {
   const id = Number(params.id);
   const supa = admin();

@@ -1,12 +1,16 @@
-// src/pages/api/admin/reset-interest.ts
-// Resets the interest count for a specific sheet (admin only)
-
 export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * POST /api/admin/reset-interest
+ * Admin-only. Reinicia el contador de solicitudes de solucionario de una plancha:
+ * 1. Elimina todos los registros de sheet_interests para esa plancha.
+ * 2. Pone interest_count = 0 en la tabla sheets.
+ * No es atómico (race condition aceptable para acción admin).
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
   // Validate admin session token against Supabase Auth
   const isAdmin = await validateAdminSession(cookies);

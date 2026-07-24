@@ -1,4 +1,13 @@
 ---
+"""
+Página de detalle de una plancha (examen).
+Muestra:
+  - Visor de PDF/video conmutador entre examen y solucionario
+  - Widget de votación de dificultad (SheetRating)
+  - Botón de favoritos (localStorage)
+  - Botón "Pedir solucionario" (registro de interés con API + localStorage)
+  - Registro automático de vista al cargar la página (sendBeacon)
+"""
 export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
@@ -605,7 +614,11 @@ function getYouTubeId(url: string) {
 </script>
 
 <script define:vars={{ sheetId }}>
-  // Inlined ensureDeviceId to avoid module import issues with define:vars
+  /**
+   * Registra automáticamente una vista al cargar la página
+   * usando sendBeacon (o fetch con keepalive como fallback),
+   * para que el contador se actualice incluso si el usuario navega inmediatamente.
+   */
   const DEVICE_STORAGE_KEY = "tw_device_id";
   function ensureDeviceId() {
     if (typeof window === "undefined") return "";
@@ -856,7 +869,14 @@ function getYouTubeId(url: string) {
 <script>
   import { ensureDeviceId } from "../../lib/client/device";
 
-  // RF-04: "Pedir solucionario" — API-backed + localStorage cache
+  /**
+   * Botón "Pedir solucionario" — feature RF-04.
+   *
+   * Almacena el estado localmente en localStorage (trikaweb:interests)
+   * y sincroniza con el servidor mediante GET (consulta) y POST (toggle).
+   * Usa optimistic UI: actualiza visualmente antes de la respuesta del servidor
+   * y revierte en caso de error.
+   */
   const INTEREST_STORAGE_KEY = "trikaweb:interests";
 
   function getStoredInterests(): number[] {

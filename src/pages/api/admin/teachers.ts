@@ -4,9 +4,13 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
+/**
+ * POST /api/admin/teachers
+ * Lista paginada de profesores (incluye ocultos) para el panel admin.
+ * Soporta búsqueda por nombre o bio.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
-        // Validate session from cookie
         const isValid = await validateAdminSession(cookies);
         if (!isValid) {
             return new Response(
@@ -23,7 +27,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const from = (safePage - 1) * safeSize;
         const to = from + safeSize - 1;
 
-        // Build query - admin can see all teachers including hidden ones
         let query = supabaseAdmin
             .from('teachers')
             .select(
@@ -33,13 +36,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             )
             .order('full_name', { ascending: true });
 
-        // Apply search filter if provided
         if (search.trim()) {
             const pattern = `%${search.trim()}%`;
             query = query.or(`full_name.ilike.${pattern},bio.ilike.${pattern}`);
         }
 
-        // Apply pagination
         query = query.range(from, to);
 
         const { data, count, error } = await query;
@@ -52,7 +53,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             );
         }
 
-        // Format teachers data
         const teachers = (data || []).map((t: any) => ({
             id: t.id,
             full_name: t.full_name,

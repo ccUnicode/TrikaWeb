@@ -1,3 +1,9 @@
+"""
+Componente de autocompletado/búsqueda con dos modos:
+  - Local: filtra cards del DOM usando dataset
+  - API: consulta un endpoint remoto para sugerencias
+Soporta navegación por teclado (flechas, Enter, Escape).
+"""
 ---
 export interface Props {
   id: string; // identificador base (ej: "plancha")
@@ -162,25 +168,24 @@ const listId = `${id}-suggestions`;
     }
 
     function filterCards() {
-      if (endpoint) return; // No local filtering if using API
+      if (endpoint) return;
       const cards = getCards();
       if (!input) return;
       const q = input.value.trim();
       const tokens = normalize(q).split(/\s+/).filter(Boolean);
 
       cards.forEach((card) => {
-        // Calculate relevance score
         let score = 0;
         if (tokens.length === 0) {
-          score = 1; // Show all if empty
+          score = 1;
         } else {
           const matches = tokens.every((t) =>
             filterFields.some((f) => {
               const ds = card.dataset && card.dataset[f] ? card.dataset[f] : "";
               const val = normalize(ds);
-              if (val === t) return true; // Exact match
-              if (val.startsWith(t)) return true; // Starts with
-              return val.includes(t); // Includes
+              if (val === t) return true;
+              if (val.startsWith(t)) return true;
+              return val.includes(t);
             }),
           );
           if (matches) score = 1;
@@ -190,7 +195,6 @@ const listId = `${id}-suggestions`;
       });
     }
 
-    // Debounce utility
     function debounce(func, wait) {
       let timeout;
       return function (...args) {
@@ -223,17 +227,14 @@ const listId = `${id}-suggestions`;
         return;
       }
 
-      // Improved sorting for suggestions (Local)
       const results = nq
         ? suggestions
             .filter((s) => normalize(s.text).includes(nq))
             .sort((a, b) => {
               const na = normalize(a.text);
               const nb = normalize(b.text);
-              // Exact match first
               if (na === nq) return -1;
               if (nb === nq) return 1;
-              // Starts with second
               if (na.startsWith(nq) && !nb.startsWith(nq)) return -1;
               if (!na.startsWith(nq) && nb.startsWith(nq)) return 1;
               return 0;
@@ -243,7 +244,7 @@ const listId = `${id}-suggestions`;
 
       renderSuggestions(results);
       filterCards();
-    }, 300); // 300ms debounce
+    }, 300);
 
     if (input) {
       input.addEventListener("focus", () => {

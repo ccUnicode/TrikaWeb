@@ -7,6 +7,11 @@ import moderationConfig from "../../../../../config/moderation.json";
 
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
+/**
+ * POST /api/profesores/:id/rate
+ * Crea o actualiza una calificación de profesor.
+ * Flujo: modera palabras clave → valida campos 1-5 → calcula overall → rate-limit por IP → anti-spam (3 votos/IP) → upsert con is_hidden=false
+ */
 export const POST: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -22,7 +27,6 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   const { difficulty, didactic, resources, responsability, grading, comment } = body;
 
-  // check for bad words
   if (comment) {
     const commentLower = comment.toLowerCase();
     const foundBadWord = bannedWords.find((word: string) => commentLower.includes(word));
@@ -53,7 +57,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Calculate overall automatically
   const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
   const deviceId = getDeviceId(body);
@@ -77,7 +80,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
   }
 
-  // Verificar si ya existe
   const { data: existing } = await supa
     .from('teacher_ratings')
     .select('id')
@@ -87,9 +89,7 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   let error;
 
-  // IMPORTANT: is_hidden is always true on write to enforce moderation
   if (existing) {
-    // Actualizar
     const result = await supa
       .from('teacher_ratings')
       .update({
@@ -101,7 +101,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
-        is_hidden: false, // Visible by default per user request (stars immediate)
+        is_hidden: false,
         updated_at: new Date().toISOString()
       })
       .eq('teacher_id', teacherId)
@@ -109,7 +109,6 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     error = result.error;
   } else {
-    // Verificar límite de votos por IP para este profesor (Anti-spam)
     const { count, error: countError } = await supa
       .from('teacher_ratings')
       .select('id', { count: 'exact', head: true })
@@ -128,7 +127,6 @@ export const POST: APIRoute = async ({ params, request }) => {
       );
     }
 
-    // Insertar
     const result = await supa
       .from('teacher_ratings')
       .insert({
@@ -142,7 +140,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
-        is_hidden: false, // Visible by default per user request
+        is_hidden: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
@@ -170,7 +168,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   );
 };
 
-// GET handler para verificar si el usuario ya votó
+/**
+ * GET /api/profesores/:id/rate?device_id=
+ * Verifica si el dispositivo ya votó por este profesor.
+ */
 export const GET: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -202,7 +203,10 @@ export const GET: APIRoute = async ({ params, request }) => {
   );
 };
 
-// DELETE handler para quitar calificación
+/**
+ * DELETE /api/profesores/:id/rate
+ * Elimina la calificación del dispositivo.
+ */
 export const DELETE: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -223,7 +227,6 @@ export const DELETE: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin;
 
-  // Verificar si existe la calificación antes de eliminarla
   const { data: existing } = await supa
     .from('teacher_ratings')
     .select('id')
@@ -235,7 +238,6 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'No hay calificación para eliminar' }), { status: 404 });
   }
 
-  // Eliminar la calificación
   const { error } = await supa
     .from('teacher_ratings')
     .delete()
@@ -250,7 +252,6 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Obtener estadísticas actualizadas
   const { data: stats } = await supa
     .from('teachers')
     .select('avg_overall, rating_count')

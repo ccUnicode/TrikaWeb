@@ -3,6 +3,11 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
+/**
+ * POST /api/sheets/:id/view
+ * Registra una vista o descarga y sincroniza el contador view_count en la tabla sheets.
+ * Rate-limit de 120 segundos por IP.
+ */
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {
@@ -60,7 +65,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Actualizar contador en sheets
   const { count } = await supa
     .from('sheet_views')
     .select('*', { count: 'exact', head: true })

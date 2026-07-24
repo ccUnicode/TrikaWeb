@@ -4,6 +4,19 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * POST /api/admin/upload
+ * Registra los metadatos de una plancha/solucionario/ambos en la BD,
+ * después de que el archivo ya fue subido a Storage.
+ *
+ * Flujo:
+ * 1. Valida campos requeridos (course_id, evaluation_id, cycle, resource_kind, storage_path)
+ * 2. Valida ciclo (formato AAAA-T) y lo crea si no existe
+ * 3. Busca sheet existente por course_id + cycle + evaluation_id (+ teacher_hint si es específico)
+ * 4. Hace upsert: actualiza si existe, inserta si no (PLANCHA/AMBOS) o actualiza SOLUCIONARIO
+ * 5. Soporta resourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS"
+ */
+
 export const GET: APIRoute = () => {
   return Response.json({ ok: true, route: "/api/admin/upload" }, { status: 200 });
 };

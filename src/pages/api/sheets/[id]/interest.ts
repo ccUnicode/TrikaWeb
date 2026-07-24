@@ -3,7 +3,13 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
-// GET: Check if a device has expressed interest in a sheet
+/**
+ * GET /api/sheets/:id/interest?device_id= — Verifica si el dispositivo ya solicitó este solucionario.
+ * POST /api/sheets/:id/interest — Hace toggle del interés (registra o elimina).
+ *
+ * Después de cada toggle recalcula interest_count en la tabla sheets.
+ * El conteo no es atómico (race condition menor) pero es aceptable para el tráfico actual.
+ */
 export const GET: APIRoute = async ({ params, url }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {

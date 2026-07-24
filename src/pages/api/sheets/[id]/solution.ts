@@ -5,6 +5,10 @@ import { createClient } from '@supabase/supabase-js';
 const admin = () =>
   createClient(import.meta.env.SUPABASE_URL!, import.meta.env.SUPABASE_SERVICE_KEY!);
 
+/**
+ * GET /api/sheets/:id/solution
+ * Redirige al solucionario (PDF firmado o URL de video).
+ */
 export const GET: APIRoute = async ({ params }) => {
   const id = Number(params.id);
   const supa = admin();

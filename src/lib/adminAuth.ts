@@ -1,4 +1,7 @@
-// Helper to validate admin session from cookie
+/**
+ * Valida la sesión de administrador a partir de la cookie 'admin_session'.
+ * Verifica el token contra Supabase Auth.
+ */
 import { supabaseClient } from './supabase.client';
 
 export async function validateAdminSession(cookies: any): Promise<boolean> {

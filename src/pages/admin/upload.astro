@@ -1,4 +1,15 @@
 ---
+"""
+Panel de subida de material (admin).
+Permite:
+  - Subir planchas, solucionarios o ambos simultáneamente
+  - Seleccionar curso mediante combobox con búsqueda
+  - Seleccionar ciclo (año + término)
+  - Seleccionar tipo de evaluación (PC1, EP, EF, etc.)
+  - Indicar docente específico (is_teacher_specific)
+  - Generar miniatura automática de la 1ª página del PDF
+  - Visualizar planchas más solicitadas (intereses) y reiniciar contadores
+"""
 import Layout from "../../layouts/Layout.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 
@@ -673,6 +684,16 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   </div>
 
   <script>
+    """
+    Script principal del panel de subida.
+    Maneja:
+      - Sincronización con Google Drive (syncExams/syncSolutions/syncAll)
+      - Combobox de curso con búsqueda y carga dinámica de profesores
+      - Combobox de evaluación vinculado al curso seleccionado
+      - Selección de ciclo (año + término)
+      - PDF.js para generar miniatura de la 1ª página
+      - Subida secuencial: upload-url → miniatura → Storage → metadatos DB
+    """
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
     const syncAllBtn = document.getElementById("sync-all-btn");
@@ -1472,6 +1493,15 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       submitBtn?.removeAttribute("disabled");
     }
 
+    /**
+     * Flujo de subida completo:
+     * 1. Obtener URL firmada via /api/admin/upload-url
+     * 2. Generar miniatura con PDF.js (si es plancha)
+     * 3. Subir PDF(s) a Storage (PUT a signed URL)
+     * 4. Subir miniatura a Storage
+     * 5. Registrar metadatos en DB via /api/admin/upload
+     * 6. Resetear formulario y mostrar resultado
+     */
     uploadForm?.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -1704,7 +1734,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   </script>
 
   <script>
-    // RF-04: Load most requested solucionarios
+    """
+    RF-04: Carga y muestra las planchas más solicitadas (solucionarios pedidos).
+    Permite al admin ver el ranking de solicitudes y reiniciar contadores.
+    """
     import { supabaseClient } from "../../lib/supabase.client";
 
     const interestsList = document.getElementById("interests-list");
