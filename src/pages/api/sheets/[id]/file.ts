@@ -6,6 +6,13 @@ import { Buffer } from "node:buffer";
 const admin = () =>
   createClient(import.meta.env.SUPABASE_URL!, import.meta.env.SUPABASE_SERVICE_KEY!);
 
+/**
+ * Sirve archivos PDF de planchas y solucionarios.
+ * Dos modos de operación:
+ * - stream/download: Descarga el PDF directamente (útil para force-download)
+ * - redirect (default): Genera una URL firmada temporal y redirige
+ * El parámetro "type" determina si se sirve el examen o el solucionario.
+ */
 export const GET: APIRoute = async ({ params, request }) => {
   const id = Number(params.id);
   const supa = admin();

@@ -9,8 +9,12 @@ const bannedWords = (moderationConfig.bannedWords ?? []).map((w) =>
   w.toLowerCase()
 );
 
+/**
+ * Oculta un comentario (is_hidden = true).
+ * Retorna las palabras prohibidas que coincidieron (si aplica)
+ * para informar al moderador el motivo del ocultamiento.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Validate session from cookie
   const isValid = await validateAdminSession(cookies);
   if (!isValid) {
     return new Response(

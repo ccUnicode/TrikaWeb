@@ -10,6 +10,12 @@ const VARIABLE_EVALUATION_CATEGORIES = [
   "TRABAJO",
 ];
 
+/**
+ * Obtiene el detalle completo de un curso para el panel de edición.
+ * Incluye datos base, evaluaciones seleccionadas filtradas por
+ * categorías variables (PRÁCTICA, LABORATORIO, TRABAJO) que son las
+ * que el admin puede personalizar por curso.
+ */
 export const GET: APIRoute = async ({ url, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);

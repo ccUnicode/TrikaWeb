@@ -4,6 +4,11 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Obtiene las evaluaciones variables disponibles para un sistema de evaluación.
+ * Delega en la RPC get_variable_evaluations_by_system para consultar
+ * las evaluaciones personalizables (PC, EP, EF, etc.) del sistema.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
         const isAdmin = await validateAdminSession(cookies);

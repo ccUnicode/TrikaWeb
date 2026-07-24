@@ -70,6 +70,7 @@ if (sheet.thumb_storage_path) {
   thumbUrl = data?.signedUrl ?? null;
 }
 
+/** Extrae el ID de un video de YouTube desde varias formas de URL */
 function getYouTubeId(url: string) {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
@@ -326,7 +327,6 @@ function getYouTubeId(url: string) {
 </Layout>
 
 <script>
-  // Helper to extract ID for client-side usage if needed
   function getYouTubeId(url: string) {
     const regExp =
       /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -334,7 +334,14 @@ function getYouTubeId(url: string) {
     return match && match[2].length === 11 ? match[2] : null;
   }
 
-  // Handle solution/exam viewer switching
+  /**
+   * Alterna entre tres modos de visor: examen PDF, solucionario PDF y video de YouTube.
+   * Al cambiar de modo:
+   * - Actualiza el src del iframe
+   * - Cambia las clases responsive del contenedor (PDF 3:4, video 16:9)
+   * - Muestra/oculta los botones de descarga y sus etiquetas
+   * - Intercambia la visibilidad de los botones "Ver solucionario" / "Ver examen"
+   */
   function initViewerSwitcher() {
     const iframe = document.getElementById(
       "pdf-viewer-iframe",
@@ -349,18 +356,17 @@ function getYouTubeId(url: string) {
 
     if (!iframe || !container) return;
 
-    // Helper classes
     const pdfClasses = ["sm:aspect-[3/4]", "min-h-[500px]", "sm:min-h-0"];
     const videoClasses = ["aspect-video"];
 
-    // Handle "Ver solucionario" button
+    /** Al hacer clic en "Ver solucionario": muestra PDF o video según el tipo */
     if (solutionBtn) {
       solutionBtn.addEventListener("click", () => {
         const solutionType = solutionBtn.getAttribute("data-solution-type");
         const solutionUrl = solutionBtn.getAttribute("data-solution-url");
         const videoUrl = solutionBtn.getAttribute("data-video-url");
 
-        // Update download button logic
+        // Actualiza el botón de descarga según el tipo de solución
         if (downloadBtn && downloadText) {
           if (solutionType === "pdf") {
             const solHref = downloadBtn.dataset.solutionHref;
@@ -370,12 +376,11 @@ function getYouTubeId(url: string) {
               downloadBtn.classList.remove("hidden");
               downloadBtn.classList.add("inline-flex");
             } else {
-              // If pdf but no download link (should handle graceful or fallback)
               downloadBtn.classList.add("hidden");
               downloadBtn.classList.remove("inline-flex");
             }
           } else {
-            // For video, hide download button
+            // Los videos no tienen descarga disponible
             downloadBtn.classList.add("hidden");
             downloadBtn.classList.remove("inline-flex");
           }
@@ -389,22 +394,19 @@ function getYouTubeId(url: string) {
               "allow",
               "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture",
             );
-            // Switch container to video mode
             container.classList.remove(...pdfClasses);
             container.classList.add(...videoClasses);
           }
         } else if (solutionUrl) {
-          // Change iframe src to solution PDF
           iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
           iframe.removeAttribute("allow");
-          // Ensure container is in PDF mode
           container.classList.remove(...videoClasses);
           container.classList.add(...pdfClasses);
         } else {
           return;
         }
 
-        // Toggle button visibility - use inline-flex when showing
+        // Intercambia los botones: oculta "Ver solucionario", muestra "Ver examen"
         solutionBtn.classList.add("hidden");
         solutionBtn.classList.remove("inline-flex");
         if (examBtn) {
@@ -414,12 +416,12 @@ function getYouTubeId(url: string) {
       });
     }
 
-    // Handle "Ver examen" button
+    /** Al hacer clic en "Ver examen": restaura el visor al PDF del examen */
     if (examBtn) {
       examBtn.addEventListener("click", () => {
         const examUrl = examBtn.getAttribute("data-exam-url");
 
-        // Reset download button
+        // Restaura el botón de descarga al examen original
         if (downloadBtn && downloadText) {
           const examHref = downloadBtn.dataset.examHref;
           if (examHref) {
@@ -432,15 +434,12 @@ function getYouTubeId(url: string) {
 
         if (!examUrl) return;
 
-        // Change iframe src back to exam PDF
         iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
         iframe.removeAttribute("allow");
-
-        // Ensure container is in PDF mode
         container.classList.remove(...videoClasses);
         container.classList.add(...pdfClasses);
 
-        // Toggle button visibility - use inline-flex when showing
+        // Intercambia los botones: oculta "Ver examen", muestra "Ver solucionario"
         examBtn.classList.add("hidden");
         examBtn.classList.remove("inline-flex");
         if (solutionBtn) {
@@ -456,7 +455,7 @@ function getYouTubeId(url: string) {
 </script>
 
 <script>
-  // Favorite/Save functionality
+  /** Lee los favoritos almacenados en localStorage */
   function getFavorites() {
     try {
       const stored = localStorage.getItem("trikaweb:favorites");
@@ -466,6 +465,7 @@ function getYouTubeId(url: string) {
     }
   }
 
+  /** Agrega o quita un ID de la lista de favoritos y emite evento global */
   function toggleFavorite(id: number) {
     const favs = getFavorites();
     const index = favs.indexOf(id);
@@ -480,9 +480,10 @@ function getYouTubeId(url: string) {
         detail: { id, active: index === -1 },
       }),
     );
-    return index === -1; // returns true if now favorited
+    return index === -1; // true si ahora está marcado como favorito
   }
 
+  /** Inicializa el botón de corazón: sincroniza con localStorage y maneja clics */
   function initFavoriteButton() {
     const btn = document.getElementById("favorite-btn");
     if (!btn) return;
@@ -493,9 +494,8 @@ function getYouTubeId(url: string) {
     const icon = btn.querySelector(".favorite-icon");
     const text = btn.querySelector(".favorite-text");
 
-    // Update UI based on current state
+    /** Actualiza la UI del botón según el estado de favorito */
     function updateUI(isFavorited: boolean) {
-      // btn is guaranteed to be non-null here due to early return check
       if (isFavorited) {
         icon?.setAttribute("fill", "currentColor");
         icon?.classList.add("text-red-500", "group-hover:text-red-700");
@@ -531,16 +531,15 @@ function getYouTubeId(url: string) {
       }
     }
 
-    // Check initial state
+    // Sincroniza estado inicial con localStorage
     const favs = getFavorites();
     updateUI(favs.includes(sheetId));
 
-    // Handle click
+    // Maneja clic para toggle con animación
     btn.addEventListener("click", () => {
       const nowFavorited = toggleFavorite(sheetId);
       updateUI(nowFavorited);
 
-      // Add a little animation
       btn.classList.add("scale-110");
       setTimeout(() => btn.classList.remove("scale-110"), 200);
     });
@@ -551,8 +550,8 @@ function getYouTubeId(url: string) {
 </script>
 
 <script define:vars={{ sheetId }}>
-  // Inlined ensureDeviceId to avoid module import issues with define:vars
   const DEVICE_STORAGE_KEY = "tw_device_id";
+  /** Genera o recupera el identificador anónimo del dispositivo desde localStorage */
   function ensureDeviceId() {
     if (typeof window === "undefined") return "";
     let current = window.localStorage.getItem(DEVICE_STORAGE_KEY);
@@ -565,6 +564,11 @@ function getYouTubeId(url: string) {
 
   const SHEET_ID = sheetId;
 
+  /**
+   * Registra una vista/dispositivo de la plancha al cargar la página.
+   * Usa sendBeacon para no bloquear la navegación del usuario.
+   * Si sendBeacon no está disponible, usa fetch con keepalive.
+   */
   const registerView = () => {
     const payload = JSON.stringify({
       device_id: ensureDeviceId(),
@@ -602,6 +606,7 @@ function getYouTubeId(url: string) {
 <script>
   import { ensureDeviceId } from "../../lib/client/device";
 
+  /** Resalta las estrellas hasta el puntaje indicado, apaga el resto */
   const highlight = (widget: Element, score: number) => {
     widget.querySelectorAll("[data-score]").forEach((btn) => {
       const val = Number((btn as HTMLElement).dataset.score);
@@ -619,6 +624,7 @@ function getYouTubeId(url: string) {
     });
   };
 
+  /** Inicializa el widget de votación de dificultad de plancha */
   const initRatings = () => {
     document.querySelectorAll("[data-rating-widget]").forEach((widget) => {
       const sheetId = widget.getAttribute("data-sheet-id");
@@ -630,13 +636,12 @@ function getYouTubeId(url: string) {
       ) as HTMLButtonElement | null;
       const initial = Number(widget.getAttribute("data-current-rating") || 0);
 
-      // Estado del usuario (si ya votó)
       let userVoted = false;
       let currentUserScore = 0;
 
       highlight(widget, Math.round(initial));
 
-      // Función para mostrar/ocultar botón de quitar voto
+      /** Muestra u oculta el botón "Quitar mi voto" */
       const updateRemoveButton = (show: boolean) => {
         if (removeBtn) {
           if (show) {
@@ -647,7 +652,7 @@ function getYouTubeId(url: string) {
         }
       };
 
-      // Handler para quitar voto
+      /** Elimina el voto del usuario vía DELETE /api/sheets/:id/rate y actualiza stats */
       if (removeBtn) {
         removeBtn.addEventListener("click", async (e) => {
           e.preventDefault();
@@ -682,10 +687,8 @@ function getYouTubeId(url: string) {
               valueEl.textContent = count > 0 ? Number(avg).toFixed(2) : "-";
             if (countEl) countEl.textContent = count;
 
-            // Resetear estrellas
             highlight(widget, count > 0 ? Math.round(avg) : 0);
 
-            // Actualizar estado
             userVoted = false;
             currentUserScore = 0;
 
@@ -694,10 +697,8 @@ function getYouTubeId(url: string) {
               statusEl.classList.remove("text-red-400");
             }
 
-            // Ocultar botón de quitar voto
             updateRemoveButton(false);
 
-            // Limpiar mensaje después de un tiempo
             setTimeout(() => {
               if (statusEl) statusEl.textContent = "";
             }, 2000);
@@ -715,6 +716,7 @@ function getYouTubeId(url: string) {
         });
       }
 
+      /** Envía voto vía POST /api/sheets/:id/rate y actualiza stats en tiempo real */
       widget.querySelectorAll("[data-score]").forEach((btn) => {
         btn.addEventListener("click", async (e) => {
           e.preventDefault();
@@ -743,10 +745,8 @@ function getYouTubeId(url: string) {
             const count = result?.stats?.rating_count ?? 0;
             if (valueEl) valueEl.textContent = Number(avg).toFixed(2);
             if (countEl) countEl.textContent = count;
-            // Mantenemos resaltado el voto del usuario para que vea el cambio
             highlight(widget, score);
 
-            // Actualizar estado del usuario
             userVoted = true;
             currentUserScore = score;
 
@@ -755,7 +755,6 @@ function getYouTubeId(url: string) {
               statusEl.classList.remove("text-red-400");
             }
 
-            // Mostrar botón de quitar voto
             updateRemoveButton(true);
           } catch (err) {
             console.error(err);
@@ -770,14 +769,14 @@ function getYouTubeId(url: string) {
           }
         });
 
-        // Add hover effect
+        /** Vista previa de estrellas al pasar el mouse */
         btn.addEventListener("mouseenter", () => {
           const score = Number((btn as HTMLElement).dataset.score);
           highlight(widget, score);
         });
       });
 
-      // Reset to current rating on mouse leave from stars area
+      /** Al salir del área de estrellas, restaura el puntaje actual */
       widget
         .querySelector("[data-stars-container]")
         ?.addEventListener("mouseleave", () => {

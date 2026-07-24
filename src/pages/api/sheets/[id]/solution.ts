@@ -5,6 +5,10 @@ import { createClient } from '@supabase/supabase-js';
 const admin = () =>
   createClient(import.meta.env.SUPABASE_URL!, import.meta.env.SUPABASE_SERVICE_KEY!);
 
+/**
+ * Redirige al solucionario de una plancha.
+ * Soporta dos tipos: PDF (URL firmada) y video (YouTube).
+ */
 export const GET: APIRoute = async ({ params }) => {
   const id = Number(params.id);
   const supa = admin();

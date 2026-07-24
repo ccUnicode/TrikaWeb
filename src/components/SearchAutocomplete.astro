@@ -76,6 +76,12 @@ const listId = `${id}-suggestions`;
 </style>
 
 <script type="module">
+  /**
+   * Configura un autocomplete de búsqueda con dos modos:
+   * 1. Local: filtra cards del DOM por dataset según campos configurados
+   * 2. API: consulta un endpoint remoto y muestra sugerencias navegables
+   * Soporta teclado (flechas, Enter, Escape), clic, y debounce de 300ms.
+   */
   function setup(root) {
     const input = root.querySelector('input[type="search"]');
     const list = root.querySelector('ul[role="listbox"]');
@@ -95,20 +101,27 @@ const listId = `${id}-suggestions`;
       .map((s) => s.trim())
       .filter(Boolean);
 
+    /** Normaliza texto eliminando tildes y convirtiendo a minúsculas */
     const normalize = (s = "") =>
       String(s)
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
 
+    /** Obtiene las cards del DOM que coinciden con el selector objetivo */
     const getCards = () =>
       Array.from(document.querySelectorAll(targetSelector));
 
     let suggestions = [];
     let activeIndex = -1;
 
+    /**
+     * Construye sugerencias a partir de los datasets de las cards del DOM.
+     * Si hay endpoint configurado, no construye sugerencias localmente
+     * porque las obtendrá del servidor.
+     */
     function buildSuggestions() {
-      if (endpoint) return []; // If endpoint is set, we don't build from DOM
+      if (endpoint) return [];
       const cards = getCards();
       const map = new Map();
       cards.forEach((card) => {
@@ -161,26 +174,30 @@ const listId = `${id}-suggestions`;
       else clearBtn.classList.add("hidden");
     }
 
+    /**
+     * Filtra las cards del DOM mostrando solo las que coinciden con la búsqueda.
+     * Modo local: evalúa tokens contra los dataset de cada card.
+     * Si hay endpoint, el filtrado se delega al servidor.
+     */
     function filterCards() {
-      if (endpoint) return; // No local filtering if using API
+      if (endpoint) return;
       const cards = getCards();
       if (!input) return;
       const q = input.value.trim();
       const tokens = normalize(q).split(/\s+/).filter(Boolean);
 
       cards.forEach((card) => {
-        // Calculate relevance score
         let score = 0;
         if (tokens.length === 0) {
-          score = 1; // Show all if empty
+          score = 1; // Sin búsqueda: muestra todas
         } else {
           const matches = tokens.every((t) =>
             filterFields.some((f) => {
               const ds = card.dataset && card.dataset[f] ? card.dataset[f] : "";
               const val = normalize(ds);
-              if (val === t) return true; // Exact match
-              if (val.startsWith(t)) return true; // Starts with
-              return val.includes(t); // Includes
+              if (val === t) return true; // Coincidencia exacta
+              if (val.startsWith(t)) return true; // Empieza con el término
+              return val.includes(t); // Contiene el término
             }),
           );
           if (matches) score = 1;
@@ -190,7 +207,7 @@ const listId = `${id}-suggestions`;
       });
     }
 
-    // Debounce utility
+    /** Utilitario de debounce para evitar consultas excesivas mientras el usuario escribe */
     function debounce(func, wait) {
       let timeout;
       return function (...args) {
@@ -200,6 +217,7 @@ const listId = `${id}-suggestions`;
       };
     }
 
+    /** Maneja la entrada del usuario con debounce de 300ms */
     const handleInput = debounce(async (e) => {
       const target = e.target;
       const q = target && "value" in target ? String(target.value).trim() : "";
@@ -207,6 +225,7 @@ const listId = `${id}-suggestions`;
       const nq = normalize(q);
 
       if (endpoint) {
+        // Modo API: consulta al servidor si hay al menos 2 caracteres
         if (q.length < 2) {
           renderSuggestions([]);
           return;
@@ -223,17 +242,15 @@ const listId = `${id}-suggestions`;
         return;
       }
 
-      // Improved sorting for suggestions (Local)
+      // Modo local: ordena sugerencias por relevancia (coincidencia exacta > empieza con > contiene)
       const results = nq
         ? suggestions
             .filter((s) => normalize(s.text).includes(nq))
             .sort((a, b) => {
               const na = normalize(a.text);
               const nb = normalize(b.text);
-              // Exact match first
               if (na === nq) return -1;
               if (nb === nq) return 1;
-              // Starts with second
               if (na.startsWith(nq) && !nb.startsWith(nq)) return -1;
               if (!na.startsWith(nq) && nb.startsWith(nq)) return 1;
               return 0;
@@ -243,7 +260,7 @@ const listId = `${id}-suggestions`;
 
       renderSuggestions(results);
       filterCards();
-    }, 300); // 300ms debounce
+    }, 300);
 
     if (input) {
       input.addEventListener("focus", () => {
@@ -252,6 +269,7 @@ const listId = `${id}-suggestions`;
 
       input.addEventListener("input", handleInput);
 
+      /** Navegación por teclado: flechas, Enter para seleccionar, Escape para cerrar */
       input.addEventListener("keydown", (e) => {
         const key = "key" in e ? e.key : "";
         const items = Array.from(list?.children || []);
@@ -282,6 +300,7 @@ const listId = `${id}-suggestions`;
             const url = el && "dataset" in el ? el.dataset.url : undefined;
 
             if (url) {
+              // Si la sugerencia tiene URL, navega directamente
               window.location.href = url;
               return;
             }

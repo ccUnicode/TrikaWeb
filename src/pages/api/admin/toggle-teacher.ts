@@ -4,9 +4,12 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
+/**
+ * Cambia la visibilidad de un profesor (mostrar/ocultar en páginas públicas).
+ * Útil para ocultar profesores inactivos o duplicados sin eliminar sus datos.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
-        // Validate session from cookie
         const isValid = await validateAdminSession(cookies);
         if (!isValid) {
             return new Response(
@@ -18,7 +21,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const body = await request.json();
         const { teacher_id, is_hidden } = body;
 
-        // Validate teacher_id
         const id = Number(teacher_id);
         if (!Number.isFinite(id) || id <= 0) {
             return new Response(

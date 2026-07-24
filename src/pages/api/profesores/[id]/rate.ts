@@ -7,6 +7,13 @@ import moderationConfig from "../../../../../config/moderation.json";
 
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
+/**
+ * Crea o actualiza una calificación de profesor.
+ * - Calcula el overall automáticamente como promedio de las 5 dimensiones.
+ * - Valida contra palabras prohibidas (moderation.json).
+ * - Aplica rate limiting por IP y límite de 3 votos por IP por profesor.
+ * - Las calificaciones se crean visibles por defecto.
+ */
 export const POST: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -170,7 +177,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   );
 };
 
-// GET handler para verificar si el usuario ya votó
+/**
+ * Verifica si el dispositivo ya calificó a este profesor.
+ * Usado por el frontend para mostrar/ocultar el botón "Eliminar mi calificación".
+ */
 export const GET: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -202,7 +212,10 @@ export const GET: APIRoute = async ({ params, request }) => {
   );
 };
 
-// DELETE handler para quitar calificación
+/**
+ * Elimina la calificación del dispositivo para este profesor.
+ * Verifica que exista antes de eliminar, luego retorna las stats actualizadas.
+ */
 export const DELETE: APIRoute = async ({ params, request }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {

@@ -1,14 +1,14 @@
 //Hashing functions
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+/**
+ * Genera un hash SHA-256 del texto de entrada.
+ * Se usa para ofuscar direcciones IP (combinadas con IP_SALT)
+ * antes de almacenarlas, como medida de privacidad.
+ */
 export async function sha256Hash(text: string): Promise<string> {
-  // Convierte el texto a bytes
   const data = new TextEncoder().encode(text);
-  
-  // Crea el hash usando el algoritmo SHA-256
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  
-  // Convierte los bytes a texto hexadecimal
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
@@ -18,10 +18,13 @@ export function getDeviceId(body: any): string | null {
   return body?.device_id || null;
 }
 
-//Se obtiene la ip del cliente
+/**
+ * Obtiene la IP real del cliente considerando proxies inversos.
+ * El orden de precedencia: Cloudflare, X-Forwarded-For, X-Real-IP.
+ * Se hashea antes de almacenar por privacidad (ver sha256Hash).
+ */
 export function getClientIP(request: Request): string {
-  // Intenta obtener la IP de los headers (si usas Cloudflare o proxy)
-  return request.headers.get('cf-connecting-ip') 
+  return request.headers.get('cf-connecting-ip')
     || request.headers.get('x-forwarded-for')?.split(',')[0]
     || request.headers.get('x-real-ip')
     || 'unknown';
@@ -33,7 +36,11 @@ type RateLimitResult =
   | { allowed: true }
   | { allowed: false; reason: 'rate_limit' | 'internal'; details?: string };
 
-  // Función para aplicar limitar la escritura por IP
+  /**
+   * Rate limiter por IP hasheada usando la tabla write_limits.
+   * Si la IP excede el límite de operaciones en la última hora,
+   * rechaza la solicitud. Crea el registro si no existe.
+   */
 export async function enforceIpRateLimit(
   supa: SupabaseClient,
   ipHash: string,

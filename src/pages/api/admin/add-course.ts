@@ -65,6 +65,11 @@ const jsonError = (error: string, status: number): Response =>
     },
   );
 
+/**
+ * Crea un nuevo curso con su sistema, subsistema y evaluaciones asociadas.
+ * Delega la lógica de BD a la función RPC create_course_with_evaluations.
+ * Realiza validaciones extensas: código, nombre, créditos, sistema, etc.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);

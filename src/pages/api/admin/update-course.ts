@@ -65,6 +65,11 @@ const jsonError = (error: string, status: number): Response =>
     },
   );
 
+/**
+ * Actualiza un curso existente con todos sus datos, sistema, subsistema
+ * y evaluaciones asociadas. Delega en la RPC update_course_with_evaluations.
+ * Incluye las mismas validaciones que add-course pero requiere course_id.
+ */
 export const PATCH: APIRoute = async ({ request, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);

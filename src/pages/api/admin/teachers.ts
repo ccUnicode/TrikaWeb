@@ -4,9 +4,12 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
+/**
+ * Obtiene profesores para el panel de administración con paginación y búsqueda.
+ * A diferencia de la query pública, incluye profesores ocultos (is_hidden).
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
-        // Validate session from cookie
         const isValid = await validateAdminSession(cookies);
         if (!isValid) {
             return new Response(

@@ -56,6 +56,12 @@ const normalizeStatusFilter = (
   };
 };
 
+/**
+ * Obtiene cursos para el panel de administración con filtros y paginación.
+ * Incluye cursos ocultos (is_hidden true/false) y conteos separados.
+ * Filtros: búsqueda por código/nombre, estado (COMPLETO/INCOMPLETO).
+ * Retorna metadatos de conteos visibles/ocultos para la UI.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);

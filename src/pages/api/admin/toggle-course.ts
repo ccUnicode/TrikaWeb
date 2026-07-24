@@ -4,6 +4,10 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
+/**
+ * Cambia la visibilidad de un curso (mostrar/ocultar en páginas públicas).
+ * Los cursos ocultos no aparecen en listados ni búsquedas del frontend.
+ */
 export const PATCH: APIRoute = async ({ request, cookies }) => {
     try {
         const isValid = await validateAdminSession(cookies);

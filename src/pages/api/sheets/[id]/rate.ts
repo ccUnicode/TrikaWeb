@@ -3,6 +3,12 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
+/**
+ * Crea o actualiza un voto de dificultad para una plancha.
+ * - Si el dispositivo ya votó, actualiza el voto existente.
+ * - Aplica rate limiting y límite de 3 votos por IP por plancha.
+ * - Retorna las estadísticas actualizadas (avg_difficulty, rating_count).
+ */
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {
@@ -130,7 +136,10 @@ export const POST: APIRoute = async ({ params, request }) => {
   );
 };
 
-// DELETE handler para quitar voto
+/**
+ * Elimina el voto del dispositivo para esta plancha.
+ * Verifica existencia antes de eliminar, retorna stats actualizadas.
+ */
 export const DELETE: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {

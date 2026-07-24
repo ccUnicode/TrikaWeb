@@ -90,6 +90,10 @@ const sheetSelect = `
   courses:course_id (code,name)
 `;
 
+/**
+ * Obtiene todos los cursos visibles (is_hidden = false) con su conteo de planchas.
+ * Usado en la página /cursos y en el componente de búsqueda.
+ */
 export async function getCourses(): Promise<CourseSummary[]> {
   const { data, error } = await supabaseClient
     .from('courses')
@@ -107,6 +111,10 @@ export async function getCourses(): Promise<CourseSummary[]> {
   }));
 }
 
+/**
+ * Obtiene detalle completo de un curso por su código (incluyendo planchas).
+ * Normaliza a mayúsculas y redirige si no existe.
+ */
 export async function getCourseByCode(code: string): Promise<CourseDetail | null> {
   const normalized = code.toUpperCase();
   const { data: course, error } = await supabaseClient
@@ -138,6 +146,11 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
   } as CourseDetail;
 }
 
+/**
+ * Obtiene las planchas con mayor dificultad promedio.
+ * Usado en la página principal para la sección "Más difíciles".
+ * Se filtra por un mínimo de votos para evitar distorsiones.
+ */
 export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   const { data } = await supabaseClient
     .from('sheets')
@@ -152,6 +165,11 @@ export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   }));
 }
 
+/**
+ * Obtiene las planchas más vistas.
+ * Usado en la página principal para la sección "Planchas Populares".
+ * Se filtra por un mínimo de vistas para evitar datos irrelevantes.
+ */
 export async function getTopSheetsByViews(limit = 6, minViews = 5) {
   const { data } = await supabaseClient
     .from('sheets')
@@ -213,6 +231,11 @@ export async function getTeachers(): Promise<TeacherSummary[]> {
   return formatTeacherSummary(data);
 }
 
+/**
+ * Obtiene los profesores asociados a un curso (por código).
+ * Cada profesor puede tener múltiples modalidades (T, P, L) y se expande
+ * en varias entradas (una por modalidad) para facilitar el agrupado.
+ */
 export async function getTeachersByCourseCode(code: string): Promise<{ teacher: TeacherSummary, modality: string }[]> {
   const { data: course } = await supabaseClient
     .from('courses')
@@ -266,6 +289,9 @@ function formatTeacherSummary(rows: any[] | null): TeacherSummary[] {
   }));
 }
 
+/**
+ * Normaliza texto eliminando tildes para comparaciones insensibles a acentos.
+ */
 const normalizeText = (value: string) =>
   String(value)
     .toLowerCase()
@@ -273,6 +299,11 @@ const normalizeText = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
 
+/**
+ * Calcula un puntaje de relevancia entre la consulta normalizada y un conjunto de campos.
+ * Premia: coincidencias al inicio (positionBoost), campos tempranos (weight),
+ * y longitud relativa de la consulta (lengthFactor).
+ */
 const scoreAgainstQuery = (normalizedQuery: string, fields: (string | null | undefined)[]) => {
   if (!normalizedQuery) return 0;
   return fields.reduce((acc, current, index) => {
@@ -338,6 +369,15 @@ const aggregateFromReviews = (reviews: TeacherReview[]) => {
   } as TeacherStats;
 };
 
+/**
+ * Obtiene el detalle completo de un profesor: datos base, estadísticas por dimensión,
+ * cursos asociados y reseñas paginadas.
+ *
+ * Las estadísticas se obtienen de dos fuentes con fallback:
+ * 1. Cálculo agregado desde la BD (teacher_ratings)
+ * 2. Cálculo local desde las reseñas de la página actual
+ * Esto asegura que siempre haya datos incluso si la consulta agregada falla.
+ */
 export async function getTeacherDetail(
   teacherId: number,
   page = 1,
@@ -450,6 +490,12 @@ export async function getTeacherDetail(
   };
 }
 
+/**
+ * Búsqueda global que consulta cursos, profesores y planchas.
+ * Usa un algoritmo de scoring para ordenar resultados por relevancia
+ * en lugar de solo filtrar. Cada entidad se puntúa según coincidencia
+ * en múltiples campos y se limita a un máximo por tipo.
+ */
 export async function searchEntities(query: string, limit = 6): Promise<SearchResults> {
   const trimmed = (query ?? '').trim();
   if (!trimmed) {
