@@ -501,6 +501,9 @@ const { data: contributions } = await supabaseAdmin
     tabButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         const tabId = btn.getAttribute("data-tab");
+        if (tabId) {
+          window.location.hash = tabId;
+        }
 
         // Activar botón de pestaña actual
         tabButtons.forEach((b) => {
@@ -520,6 +523,15 @@ const { data: contributions } = await supabaseAdmin
         });
       });
     });
+
+    // Activar pestaña según el hash del URL al cargar (ej: #aportes)
+    const initialHash = window.location.hash.replace("#", "");
+    if (initialHash) {
+      const activeTabBtn = document.querySelector(`.tab-btn[data-tab="${initialHash}"]`);
+      if (activeTabBtn) {
+        (activeTabBtn as HTMLButtonElement).click();
+      }
+    }
 
     // 1.5. Buscador de Cursos Desplegable
     const courseSearch = document.getElementById("course_search") as HTMLInputElement;
