@@ -67,6 +67,12 @@ function CurriculumInner({ data }: Props) {
     return maxRowIndex * ROW_HEIGHT + 110 + Y_PADDING;
   }, [maxRowIndex]);
 
+  /**
+   * Calcula el zoom mínimo necesario para que toda la malla curricular encaje 
+   * horizontalmente en el contenedor actual y ajusta el viewport (cámara) 
+   * a este nivel de zoom si es la primera vez que se renderiza o si el 
+   * usuario ya estaba en el nivel de zoom mínimo.
+   */
   const handleResize = useCallback(() => {
     if (!containerRef.current) return;
     const { clientWidth } = containerRef.current;
@@ -104,7 +110,7 @@ function CurriculumInner({ data }: Props) {
 
   const isZoomedIn = currentZoom > minZoom + 0.02;
 
-  // 2. Crear mapa de course_id → code para las aristas
+  // Crear mapa de course_id → code para las aristas
   const courseIdToCode = useMemo(() => {
     const map = new Map<number, string>();
     for (const c of data.courses) {
@@ -119,7 +125,18 @@ function CurriculumInner({ data }: Props) {
     return data.courses.find(c => String(c.course_id) === selectedCourseId) || null;
   }, [selectedCourseId, data.courses]);
 
-  // 2. Generar nodos iniciales
+  /**
+   * Calcula y genera la topología inicial de los nodos de la malla curricular.
+   * 
+   * Agrupa los cursos por ciclo para asignarlos a columnas específicas (eje X)
+   * e itera sobre su índice de fila (eje Y) para calcular sus coordenadas exactas,
+   * respetando el diseño de la cuadrícula. Genera automáticamente los nodos de 
+   * encabezado estáticos para los 10 ciclos base.
+   * 
+   * @returns Un arreglo de nodos (`Node[]`) listos para ser renderizados por React Flow.
+   */
+
+  // Generar nodos iniciales
   const initialNodes: Node[] = useMemo(() => {
     const TOTAL_CYCLES = 10;
     const headerNodes: Node[] = Array.from({ length: TOTAL_CYCLES }).map((_, i) => ({
@@ -153,6 +170,10 @@ function CurriculumInner({ data }: Props) {
     return [...headerNodes, ...courseNodes];
   }, [data.courses, selectedCourseId]);
 
+  /**
+   * Restaura el zoom y la posición de la cámara del lienzo a su estado inicial, 
+   * permitiendo al usuario volver a ver toda la malla curricular centrada.
+   */
   const handleReset = useCallback(() => {
     if (!containerRef.current) return;
     const calculatedMinZoom = containerRef.current.clientWidth / EXTENT_WIDTH;
@@ -166,7 +187,17 @@ function CurriculumInner({ data }: Props) {
     }, 150);
   }, [isFullscreen, handleResize]);
 
-  // ─── Generar aristas ────────────────────────────────────────────
+  /**
+   * Construye las aristas (conexiones) basadas en los pre-requisitos de los cursos.
+   * 
+   * Implementa una lógica de retroalimentación visual dinámica: si el usuario 
+   * pasa el cursor sobre un nodo (`hoveredNode`), el algoritmo resalta en verde 
+   * las aristas conectadas directamente a él (entrantes y salientes) y opaca el 
+   * resto del grafo para enfocar la ruta de aprendizaje.
+   * 
+   * @returns Un arreglo de aristas (`Edge[]`) con estilos y animaciones calculadas.
+   */
+
   const edges: Edge[] = useMemo(() => {
     return data.prerequisites
       .filter(
@@ -227,6 +258,16 @@ function CurriculumInner({ data }: Props) {
   }, []);
 
   // ─── Navegación espacial de pre-requisitos ────────────────────
+  /**
+   * Navega la cámara del lienzo hacia el nodo del curso o pre-requisito objetivo.
+   * 
+   * Utiliza la instancia de React Flow para buscar las coordenadas espaciales 
+   * del nodo destino en el lienzo virtual y ejecuta una animación de paneo fluida 
+   * (`setCenter`). Al instante, actualiza el estado local para reflejar los datos 
+   * del nuevo curso en el panel lateral.
+   * 
+   * @param prerequisiteId - El identificador único (`course_id`) del curso a enfocar.
+   */
   const handlePrerequisiteClick = useCallback((prerequisiteId: string) => {
     const node = getNode(prerequisiteId);
     if (node) {

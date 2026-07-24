@@ -55,6 +55,14 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
     );
   }, [searchQuery, initialCourses]);
 
+  /**
+   * Inicia el proceso de arrastre (Drag & Drop) de un curso hacia la cuadrícula.
+   * 
+   * Prepara los datos del curso en formato JSON dentro de `dataTransfer` y clona
+   * visualmente la tarjeta del curso para usarla como `dragImage`. El clon se 
+   * inyecta temporalmente en el DOM con estilos absolutos para mantener el diseño 
+   * idéntico al original durante el movimiento, y luego se elimina inmediatamente.
+   */
   const onDragStart = (event: React.DragEvent, course: CourseData) => {
     event.dataTransfer.setData('application/json', JSON.stringify(course));
     event.dataTransfer.effectAllowed = 'move';
@@ -97,6 +105,14 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
     setPlacedCourses(prev => prev.filter(p => p.id !== courseId));
   };
 
+  /**
+   * Envía la estructura completa de la malla curricular al backend para su persistencia.
+   * 
+   * Mapea el estado local `placedCourses` extrayendo únicamente los campos necesarios 
+   * (id, ciclo, fila, pre-requisitos) y realiza una petición POST al endpoint 
+   * `/api/admin/save-malla`. Este proceso es transaccional (delete-then-insert) en DB.
+   * Maneja el estado de carga (`isSaving`) y notificaciones flotantes de éxito/error.
+   */
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -421,6 +437,13 @@ function Slot({
     setIsDragOver(false);
   };
 
+  /**
+   * Gestiona el evento de soltar (drop) un curso en una celda (slot) específica.
+   * 
+   * Intercepta el evento nativo, previene el comportamiento por defecto, extrae 
+   * la información JSON desde `dataTransfer`, y notifica al componente padre 
+   * a través de `onDropCourse` para actualizar la posición en el estado global.
+   */
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
