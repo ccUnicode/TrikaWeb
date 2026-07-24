@@ -344,9 +344,23 @@ const { data: contributions } = await supabaseAdmin
 
             <!-- Listado de Aportes del Estudiante (RF-22) -->
             <div class="lg:col-span-7 flex flex-col">
-              <h2 class="text-lg font-semibold text-global-text mb-4">
-                Mi Historial de Aportes
-              </h2>
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 class="text-lg font-semibold text-global-text">
+                  Mi Historial de Aportes
+                </h2>
+                {contributions && contributions.length > 0 && (
+                  <button
+                    type="button"
+                    id="clear-history-btn"
+                    class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-xl cursor-pointer transition-colors border border-red-500/30 flex items-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                    Vaciar Historial
+                  </button>
+                )}
+              </div>
               <div class="flex-1 overflow-x-auto">
                 {contributions && contributions.length > 0 ? (
                   <div class="space-y-3">
@@ -439,6 +453,35 @@ const { data: contributions } = await supabaseAdmin
             </button>
           </form>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación para Vaciar Historial -->
+  <div
+    id="clear-history-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden"
+  >
+    <div class="w-full max-w-md rounded-2xl border border-global-border bg-global-card p-6 shadow-2xl">
+      <h3 class="text-lg font-bold text-global-text mb-2">¿Vaciar historial de aportes?</h3>
+      <p class="text-sm text-global-text-muted mb-6 leading-relaxed">
+        Esta acción es irreversible y eliminará todos tus registros de aportes de la lista y los borradores asociados. Los aportes aprobados que ya se publicaron oficialmente seguirán disponibles.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          id="close-clear-modal-btn"
+          class="px-4 py-2 text-sm font-semibold text-global-text-muted hover:text-global-text rounded-xl border border-global-border hover:bg-global-border/20 transition-all cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="confirm-clear-history-btn"
+          class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all cursor-pointer"
+        >
+          Confirmar y Vaciar
+        </button>
       </div>
     </div>
   </div>
@@ -615,6 +658,57 @@ const { data: contributions } = await supabaseAdmin
         submitBtn.textContent = "Enviar Donación";
       }
     });
+
+    // 2.5. Vaciar Historial de Aportes
+    const clearHistoryBtn = document.getElementById("clear-history-btn");
+    const clearHistoryModal = document.getElementById("clear-history-modal");
+    const closeClearModalBtn = document.getElementById("close-clear-modal-btn");
+    const confirmClearHistoryBtn = document.getElementById("confirm-clear-history-btn") as HTMLButtonElement;
+
+    if (clearHistoryBtn && clearHistoryModal && closeClearModalBtn && confirmClearHistoryBtn) {
+      // Mostrar modal
+      clearHistoryBtn.addEventListener("click", () => {
+        clearHistoryModal.classList.remove("hidden");
+      });
+
+      // Ocultar modal al cancelar
+      closeClearModalBtn.addEventListener("click", () => {
+        clearHistoryModal.classList.add("hidden");
+      });
+
+      // Cerrar al hacer clic fuera del modal
+      clearHistoryModal.addEventListener("click", (e) => {
+        if (e.target === clearHistoryModal) {
+          clearHistoryModal.classList.add("hidden");
+        }
+      });
+
+      // Confirmar eliminación
+      confirmClearHistoryBtn.addEventListener("click", async () => {
+        try {
+          confirmClearHistoryBtn.disabled = true;
+          confirmClearHistoryBtn.textContent = "Vaciando...";
+
+          const res = await fetch("/api/contributions/clear-history", {
+            method: "POST",
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Ocurrió un error inesperado al vaciar el historial");
+          }
+
+          // Recargar página para actualizar lista
+          window.location.reload();
+
+        } catch (err: any) {
+          alert(err.message || "Error al vaciar el historial.");
+          confirmClearHistoryBtn.disabled = false;
+          confirmClearHistoryBtn.textContent = "Confirmar y Vaciar";
+        }
+      });
+    }
 
     // 3. Manejo de Logout
     document
