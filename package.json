@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@napi-rs/canvas": "^0.1.95",
+    "@playwright/test": "^1.62.0",
     "canvas": "^3.2.1"
   }
 }
