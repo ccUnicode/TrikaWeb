@@ -546,13 +546,20 @@ const { data: contributions } = await supabaseAdmin
         courseDropdown.classList.remove("hidden");
       });
 
+      const normalize = (value = "") =>
+        value
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+
       // Filtrar al escribir
       courseSearch.addEventListener("input", function () {
-        const query = this.value.toLowerCase().trim();
+        const query = normalize(this.value);
         let matches = 0;
 
         courseOptions.forEach((opt) => {
-          const searchData = opt.getAttribute("data-search") || "";
+          const searchData = normalize(opt.getAttribute("data-search") || "");
           if (searchData.includes(query)) {
             opt.classList.remove("hidden");
             matches++;
