@@ -262,15 +262,9 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                     >
                       <header class="flex items-center justify-between text-sm">
                         <div class="leading-tight">
-                          {review.is_anonymous === false && review.user_id ? (
-                            <a href={`/profile/${review.user_id}`} class="font-semibold block text-global-text hover:text-global-primary hover:underline transition-colors">
-                              {review.user_name || "Estudiante"}
-                            </a>
-                          ) : (
-                            <span class="font-semibold block">
-                              {review.is_anonymous === false ? review.user_name || "Estudiante" : "Anónimo"}
-                            </span>
-                          )}
+                          <span class="font-semibold block">
+                            {review.is_anonymous === false ? review.user_name || "Estudiante" : "Anónimo"}
+                          </span>
                           <time class="text-[11px] text-global-text-muted/80">
                             {formatDate(review.created_at)}
                           </time>
