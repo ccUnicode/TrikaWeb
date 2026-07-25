@@ -3,147 +3,256 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
+interface SheetAvailability {
+  id: number;
+  interest_count: number | null;
+  solution_kind: string | null;
+  solution_storage_path: string | null;
+  solution_video_url: string | null;
+}
+
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+const parseSheetId = (value: string | undefined): number | null => {
+  const sheetId = Number(value);
+
+  return Number.isSafeInteger(sheetId) && sheetId > 0 ? sheetId : null;
+};
+
 /**
- * GET /api/sheets/:id/interest?device_id= — Verifica si el dispositivo ya solicitó este solucionario.
- * POST /api/sheets/:id/interest — Hace toggle del interés (registra o elimina).
+ * Obtiene una plancha visible cuyo curso también está visible.
+ */
+const getSheet = async (sheetId: number) => {
+  return supabaseAdmin
+    .from("sheets")
+    .select(
+      `
+        id,
+        interest_count,
+        solution_kind,
+        solution_storage_path,
+        solution_video_url,
+        courses:course_id!inner(id)
+      `,
+    )
+    .eq("id", sheetId)
+    .eq("is_hidden", false)
+    .eq("courses.is_hidden", false)
+    .maybeSingle();
+};
+
+/**
+ * Determina si la plancha ya cuenta con algún tipo de solucionario.
+ */
+const hasSolution = (sheet: SheetAvailability): boolean =>
+  Boolean(
+    sheet.solution_kind ||
+    sheet.solution_storage_path ||
+    sheet.solution_video_url,
+  );
+
+/**
+ * GET /api/sheets/:id/interest?device_id=
+ * Verifica si el dispositivo ya registró interés en el solucionario.
  *
- * Después de cada toggle recalcula interest_count en la tabla sheets.
- * El conteo no es atómico (race condition menor) pero es aceptable para el tráfico actual.
+ * POST /api/sheets/:id/interest
+ * Registra o elimina el interés del dispositivo.
+ *
+ * El contador interest_count se mantiene sincronizado mediante un trigger
+ * de PostgreSQL.
  */
 export const GET: APIRoute = async ({ params, url }) => {
-  const sheetId = Number(params.id);
+  const sheetId = parseSheetId(params.id);
+
   if (!sheetId) {
-    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+    return jsonResponse({ error: "ID inválido" }, 400);
   }
 
-  const deviceId = url.searchParams.get('device_id');
+  const deviceId = url.searchParams.get("device_id")?.trim();
+
   if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+    return jsonResponse({ error: "Falta device_id" }, 400);
   }
 
-  const { data: existing, error } = await supabaseAdmin
-    .from('sheet_interests')
-    .select('id')
-    .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
-    .maybeSingle();
+  const { data: sheet, error: sheetError } = await getSheet(sheetId);
 
-  if (error) {
-    console.error('Error checking interest:', error);
-    return new Response(
-      JSON.stringify({ error: 'Error interno' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+  if (sheetError) {
+    console.error("Error al validar la plancha:", sheetError);
+    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+  }
+
+  if (!sheet) {
+    return jsonResponse({ error: "Plancha no disponible" }, 404);
+  }
+
+  if (hasSolution(sheet as SheetAvailability)) {
+    return jsonResponse(
+      { error: "La plancha ya cuenta con solucionario" },
+      409,
     );
   }
 
-  return new Response(
-    JSON.stringify({ interested: !!existing }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } }
-  );
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from("sheet_interests")
+    .select("id")
+    .eq("sheet_id", sheetId)
+    .eq("device_id", deviceId)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error("Error al consultar el interés:", existingError);
+    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+  }
+
+  return jsonResponse({ interested: Boolean(existing) });
 };
 
 export const POST: APIRoute = async ({ params, request }) => {
-  const sheetId = Number(params.id);
+  const sheetId = parseSheetId(params.id);
+
   if (!sheetId) {
-    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+    return jsonResponse({ error: "ID inválido" }, 400);
   }
 
-  let body;
+  let body: Record<string, unknown>;
+
   try {
-    body = await request.json();
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+    return jsonResponse({ error: "JSON inválido" }, 400);
   }
 
   const deviceId = getDeviceId(body);
+
   if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+    return jsonResponse({ error: "Falta device_id" }, 400);
+  }
+
+  /*
+   * Antes de registrar el interés, se valida que la plancha exista,
+   * sea visible, pertenezca a un curso visible y todavía no tenga
+   * solucionario.
+   */
+  const { data: sheet, error: sheetError } = await getSheet(sheetId);
+
+  if (sheetError) {
+    console.error("Error al validar la plancha:", sheetError);
+    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+  }
+
+  if (!sheet) {
+    return jsonResponse({ error: "Plancha no disponible" }, 404);
   }
 
   const clientIP = getClientIP(request);
-  const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
+  const ipSalt = import.meta.env.IP_SALT;
 
+  if (!ipSalt) {
+    console.error("La variable de entorno IP_SALT no está configurada.");
+    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+  }
+
+  const ipHash = await sha256Hash(clientIP + ipSalt);
   const supa = supabaseAdmin;
 
-  // Rate limiting
   const rate = await enforceIpRateLimit(supa, ipHash, 300);
+
   if (!rate.allowed) {
-    if (rate.reason === 'rate_limit') {
-      return new Response(JSON.stringify({ error: 'Demasiadas operaciones desde esta IP' }), {
-        status: 429
-      });
+    if (rate.reason === "rate_limit") {
+      return jsonResponse(
+        { error: "Demasiadas operaciones desde esta IP" },
+        429,
+      );
     }
-    return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
+
+    console.error("Error interno al aplicar el límite de solicitudes.");
+    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
   }
 
-  // Check if already interested
-  const { data: existing } = await supa
-    .from('sheet_interests')
-    .select('id')
-    .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
+  const { data: existing, error: existingError } = await supa
+    .from("sheet_interests")
+    .select("id")
+    .eq("sheet_id", sheetId)
+    .eq("device_id", deviceId)
     .maybeSingle();
 
+  if (existingError) {
+    console.error("Error al consultar el interés existente:", existingError);
+    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+  }
+
+  /*
+   * Si todavía no existe un registro, solo se permite crearlo cuando
+   * la plancha aún no cuenta con solucionario. Un registro existente
+   * sí puede eliminarse mediante el toggle.
+   */
+  if (!existing && hasSolution(sheet as SheetAvailability)) {
+    return jsonResponse(
+      { error: "La plancha ya cuenta con solucionario" },
+      409,
+    );
+  }
+
+  const interested = !existing;
+
   if (existing) {
-    // Already interested → remove interest (toggle)
     const { error: deleteError } = await supa
-      .from('sheet_interests')
+      .from("sheet_interests")
       .delete()
-      .eq('id', existing.id);
+      .eq("id", existing.id);
 
     if (deleteError) {
-      console.error('Error al eliminar interés:', deleteError);
-      return new Response(
-        JSON.stringify({ error: 'Error al eliminar interés', details: deleteError.message }),
-        { status: 500 }
-      );
+      console.error("Error al eliminar el interés:", deleteError);
+      return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
     }
   } else {
-    // Not interested yet → register interest
-    const { error: insertError } = await supa
-      .from('sheet_interests')
-      .insert({
-        sheet_id: sheetId,
-        device_id: deviceId,
-        ip_hash: ipHash,
-      });
+    const { error: insertError } = await supa.from("sheet_interests").insert({
+      sheet_id: sheetId,
+      device_id: deviceId,
+      ip_hash: ipHash,
+    });
 
     if (insertError) {
-      console.error('Error al registrar interés:', insertError);
-      return new Response(
-        JSON.stringify({ error: 'Error al registrar interés', details: insertError.message }),
-        { status: 500 }
-      );
+      console.error("Error al registrar el interés:", insertError);
+      return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
     }
   }
 
-  // Update interest_count on sheets
-  // Note: select-count + update is not atomic and has a minor race condition
-  // under high concurrency. A DB trigger would be ideal but this is acceptable
-  // for the current traffic level. The count self-corrects on each toggle.
-  const { count } = await supa
-    .from('sheet_interests')
-    .select('*', { count: 'exact', head: true })
-    .eq('sheet_id', sheetId);
+  /*
+   * El trigger de la base de datos actualiza interest_count después del
+   * INSERT o DELETE. Solo se consulta el valor resultante para responder.
+   */
+  const { data: updatedSheet, error: countError } = await supa
+    .from("sheets")
+    .select("interest_count")
+    .eq("id", sheetId)
+    .single();
 
-  const interestCount = count ?? 0;
-
-  const { error: updateError } = await supa
-    .from('sheets')
-    .update({ interest_count: interestCount })
-    .eq('id', sheetId);
-
-  if (updateError) {
-    console.error('Error updating interest_count:', updateError);
-    // Don't fail the request — the toggle itself succeeded, count is eventually consistent
+  if (countError) {
+    console.error("Error al obtener interest_count:", countError);
   }
 
-  return new Response(
-    JSON.stringify({
-      success: true,
-      interested: !existing, // true if just added, false if just removed
-      interest_count: interestCount,
-    }),
-    { status: 200 }
+  const previousCount = Number(
+    (sheet as SheetAvailability).interest_count ?? 0,
   );
+
+  const fallbackCount = Math.max(0, previousCount + (interested ? 1 : -1));
+
+  const interestCount =
+    updatedSheet?.interest_count !== null &&
+    updatedSheet?.interest_count !== undefined
+      ? Number(updatedSheet.interest_count)
+      : fallbackCount;
+
+  return jsonResponse({
+    success: true,
+    interested,
+    interest_count: interestCount,
+  });
 };
