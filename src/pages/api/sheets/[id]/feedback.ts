@@ -23,9 +23,9 @@ export const POST: APIRoute = async ({ params, request }) => {
   const stars = body.stars;
   const content = typeof body.content === 'string' ? body.content.trim() : body.content;
 
-  if (!stars || stars < 1 || stars > 5) {
+  if (!stars || !Number.isInteger(stars) || stars < 1 || stars > 5) {
     return new Response(
-      JSON.stringify({ error: 'stars debe ser 1-5' }),
+      JSON.stringify({ error: 'stars debe ser un número entero entre 1 y 5' }),
       { status: 400 }
     );
   }
@@ -33,6 +33,13 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (!content || typeof content !== 'string' || content.length === 0) {
     return new Response(
       JSON.stringify({ error: 'El comentario de texto es obligatorio y no puede estar vacío' }),
+      { status: 400 }
+    );
+  }
+
+  if (content.length > 500) {
+    return new Response(
+      JSON.stringify({ error: 'El comentario no puede superar los 500 caracteres' }),
       { status: 400 }
     );
   }
