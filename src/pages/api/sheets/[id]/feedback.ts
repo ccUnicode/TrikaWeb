@@ -232,25 +232,26 @@ export const GET: APIRoute = async ({ params, request }) => {
         .eq('sheet_id', sheetId)
         .eq('device_id', deviceId)
         .maybeSingle()
-    : Promise.resolve({ data: null });
+    : Promise.resolve({ data: null, error: null });
 
   const avgStarsPromise = supa.rpc('get_average_stars', { p_sheet_id: sheetId });
 
   const [
     { data: feedbackList, count, error: listError },
-    { data: existing },
-    { data: avgStars }
+    { data: existing, error: userError },
+    { data: avgStars, error: avgError }
   ] = await Promise.all([
     feedbackPromise,
     userFeedbackPromise,
     avgStarsPromise
   ]);
 
-  if (listError) {
-    console.error('Error fetching sheet feedback:', listError);
+  if (listError || (userError && deviceId) || avgError) {
+    const combinedError = listError || (userError && deviceId ? userError : null) || avgError;
+    console.error('Error fetching sheet feedback:', combinedError);
     return new Response(
       JSON.stringify({
-        error: 'Error al cargar comentarios: ' + listError.message,
+        error: 'Error al cargar comentarios: ' + combinedError?.message,
         feedback: [],
         total: 0,
         page,
