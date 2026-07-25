@@ -361,7 +361,7 @@ const { data: contributions } = await supabaseAdmin
                   </button>
                 )}
               </div>
-              <div class="flex-1 overflow-x-auto">
+              <div class="flex-1 overflow-y-auto overflow-x-hidden max-h-[550px] pr-2 teacher-scroll">
                 {contributions && contributions.length > 0 ? (
                   <div class="space-y-3">
                     {contributions.map((contrib) => {

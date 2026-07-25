@@ -147,58 +147,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           }
         }
 
-      } else {
-        // --- FLUJO SOLUCIONARIO ---
-        // Para solucionarios, la plancha (sheet) correspondiente debe existir obligatoriamente.
-        const { data: existingSheet } = await supabaseAdmin
-          .from('sheets')
-          .select('id')
-          .eq('course_id', contribution.course_id)
-          .eq('cycle', contribution.cycle)
-          .eq('exam_type', contribution.exam_type)
-          .maybeSingle();
-
-        if (!existingSheet) {
-          return new Response(
-            JSON.stringify({ error: 'No existe una plancha registrada para este curso, ciclo y tipo de examen. Debe existir la plancha primero.' }),
-            { status: 400 }
-          );
-        }
-
-        // SOLO si el administrador sube un archivo solucionario oficial tipeado (solution_file con tamaño mayor a 0)
-        if (uploadedFile && uploadedFile instanceof File && uploadedFile.size > 0) {
-          const solutionBuffer = Buffer.from(await uploadedFile.arrayBuffer());
-          const contentType = uploadedFile.type;
-          // Forzar que el solucionario oficial tipeado tenga extensión .pdf
-          const finalDestinationPath = `${courseCode}/${safeExam}/${safeCycle}.pdf`;
-
-          // Subir al bucket 'solutions'
-          const { error: uploadError } = await supabaseAdmin.storage
-            .from('solutions')
-            .upload(finalDestinationPath, solutionBuffer, {
-              contentType,
-              upsert: true
-            });
-
-          if (uploadError) {
-            console.error('Error uploading solution to storage:', uploadError);
-            return new Response(JSON.stringify({ error: 'Error guardando el solucionario oficial tipeado en almacenamiento' }), { status: 500 });
-          }
-
-          // Actualizar la tabla 'sheets' con el solucionario oficial tipeado
-          const { error: updateSheetError } = await supabaseAdmin
-            .from('sheets')
-            .update({
-              solution_kind: 'pdf',
-              solution_storage_path: finalDestinationPath
-            })
-            .eq('id', existingSheet.id);
-
-          if (updateSheetError) {
-            console.error('Error updating sheet solution:', updateSheetError);
-            return new Response(JSON.stringify({ error: 'Error vinculando el solucionario a la plancha' }), { status: 500 });
-          }
-        }
       }
 
       // 3.4. Definir nota de retroalimentación por defecto según el tipo de aporte
