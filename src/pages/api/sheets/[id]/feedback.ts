@@ -186,8 +186,18 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const url = new URL(request.url);
   const deviceId = url.searchParams.get('device_id');
-  const page = Number(url.searchParams.get('page') ?? 1);
-  const pageSize = Number(url.searchParams.get('pageSize') ?? 10);
+  let page = Number(url.searchParams.get('page') ?? 1);
+  let pageSize = Number(url.searchParams.get('pageSize') ?? 10);
+
+  if (!Number.isInteger(page) || page < 1) {
+    return new Response(JSON.stringify({ error: 'page debe ser un entero positivo' }), { status: 400 });
+  }
+
+  if (!Number.isInteger(pageSize) || pageSize < 1) {
+    return new Response(JSON.stringify({ error: 'pageSize debe ser un entero positivo' }), { status: 400 });
+  }
+
+  if (pageSize > 50) pageSize = 50;
 
   const supa = supabaseAdmin;
 
