@@ -191,6 +191,17 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const supa = supabaseAdmin;
 
+  // Verificar que la plancha existe y es visible
+  const { data: sheet } = await supa
+    .from('sheets')
+    .select('id, is_hidden')
+    .eq('id', sheetId)
+    .maybeSingle();
+
+  if (!sheet || sheet.is_hidden) {
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  }
+
   // Obtener feedback visible para esta plancha (con contenido no vacío)
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
