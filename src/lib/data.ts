@@ -49,6 +49,7 @@ export interface TeacherReview {
   created_at: string;
   is_anonymous?: boolean;
   user_name?: string | null;
+  user_id?: string | null;
 }
 
 export interface TeacherStats {
@@ -398,7 +399,7 @@ export async function getTeacherDetail(
   const { data: reviews, count, error: reviewsError } = await supabaseClient
     .from('teacher_ratings')
     .select(
-      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name',
+      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name, user_id',
       { count: 'exact', head: false }
     )
     .eq('teacher_id', teacherId)
