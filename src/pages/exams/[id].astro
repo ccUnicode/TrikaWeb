@@ -16,6 +16,7 @@ const { data: sheet, error } = await supa
   .select(
     `
     id,
+    is_hidden,
     exam_type,
     cycle,
     teacher_hint,
@@ -34,6 +35,10 @@ const { data: sheet, error } = await supa
   .single();
 
 if (error || !sheet) {
+  return Astro.redirect("/cursos");
+}
+
+if (sheet.is_hidden) {
   return Astro.redirect("/cursos");
 }
 
@@ -263,15 +268,13 @@ function getYouTubeId(url: string) {
             examUrl ? (
               <div
                 id="viewer-container"
-                class="relative w-full bg-black/40 min-h-[500px] sm:aspect-3/4 sm:min-h-0"
-                style="will-change: transform; transform: translateZ(0); contain: strict;"
+                class="relative w-full overflow-hidden rounded-xl bg-black/40 shadow-lg min-h-[500px] sm:aspect-3/4 sm:min-h-0"
               >
                 <iframe
                   id="pdf-viewer-iframe"
                   src={`${examUrl}#toolbar=0&navpanes=0&view=FitH`}
                   data-exam-url={examUrl}
-                  class="absolute inset-0 h-full w-full border-0"
-                  style="will-change: transform; transform: translateZ(0);"
+                  class="absolute inset-0 h-full w-full rounded-xl border-0"
                   loading="lazy"
                   allowfullscreen
                 />
