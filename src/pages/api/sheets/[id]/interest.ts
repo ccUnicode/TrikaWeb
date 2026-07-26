@@ -3,6 +3,66 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
 import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
+// UUID v4 regex for device_id validation
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Shared validation for GET and POST:
+ * - Validates sheet exists, is not hidden, and its course exists
+ * - Checks that the sheet has no solution (solution_kind, solution_storage_path, solution_video_url)
+ * - Validates device_id is a valid UUID
+ * Returns the validated deviceId on success, or a Response on failure.
+ */
+async function validateRequest(
+  sheetId: number,
+  rawDeviceId: string | null,
+): Promise<{ deviceId: string } | Response> {
+  // Validate device_id format
+  if (!rawDeviceId || !UUID_RE.test(rawDeviceId)) {
+    return Response.json(
+      { error: 'device_id inválido: se requiere un UUID v4' },
+      { status: 400 },
+    );
+  }
+
+  // Validate sheet: exists, visible, course exists, no solution
+  const { data: sheetData, error: sheetError } = await supabaseAdmin
+    .from('sheets')
+    .select('id, is_hidden, solution_kind, solution_storage_path, solution_video_url, courses:course_id (code)')
+    .eq('id', sheetId)
+    .single();
+
+  if (sheetError || !sheetData) {
+    return Response.json({ error: 'Plancha no encontrada' }, { status: 404 });
+  }
+
+  // Sheet must be visible
+  if ((sheetData as any).is_hidden) {
+    return Response.json({ error: 'Plancha no disponible' }, { status: 404 });
+  }
+
+  // Course must exist (the FK guarantees it, but the join could return null)
+  const course = (sheetData as any).courses;
+  if (!course) {
+    return Response.json({ error: 'Curso no encontrado' }, { status: 404 });
+  }
+
+  // Must NOT already have a solution (check all solution fields)
+  const hasSolution =
+    sheetData.solution_kind ||
+    sheetData.solution_storage_path ||
+    sheetData.solution_video_url;
+
+  if (hasSolution) {
+    return Response.json(
+      { error: 'Esta plancha ya tiene solucionario' },
+      { status: 400 },
+    );
+  }
+
+  return { deviceId: rawDeviceId };
+}
+
 // GET: Check if a device has expressed interest in a sheet
 export const GET: APIRoute = async ({ params, url }) => {
   const sheetId = Number(params.id);
@@ -10,10 +70,10 @@ export const GET: APIRoute = async ({ params, url }) => {
     return Response.json({ error: 'ID inválido' }, { status: 400 });
   }
 
-  const deviceId = url.searchParams.get('device_id');
-  if (!deviceId) {
-    return Response.json({ error: 'Falta device_id' }, { status: 400 });
-  }
+  const rawDeviceId = url.searchParams.get('device_id');
+  const validation = await validateRequest(sheetId, rawDeviceId);
+  if (validation instanceof Response) return validation;
+  const { deviceId } = validation;
 
   const { data: existing, error } = await supabaseAdmin
     .from('sheet_interests')
@@ -43,10 +103,10 @@ export const POST: APIRoute = async ({ params, request }) => {
     return Response.json({ error: 'JSON inválido' }, { status: 400 });
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return Response.json({ error: 'Falta device_id' }, { status: 400 });
-  }
+  const rawDeviceId = getDeviceId(body);
+  const validation = await validateRequest(sheetId, rawDeviceId);
+  if (validation instanceof Response) return validation;
+  const { deviceId } = validation;
 
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
@@ -62,21 +122,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     return Response.json({ error: 'Rate limit interno' }, { status: 500 });
   }
 
-  // Validate sheet exists and doesn't have a solution
-  const { data: sheetData, error: sheetError } = await supa
-    .from('sheets')
-    .select('id, solution_kind')
-    .eq('id', sheetId)
-    .single();
-
-  if (sheetError || !sheetData) {
-    return Response.json({ error: 'Plancha no encontrada' }, { status: 404 });
-  }
-
-  if (sheetData.solution_kind) {
-    return Response.json({ error: 'Esta plancha ya tiene solucionario' }, { status: 400 });
-  }
-
   // Atomic toggle via RPC (single round-trip, handles insert/delete + count update via trigger)
   const { data: result, error: rpcError } = await supa
     .rpc('toggle_sheet_interest', {
@@ -89,7 +134,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     console.error('Error in toggle_sheet_interest RPC:', rpcError);
     return Response.json(
       { error: 'Error al procesar interés' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
