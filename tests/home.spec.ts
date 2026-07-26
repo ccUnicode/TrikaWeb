@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('RF-30: Endpoint de Profesores por Curso', () => {
+  // Saltamos los tests si no hay variables de entorno (ej: GitHub Actions sin secretos configurados)
+  const isConfigured = !!process.env.SUPABASE_URL;
+  test.skip(!isConfigured, 'Variables de entorno de Supabase no configuradas. Saltando pruebas.');
+
   // Nota: Este test asume que la BD de pruebas tiene al menos el curso "BMA01" o similar.
   // En entornos de CI, se debe ejecutar el seed antes de correr Playwright.
   test('debe devolver 200 y una lista de profesores para un curso existente', async ({ request }) => {

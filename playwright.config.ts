@@ -11,10 +11,11 @@ export default defineConfig({
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
   },
-  webServer: {
+  // Solo levantamos el servidor si tenemos credenciales de Supabase
+  webServer: process.env.SUPABASE_URL ? {
     command: 'npm run dev',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
-  },
+  } : undefined,
 });
