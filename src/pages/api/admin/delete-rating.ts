@@ -46,9 +46,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { error } = await supabaseAdmin
         .from(table)
         .delete()
-        .eq("id", ratingId);
+        .eq("id", ratingId)
+        .select("id")
+        .single();
 
     if (error) {
+        if (error.code === "PGRST116") {
+            return new Response(
+                JSON.stringify({ ok: false, error: "Registro no encontrado" }),
+                { status: 404, headers: { "Content-Type": "application/json" } }
+            );
+        }
         console.error("Error delete-rating:", error);
         return new Response(
             JSON.stringify({ ok: false, error: "No se pudo eliminar el registro" }),
