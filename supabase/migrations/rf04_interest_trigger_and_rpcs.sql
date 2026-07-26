@@ -12,18 +12,12 @@ AS $$
 DECLARE
   target_sheet_id bigint;
 BEGIN
-  -- Determine which sheet_id was affected
+  -- Determine which sheet_id was affected and update count incrementally
   IF TG_OP = 'DELETE' THEN
-    target_sheet_id := OLD.sheet_id;
-  ELSE
-    target_sheet_id := NEW.sheet_id;
+    UPDATE sheets SET interest_count = GREATEST(0, interest_count - 1) WHERE id = OLD.sheet_id;
+  ELSIF TG_OP = 'INSERT' THEN
+    UPDATE sheets SET interest_count = interest_count + 1 WHERE id = NEW.sheet_id;
   END IF;
-
-  UPDATE sheets
-  SET interest_count = (
-    SELECT count(*) FROM sheet_interests WHERE sheet_id = target_sheet_id
-  )
-  WHERE id = target_sheet_id;
 
   RETURN NULL; -- AFTER trigger, return value is ignored
 END;
@@ -47,36 +41,35 @@ BEGIN
 END;
 $$;
 
+-- Restrict execution to service_role (used by backend)
+REVOKE EXECUTE ON FUNCTION reset_sheet_interest(bigint) FROM public;
+GRANT EXECUTE ON FUNCTION reset_sheet_interest(bigint) TO service_role;
+
 -- 4. RPC: toggle_sheet_interest (atomic toggle for public API)
 --    Returns JSON: { "interested": bool, "interest_count": int }
 CREATE OR REPLACE FUNCTION toggle_sheet_interest(
   p_sheet_id bigint,
-  p_device_id text,
+  p_device_id uuid,
   p_ip_hash text
 )
 RETURNS json
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  existing_id bigint;
   is_interested boolean;
   new_count int;
 BEGIN
-  -- Check if already interested
-  SELECT id INTO existing_id
-  FROM sheet_interests
-  WHERE sheet_id = p_sheet_id AND device_id = p_device_id;
-
-  IF existing_id IS NOT NULL THEN
-    -- Remove interest (toggle off)
-    DELETE FROM sheet_interests WHERE id = existing_id;
-    is_interested := false;
-  ELSE
-    -- Add interest (toggle on)
+  -- Intentamos insertar directamente
+  BEGIN
     INSERT INTO sheet_interests (sheet_id, device_id, ip_hash)
     VALUES (p_sheet_id, p_device_id, p_ip_hash);
     is_interested := true;
-  END IF;
+  EXCEPTION WHEN unique_violation THEN
+    -- Ya existe, así que lo eliminamos (toggle off)
+    DELETE FROM sheet_interests 
+    WHERE sheet_id = p_sheet_id AND device_id = p_device_id;
+    is_interested := false;
+  END;
 
   -- The trigger has already updated interest_count, just read it
   SELECT interest_count INTO new_count FROM sheets WHERE id = p_sheet_id;
@@ -87,3 +80,7 @@ BEGIN
   );
 END;
 $$;
+
+-- Restrict execution to service_role (used by backend)
+REVOKE EXECUTE ON FUNCTION toggle_sheet_interest(bigint, uuid, text) FROM public;
+GRANT EXECUTE ON FUNCTION toggle_sheet_interest(bigint, uuid, text) TO service_role;

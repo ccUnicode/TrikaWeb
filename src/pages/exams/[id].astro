@@ -942,6 +942,11 @@ function getYouTubeId(url: string) {
       // Update button state
       applyDetailInterestState(btn, sheetId);
 
+      // Prevent double clicks
+      btn.setAttribute("disabled", "true");
+      btn.style.pointerEvents = "none";
+      btn.style.opacity = "0.7";
+
       // Call API
       try {
         const deviceId = ensureDeviceId();
@@ -972,6 +977,11 @@ function getYouTubeId(url: string) {
         setLocalInterest(sheetId, wasInterested);
         applyDetailInterestState(btn, sheetId);
         console.error("Error de red:", err);
+      } finally {
+        // Re-enable button
+        btn.removeAttribute("disabled");
+        btn.style.pointerEvents = "auto";
+        btn.style.opacity = "1";
       }
     });
   }

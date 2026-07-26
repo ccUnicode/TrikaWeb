@@ -62,6 +62,21 @@ export const POST: APIRoute = async ({ params, request }) => {
     return Response.json({ error: 'Rate limit interno' }, { status: 500 });
   }
 
+  // Validate sheet exists and doesn't have a solution
+  const { data: sheetData, error: sheetError } = await supa
+    .from('sheets')
+    .select('id, solution_kind')
+    .eq('id', sheetId)
+    .single();
+
+  if (sheetError || !sheetData) {
+    return Response.json({ error: 'Plancha no encontrada' }, { status: 404 });
+  }
+
+  if (sheetData.solution_kind) {
+    return Response.json({ error: 'Esta plancha ya tiene solucionario' }, { status: 400 });
+  }
+
   // Atomic toggle via RPC (single round-trip, handles insert/delete + count update via trigger)
   const { data: result, error: rpcError } = await supa
     .rpc('toggle_sheet_interest', {
@@ -73,7 +88,7 @@ export const POST: APIRoute = async ({ params, request }) => {
   if (rpcError) {
     console.error('Error in toggle_sheet_interest RPC:', rpcError);
     return Response.json(
-      { error: 'Error al procesar interés', details: rpcError.message },
+      { error: 'Error al procesar interés' },
       { status: 500 }
     );
   }

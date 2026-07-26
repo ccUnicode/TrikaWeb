@@ -16,22 +16,9 @@ CREATE TABLE IF NOT EXISTS sheet_interests (
 CREATE INDEX IF NOT EXISTS idx_sheet_interests_sheet_id
   ON sheet_interests (sheet_id);
 
--- RLS con policies para SELECT, INSERT y DELETE
+-- RLS con policies
+-- Note: Solo supabaseAdmin interactuará con esta tabla (service_role bypasses RLS)
 ALTER TABLE sheet_interests ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "public read sheet_interests" ON sheet_interests
-  FOR SELECT USING (true);
-
-CREATE POLICY "public insert sheet_interests" ON sheet_interests
-  FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "public delete sheet_interests" ON sheet_interests
-  FOR DELETE USING (true);
 
 -- Columna interest_count en sheets (similar a view_count y rating_count)
 ALTER TABLE sheets ADD COLUMN IF NOT EXISTS interest_count bigint DEFAULT 0;
-
--- Permisos
-GRANT SELECT ON sheet_interests TO anon, authenticated;
-GRANT INSERT, DELETE ON sheet_interests TO anon, authenticated;
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
