@@ -11,64 +11,54 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   // Validate admin session token against Supabase Auth
   const isAdmin = await validateAdminSession(cookies);
   if (!isAdmin) {
-    return new Response(
-      JSON.stringify({ ok: false, error: "No autorizado" }),
-      { status: 401, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "No autorizado" },
+      { status: 401 }
+    );
+  }
+
+  // Isolate JSON parsing to return 400 on malformed body
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json(
+      { ok: false, error: "JSON inválido o cuerpo vacío" },
+      { status: 400 }
+    );
+  }
+
+  const sheetId = Number(body.sheet_id);
+
+  if (!Number.isFinite(sheetId) || sheetId <= 0) {
+    return Response.json(
+      { ok: false, error: "sheet_id inválido" },
+      { status: 400 }
     );
   }
 
   try {
-    const body = await request.json();
-    const sheetId = Number(body.sheet_id);
+    // Atomic reset via RPC (delete + update in a single transaction)
+    const { error: rpcError } = await supabaseAdmin
+      .rpc('reset_sheet_interest', { p_sheet_id: sheetId });
 
-    if (!Number.isFinite(sheetId) || sheetId <= 0) {
-      return new Response(
-        JSON.stringify({ ok: false, error: "sheet_id inválido" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+    if (rpcError) {
+      console.error("Error in reset_sheet_interest RPC:", rpcError);
+      return Response.json(
+        { ok: false, error: "Error al reiniciar contador" },
+        { status: 500 }
       );
     }
 
-    // Note: delete + update are not atomic. If the update fails after delete,
-    // interest_count may be stale. This is acceptable for an admin-only reset
-    // action since the count is eventually consistent (recalculated on next toggle).
-
-    // 1. Delete all interest records for this sheet
-    const { error: deleteError } = await supabaseAdmin
-      .from("sheet_interests")
-      .delete()
-      .eq("sheet_id", sheetId);
-
-    if (deleteError) {
-      console.error("Error deleting interests:", deleteError);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error al eliminar registros de interés" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // 2. Reset interest_count to 0 on the sheet
-    const { error: updateError } = await supabaseAdmin
-      .from("sheets")
-      .update({ interest_count: 0 })
-      .eq("id", sheetId);
-
-    if (updateError) {
-      console.error("Error resetting interest_count:", updateError);
-      return new Response(
-        JSON.stringify({ ok: false, error: "Error al resetear contador (registros ya eliminados)" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    return new Response(
-      JSON.stringify({ ok: true, message: "Contador reiniciado" }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: true, message: "Contador reiniciado" },
+      { status: 200 }
     );
   } catch (err) {
     console.error("Error in reset-interest:", err);
-    return new Response(
-      JSON.stringify({ ok: false, error: "Error interno del servidor" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+    return Response.json(
+      { ok: false, error: "Error interno del servidor" },
+      { status: 500 }
     );
   }
 };
