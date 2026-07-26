@@ -1,8 +1,9 @@
-"""
+---
+/*
 Página de profesores filtrados por curso.
 Agrupa a los docentes por modalidad (Teoría, Práctica, Laboratorio)
 y los ordena por calificación descendente.
-"""
+*/
 export const prerender = false;
 import Layout from "../../../layouts/Layout.astro";
 import TeacherCard from "../../../components/TeacherCard.astro";
@@ -373,7 +374,7 @@ labTeachers.sort(sortByRating);
     </div>
 
     <script>
-      """Ordena los profesores por calificación ascendente/descendente dentro de cada modalidad"""
+      /* Ordena los profesores por calificación ascendente/descendente dentro de cada modalidad */
       function setupSorting() {
         const dropdowns = document.querySelectorAll(".sort-teacher-dropdown");
 
@@ -406,7 +407,7 @@ labTeachers.sort(sortByRating);
         });
       }
 
-      """Filtra profesores por nombre textual y oculta secciones sin resultados"""
+      /* Filtra profesores por nombre textual y oculta secciones sin resultados */
       const normalize = (value = "") =>
         value
           .toLowerCase()
