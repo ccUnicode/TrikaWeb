@@ -1,5 +1,5 @@
 ---
-"""
+/*
 Panel de subida de material (admin).
 Permite:
   - Subir planchas, solucionarios o ambos simultáneamente
@@ -9,7 +9,7 @@ Permite:
   - Indicar docente específico (is_teacher_specific)
   - Generar miniatura automática de la 1ª página del PDF
   - Visualizar planchas más solicitadas (intereses) y reiniciar contadores
-"""
+*/
 import Layout from "../../layouts/Layout.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 
@@ -684,7 +684,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   </div>
 
   <script>
-    """
+    /*
     Script principal del panel de subida.
     Maneja:
       - Sincronización con Google Drive (syncExams/syncSolutions/syncAll)
@@ -693,7 +693,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       - Selección de ciclo (año + término)
       - PDF.js para generar miniatura de la 1ª página
       - Subida secuencial: upload-url → miniatura → Storage → metadatos DB
-    """
+    */
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
     const syncAllBtn = document.getElementById("sync-all-btn");
@@ -1208,11 +1208,18 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           li.className =
             "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
 
-          li.innerHTML = `
-        <span class="font-semibold text-global-primary">${course.code}</span>
-        <span class="text-global-text-muted"> – </span>
-        <span>${course.name}</span>
-      `;
+          const codeSpan = document.createElement("span");
+          codeSpan.className = "font-semibold text-global-primary";
+          codeSpan.textContent = course.code;
+
+          const separator = document.createElement("span");
+          separator.className = "text-global-text-muted";
+          separator.textContent = " – ";
+
+          const nameSpan = document.createElement("span");
+          nameSpan.textContent = course.name;
+
+          li.append(codeSpan, separator, nameSpan);
 
           li.addEventListener("mousedown", (e) => {
             e.preventDefault();
@@ -1243,9 +1250,9 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     function filterCourses(query: string) {
       const q = norm(query);
 
-      if (!q){
+      if (!q) {
         return allCourses;
-      } 
+      }
 
       return allCourses.filter(
         (course) =>
@@ -1734,10 +1741,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   </script>
 
   <script>
-    """
+    /*
     RF-04: Carga y muestra las planchas más solicitadas (solucionarios pedidos).
     Permite al admin ver el ranking de solicitudes y reiniciar contadores.
-    """
+    */
     import { supabaseClient } from "../../lib/supabase.client";
 
     const interestsList = document.getElementById("interests-list");
@@ -1774,7 +1781,11 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         if (error) {
           console.error("Error loading interests:", error);
           if (interestsList) {
-            interestsList.innerHTML = `<div class="text-center text-red-400 py-4 text-sm">${error.message}</div>`;
+            const errorMessage = document.createElement("div");
+            errorMessage.className = "text-center text-red-400 py-4 text-sm";
+            errorMessage.textContent =
+              "No se pudieron cargar las solicitudes de solucionario.";
+            interestsList.appendChild(errorMessage);
           }
           return;
         }
@@ -1796,8 +1807,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         }
 
         // Render the list
-        const html = (data as InterestSheet[])
-          .map((sheet, index: number) => {
+        if (interestsList) {
+          // Remove all children except loading
+          const children = Array.from(interestsList.children);
+          children.forEach((child) => {
+            if (child.id !== "interests-loading") child.remove();
+          });
+
+          (data as InterestSheet[]).forEach((sheet, index: number) => {
             const course = Array.isArray(sheet.courses)
               ? sheet.courses[0]
               : sheet.courses;
@@ -1805,86 +1822,173 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
             const courseName = course?.name ?? "";
             const count = sheet.interest_count ?? 0;
 
-            return `
-            <div class="flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border group">
-              <a href="/exams/${sheet.id}" target="_blank"
-                 class="flex items-center gap-4 flex-1 min-w-0 hover:opacity-80 transition-opacity">
-                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0">
-                  ${index + 1}
-                </span>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate">
-                    ${courseCode} — ${sheet.exam_type} ${sheet.cycle}
-                  </p>
-                  <p class="text-xs text-global-text-muted truncate">${courseName}</p>
-                </div>
-              </a>
-              <div class="flex items-center gap-3 shrink-0">
-                <div class="flex items-center gap-1.5">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-global-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-                    <path d="m9 14 2 2 4-4" />
-                  </svg>
-                  <span class="text-sm font-bold text-global-primary">${count}</span>
-                </div>
-                <button
-                  type="button"
-                  data-reset-sheet-id="${sheet.id}"
-                  title="Reiniciar contador"
-                  class="p-1.5 rounded-lg text-global-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18" />
-                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          `;
-          })
-          .join("");
+            // Container
+            const container = document.createElement("div");
+            container.className =
+              "flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border group";
 
-        if (interestsList) {
-          interestsList.innerHTML = html;
+            // Link
+            const link = document.createElement("a");
+            link.href = `/exams/${sheet.id}`;
+            link.target = "_blank";
+            link.className =
+              "flex items-center gap-4 flex-1 min-w-0 hover:opacity-80 transition-opacity";
 
-          // Attach reset handlers
-          interestsList
-            .querySelectorAll("[data-reset-sheet-id]")
-            .forEach((btn) => {
-              btn.addEventListener("click", async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const sheetId = (btn as HTMLElement).dataset.resetSheetId;
-                if (
-                  !sheetId ||
-                  !confirm(
-                    "¿Reiniciar el contador de solicitudes para esta plancha?",
-                  )
+            // Rank badge
+            const rankBadge = document.createElement("span");
+            rankBadge.className =
+              "flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0";
+            rankBadge.textContent = String(index + 1);
+
+            // Text div
+            const textDiv = document.createElement("div");
+            textDiv.className = "flex-1 min-w-0";
+
+            const titleP = document.createElement("p");
+            titleP.className =
+              "text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate";
+            titleP.textContent = `${courseCode} — ${sheet.exam_type} ${sheet.cycle}`;
+
+            const nameP = document.createElement("p");
+            nameP.className = "text-xs text-global-text-muted truncate";
+            nameP.textContent = courseName;
+
+            textDiv.appendChild(titleP);
+            textDiv.appendChild(nameP);
+            link.appendChild(rankBadge);
+            link.appendChild(textDiv);
+            container.appendChild(link);
+
+            // Right section
+            const rightDiv = document.createElement("div");
+            rightDiv.className = "flex items-center gap-3 shrink-0";
+
+            // Count badge
+            const countDiv = document.createElement("div");
+            countDiv.className = "flex items-center gap-1.5";
+
+            const countSvg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            countSvg.setAttribute("class", "h-4 w-4 text-global-primary");
+            countSvg.setAttribute("viewBox", "0 0 24 24");
+            countSvg.setAttribute("fill", "none");
+            countSvg.setAttribute("stroke", "currentColor");
+            countSvg.setAttribute("stroke-width", "2");
+            countSvg.setAttribute("stroke-linecap", "round");
+            countSvg.setAttribute("stroke-linejoin", "round");
+            const countPath1 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            countPath1.setAttribute(
+              "d",
+              "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+            );
+            const countPath2 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "rect",
+            );
+            countPath2.setAttribute("x", "8");
+            countPath2.setAttribute("y", "2");
+            countPath2.setAttribute("width", "8");
+            countPath2.setAttribute("height", "4");
+            countPath2.setAttribute("rx", "1");
+            countPath2.setAttribute("ry", "1");
+            const countPath3 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            countPath3.setAttribute("d", "m9 14 2 2 4-4");
+            countSvg.appendChild(countPath1);
+            countSvg.appendChild(countPath2);
+            countSvg.appendChild(countPath3);
+
+            const countSpan = document.createElement("span");
+            countSpan.className = "text-sm font-bold text-global-primary";
+            countSpan.textContent = String(count);
+
+            countDiv.appendChild(countSvg);
+            countDiv.appendChild(countSpan);
+
+            // Reset button
+            const resetBtn = document.createElement("button");
+            resetBtn.type = "button";
+            resetBtn.dataset.resetSheetId = String(sheet.id);
+            resetBtn.title = "Reiniciar contador";
+            resetBtn.className =
+              "p-1.5 rounded-lg text-global-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100";
+
+            const resetSvg = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "svg",
+            );
+            resetSvg.setAttribute("class", "h-4 w-4");
+            resetSvg.setAttribute("viewBox", "0 0 24 24");
+            resetSvg.setAttribute("fill", "none");
+            resetSvg.setAttribute("stroke", "currentColor");
+            resetSvg.setAttribute("stroke-width", "2");
+            resetSvg.setAttribute("stroke-linecap", "round");
+            resetSvg.setAttribute("stroke-linejoin", "round");
+            const rp1 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            rp1.setAttribute("d", "M3 6h18");
+            const rp2 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            rp2.setAttribute("d", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2");
+            const rp3 = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "path",
+            );
+            rp3.setAttribute("d", "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6");
+            resetSvg.appendChild(rp1);
+            resetSvg.appendChild(rp2);
+            resetSvg.appendChild(rp3);
+            resetBtn.appendChild(resetSvg);
+
+            rightDiv.appendChild(countDiv);
+            rightDiv.appendChild(resetBtn);
+            container.appendChild(rightDiv);
+            interestsList.appendChild(container);
+
+            // Attach reset handler
+            resetBtn.addEventListener("click", async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const sheetId = (resetBtn as HTMLElement).dataset.resetSheetId;
+              if (
+                !sheetId ||
+                !confirm(
+                  "¿Reiniciar el contador de solicitudes para esta plancha?",
                 )
-                  return;
+              )
+                return;
 
-                (btn as HTMLButtonElement).disabled = true;
-                try {
-                  const res = await fetch("/api/admin/reset-interest", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ sheet_id: Number(sheetId) }),
-                  });
-                  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                  const data = await res.json();
-                  if (data.ok) {
-                    loadTopInterests(); // Refresh the list
-                  } else {
-                    alert(data.error || "Error al reiniciar");
-                  }
-                } catch (err) {
-                  console.error("Reset error:", err);
-                  alert("Error de red al reiniciar contador");
+              resetBtn.disabled = true;
+              try {
+                const res = await fetch("/api/admin/reset-interest", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ sheet_id: Number(sheetId) }),
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (data.ok) {
+                  loadTopInterests();
+                } else {
+                  alert(data.error || "Error al reiniciar");
                 }
-              });
+              } catch (err) {
+                console.error("Reset error:", err);
+                alert("Error de red al reiniciar contador");
+              }
             });
+          });
         }
       } catch (err) {
         if (interestsLoading) interestsLoading.classList.add("hidden");
