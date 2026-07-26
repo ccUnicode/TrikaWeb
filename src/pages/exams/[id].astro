@@ -16,6 +16,7 @@ const { data: sheet, error } = await supa
   .select(
     `
     id,
+    is_hidden,
     exam_type,
     cycle,
     teacher_hint,
@@ -38,8 +39,13 @@ if (error || !sheet) {
   return Astro.redirect("/cursos");
 }
 
+if ((sheet as any).is_hidden) {
+  return Astro.redirect("/cursos");
+}
+
 // RF-04: interest_count comes from the sheets query directly
 const interestCount = (sheet as any).interest_count ?? 0;
+
 
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
 const courseCode = course?.code ?? "Curso";

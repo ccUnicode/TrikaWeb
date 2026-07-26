@@ -1,47 +1,22 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
+
+const isAdmin = await validateAdminSession(Astro.cookies);
+if (!isAdmin) {
+    return Astro.redirect("/admin/login");
+}
 ---
 
 <Layout title="Admin – Subir material | TrikaWeb">
   <div class="min-h-screen py-8">
     <div class="mx-auto w-full max-w-3xl px-4">
       <!-- Header Section -->
-      <div class="mb-8 flex flex-row items-center justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-global-text">Panel de subida</h1>
-          <p class="mt-1 text-sm text-global-text-muted">
-            Sube PDFs de planchas y solucionarios
-          </p>
-        </div>
-        <div class="flex flex-row gap-4">
-          <a
-            href="/admin/teachers"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-          >
-            Profesores
-          </a>
-          <a
-            href="/admin/ratings"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-          >
-            Calificaciones
-          </a>
-          <a
-            href="/admin/moderation"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-          >
-            Moderar comentarios
-          </a>
-          <form action="/api/admin/logout" method="POST">
-            <button
-              type="submit"
-              class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-            >
-              Cerrar Sesión
-            </button>
-          </form>
-        </div>
-      </div>
+      <AdminHeader 
+          title="Panel de subida" 
+          description="Sube PDFs de planchas y solucionarios" 
+      />
 
       <!-- Upload Form Card -->
       <section
@@ -54,21 +29,50 @@ import Layout from "../../layouts/Layout.astro";
         <form id="upload-form" class="space-y-4">
           <!-- Row 1: Course Code & Cycle -->
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
+            <div class="relative" id="course-combobox-container">
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="course-code"
+                for="course-search"
               >
-                Código de curso
+                Curso
               </label>
-              <input
-                id="course-code"
-                name="course_code"
-                type="text"
-                required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-                placeholder="Ej: BMA02"
-              />
+              <div class="relative">
+                <input
+                  type="hidden"
+                  id="course-code"
+                  name="course_code"
+                  required
+                />
+                <input
+                  type="text"
+                  id="course-search"
+                  autocomplete="off"
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+                  placeholder="Cargando cursos..."
+                  required
+                />
+                <div
+                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="h-4 w-4 text-global-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+              <ul
+                id="course-dropdown"
+                class="absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+              >
+              </ul>
             </div>
             <div>
               <label
@@ -82,7 +86,7 @@ import Layout from "../../layouts/Layout.astro";
                 name="cycle"
                 type="text"
                 required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 placeholder="Ej: 2024-II"
               />
             </div>
@@ -102,7 +106,7 @@ import Layout from "../../layouts/Layout.astro";
                 name="exam_type"
                 type="text"
                 required
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 placeholder="Ej: PC1, Parcial, Final"
               />
             </div>
@@ -117,36 +121,20 @@ import Layout from "../../layouts/Layout.astro";
                 id="teacher-hint"
                 name="teacher_hint"
                 type="text"
-                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
                 placeholder="Prof. Arámbulo, etc."
               />
             </div>
           </div>
 
-          <!-- Row 3: Resource Type & File -->
+          <!-- Row 3: Archivos -->
           <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="resource-kind"
-              >
-                Tipo de recurso
-              </label>
-              <select
-                id="resource-kind"
-                name="resource_kind"
-                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer"
-              >
-                <option value="PLANCHA">Plancha</option>
-                <option value="SOLUCIONARIO">Solucionario</option>
-              </select>
-            </div>
             <div>
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="file"
               >
-                Archivo PDF
+                PDF de la Plancha <span class="text-red-400">*</span>
               </label>
               <label
                 for="file"
@@ -173,11 +161,40 @@ import Layout from "../../layouts/Layout.astro";
                 class="hidden"
               />
             </div>
+            <div>
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="solution-file"
+              >
+                PDF del Solucionario <span class="text-global-text-muted"
+                  >(opcional)</span
+                >
+              </label>
+              <label
+                for="solution-file"
+                class="flex justify-between items-center gap-3 w-full rounded-xl border border-global-border bg-global-card px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
+              >
+                <span
+                  class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
+                >
+                  Seleccionar
+                </span>
+                <span
+                  id="solution-file-name"
+                  class="text-sm text-global-text-muted truncate"
+                >
+                  Sin archivo
+                </span>
+              </label>
+              <input
+                id="solution-file"
+                name="solution_file"
+                type="file"
+                accept="application/pdf"
+                class="hidden"
+              />
+            </div>
           </div>
-
-          <p class="text-xs text-global-text-muted">
-            Para solucionarios, usa los mismos campos de la plancha existente.
-          </p>
 
           <!-- Upload Status -->
           <div id="upload-status" class="hidden">
@@ -396,6 +413,9 @@ import Layout from "../../layouts/Layout.astro";
   </div>
 
   <script>
+    import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
+    import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
     const syncAllBtn = document.getElementById("sync-all-btn");
@@ -462,7 +482,20 @@ import Layout from "../../layouts/Layout.astro";
       if (fileInput.files && fileInput.files.length > 0) {
         if (fileNameEl) fileNameEl.textContent = fileInput.files[0].name;
       } else {
-        if (fileNameEl) fileNameEl.textContent = "Sin archivos seleccionados";
+        if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+      }
+    });
+
+    const solutionFileInput = document.getElementById(
+      "solution-file",
+    ) as HTMLInputElement;
+    const solutionFileNameEl = document.getElementById("solution-file-name");
+    solutionFileInput?.addEventListener("change", () => {
+      if (solutionFileInput.files && solutionFileInput.files.length > 0) {
+        if (solutionFileNameEl)
+          solutionFileNameEl.textContent = solutionFileInput.files[0].name;
+      } else {
+        if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
       }
     });
 
@@ -479,6 +512,156 @@ import Layout from "../../layouts/Layout.astro";
     const submitBtn = document.getElementById(
       "upload-submit-btn",
     ) as HTMLButtonElement;
+
+    type CourseOption = { code: string; name: string };
+    let allCourses: CourseOption[] = [];
+
+    const courseSearchInput = document.getElementById(
+      "course-search",
+    ) as HTMLInputElement;
+    const courseCodeHidden = document.getElementById(
+      "course-code",
+    ) as HTMLInputElement;
+    const courseDropdown = document.getElementById(
+      "course-dropdown",
+    ) as HTMLUListElement;
+    const courseComboboxContainer = document.getElementById(
+      "course-combobox-container",
+    );
+
+    async function loadCourseOptions() {
+      try {
+        const res = await fetch("/api/admin/course-options", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok || !data?.ok) {
+          if (courseSearchInput)
+            courseSearchInput.placeholder = "No se pudieron cargar cursos";
+          return;
+        }
+
+        allCourses = data.courses || [];
+
+        if (!allCourses.length) {
+          if (courseSearchInput)
+            courseSearchInput.placeholder = "No hay cursos disponibles";
+          return;
+        }
+
+        if (courseSearchInput) {
+          courseSearchInput.placeholder = "Buscar curso (ej. Física, BFI01)...";
+          courseSearchInput.removeAttribute("disabled");
+        }
+      } catch (e) {
+        console.error(e);
+        if (courseSearchInput)
+          courseSearchInput.placeholder = "Error cargando cursos";
+      }
+    }
+
+    function renderCourseDropdown(coursesToRender: CourseOption[]) {
+      if (!courseDropdown) return;
+      if (coursesToRender.length === 0) {
+        courseDropdown.innerHTML = `<li class="px-4 py-3 text-sm text-global-text-muted text-center cursor-default">No se encontraron cursos.</li>`;
+        return;
+      }
+
+      courseDropdown.innerHTML = coursesToRender
+        .map((c) => {
+          const label = `${c.code} - ${c.name}`;
+          return `<li data-code="${c.code}" data-label="${label}" class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors">${label}</li>`;
+        })
+        .join("");
+
+      const items = courseDropdown.querySelectorAll("li[data-code]");
+      items.forEach((item) => {
+        item.addEventListener("click", () => {
+          const code = item.getAttribute("data-code") || "";
+          const label = item.getAttribute("data-label") || "";
+          if (courseCodeHidden) courseCodeHidden.value = code;
+          if (courseSearchInput) courseSearchInput.value = label;
+          courseDropdown.classList.add("hidden");
+        });
+      });
+    }
+
+    courseSearchInput?.addEventListener("input", (e) => {
+      const query = (e.target as HTMLInputElement).value.toLowerCase();
+      // Ocultar valor real si editan para forzar la selección válida
+      if (courseCodeHidden) courseCodeHidden.value = "";
+
+      const filtered = allCourses.filter(
+        (c) =>
+          c.code.toLowerCase().includes(query) ||
+          c.name.toLowerCase().includes(query),
+      );
+      renderCourseDropdown(filtered);
+      courseDropdown?.classList.remove("hidden");
+    });
+
+    courseSearchInput?.addEventListener("focus", () => {
+      courseSearchInput.select();
+      if (allCourses.length > 0) {
+        const query = courseSearchInput.value.toLowerCase();
+        const filtered = allCourses.filter(
+          (c) =>
+            c.code.toLowerCase().includes(query) ||
+            c.name.toLowerCase().includes(query),
+        );
+        renderCourseDropdown(filtered);
+        courseDropdown?.classList.remove("hidden");
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!courseComboboxContainer?.contains(e.target as Node)) {
+        courseDropdown?.classList.add("hidden");
+      }
+    });
+
+    // Enforce selection from list
+    courseSearchInput?.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (courseCodeHidden && !courseCodeHidden.value) {
+          courseSearchInput.value = "";
+        }
+      }, 150);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadCourseOptions();
+    });
+
+    async function generatePdfThumbnail(file: File): Promise<Blob | null> {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+
+        // Adjust scale as needed for quality vs size (1.5 gives good resolution)
+        const viewport = page.getViewport({ scale: 1.5 });
+
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        return new Promise((resolve) => {
+          canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+        });
+      } catch (e) {
+        console.error("Error generating thumbnail:", e);
+        return null;
+      }
+    }
 
     function setUploadUI(msg: string, pct: number, showSpinner = true) {
       uploadStatus?.classList.remove("hidden");
@@ -505,18 +688,18 @@ import Layout from "../../layouts/Layout.astro";
       const cycle = String(formData.get("cycle") ?? "").trim();
       const examType = String(formData.get("exam_type") ?? "").trim();
       const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
-      const resourceKind = String(formData.get("resource_kind") ?? "").trim();
       const file = (formData.get("file") as File) || null;
+      const solutionFile = (formData.get("solution_file") as File) || null;
 
-      if (
-        !courseCode ||
-        !cycle ||
-        !examType ||
-        !resourceKind ||
-        !file ||
-        file.size === 0
-      ) {
-        alert("Por favor completa todos los campos y selecciona un archivo.");
+      let resourceKind = "PLANCHA";
+      if (solutionFile && solutionFile.size > 0) {
+        resourceKind = "AMBOS";
+      }
+
+      if (!courseCode || !cycle || !examType || !file || file.size === 0) {
+        alert(
+          "Por favor completa todos los campos requeridos (el PDF de la plancha es obligatorio).",
+        );
         return;
       }
 
@@ -544,8 +727,15 @@ import Layout from "../../layouts/Layout.astro";
           return;
         }
 
-        // Step 2: Upload PDF directly to Supabase Storage
-        setUploadUI("Subiendo archivo a Storage...", 40);
+        // Step 1.5: Generate Thumbnail (if PLANCHA or AMBOS)
+        let thumbBlob: Blob | null = null;
+        if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+          setUploadUI("Generando miniatura de la 1ª página...", 20);
+          thumbBlob = await generatePdfThumbnail(file);
+        }
+
+        // Step 2: Upload plancha PDF directly to Supabase Storage
+        setUploadUI("Subiendo plancha a Storage...", 40);
 
         const uploadRes = await fetch(urlData.signedUrl, {
           method: "PUT",
@@ -556,9 +746,57 @@ import Layout from "../../layouts/Layout.astro";
         if (!uploadRes.ok) {
           const errText = await uploadRes.text();
           console.error("Storage upload failed:", errText);
-          setUploadUI("❌ Error al subir el archivo a Storage", 40, false);
+          setUploadUI("❌ Error al subir la plancha a Storage", 40, false);
           submitBtn?.removeAttribute("disabled");
           return;
+        }
+
+        // Step 2.5: Upload Solution PDF if present
+        if (
+          resourceKind === "AMBOS" &&
+          solutionFile &&
+          urlData.solutionSignedUrl
+        ) {
+          setUploadUI("Subiendo solucionario a Storage...", 50);
+
+          const solutionUploadRes = await fetch(urlData.solutionSignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/pdf" },
+            body: solutionFile,
+          });
+
+          if (!solutionUploadRes.ok) {
+            console.error("Solution upload failed");
+            setUploadUI("❌ Error al subir el solucionario", 50, false);
+            submitBtn?.removeAttribute("disabled");
+            return;
+          }
+        }
+
+        // Step 2.8: Upload Thumbnail
+        let uploadedThumbPath: string | null = null;
+
+        if (
+          (resourceKind === "PLANCHA" || resourceKind === "AMBOS") &&
+          thumbBlob &&
+          urlData.thumbSignedUrl &&
+          urlData.thumbPath
+        ) {
+          setUploadUI("Subiendo miniatura...", 60);
+
+          const thumbRes = await fetch(urlData.thumbSignedUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "image/jpeg" },
+            body: thumbBlob,
+          });
+
+          if (!thumbRes.ok) {
+            const t = await thumbRes.text().catch(() => "");
+            console.error("Thumb upload failed:", thumbRes.status, t);
+            uploadedThumbPath = null;
+          } else {
+            uploadedThumbPath = urlData.thumbPath;
+          }
         }
 
         // Step 3: Register metadata in DB
@@ -574,6 +812,8 @@ import Layout from "../../layouts/Layout.astro";
             resource_kind: resourceKind,
             storage_path: urlData.path,
             teacher_hint: teacherHint,
+            thumb_storage_path: uploadedThumbPath,
+            solution_storage_path: urlData.solutionPath,
           }),
         });
 
@@ -589,6 +829,7 @@ import Layout from "../../layouts/Layout.astro";
         setUploadUI(`✅ ${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+        if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
 
         // Auto-hide success message after 4 seconds
         setTimeout(() => resetUploadUI(), 4000);
