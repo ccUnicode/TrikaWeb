@@ -54,6 +54,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             query = query.eq("needs_review", false);
         }
 
+        if (searchQuery) {
+            // Buscar en tablas relacionadas primero para los IDs
+            const { data: allSheets } = await supabaseAdmin
+                .from('sheets')
+                .select('id, exam_type, cycle, courses(code)');
+                
+            const matchingSheetIds = (allSheets || []).filter((s: any) => {
+                const course = Array.isArray(s.courses) ? s.courses[0] : s.courses;
+                const label = `${course?.code ?? "?"} - ${s.exam_type ?? "Plancha"} ${s.cycle ?? ""}`.trim().toLowerCase();
+                return label.includes(searchQuery);
+            }).map(s => s.id);
+
+            if (matchingSheetIds.length > 0) {
+                query = query.or(`content.ilike.%${searchQuery}%,sheet_id.in.(${matchingSheetIds.join(',')})`);
+            } else {
+                query = query.ilike('content', `%${searchQuery}%`);
+            }
+        }
+
         query = query.range(from, to);
 
         const { data, error, count } = await query;
@@ -95,13 +114,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             sheet_label: sheetsMap[item.sheet_id] ?? "Plancha desconocida",
         }));
 
-        // Filtro de búsqueda en memoria
-        if (searchQuery) {
-            items = items.filter((item: any) =>
-                item.sheet_label.toLowerCase().includes(searchQuery) ||
-                (item.content ?? "").toLowerCase().includes(searchQuery)
-            );
-        }
+        // Filtro de búsqueda removido (ahora se hace en la base de datos)
 
         return new Response(
             JSON.stringify({
@@ -110,8 +123,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 pagination: {
                     page,
                     pageSize,
-                    total: searchQuery ? items.length : (count ?? 0),
-                    totalPages: searchQuery ? 1 : Math.ceil((count ?? 0) / pageSize),
+                    total: count ?? 0,
+                    totalPages: Math.ceil((count ?? 0) / pageSize),
                 },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
@@ -146,6 +159,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             query = query.eq("needs_review", false);
         }
 
+        if (searchQuery) {
+            // Pre-buscar IDs de profesores que coincidan
+            const { data: allTeachers } = await supabaseAdmin
+                .from('teachers')
+                .select('id, full_name');
+            
+            const matchingTeacherIds = (allTeachers || [])
+                .filter(t => t.full_name.toLowerCase().includes(searchQuery))
+                .map(t => t.id);
+
+            if (matchingTeacherIds.length > 0) {
+                query = query.or(`comment.ilike.%${searchQuery}%,teacher_id.in.(${matchingTeacherIds.join(',')})`);
+            } else {
+                query = query.ilike('comment', `%${searchQuery}%`);
+            }
+        }
+
         query = query.range(from, to);
 
         const { data, error, count } = await query;
@@ -174,13 +204,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             teacher_name: item.teachers?.full_name ?? "Profesor desconocido",
         }));
 
-        // Filtro de búsqueda en memoria
-        if (searchQuery) {
-            items = items.filter((item: any) =>
-                item.teacher_name.toLowerCase().includes(searchQuery) ||
-                (item.comment ?? "").toLowerCase().includes(searchQuery)
-            );
-        }
+        // Filtro de búsqueda removido (ahora se hace en la base de datos)
 
         return new Response(
             JSON.stringify({
@@ -189,8 +213,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 pagination: {
                     page,
                     pageSize,
-                    total: searchQuery ? items.length : (count ?? 0),
-                    totalPages: searchQuery ? 1 : Math.ceil((count ?? 0) / pageSize),
+                    total: count ?? 0,
+                    totalPages: Math.ceil((count ?? 0) / pageSize),
                 },
             }),
             { status: 200, headers: { "Content-Type": "application/json" } }
