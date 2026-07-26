@@ -2,71 +2,80 @@ export const prerender = false;
 
 import type { APIRoute } from 'astro';
 import { getUserSession } from '../../../lib/auth';
-import { USERNAME_PATTERN } from '../../../lib/authConstants';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 
-export const PATCH: APIRoute = async ({ request, cookies }) => {
-  const { user, profile } = await getUserSession(cookies);
+const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
-  if (!user || !profile) {
+export const POST: APIRoute = async ({ request, cookies }) => {
+  const { user } = await getUserSession(cookies);
+
+  if (!user) {
     return new Response(JSON.stringify({ error: 'No autorizado' }), { status: 401 });
   }
 
-  let body: { full_name?: string; username?: string | null };
   try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
-  }
+    const formData = await request.formData();
+    const specialty = String(formData.get('specialty') ?? '').trim();
+    const file = formData.get('avatar');
+    
+    let avatarUrl = undefined;
 
-  const updates: Record<string, string | null> = {};
-
-  if (typeof body.full_name === 'string') {
-    const fullName = body.full_name.trim();
-    if (fullName.length < 2 || fullName.length > 80) {
-      return new Response(JSON.stringify({ error: 'El nombre debe tener entre 2 y 80 caracteres' }), {
-        status: 400,
-      });
-    }
-    updates.full_name = fullName;
-  }
-
-  if (body.username !== undefined) {
-    if (body.username === null || body.username === '') {
-      updates.username = null;
-    } else {
-      const username = body.username.trim();
-      if (!USERNAME_PATTERN.test(username)) {
-        return new Response(
-          JSON.stringify({
-            error: 'El nombre de usuario debe tener 3-30 caracteres (letras, números o _)',
-          }),
-          { status: 400 }
-        );
+    // Si hay archivo, subirlo al bucket avatars
+    if (file && file instanceof File && file.size > 0) {
+      if (!ALLOWED_TYPES.has(file.type)) {
+        return new Response(JSON.stringify({ error: 'Formato de imagen no permitido. Usa JPG, PNG o WebP.' }), { status: 400 });
       }
-      updates.username = username;
+      if (file.size > MAX_BYTES) {
+        return new Response(JSON.stringify({ error: 'La foto no puede superar los 5 MB' }), { status: 400 });
+      }
+
+      // Asegurar que exista el bucket avatars (lo intentamos)
+      const { data: bucket } = await supabaseAdmin.storage.getBucket('avatars');
+      if (!bucket) {
+        await supabaseAdmin.storage.createBucket('avatars', { public: true });
+      }
+
+      const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const storagePath = `${user.uid}/${Date.now()}_${sanitizedFilename}`;
+      const buffer = Buffer.from(await file.arrayBuffer());
+
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from('avatars')
+        .upload(storagePath, buffer, {
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Error al subir avatar:', uploadError);
+        return new Response(JSON.stringify({ error: `Error subiendo foto: ${uploadError.message}` }), { status: 500 });
+      }
+      
+      avatarUrl = storagePath;
     }
-  }
 
-  if (Object.keys(updates).length === 0) {
-    return new Response(JSON.stringify({ error: 'No hay cambios para guardar' }), { status: 400 });
-  }
+    // Preparar objeto de actualización
+    const updates: any = {};
+    if (specialty) updates.specialty = specialty;
+    if (avatarUrl) updates.avatar_url = avatarUrl;
 
-  updates.updated_at = new Date().toISOString();
+    if (Object.keys(updates).length > 0) {
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.uid);
 
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .update(updates)
-    .eq('id', user.id)
-    .select('*')
-    .single();
-
-  if (error) {
-    if (error.code === '23505') {
-      return new Response(JSON.stringify({ error: 'Ese nombre de usuario ya está en uso' }), { status: 409 });
+      if (updateError) {
+        console.error('Error al actualizar perfil:', updateError);
+        return new Response(JSON.stringify({ error: 'Error al actualizar el perfil en la base de datos' }), { status: 500 });
+      }
     }
-    return new Response(JSON.stringify({ error: error.message }), { status: 400 });
-  }
 
-  return new Response(JSON.stringify({ success: true, profile: data }), { status: 200 });
+    return new Response(JSON.stringify({ success: true, avatarUrl, specialty }), { status: 200 });
+
+  } catch (err: any) {
+    console.error('Unexpected error in profile update API:', err);
+    return new Response(JSON.stringify({ error: 'Error interno en el servidor' }), { status: 500 });
+  }
 };

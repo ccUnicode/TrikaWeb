@@ -29,12 +29,33 @@ const { data: courses } = await supabaseAdmin
   .select("id, code, name")
   .order("code", { ascending: true });
 
+// Obtener lista de especialidades para el modal de edición
+const { data: specialties } = await supabaseAdmin
+  .from("specialties")
+  .select("id, name")
+  .order("name", { ascending: true });
+
 // Obtener aportes del alumno (RF-22)
 const { data: contributions } = await supabaseAdmin
   .from("contributions")
   .select("*, courses(code, name)")
   .eq("user_id", user.uid)
   .order("created_at", { ascending: false });
+
+// Obtener perfil completo desde Supabase para especialidad y avatar
+const { data: userProfileDb } = await supabaseAdmin
+  .from("profiles")
+  .select("avatar_url, specialty")
+  .eq("id", user.uid)
+  .maybeSingle();
+
+const displaySpecialty = userProfileDb?.specialty || "Estudiante UNI";
+const avatarUrl = userProfileDb?.avatar_url
+  ? userProfileDb.avatar_url.startsWith("http")
+    ? userProfileDb.avatar_url
+    : `${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${userProfileDb.avatar_url}`
+  : null;
+
 ---
 
 <Layout title="Mi Perfil - TrikaWeb">
@@ -52,19 +73,33 @@ const { data: contributions } = await supabaseAdmin
         <!-- Contenedor de Información de Perfil -->
         <div class="flex flex-col sm:flex-row sm:items-end gap-5 -mt-10 mb-8">
           <!-- Avatar superpuesto al banner -->
-          <div class="flex-shrink-0 rounded-full border-4 border-global-surface bg-global-background p-1 shadow-lg">
-            <div
-              id="profile-initial"
-              class="flex h-20 w-20 items-center justify-center rounded-full bg-global-primary/10 border border-global-primary text-3xl font-bold text-global-primary shadow-[0_0_15px_rgba(0,230,118,0.15)]"
-            >
-              {
-                initialProfile?.full_name
-                  ? initialProfile.full_name.charAt(0).toUpperCase()
-                  : initialProfile?.email
-                    ? initialProfile.email.charAt(0).toUpperCase()
-                    : "?"
-              }
-            </div>
+          <div class="relative flex-shrink-0 rounded-full border-4 border-global-surface bg-global-background p-1 shadow-lg group">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={initialProfile?.full_name}
+                class="h-20 w-20 rounded-full object-cover shadow-[0_0_15px_rgba(0,230,118,0.15)]"
+              />
+            ) : (
+              <div
+                id="profile-initial"
+                class="flex h-20 w-20 items-center justify-center rounded-full bg-global-primary/10 border border-global-primary text-3xl font-bold text-global-primary shadow-[0_0_15px_rgba(0,230,118,0.15)]"
+              >
+                {
+                  initialProfile?.full_name
+                    ? initialProfile.full_name.charAt(0).toUpperCase()
+                    : initialProfile?.email
+                      ? initialProfile.email.charAt(0).toUpperCase()
+                      : "?"
+                }
+              </div>
+            )}
+            <!-- Botón flotante para editar foto -->
+            <button id="quick-edit-avatar-btn" class="absolute bottom-0 right-0 bg-global-primary text-black p-1.5 rounded-full shadow-md hover:scale-110 transition-transform cursor-pointer border-2 border-global-surface">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+              </svg>
+            </button>
           </div>
 
           <!-- Detalles del estudiante alineados -->
@@ -85,14 +120,24 @@ const { data: contributions } = await supabaseAdmin
               </span>
             </div>
 
-            <!-- Correo electrónico con ícono y mejor tipografía -->
-            <div class="flex items-center gap-2 text-global-text-muted text-sm leading-none">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-global-text-muted/60">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
-              </svg>
-              <span id="profile-email" class="font-medium tracking-wide">
-                {initialProfile?.email || "Verificando sesión..."}
-              </span>
+            <!-- Correo electrónico con ícono y especialidad -->
+            <div class="flex items-center gap-4 text-global-text-muted text-sm leading-none flex-wrap mt-2">
+              <div class="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-global-text-muted/60">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                <span id="profile-email" class="font-medium tracking-wide">
+                  {initialProfile?.email || "Verificando sesión..."}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-global-text-muted/60">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                </svg>
+                <span id="profile-specialty" class="font-medium tracking-wide text-global-primary">
+                  {displaySpecialty}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -174,14 +219,26 @@ const { data: contributions } = await supabaseAdmin
             </div>
 
             <div
-              class="rounded-2xl border border-global-border bg-global-background/50 p-6"
+              class="rounded-2xl border border-global-border bg-global-background/50 p-6 flex flex-col justify-between"
             >
-              <h2 class="text-lg font-semibold text-global-text mb-4">
-                Información
-              </h2>
-              <p class="text-sm text-global-text-muted leading-relaxed">
-                Estás conectado con tu cuenta institucional de la UNI. Aquí podrás ver tus planchas favoritas, gestionar tus aportes y cerrar tu sesión de forma segura.
-              </p>
+              <div>
+                <h2 class="text-lg font-semibold text-global-text mb-4">
+                  Información
+                </h2>
+                <p class="text-sm text-global-text-muted leading-relaxed">
+                  Estás conectado con tu cuenta institucional de la UNI. Personaliza tu perfil público eligiendo tu especialidad y una foto de perfil.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="edit-profile-btn"
+                class="mt-6 w-full rounded-xl border border-global-primary/30 bg-global-primary/10 px-4 py-2.5 text-sm font-semibold text-global-primary transition-all hover:bg-global-primary hover:text-black focus:outline-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+                Editar Perfil
+              </button>
             </div>
           </div>
         </div>
@@ -485,6 +542,80 @@ const { data: contributions } = await supabaseAdmin
       </div>
     </div>
   </div>
+
+  <!-- Modal de Edición de Perfil -->
+  <div
+    id="edit-profile-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden"
+  >
+    <div class="w-full max-w-md rounded-2xl border border-global-border bg-global-card p-6 shadow-2xl">
+      <h3 class="text-xl font-bold text-global-text mb-6">Editar Mi Perfil</h3>
+      
+      <form id="edit-profile-form" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-global-text-muted mb-1.5">
+            Foto de Perfil (Opcional, máx 5MB)
+          </label>
+          <div class="flex items-center gap-4">
+            <div class="h-16 w-16 flex-shrink-0 rounded-full border-2 border-global-border bg-global-background overflow-hidden flex items-center justify-center">
+              <img id="avatar-preview" src={avatarUrl || ""} class={avatarUrl ? "h-full w-full object-cover" : "hidden"} />
+              {!avatarUrl && <span class="text-global-text-muted text-xs font-medium">Vacío</span>}
+            </div>
+            <div>
+              <button
+                type="button"
+                id="edit-avatar-btn"
+                class="px-3 py-1.5 bg-global-primary/10 hover:bg-global-primary/20 text-global-primary text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-global-primary/30"
+              >
+                Subir Imagen
+              </button>
+              <input type="file" id="avatar-input" name="avatar" accept="image/jpeg,image/png,image/webp" class="hidden" />
+              <p id="avatar-filename" class="text-[10px] text-global-text-muted mt-1 truncate max-w-[150px]">
+                Solo JPG, PNG o WebP
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="specialty-select" class="block text-xs font-semibold text-global-text-muted mb-1.5">
+            Especialidad (Carrera)
+          </label>
+          <select
+            name="specialty"
+            id="specialty-select"
+            class="w-full rounded-xl border border-global-border bg-global-surface px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary"
+          >
+            <option value="" disabled selected={!userProfileDb?.specialty}>Selecciona tu carrera...</option>
+            {specialties?.map((s) => (
+              <option value={s.name} selected={userProfileDb?.specialty === s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div id="edit-profile-status" class="hidden p-3 text-xs rounded-xl border"></div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            id="close-edit-profile-modal"
+            class="px-4 py-2 text-sm font-semibold text-global-text-muted hover:text-global-text rounded-xl border border-global-border hover:bg-global-border/20 transition-all cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            id="submit-edit-profile"
+            class="px-4 py-2 text-sm font-semibold text-black bg-global-primary hover:bg-global-primary-hover rounded-xl transition-all cursor-pointer"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </Layout>
 
 <script>
@@ -729,10 +860,104 @@ const { data: contributions } = await supabaseAdmin
       });
     }
 
+    // 4. Modal de Edición de Perfil
+    const editProfileBtn = document.getElementById("edit-profile-btn");
+    const quickEditAvatarBtn = document.getElementById("quick-edit-avatar-btn");
+    const editProfileModal = document.getElementById("edit-profile-modal");
+    const closeEditProfileModalBtn = document.getElementById("close-edit-profile-modal");
+    const editProfileForm = document.getElementById("edit-profile-form") as HTMLFormElement;
+    const editProfileStatus = document.getElementById("edit-profile-status");
+    const submitEditProfileBtn = document.getElementById("submit-edit-profile") as HTMLButtonElement;
+    
+    // Controles de archivo de avatar
+    const avatarInput = document.getElementById("avatar-input") as HTMLInputElement;
+    const editAvatarBtn = document.getElementById("edit-avatar-btn");
+    const avatarFilename = document.getElementById("avatar-filename");
+    const avatarPreview = document.getElementById("avatar-preview") as HTMLImageElement;
+
+    if (editProfileBtn && editProfileModal && closeEditProfileModalBtn && editProfileForm) {
+      const openModal = () => editProfileModal.classList.remove("hidden");
+      const closeModal = () => editProfileModal.classList.add("hidden");
+
+      editProfileBtn.addEventListener("click", openModal);
+      if (quickEditAvatarBtn) quickEditAvatarBtn.addEventListener("click", openModal);
+      closeEditProfileModalBtn.addEventListener("click", closeModal);
+      
+      editProfileModal.addEventListener("click", (e) => {
+        if (e.target === editProfileModal) closeModal();
+      });
+
+      // Manejo del input file del avatar
+      if (editAvatarBtn && avatarInput && avatarFilename && avatarPreview) {
+        editAvatarBtn.addEventListener("click", () => avatarInput.click());
+        
+        avatarInput.addEventListener("change", function() {
+          if (this.files && this.files.length > 0) {
+            const file = this.files[0];
+            avatarFilename!.textContent = file.name;
+            
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (e.target?.result) {
+                avatarPreview.src = e.target.result as string;
+                avatarPreview.classList.remove("hidden");
+                avatarPreview.nextElementSibling?.classList.add("hidden"); // Ocultar texto "Vacío"
+              }
+            };
+            reader.readAsDataURL(file);
+          } else {
+            avatarFilename!.textContent = "Solo JPG, PNG o WebP";
+          }
+        });
+      }
+
+      // Envío del formulario
+      editProfileForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        submitEditProfileBtn.disabled = true;
+        submitEditProfileBtn.textContent = "Guardando...";
+        
+        editProfileStatus!.className = "p-3 text-xs rounded-xl border bg-global-primary/15 border-global-primary text-global-text text-center mt-4";
+        editProfileStatus!.textContent = "Guardando cambios en el perfil...";
+        editProfileStatus!.classList.remove("hidden");
+
+        try {
+          const formData = new FormData(editProfileForm);
+          
+          const res = await fetch("/api/profile/update", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Ocurrió un error inesperado al actualizar perfil");
+          }
+
+          editProfileStatus!.className = "p-3 text-xs rounded-xl border bg-green-500/10 border-green-500/20 text-green-400 text-center mt-4";
+          editProfileStatus!.textContent = "¡Perfil actualizado con éxito!";
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+
+        } catch (err: any) {
+          editProfileStatus!.className = "p-3 text-xs rounded-xl border bg-red-500/10 border-red-500/20 text-red-400 text-center mt-4";
+          editProfileStatus!.textContent = err.message || "Error al actualizar perfil.";
+          submitEditProfileBtn.disabled = false;
+          submitEditProfileBtn.textContent = "Guardar Cambios";
+        }
+      });
+    }
+
     // 3. Manejo de Logout
     document
       .getElementById("logout-form")
       ?.addEventListener("submit", async (event) => {
+
         event.preventDefault();
 
         try {
