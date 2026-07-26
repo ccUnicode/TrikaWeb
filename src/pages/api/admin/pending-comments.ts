@@ -90,10 +90,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         let sheetsMap: Record<number, string> = {};
 
         if (sheetIds.length > 0) {
-            const { data: sheetsData } = await supabaseAdmin
+            const { data: sheetsData, error: sheetsError } = await supabaseAdmin
                 .from("sheets")
                 .select("id, exam_type, cycle, courses:course_id (code, name)")
                 .in("id", sheetIds);
+
+            if (sheetsError) {
+                console.error("Error fetching sheets details:", sheetsError);
+                return new Response(
+                    JSON.stringify({ ok: false, error: "Error al obtener detalles de las planchas" }),
+                    { status: 500, headers: { "Content-Type": "application/json" } }
+                );
+            }
 
             if (sheetsData) {
                 for (const s of sheetsData) {
