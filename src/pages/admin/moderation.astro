@@ -753,9 +753,19 @@ if (!isAdmin) {
             const current = parseInt(totalCount.textContent ?? "0", 10);
             const newCount = Math.max(0, current + delta);
             totalCount.textContent = String(newCount);
+
+            // Actualizar la paginación dinámicamente
+            const totalPages = Math.ceil(newCount / pageSize) || 1;
+            if (pageInfo) pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+            if (prevBtn) prevBtn.disabled = currentPage <= 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+
             if (newCount === 0) {
                 emptyState?.classList.remove("hidden");
                 pagination?.classList.add("hidden");
+            } else if (itemsList && itemsList.children.length === 0 && currentPage > 1) {
+                // Si borramos el último elemento de esta página, retrocedemos a la anterior
+                loadItems(currentPage - 1);
             }
         }
 
