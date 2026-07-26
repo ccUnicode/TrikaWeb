@@ -44,9 +44,9 @@ const { data: contributions } = await supabaseAdmin
 
 // Obtener perfil completo desde Supabase para especialidad y avatar
 const { data: userProfileDb } = await supabaseAdmin
-  .from("profiles")
+  .from("student_details")
   .select("avatar_url, specialty")
-  .eq("id", user.uid)
+  .eq("user_id", user.uid)
   .maybeSingle();
 
 const displaySpecialty = userProfileDb?.specialty || "Estudiante UNI";

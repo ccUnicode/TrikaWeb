@@ -56,21 +56,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Preparar objeto de actualización
-    const updates: any = {};
-    if (specialty) updates.specialty = specialty;
-    if (avatarUrl) updates.avatar_url = avatarUrl;
+    const upsertData: any = {
+      user_id: user.uid,
+      email: user.email || '',
+      full_name: user.name || 'Estudiante'
+    };
+    if (specialty) upsertData.specialty = specialty;
+    if (avatarUrl) upsertData.avatar_url = avatarUrl;
 
-    if (Object.keys(updates).length > 0) {
-      const { error: updateError } = await supabaseAdmin
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.uid);
+    const { error: updateError } = await supabaseAdmin
+      .from('student_details')
+      .upsert(upsertData, { onConflict: 'user_id' });
 
       if (updateError) {
         console.error('Error al actualizar perfil:', updateError);
         return new Response(JSON.stringify({ error: 'Error al actualizar el perfil en la base de datos' }), { status: 500 });
       }
-    }
 
     return new Response(JSON.stringify({ success: true, avatarUrl, specialty }), { status: 200 });
 

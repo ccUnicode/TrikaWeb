@@ -28,9 +28,9 @@ let studentProfile = {
 };
 
 const { data: profileDb } = await supabaseAdmin
-  .from("profiles")
-  .select("id, full_name, email, avatar_url, role, specialty")
-  .eq("id", id)
+  .from("student_details")
+  .select("user_id, full_name, email, avatar_url, specialty")
+  .eq("user_id", id)
   .maybeSingle();
 
 if (profileDb) {
