@@ -10,15 +10,19 @@
  *  - Validación de ciclo (formato AAAA-T) con auto-insert
  *  - Validación de que exista plancha antes de subir solucionario
  */
+
 export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
+
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Validate admin session via cookie
+  // Validar sesión administrativa mediante cookie.
   const isAdmin = await validateAdminSession(cookies);
+
   if (!isAdmin) {
     return Response.json(
       {
@@ -29,25 +33,34 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // Parse JSON body
-  let body: Record<string, any>;
+  // Interpretar el cuerpo JSON.
+  let body: Record<string, unknown>;
+
   try {
-    body = await request.json();
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return Response.json({ ok: false, error: "Body JSON inválido" }, { status: 400 });
+    return Response.json(
+      {
+        ok: false,
+        error: "Body JSON inválido",
+      },
+      { status: 400 }
+    );
   }
 
   const courseId = Number(body.course_id);
   const courseCode = String(body.course_code ?? "")
     .trim()
     .toUpperCase();
-  const cycle = String(body.cycle ?? "").trim();
+  const cycle = String(body.cycle ?? "")
+    .trim()
+    .toUpperCase();
   const evaluationId = Number(body.evaluation_id);
   const resourceKind = String(body.resource_kind ?? "")
     .trim()
-    .toUpperCase();
+    .toUpperCase() as ResourceKind;
   const teacherHint = String(body.teacher_hint ?? "").trim();
-  const isTeacherSpecific = Boolean(body.is_teacher_specific);
+  const isTeacherSpecific = body.is_teacher_specific === true;
 
   if (
     !Number.isInteger(courseId) ||
@@ -67,23 +80,63 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // Validate cycle code in DB
-  if (!/^\d{4}-(I|II|III)$/.test(cycle)) {
+  // Validar resource_kind antes de realizar operaciones en la base de datos.
+  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
     return Response.json(
       {
         ok: false,
-        error: "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
+        error: "resource_kind inválido",
       },
       { status: 400 }
     );
   }
 
+  // Si la plancha es específica de un profesor, teacher_hint es obligatorio.
+  if (isTeacherSpecific && !teacherHint) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Debes indicar el docente para una plancha de profesor específico",
+      },
+      { status: 400 }
+    );
+  }
+
+  // Validar el formato del ciclo y obtener sus componentes.
+  const cycleMatch = cycle.match(/^(\d{4})-(I|II|III)$/);
+
+  if (!cycleMatch) {
+    return Response.json(
+      {
+        ok: false,
+        error:
+          "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const cycleYear = Number(cycleMatch[1]);
+  const cycleTerm = cycleMatch[2];
+
+  // Registrar el ciclo si no existe y mantener completos sus campos obligatorios.
   const { error: cycleUpsertError } = await supabaseAdmin
     .from("cycles")
-    .upsert({ cycle_code: cycle }, { onConflict: "cycle_code" });
+    .upsert(
+      {
+        cycle_code: cycle,
+        year: cycleYear,
+        term: cycleTerm,
+      },
+      {
+        onConflict: "cycle_code",
+      }
+    );
 
   if (cycleUpsertError) {
-    console.error("Error upserting cycle:", cycleUpsertError);
+    console.error("Error al registrar el ciclo:", cycleUpsertError);
+
     return Response.json(
       {
         ok: false,
@@ -93,21 +146,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // If marked as teacher-specific, teacher_hint is required
-  if (isTeacherSpecific && !teacherHint) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Debes indicar el docente para una plancha de profesor específico",
-      },
-      { status: 400 }
-    );
-  }
-
-  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
-    return Response.json({ ok: false, error: "resource_kind inválido" }, { status: 400 });
-  }
-
+  // Validar que la evaluación seleccionada exista.
   const { data: evaluation, error: evaluationError } = await supabaseAdmin
     .from("evaluation_type")
     .select("evaluation_id, evaluation_name, evaluation_abr")
@@ -115,6 +154,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .single();
 
   if (evaluationError || !evaluation) {
+    if (evaluationError) {
+      console.error(
+        "Error al buscar la evaluación seleccionada:",
+        evaluationError
+      );
+    }
+
     return Response.json(
       {
         ok: false,
@@ -138,7 +184,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // Resolve course
+  // Validar que el curso exista y coincida con el código recibido.
   const { data: course, error: courseError } = await supabaseAdmin
     .from("courses")
     .select("id, code")
@@ -146,7 +192,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .single();
 
   if (courseError || !course) {
-    return Response.json({ ok: false, error: "course_id no encontrado" }, { status: 404 });
+    if (courseError) {
+      console.error("Error al buscar el curso:", courseError);
+    }
+
+    return Response.json(
+      {
+        ok: false,
+        error: "course_id no encontrado",
+      },
+      { status: 404 }
+    );
   }
 
   const normalizedCode = String(course.code ?? "")
@@ -163,7 +219,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
-  // Si se quiere subir un SOLUCIONARIO, validar que la PLANCHA ya exista en la base de datos
+  /*
+   * Para subir únicamente un solucionario, validar que la plancha
+   * correspondiente ya exista.
+   */
   if (resourceKind === "SOLUCIONARIO") {
     let sheetQuery = supabaseAdmin
       .from("sheets")
@@ -175,31 +234,47 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     if (isTeacherSpecific && teacherHint) {
       sheetQuery = sheetQuery.eq("teacher_hint", teacherHint);
     } else {
-      sheetQuery = sheetQuery.or("teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos");
+      sheetQuery = sheetQuery.or(
+        "teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos"
+      );
     }
 
-    const { data: existingSheet, error: lookupError } = await sheetQuery.maybeSingle();
+    const { data: existingSheet, error: lookupError } =
+      await sheetQuery.maybeSingle();
 
     if (lookupError) {
-      console.error("Error al buscar plancha existente para solucionario:", lookupError);
+      console.error(
+        "Error al buscar la plancha existente para el solucionario:",
+        lookupError
+      );
+
       return Response.json(
-        { ok: false, error: "Error al validar la existencia de la plancha" },
+        {
+          ok: false,
+          error: "Error al validar la existencia de la plancha",
+        },
         { status: 500 }
       );
     }
 
     if (!existingSheet) {
       return Response.json(
-        { ok: false, error: "Primero debes subir la plancha antes de adjuntar un solucionario" },
+        {
+          ok: false,
+          error:
+            "Primero debes subir la plancha antes de adjuntar un solucionario",
+        },
         { status: 400 }
       );
     }
   }
 
-  // Build storage path & bucket
-  // For teacher-specific sheets, append sanitized teacher name to avoid collisions
-  // General:  BMA02/PC1/2024-II.pdf
-  // Specific: BMA02/PC1/2024-II_Arambulo.pdf
+  /*
+   * Construir la ruta del archivo.
+   *
+   * General:   BMA02/PC1/2024-II.pdf
+   * Específica: BMA02/PC1/2024-II_Arambulo.pdf
+   */
   const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
   const safeCycle = cycle.replace(/[^a-zA-Z0-9\-_]/g, "_");
   const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
@@ -211,6 +286,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .replace(/Ñ/g, "N")
         .replace(/[^a-zA-Z0-9\-_]/g, "_")}`
     : "";
+
   const path = `${normalizedCode}/${safeExam}/${safeCycle}${safeTeacher}.pdf`;
 
   let signedUrl: string | undefined;
@@ -219,72 +295,87 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   let solutionPath: string | undefined;
 
   if (resourceKind === "AMBOS") {
-    // Generate signed URL for Plancha
-    const { data: pData, error: pError } = await supabaseAdmin.storage
-      .from("exams")
-      .createSignedUploadUrl(path, { upsert: true });
+    // Generar URL firmada para la plancha.
+    const { data: planchaData, error: planchaError } =
+      await supabaseAdmin.storage
+        .from("exams")
+        .createSignedUploadUrl(path, { upsert: true });
 
-    // Generate signed URL for Solucionario
+    // Generar URL firmada para el solucionario.
     solutionPath = `${normalizedCode}/${safeExam}/${safeCycle}${safeTeacher}.pdf`;
-    const { data: sData, error: sError } = await supabaseAdmin.storage
-      .from("solutions")
-      .createSignedUploadUrl(solutionPath, { upsert: true });
 
-    if (pError || !pData || sError || !sData) {
+    const { data: solutionData, error: solutionError } =
+      await supabaseAdmin.storage
+        .from("solutions")
+        .createSignedUploadUrl(solutionPath, { upsert: true });
+
+    if (
+      planchaError ||
+      !planchaData ||
+      solutionError ||
+      !solutionData
+    ) {
       console.error(
-        "Error creating signed upload URLs for AMBOS:",
-        pError,
-        sError,
+        "Error al crear las URLs firmadas para AMBOS:",
+        planchaError,
+        solutionError
       );
+
       return Response.json(
         {
           ok: false,
-          error: "No se pudo generar URLs de subida conjunta.",
+          error: "No se pudieron generar las URLs de subida conjunta.",
         },
         { status: 500 }
       );
     }
-    signedUrl = pData.signedUrl;
-    token = pData.token;
-    solutionSignedUrl = sData.signedUrl;
+
+    signedUrl = planchaData.signedUrl;
+    token = planchaData.token;
+    solutionSignedUrl = solutionData.signedUrl;
   } else {
-    // Generate signed upload URL for the single file
-    const { data: signedData, error: signedError } = await supabaseAdmin.storage
-      .from(bucket)
-      .createSignedUploadUrl(path, { upsert: true });
+    // Generar URL firmada para un único archivo.
+    const { data: signedData, error: signedError } =
+      await supabaseAdmin.storage
+        .from(bucket)
+        .createSignedUploadUrl(path, { upsert: true });
 
     if (signedError || !signedData) {
-      console.error("Error creating signed upload URL:", signedError);
+      console.error("Error al crear la URL firmada:", signedError);
+
       return Response.json(
         {
           ok: false,
-          error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
+          error: "No se pudo generar la URL de subida.",
         },
         { status: 500 }
       );
     }
+
     signedUrl = signedData.signedUrl;
     token = signedData.token;
   }
 
-  // Optional: Generate signed upload URL for thumbnail if it's a Plancha
-  let thumbSignedUrl: string | undefined = undefined;
-  let thumbPath: string | undefined = undefined;
+  // Generar opcionalmente una URL firmada para la miniatura.
+  let thumbSignedUrl: string | undefined;
+  let thumbPath: string | undefined;
 
   if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
     thumbPath = `${normalizedCode}/${safeExam}/${safeCycle}${safeTeacher}.jpg`;
-    const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
-      .from("thumbnails")
-      .createSignedUploadUrl(thumbPath, { upsert: true });
+
+    const { data: thumbData, error: thumbError } =
+      await supabaseAdmin.storage
+        .from("thumbnails")
+        .createSignedUploadUrl(thumbPath, { upsert: true });
 
     if (!thumbError && thumbData) {
       thumbSignedUrl = thumbData.signedUrl;
     } else {
       console.error(
-        "Error creating signed upload URL for thumbnail:",
-        thumbError,
+        "Error al crear la URL firmada para la miniatura:",
+        thumbError
       );
-      // Non-fatal, we can still upload the PDF even if thumb url fails
+      // Este error no impide subir el PDF principal.
     }
   }
 
