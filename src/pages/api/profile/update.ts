@@ -51,8 +51,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         console.error('Error al subir avatar:', uploadError);
         return new Response(JSON.stringify({ error: `Error subiendo foto: ${uploadError.message}` }), { status: 500 });
       }
-      
-      avatarUrl = storagePath;
+      const { data: publicUrlData } = supabaseAdmin.storage.from('avatars').getPublicUrl(storagePath);
+      avatarUrl = publicUrlData.publicUrl;
     }
 
     // Preparar objeto de actualización
