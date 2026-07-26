@@ -1,8 +1,9 @@
-"""
+---
+/*
 Página de planchas guardadas (favoritos).
 Lee los IDs de localStorage, los envía en lote a /api/sheets/batch
 y renderiza las cards con toggle inline para quitar favoritos.
-"""
+*/
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
 ---
@@ -53,7 +54,7 @@ import Layout from "../layouts/Layout.astro";
 <script
   define:vars={{ PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL }}
 >
-  """Lee la lista de IDs favoritos desde localStorage"""
+  /* Lee la lista de IDs favoritos desde localStorage */
   function getFavorites() {
     try {
       const stored = localStorage.getItem("trikaweb:favorites");
@@ -63,7 +64,7 @@ import Layout from "../layouts/Layout.astro";
     }
   }
 
-  """Agrega o remueve un ID de la lista y emite evento para sincronizar otros componentes"""
+  /* Agrega o remueve un ID de la lista y emite evento para sincronizar otros componentes */
   function toggleFavorite(id) {
     const favs = getFavorites();
     const index = favs.indexOf(id);
@@ -84,7 +85,7 @@ import Layout from "../layouts/Layout.astro";
   const emptyState = document.getElementById("empty-state");
   const grid = document.getElementById("grid");
 
-  """Obtiene las planchas desde el servidor en lote y las renderiza"""
+  /* Obtiene las planchas desde el servidor en lote y las renderiza */
   async function loadSaved() {
     try {
       if (loading) loading.textContent = "Leyendo favoritos...";
@@ -145,7 +146,7 @@ import Layout from "../layouts/Layout.astro";
     return `${PUBLIC_SUPABASE_URL}/storage/v1/object/public/thumbnails/${cleanPath}`;
   }
 
-  """Renderiza las cards de planchas con botón inline para quitar de favoritos"""
+  /* Renderiza las cards de planchas con botón inline para quitar de favoritos */
   function renderGrid(sheets) {
     if (!grid) return;
     grid.innerHTML = "";

@@ -1,11 +1,11 @@
 ---
-"""
+/*
 Página de detalle de un curso individual.
 Agrupa las planchas por tipo de examen (PC, EP, EF, etc.)
 y las ordena según un orden lógico predefinido.
 Cada grupo se muestra en una sección con carrusel responsivo
 y selector de ordenamiento por ciclo.
-"""
+*/
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import CardExam from "../../components/CardExam.astro";
@@ -380,7 +380,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
 </Layout>
 
 <script define:vars={{ sortedTypes }}>
-  """Navegación por pestañas de tipo de examen"""
+  /* Navegación por pestañas de tipo de examen */
   function setupTabs() {
     const tabs = document.querySelectorAll(".exam-tab");
 
@@ -408,7 +408,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
     });
   }
 
-  """Ordena las cards por ciclo ascendente o descendente dentro de cada sección"""
+  /* Ordena las cards por ciclo ascendente o descendente dentro de cada sección */
   function setupSorting() {
     const dropdowns = document.querySelectorAll(".sort-dropdown");
 
@@ -445,7 +445,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
     });
   }
 
-  """Configura el carrusel responsivo con soporte táctil para una sección"""
+  /* Configura el carrusel responsivo con soporte táctil para una sección */
   function setupCarousel(type, totalItems) {
     let currentIndex = 0;
 

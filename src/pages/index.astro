@@ -1,12 +1,12 @@
 ﻿---
-"""
+/*
 Página principal del sitio.
 Carga 3 secciones asíncronas:
   - Planchas más visitadas (getTopSheetsByViews)
   - Planchas más difíciles (getTopSheetsByDifficulty)
   - Profesores mejor calificados (getTopTeachers)
 Cada sección usa un carrusel con soporte táctil e indicadores de puntos.
-"""
+*/
 export const prerender = false;
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
@@ -424,14 +424,14 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 </Layout>
 
 <script>
-  """
+  /*
   Configura un carrusel paginado para una sección de cards.
   Soporta:
     - Navegación por botones (anterior/siguiente)
     - Indicadores de puntos (mobile)
     - Desplazamiento táctil (swipe)
     - Recalculo en resize del viewport
-  """
+  */
   function setupCarousel(
     prevBtnId: string,
     nextBtnId: string,

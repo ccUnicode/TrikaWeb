@@ -1,4 +1,5 @@
-"""
+---
+/*
 Página de perfil de un profesor.
 Muestra:
   - Avatar, nombre y puntuación general
@@ -6,7 +7,7 @@ Muestra:
   - Cursos asociados
   - Comentarios paginados
   - Modal para calificar y botón para eliminar calificación propia
-"""
+*/
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
@@ -393,7 +394,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 <script>
   import { ensureDeviceId } from "../../lib/client/device";
 
-  """Verifica si el usuario ya calificó y muestra el botón de eliminar"""
+  /* Verifica si el usuario ya calificó y muestra el botón de eliminar */
   const initDeleteRating = async () => {
     const deleteBtn = document.getElementById(
       "delete-rating-btn",
@@ -421,7 +422,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
       console.error("Error verificando votación:", err);
     }
 
-    """Elimina la calificación del usuario y recarga la página"""
+    /* Elimina la calificación del usuario y recarga la página */
     deleteBtn.addEventListener("click", async () => {
       if (
         !confirm(
