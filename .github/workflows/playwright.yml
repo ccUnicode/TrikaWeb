@@ -20,7 +20,7 @@ jobs:
     - name: Run Playwright tests
       run: |
         if [ -f playwright.config.ts ] && [ -d tests ]; then
-          npx playwright test || true
+          npx playwright test
         else
           echo "No Playwright config or tests directory found. Skipping."
         fi

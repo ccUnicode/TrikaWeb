@@ -28,7 +28,7 @@ async function validateRequest(
   // Validate sheet: exists, visible, course exists, no solution
   const { data: sheetData, error: sheetError } = await supabaseAdmin
     .from('sheets')
-    .select('id, is_hidden, solution_kind, solution_storage_path, solution_video_url, courses:course_id (code)')
+    .select('id, is_hidden, solution_kind, solution_storage_path, solution_video_url, courses:course_id (code, is_hidden)')
     .eq('id', sheetId)
     .single();
 
@@ -41,9 +41,9 @@ async function validateRequest(
     return Response.json({ error: 'Plancha no disponible' }, { status: 404 });
   }
 
-  // Course must exist (the FK guarantees it, but the join could return null)
+  // Course must exist and be visible
   const course = (sheetData as any).courses;
-  if (!course) {
+  if (!course || course.is_hidden) {
     return Response.json({ error: 'Curso no encontrado' }, { status: 404 });
   }
 
