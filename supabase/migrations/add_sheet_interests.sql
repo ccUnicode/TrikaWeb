@@ -29,13 +29,15 @@ create table if not exists public.sheet_interests (
 create index if not exists idx_sheet_interests_sheet_id
   on public.sheet_interests (sheet_id);
 
--- Eliminar primero los triggers que puedan depender de funciones antiguas.
+-- Eliminar primero todos los triggers conocidos de implementaciones anteriores.
 drop trigger if exists t_sheet_interests_stats on public.sheet_interests;
 drop trigger if exists trg_sheet_interest_count on public.sheet_interests;
+drop trigger if exists t_sheet_interests_count on public.sheet_interests;
 
 -- Eliminar implementaciones antiguas o duplicadas.
 drop function if exists public.toggle_sheet_interest(bigint, text, text);
 drop function if exists public.update_sheet_interest_count();
+drop function if exists public.refresh_sheet_interest_count();
 
 create or replace function public.refresh_interest_count()
 returns trigger
