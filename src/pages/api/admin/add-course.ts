@@ -54,6 +54,64 @@ const normalizeOptionalId = (
   };
 };
 
+type EvaluationIdsResult =
+  | {
+      valid: true;
+      values: number[];
+    }
+  | {
+      valid: false;
+      error: string;
+    };
+
+/**
+ * Valida el arreglo original de evaluaciones sin eliminar
+ * silenciosamente valores inválidos o repetidos.
+ */
+const validateEvaluationIds = (value: unknown): EvaluationIdsResult => {
+  if (value === undefined) {
+    return {
+      valid: true,
+      values: [],
+    };
+  }
+
+  if (!Array.isArray(value)) {
+    return {
+      valid: false,
+      error: "Las evaluaciones seleccionadas deben enviarse como una lista",
+    };
+  }
+
+  const hasInvalidValue = value.some(
+    (evaluationId: unknown) =>
+      typeof evaluationId !== "number" ||
+      !Number.isSafeInteger(evaluationId) ||
+      evaluationId <= 0,
+  );
+
+  if (hasInvalidValue) {
+    return {
+      valid: false,
+      error: "Las evaluaciones seleccionadas contienen IDs inválidos",
+    };
+  }
+
+  const evaluationIds = value as number[];
+
+  if (new Set(evaluationIds).size !== evaluationIds.length) {
+    return {
+      valid: false,
+      error: "Las evaluaciones seleccionadas no pueden contener IDs repetidos",
+    };
+  }
+
+  return {
+    valid: true,
+    values: evaluationIds,
+  };
+};
+
 const jsonError = (error: string, status: number): Response =>
   Response.json(
     {
@@ -109,32 +167,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const subsystem_id = normalizedSubsystem.value;
 
-    if (
-      body.selected_evaluations !== undefined &&
-      !Array.isArray(body.selected_evaluations)
-    ) {
-      return jsonError(
-        "Las evaluaciones seleccionadas deben enviarse como una lista",
-        400,
-      );
+    const evaluationIdsResult = validateEvaluationIds(
+      body.selected_evaluations,
+    );
+
+    if (!evaluationIdsResult.valid) {
+      return jsonError(evaluationIdsResult.error, 400);
     }
 
-    const rawSelectedEvaluations: unknown[] = Array.isArray(
-      body.selected_evaluations,
-    )
-      ? body.selected_evaluations
-      : [];
-
-    const selected_evaluations: number[] = [
-      ...new Set<number>(
-        rawSelectedEvaluations
-          .map((evaluationId: unknown) => Number(evaluationId))
-          .filter(
-            (evaluationId: number) =>
-              Number.isInteger(evaluationId) && evaluationId > 0,
-          ),
-      ),
-    ];
+    const selected_evaluations = evaluationIdsResult.values;
 
     if (!code || code.length < 2) {
       return jsonError("El código es requerido (mínimo 2 caracteres)", 400);

@@ -4,6 +4,16 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+type EvaluationIdsResult =
+  | {
+      valid: true;
+      values: number[];
+    }
+  | {
+      valid: false;
+      error: string;
+    };
+
 const normalizeCode = (value: unknown): string =>
   String(value ?? "")
     .trim()
@@ -26,7 +36,7 @@ const normalizeCredits = (value: unknown): number => {
 const normalizeRequiredId = (value: unknown): number | null => {
   const normalizedValue = Number(value);
 
-  if (!Number.isInteger(normalizedValue) || normalizedValue <= 0) {
+  if (!Number.isSafeInteger(normalizedValue) || normalizedValue <= 0) {
     return null;
   }
 
@@ -54,6 +64,56 @@ const normalizeOptionalId = (
   };
 };
 
+/**
+ * Valida el arreglo original de evaluaciones.
+ *
+ * No convierte cadenas a números ni elimina silenciosamente
+ * IDs inválidos o repetidos.
+ */
+const validateEvaluationIds = (value: unknown): EvaluationIdsResult => {
+  if (value === undefined) {
+    return {
+      valid: true,
+      values: [],
+    };
+  }
+
+  if (!Array.isArray(value)) {
+    return {
+      valid: false,
+      error: "Las evaluaciones seleccionadas deben enviarse como una lista",
+    };
+  }
+
+  const hasInvalidValue = value.some(
+    (evaluationId: unknown) =>
+      typeof evaluationId !== "number" ||
+      !Number.isSafeInteger(evaluationId) ||
+      evaluationId <= 0,
+  );
+
+  if (hasInvalidValue) {
+    return {
+      valid: false,
+      error: "Las evaluaciones seleccionadas contienen IDs inválidos",
+    };
+  }
+
+  const evaluationIds = value as number[];
+
+  if (new Set<number>(evaluationIds).size !== evaluationIds.length) {
+    return {
+      valid: false,
+      error: "Las evaluaciones seleccionadas no pueden contener IDs repetidos",
+    };
+  }
+
+  return {
+    valid: true,
+    values: evaluationIds,
+  };
+};
+
 const jsonError = (error: string, status: number): Response =>
   Response.json(
     {
@@ -66,9 +126,13 @@ const jsonError = (error: string, status: number): Response =>
   );
 
 /**
- * Actualiza un curso existente con todos sus datos, sistema, subsistema
- * y evaluaciones asociadas. Delega en la RPC update_course_with_evaluations.
- * Incluye las mismas validaciones que add-course pero requiere course_id.
+ * PATCH /api/admin/update-course
+ *
+ * Actualiza un curso existente junto con su sistema,
+ * subsistema y evaluaciones asociadas.
+ *
+ * La modificación se delega a la RPC
+ * update_course_with_evaluations.
  */
 export const PATCH: APIRoute = async ({ request, cookies }) => {
   try {
@@ -96,48 +160,34 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
       return jsonError("Body JSON inválido", 400);
     }
 
-    const course_id = normalizeRequiredId(body.course_id);
+    const courseId = normalizeRequiredId(body.course_id);
 
     const code = normalizeCode(body.code);
     const name = normalizeName(body.name);
     const summary = normalizeSummary(body.summary);
-
     const credits = normalizeCredits(body.credits);
 
-    const system_id = normalizeRequiredId(body.system_id);
+    const systemId = normalizeRequiredId(body.system_id);
 
     const normalizedSubsystem = normalizeOptionalId(body.subsystem_id);
 
-    const subsystem_id = normalizedSubsystem.value;
+    const subsystemId = normalizedSubsystem.value;
 
-    if (
-      body.selected_evaluations !== undefined &&
-      !Array.isArray(body.selected_evaluations)
-    ) {
-      return jsonError(
-        "Las evaluaciones seleccionadas deben enviarse como una lista",
-        400,
-      );
+    /*
+     * Validar el arreglo original antes de modificarlo.
+     * Cualquier ID inválido o repetido produce una respuesta 400.
+     */
+    const evaluationIdsResult = validateEvaluationIds(
+      body.selected_evaluations,
+    );
+
+    if (!evaluationIdsResult.valid) {
+      return jsonError(evaluationIdsResult.error, 400);
     }
 
-    const rawSelectedEvaluations: unknown[] = Array.isArray(
-      body.selected_evaluations,
-    )
-      ? body.selected_evaluations
-      : [];
+    const selectedEvaluations = evaluationIdsResult.values;
 
-    const selected_evaluations: number[] = [
-      ...new Set<number>(
-        rawSelectedEvaluations
-          .map((evaluationId: unknown): number => Number(evaluationId))
-          .filter(
-            (evaluationId: number) =>
-              Number.isInteger(evaluationId) && evaluationId > 0,
-          ),
-      ),
-    ];
-
-    if (course_id === null) {
+    if (courseId === null) {
       return jsonError("Curso inválido", 400);
     }
 
@@ -160,7 +210,7 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    if (system_id === null) {
+    if (systemId === null) {
       return jsonError("Debe seleccionar un sistema de evaluación válido", 400);
     }
 
@@ -168,7 +218,7 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
       return jsonError("Subsistema inválido", 400);
     }
 
-    if (subsystem_id === null && selected_evaluations.length > 0) {
+    if (subsystemId === null && selectedEvaluations.length > 0) {
       return jsonError(
         "No se pueden seleccionar evaluaciones sin un subsistema de evaluación",
         400,
@@ -178,14 +228,14 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
     const { data: result, error: rpcError } = await supabaseAdmin.rpc(
       "update_course_with_evaluations",
       {
-        p_course_id: course_id,
+        p_course_id: courseId,
         p_code: code,
         p_name: name,
         p_summary: summary,
         p_credits: credits,
-        p_system_id: system_id,
-        p_subsystem_id: subsystem_id,
-        p_selected_evaluations: selected_evaluations,
+        p_system_id: systemId,
+        p_subsystem_id: subsystemId,
+        p_selected_evaluations: selectedEvaluations,
       },
     );
 
