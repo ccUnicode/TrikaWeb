@@ -1,80 +1,99 @@
 ---
 export const prerender = false;
+
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { getVisibleSheetById } from "../../lib/server/getVisibleSheet";
 
 const sheetId = Number(Astro.params.id);
-if (!sheetId) {
+
+if (!Number.isSafeInteger(sheetId) || sheetId <= 0) {
   return Astro.redirect("/cursos");
 }
 
-const supa = supabaseAdmin;
-const { data: sheet, error } = await supa
-  .from("sheets")
-  .select(
-    `
-    id,
-    exam_type,
-    cycle,
-    teacher_hint,
-    avg_difficulty,
-    rating_count,
-    view_count,
-    exam_storage_path,
-    solution_kind,
-    solution_storage_path,
-    solution_video_url,
-    thumb_storage_path,
-    courses:course_id (code,name)
-  `,
-  )
-  .eq("id", sheetId)
-  .single();
+/*
+ * La consulta valida explícitamente que tanto la plancha como
+ * el curso asociado estén visibles antes de generar URLs firmadas.
+ */
+const { data: sheet, error } = await getVisibleSheetById(sheetId);
 
-if (error || !sheet) {
+if (error) {
+  console.error("Error al validar la visibilidad de la plancha:", error);
+
+  return Astro.redirect("/cursos");
+}
+
+if (!sheet) {
   return Astro.redirect("/cursos");
 }
 
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
-const courseCode = course?.code ?? "Curso";
-const courseName = course?.name ?? "Curso";
+
+if (!course) {
+  return Astro.redirect("/cursos");
+}
+
+const courseCode = course.code ?? "Curso";
+const courseName = course.name ?? "Curso";
+
 const headerTitle =
   `${courseCode} - ${sheet.exam_type || "Plancha"} ${sheet.cycle || ""}`.trim();
+
 const description =
   sheet.teacher_hint ||
-  `${sheet.exam_type || "Evaluacion"} - ${sheet.cycle || "Sin ciclo"}`;
+  `${sheet.exam_type || "Evaluación"} - ${sheet.cycle || "Sin ciclo"}`;
 
 let examUrl: string | null = null;
+
 if (sheet.exam_storage_path) {
-  const { data } = await supa.storage
+  const { data, error: examUrlError } = await supabaseAdmin.storage
     .from("exams")
     .createSignedUrl(sheet.exam_storage_path, 600);
-  examUrl = data?.signedUrl ?? null;
+
+  if (examUrlError) {
+    console.error(
+      "Error al generar la URL firmada de la plancha:",
+      examUrlError,
+    );
+  } else {
+    examUrl = data?.signedUrl ?? null;
+  }
 }
 
 let solutionUrl: string | null = null;
+
 if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
-  const { data } = await supa.storage
+  const { data, error: solutionUrlError } = await supabaseAdmin.storage
     .from("solutions")
     .createSignedUrl(sheet.solution_storage_path, 600);
-  solutionUrl = data?.signedUrl ?? null;
+
+  if (solutionUrlError) {
+    console.error(
+      "Error al generar la URL firmada del solucionario:",
+      solutionUrlError,
+    );
+  } else {
+    solutionUrl = data?.signedUrl ?? null;
+  }
 }
 
 let thumbUrl: string | null = null;
+
 if (sheet.thumb_storage_path) {
-  const { data } = await supa.storage
+  const { data, error: thumbUrlError } = await supabaseAdmin.storage
     .from("thumbnails")
     .createSignedUrl(sheet.thumb_storage_path, 600);
-  thumbUrl = data?.signedUrl ?? null;
-}
 
-/** Extrae el ID de un video de YouTube desde varias formas de URL */
-function getYouTubeId(url: string) {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return match && match[2].length === 11 ? match[2] : null;
+  if (thumbUrlError) {
+    console.error(
+      "Error al generar la URL firmada de la miniatura:",
+      thumbUrlError,
+    );
+  } else {
+    thumbUrl = data?.signedUrl ?? null;
+  }
 }
 ---
 
