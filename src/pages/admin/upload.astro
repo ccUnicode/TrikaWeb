@@ -356,6 +356,59 @@ if (!isAdmin) {
           </p>
         </div>
       </section>
+
+      <!-- RF-04: Solucionarios más solicitados -->
+      <section
+        class="rounded-2xl bg-global-surface border border-global-border p-6 mt-6"
+      >
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold text-global-text">
+              Solucionarios más solicitados
+            </h2>
+            <p class="mt-0.5 text-sm text-global-text-muted">
+              Planchas sin solucionario con más solicitudes
+            </p>
+          </div>
+          <button
+            id="refresh-interests-btn"
+            type="button"
+            class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              ></path>
+            </svg>
+            Actualizar
+          </button>
+        </div>
+
+        <!-- Loading indicator (outside interests-list to avoid destruction by innerHTML) -->
+        <div id="interests-loading" class="text-center py-6">
+          <div
+            class="animate-spin h-6 w-6 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-2"
+          >
+          </div>
+          <p class="text-sm text-global-text-muted">Cargando...</p>
+        </div>
+
+        <div id="interests-list" class="space-y-3"></div>
+
+        <div id="interests-empty" class="hidden text-center py-6">
+          <p class="text-global-text-muted text-sm">
+            No hay planchas con solicitudes de solucionario aún.
+          </p>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -786,5 +839,166 @@ if (!isAdmin) {
         submitBtn?.removeAttribute("disabled");
       }
     });
+  </script>
+
+  <script>
+    // RF-04: Load most requested solucionarios
+    import { supabaseClient } from "../../lib/supabase.client";
+
+    // Interface at script-level scope (not inside function body)
+    interface InterestSheet {
+      id: number;
+      exam_type: string;
+      cycle: string;
+      interest_count: number;
+      solution_kind: string | null;
+      courses: { code: string; name: string } | { code: string; name: string }[];
+    }
+
+    // Sanitize DB values for safe innerHTML interpolation (global scope)
+    function escapeHtml(str: string): string {
+      const div = document.createElement("div");
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    const interestsList = document.getElementById("interests-list");
+    const interestsLoading = document.getElementById("interests-loading");
+    const interestsEmpty = document.getElementById("interests-empty");
+    const refreshInterestsBtn = document.getElementById(
+      "refresh-interests-btn",
+    );
+
+    // Event delegation: single listener on the container for all reset buttons
+    interestsList?.addEventListener("click", async (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-reset-sheet-id]");
+      if (!btn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      const sheetId = btn.dataset.resetSheetId;
+      if (!sheetId || !confirm("¿Reiniciar el contador de solicitudes para esta plancha?")) return;
+
+      btn.disabled = true;
+      try {
+        const res = await fetch("/api/admin/reset-interest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sheet_id: Number(sheetId) }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (data.ok) {
+          loadTopInterests(); // Refresh the list
+        } else {
+          alert(data.error || "Error al reiniciar");
+        }
+      } catch (err) {
+        console.error("Reset error:", err);
+        alert("Error de red al reiniciar contador");
+      }
+    });
+
+    async function loadTopInterests() {
+      if (interestsLoading) interestsLoading.classList.remove("hidden");
+      if (interestsEmpty) interestsEmpty.classList.add("hidden");
+      if (interestsList) interestsList.innerHTML = "";
+
+      try {
+        const { data, error } = await supabaseClient
+          .from("sheets")
+          .select(
+            "id, exam_type, cycle, interest_count, solution_kind, courses:course_id (code, name)",
+          )
+          .is("solution_kind", null)
+          .gt("interest_count", 0)
+          .order("interest_count", { ascending: false })
+          .limit(10);
+
+        if (interestsLoading) interestsLoading.classList.add("hidden");
+
+
+
+        if (error) {
+          console.error("Error loading interests:", error);
+          if (interestsList) {
+            interestsList.innerHTML = `<div class="text-center text-red-400 py-4 text-sm">${escapeHtml(error.message)}</div>`;
+          }
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          if (interestsEmpty) interestsEmpty.classList.remove("hidden");
+          return;
+        }
+
+
+
+
+
+        // Render the list
+        const html = (data as InterestSheet[])
+          .map((sheet, index: number) => {
+            const course = Array.isArray(sheet.courses)
+              ? sheet.courses[0]
+              : sheet.courses;
+            const courseCode = escapeHtml(course?.code ?? "N/A");
+            const courseName = escapeHtml(course?.name ?? "");
+            const examType = escapeHtml(sheet.exam_type);
+            const cycle = escapeHtml(sheet.cycle);
+            const count = sheet.interest_count ?? 0;
+
+            return `
+            <div class="flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border group">
+              <a href="/exams/${sheet.id}" target="_blank"
+                 class="flex items-center gap-4 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0">
+                  ${index + 1}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate">
+                    ${courseCode} — ${examType} ${cycle}
+                  </p>
+                  <p class="text-xs text-global-text-muted truncate">${courseName}</p>
+                </div>
+              </a>
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-global-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                    <path d="m9 14 2 2 4-4" />
+                  </svg>
+                  <span class="text-sm font-bold text-global-primary">${count}</span>
+                </div>
+                <button
+                  type="button"
+                  data-reset-sheet-id="${sheet.id}"
+                  title="Reiniciar contador"
+                  class="p-1.5 rounded-lg text-global-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18" />
+                    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+
+        if (interestsList) {
+          interestsList.innerHTML = html;
+        }
+      } catch (err) {
+        if (interestsLoading) interestsLoading.classList.add("hidden");
+        console.error("Error:", err);
+      }
+    }
+
+    refreshInterestsBtn?.addEventListener("click", loadTopInterests);
+    loadTopInterests();
   </script>
 </Layout>
