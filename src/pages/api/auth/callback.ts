@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
 
   if (error || !data.session?.user) {
-    console.error('❌ Error en exchangeCodeForSession:', error);
+    console.error('Error en exchangeCodeForSession:', error);
     const message = encodeURIComponent(error?.message ?? 'No se pudo completar el inicio de sesión');
     return redirect(`/login?error=auth&msg=${message}`);
   }

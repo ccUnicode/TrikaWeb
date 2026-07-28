@@ -399,13 +399,13 @@ if (!isAdmin) {
 
         if (data.ok) {
           if (syncMessage)
-            syncMessage.textContent = "✅ Sincronización completada";
+            syncMessage.textContent = "Sincronización completada";
         } else {
           if (syncMessage)
-            syncMessage.textContent = `⚠️ ${data.error || "Error desconocido"}`;
+            syncMessage.textContent = `${data.error || "Error desconocido"}`;
         }
       } catch (err) {
-        if (syncMessage) syncMessage.textContent = `❌ Error de red: ${err}`;
+        if (syncMessage) syncMessage.textContent = `Error de red: ${err}`;
       } finally {
         // Re-enable buttons
         [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
@@ -669,7 +669,7 @@ if (!isAdmin) {
 
         const urlData = await urlRes.json();
         if (!urlData.ok) {
-          setUploadUI(`❌ ${urlData.error}`, 0, false);
+          setUploadUI(`${urlData.error}`, 0, false);
           submitBtn?.removeAttribute("disabled");
           return;
         }
@@ -693,7 +693,7 @@ if (!isAdmin) {
         if (!uploadRes.ok) {
           const errText = await uploadRes.text();
           console.error("Storage upload failed:", errText);
-          setUploadUI("❌ Error al subir la plancha a Storage", 40, false);
+          setUploadUI("Error al subir la plancha a Storage", 40, false);
           submitBtn?.removeAttribute("disabled");
           return;
         }
@@ -714,7 +714,7 @@ if (!isAdmin) {
 
           if (!solutionUploadRes.ok) {
             console.error("Solution upload failed");
-            setUploadUI("❌ Error al subir el solucionario", 50, false);
+            setUploadUI("Error al subir el solucionario", 50, false);
             submitBtn?.removeAttribute("disabled");
             return;
           }
@@ -767,13 +767,13 @@ if (!isAdmin) {
         const regData = await regRes.json();
 
         if (!regData.ok) {
-          setUploadUI(`⚠️ Archivo subido, pero: ${regData.error}`, 80, false);
+          setUploadUI(`Archivo subido, pero: ${regData.error}`, 80, false);
           submitBtn?.removeAttribute("disabled");
           return;
         }
 
         // Success!
-        setUploadUI(`✅ ${regData.message}`, 100, false);
+        setUploadUI(`${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
         if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
@@ -782,7 +782,7 @@ if (!isAdmin) {
         setTimeout(() => resetUploadUI(), 4000);
       } catch (err) {
         console.error("Upload error:", err);
-        setUploadUI(`❌ Error de red: ${err}`, 0, false);
+        setUploadUI(`Error de red: ${err}`, 0, false);
         submitBtn?.removeAttribute("disabled");
       }
     });

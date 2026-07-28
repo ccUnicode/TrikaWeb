@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ params }) => {
 
   if (sheet.solution_kind === 'pdf' && sheet.solution_storage_path) {
     const { data, error } = await supa.storage
-      .from('solutions') // 👈 tu bucket
+      .from('solutions') // tu bucket
       .createSignedUrl(sheet.solution_storage_path, 120);
     if (error || !data?.signedUrl) return new Response('Sign error', { status: 500 });
     return Response.redirect(data.signedUrl, 302);
