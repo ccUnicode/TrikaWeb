@@ -5,7 +5,6 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
 type CourseStatus = "INCOMPLETO" | "COMPLETO" | "ARCHIVADO";
-
 type CourseStatusFilter = "INCOMPLETO" | "COMPLETO";
 
 const normalizePositiveInteger = (
@@ -14,7 +13,7 @@ const normalizePositiveInteger = (
 ): number => {
   const normalizedValue = Number(value);
 
-  if (!Number.isInteger(normalizedValue) || normalizedValue <= 0) {
+  if (!Number.isSafeInteger(normalizedValue) || normalizedValue <= 0) {
     return defaultValue;
   }
 
@@ -56,26 +55,35 @@ const normalizeStatusFilter = (
   };
 };
 
+const jsonError = (error: string, status: number): Response =>
+  Response.json(
+    {
+      ok: false,
+      error,
+    },
+    {
+      status,
+    },
+  );
+
 /**
- * Obtiene cursos para el panel de administración con filtros y paginación.
- * Incluye cursos ocultos (is_hidden true/false) y conteos separados.
- * Filtros: búsqueda por código/nombre, estado (COMPLETO/INCOMPLETO).
- * Retorna metadatos de conteos visibles/ocultos para la UI.
+ * POST /api/admin/courses
+ *
+ * Obtiene los cursos del panel administrativo con:
+ * - búsqueda por código o nombre;
+ * - filtro por estado;
+ * - paginación;
+ * - conteos globales de cursos visibles y ocultos.
+ *
+ * Si alguno de los conteos no puede calcularse, la solicitud
+ * falla en lugar de mostrar el valor incorrecto 0.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
-    const isValid = await validateAdminSession(cookies);
+    const isAdmin = await validateAdminSession(cookies);
 
-    if (!isValid) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Sesión inválida",
-        },
-        {
-          status: 401,
-        },
-      );
+    if (!isAdmin) {
+      return jsonError("Sesión inválida", 401);
     }
 
     let body: Record<string, unknown> = {};
@@ -92,8 +100,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     } catch {
       /*
-       * El body es opcional.
-       * Se utilizan los valores predeterminados.
+       * El cuerpo es opcional.
+       * Cuando está vacío se utilizan los valores
+       * predeterminados de filtros y paginación.
        */
       body = {};
     }
@@ -102,16 +111,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const requestedPageSize = normalizePositiveInteger(body.pageSize, 30);
 
-    /*
-     * Limita el número de registros por página
-     * para evitar consultas demasiado grandes.
-     */
     const safeSize = Math.min(requestedPageSize, 100);
 
-    /*
-     * Limita la búsqueda para evitar cadenas
-     * innecesariamente extensas.
-     */
     const normalizedSearch = String(body.search ?? "")
       .trim()
       .slice(0, 100);
@@ -119,30 +120,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const normalizedStatus = normalizeStatusFilter(body.status);
 
     if (!normalizedStatus.valid) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Filtro de estado inválido",
-        },
-        {
-          status: 400,
-        },
-      );
+      return jsonError("Filtro de estado inválido", 400);
     }
 
     const status = normalizedStatus.value;
 
     const from = (safePage - 1) * safeSize;
-
     const to = from + safeSize - 1;
 
     /*
-     * Se construye primero la consulta base.
-     *
-     * Los filtros se aplican antes de:
-     * - ordenar;
-     * - paginar;
-     * - calcular el total.
+     * Consulta principal de cursos.
+     * El count considera los filtros aplicados.
      */
     let coursesQuery = supabaseAdmin.from("courses").select(
       `
@@ -158,9 +146,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       },
     );
 
-    /*
-     * Búsqueda por código o nombre.
-     */
     if (normalizedSearch) {
       const pattern = `%${normalizedSearch}%`;
 
@@ -169,21 +154,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    /*
-     * Filtro por estado.
-     *
-     * null        → todos
-     * COMPLETO    → completos
-     * INCOMPLETO  → pendientes
-     */
     if (status !== null) {
       coursesQuery = coursesQuery.eq("status", status);
     }
 
-    /*
-     * El orden y la paginación se aplican
-     * después de los filtros.
-     */
     coursesQuery = coursesQuery
       .order("name", {
         ascending: true,
@@ -191,8 +165,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .range(from, to);
 
     /*
-     * Los conteos de visibilidad permanecen globales.
-     * No dependen del filtro de estado.
+     * Los conteos de visibilidad son globales y no
+     * dependen de la búsqueda ni del filtro de estado.
      */
     const [coursesResult, visibleCountResult, hiddenCountResult] =
       await Promise.all([
@@ -215,35 +189,49 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           .eq("is_hidden", true),
       ]);
 
-    const { data, count, error } = coursesResult;
+    const { data, count, error: coursesError } = coursesResult;
 
-    if (error) {
-      console.error("Error fetching courses:", error);
+    if (coursesError) {
+      console.error("Error fetching courses:", coursesError);
 
-      return Response.json(
-        {
-          ok: false,
-          error: "Error al obtener cursos",
-        },
-        {
-          status: 500,
-        },
-      );
+      return jsonError("Error al obtener cursos", 500);
     }
 
-    if (visibleCountResult.error || hiddenCountResult.error) {
-      console.error(
-        "Error fetching course counts:",
-        visibleCountResult.error || hiddenCountResult.error,
+    /*
+     * No se sustituye un fallo de conteo por cero.
+     * Un error o un count nulo significa que el dato
+     * no está disponible y la respuesta no es confiable.
+     */
+    if (
+      visibleCountResult.error ||
+      hiddenCountResult.error ||
+      visibleCountResult.count === null ||
+      hiddenCountResult.count === null
+    ) {
+      console.error("Error fetching course visibility counts:", {
+        visibleError: visibleCountResult.error,
+        hiddenError: hiddenCountResult.error,
+        visibleCount: visibleCountResult.count,
+        hiddenCount: hiddenCountResult.count,
+      });
+
+      return jsonError(
+        "No se pudieron calcular los conteos de visibilidad",
+        500,
       );
     }
 
     /*
-     * Este total ya considera:
-     * - búsqueda;
-     * - filtro de estado.
+     * La consulta principal también solicitó count exacto.
+     * Si llega nulo sin error, no se debe inventar un cero.
      */
-    const total = count ?? 0;
+    if (count === null) {
+      console.error("La consulta de cursos no devolvió el conteo total.");
+
+      return jsonError("No se pudo calcular el total de cursos", 500);
+    }
+
+    const total = count;
 
     const totalPages = total > 0 ? Math.ceil(total / safeSize) : 0;
 
@@ -256,17 +244,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       status: course.status as CourseStatus,
     }));
 
-    const visibleCount = visibleCountResult.count ?? 0;
-
-    const hiddenCount = hiddenCountResult.count ?? 0;
-
     return Response.json(
       {
         ok: true,
         courses,
         counts: {
-          visible: visibleCount,
-          hidden: hiddenCount,
+          visible: visibleCountResult.count,
+          hidden: hiddenCountResult.count,
         },
         filters: {
           search: normalizedSearch,
@@ -286,14 +270,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   } catch (error) {
     console.error("courses API error:", error);
 
-    return Response.json(
-      {
-        ok: false,
-        error: "Error interno del servidor",
-      },
-      {
-        status: 500,
-      },
-    );
+    return jsonError("Error interno del servidor", 500);
   }
 };
