@@ -75,7 +75,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const thumbStoragePath = String(body.thumb_storage_path ?? "").trim();
 
-  const isTeacherSpecific = body.is_teacher_specific === true;
+  if (typeof body.is_teacher_specific !== "boolean") {
+    return Response.json(
+      {
+        ok: false,
+        error: "is_teacher_specific debe ser un valor booleano",
+      },
+      { status: 400 },
+    );
+  }
+
+  const isTeacherSpecific = body.is_teacher_specific;
 
   if (
     !isPositiveInteger(courseId) ||
