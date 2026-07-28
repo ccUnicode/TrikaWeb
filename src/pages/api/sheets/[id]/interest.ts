@@ -1,22 +1,39 @@
 export const prerender = false;
-import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+
+import type { APIRoute } from "astro";
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import {
+  sha256Hash,
+  getDeviceId,
+  getClientIP,
+  enforceIpRateLimit,
+} from "../../../../lib/utils";
 
 interface SheetAvailability {
   id: number;
-  interest_count: number | null;
   solution_kind: string | null;
   solution_storage_path: string | null;
   solution_video_url: string | null;
 }
 
-const jsonResponse = (body: Record<string, unknown>, status = 200) =>
-  new Response(JSON.stringify(body), {
+interface ToggleInterestResult {
+  status: "ok" | "not_found" | "unavailable" | "solution_available";
+  interested: boolean | null;
+  interest_count: number | string | null;
+}
+
+/**
+ * Formato UUID canónico aceptado por la columna uuid de PostgreSQL.
+ *
+ * No se restringe a una versión específica porque la base de datos
+ * admite UUID de diferentes versiones.
+ */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const jsonResponse = (body: Record<string, unknown>, status = 200): Response =>
+  Response.json(body, {
     status,
-    headers: {
-      "Content-Type": "application/json",
-    },
   });
 
 const parseSheetId = (value: string | undefined): number | null => {
@@ -26,7 +43,24 @@ const parseSheetId = (value: string | undefined): number | null => {
 };
 
 /**
+ * Valida y normaliza un UUID.
+ */
+const normalizeUuid = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalizedValue = value.trim().toLowerCase();
+
+  return UUID_PATTERN.test(normalizedValue) ? normalizedValue : null;
+};
+
+/**
  * Obtiene una plancha visible cuyo curso también está visible.
+ *
+ * Esta consulta se utiliza únicamente en GET. El POST realiza las
+ * validaciones dentro de la función SQL para evitar condiciones
+ * de carrera entre la validación y la modificación.
  */
 const getSheet = async (sheetId: number) => {
   return supabaseAdmin
@@ -34,7 +68,6 @@ const getSheet = async (sheetId: number) => {
     .select(
       `
         id,
-        interest_count,
         solution_kind,
         solution_storage_path,
         solution_video_url,
@@ -48,52 +81,81 @@ const getSheet = async (sheetId: number) => {
 };
 
 /**
- * Determina si la plancha ya cuenta con algún tipo de solucionario.
+ * Determina si una plancha ya cuenta con algún tipo de solucionario.
  */
 const hasSolution = (sheet: SheetAvailability): boolean =>
   Boolean(
-    sheet.solution_kind ||
-    sheet.solution_storage_path ||
-    sheet.solution_video_url,
+    sheet.solution_kind?.trim() ||
+    sheet.solution_storage_path?.trim() ||
+    sheet.solution_video_url?.trim(),
   );
 
 /**
- * GET /api/sheets/:id/interest?device_id=
+ * GET /api/sheets/:id/interest?device_id=<uuid>
+ *
  * Verifica si el dispositivo ya registró interés en el solucionario.
- *
- * POST /api/sheets/:id/interest
- * Registra o elimina el interés del dispositivo.
- *
- * El contador interest_count se mantiene sincronizado mediante un trigger
- * de PostgreSQL.
  */
 export const GET: APIRoute = async ({ params, url }) => {
   const sheetId = parseSheetId(params.id);
 
   if (!sheetId) {
-    return jsonResponse({ error: "ID inválido" }, 400);
+    return jsonResponse(
+      {
+        error: "ID inválido",
+      },
+      400,
+    );
   }
 
-  const deviceId = url.searchParams.get("device_id")?.trim();
+  const rawDeviceId = url.searchParams.get("device_id");
+
+  if (!rawDeviceId?.trim()) {
+    return jsonResponse(
+      {
+        error: "Falta device_id",
+      },
+      400,
+    );
+  }
+
+  const deviceId = normalizeUuid(rawDeviceId);
 
   if (!deviceId) {
-    return jsonResponse({ error: "Falta device_id" }, 400);
+    return jsonResponse(
+      {
+        error: "device_id debe tener formato UUID",
+      },
+      400,
+    );
   }
 
   const { data: sheet, error: sheetError } = await getSheet(sheetId);
 
   if (sheetError) {
     console.error("Error al validar la plancha:", sheetError);
-    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+
+    return jsonResponse(
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
+    );
   }
 
   if (!sheet) {
-    return jsonResponse({ error: "Plancha no disponible" }, 404);
+    return jsonResponse(
+      {
+        error: "Plancha no disponible",
+      },
+      404,
+    );
   }
 
   if (hasSolution(sheet as SheetAvailability)) {
     return jsonResponse(
-      { error: "La plancha ya cuenta con solucionario" },
+      {
+        error: "La plancha ya cuenta con solucionario",
+      },
       409,
     );
   }
@@ -107,17 +169,38 @@ export const GET: APIRoute = async ({ params, url }) => {
 
   if (existingError) {
     console.error("Error al consultar el interés:", existingError);
-    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+
+    return jsonResponse(
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
+    );
   }
 
-  return jsonResponse({ interested: Boolean(existing) });
+  return jsonResponse({
+    interested: Boolean(existing),
+  });
 };
 
+/**
+ * POST /api/sheets/:id/interest
+ *
+ * Alterna el interés del dispositivo mediante una función RPC.
+ *
+ * La consulta del estado actual, el INSERT o DELETE y la actualización
+ * del contador se ejecutan dentro de una única transacción PostgreSQL.
+ */
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = parseSheetId(params.id);
 
   if (!sheetId) {
-    return jsonResponse({ error: "ID inválido" }, 400);
+    return jsonResponse(
+      {
+        error: "ID inválido",
+      },
+      400,
+    );
   }
 
   let body: Record<string, unknown>;
@@ -125,29 +208,34 @@ export const POST: APIRoute = async ({ params, request }) => {
   try {
     body = (await request.json()) as Record<string, unknown>;
   } catch {
-    return jsonResponse({ error: "JSON inválido" }, 400);
+    return jsonResponse(
+      {
+        error: "JSON inválido",
+      },
+      400,
+    );
   }
 
-  const deviceId = getDeviceId(body);
+  const rawDeviceId = getDeviceId(body);
+
+  if (!rawDeviceId) {
+    return jsonResponse(
+      {
+        error: "Falta device_id",
+      },
+      400,
+    );
+  }
+
+  const deviceId = normalizeUuid(rawDeviceId);
 
   if (!deviceId) {
-    return jsonResponse({ error: "Falta device_id" }, 400);
-  }
-
-  /*
-   * Antes de registrar el interés, se valida que la plancha exista,
-   * sea visible, pertenezca a un curso visible y todavía no tenga
-   * solucionario.
-   */
-  const { data: sheet, error: sheetError } = await getSheet(sheetId);
-
-  if (sheetError) {
-    console.error("Error al validar la plancha:", sheetError);
-    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
-  }
-
-  if (!sheet) {
-    return jsonResponse({ error: "Plancha no disponible" }, 404);
+    return jsonResponse(
+      {
+        error: "device_id debe tener formato UUID",
+      },
+      400,
+    );
   }
 
   const clientIP = getClientIP(request);
@@ -155,104 +243,127 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   if (!ipSalt) {
     console.error("La variable de entorno IP_SALT no está configurada.");
-    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
+
+    return jsonResponse(
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
+    );
   }
 
   const ipHash = await sha256Hash(clientIP + ipSalt);
-  const supa = supabaseAdmin;
 
-  const rate = await enforceIpRateLimit(supa, ipHash, 300);
+  const rate = await enforceIpRateLimit(supabaseAdmin, ipHash, 300);
 
   if (!rate.allowed) {
     if (rate.reason === "rate_limit") {
       return jsonResponse(
-        { error: "Demasiadas operaciones desde esta IP" },
+        {
+          error: "Demasiadas operaciones desde esta IP",
+        },
         429,
       );
     }
 
     console.error("Error interno al aplicar el límite de solicitudes.");
-    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
-  }
 
-  const { data: existing, error: existingError } = await supa
-    .from("sheet_interests")
-    .select("id")
-    .eq("sheet_id", sheetId)
-    .eq("device_id", deviceId)
-    .maybeSingle();
-
-  if (existingError) {
-    console.error("Error al consultar el interés existente:", existingError);
-    return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
-  }
-
-  /*
-   * Si todavía no existe un registro, solo se permite crearlo cuando
-   * la plancha aún no cuenta con solucionario. Un registro existente
-   * sí puede eliminarse mediante el toggle.
-   */
-  if (!existing && hasSolution(sheet as SheetAvailability)) {
     return jsonResponse(
-      { error: "La plancha ya cuenta con solucionario" },
-      409,
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
     );
   }
 
-  const interested = !existing;
-
-  if (existing) {
-    const { error: deleteError } = await supa
-      .from("sheet_interests")
-      .delete()
-      .eq("id", existing.id);
-
-    if (deleteError) {
-      console.error("Error al eliminar el interés:", deleteError);
-      return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
-    }
-  } else {
-    const { error: insertError } = await supa.from("sheet_interests").insert({
-      sheet_id: sheetId,
-      device_id: deviceId,
-      ip_hash: ipHash,
-    });
-
-    if (insertError) {
-      console.error("Error al registrar el interés:", insertError);
-      return jsonResponse({ error: "No se pudo procesar la solicitud" }, 500);
-    }
-  }
-
   /*
-   * El trigger de la base de datos actualiza interest_count después del
-   * INSERT o DELETE. Solo se consulta el valor resultante para responder.
+   * La función SQL bloquea la fila de sheets y realiza toda la
+   * operación dentro de una única transacción.
    */
-  const { data: updatedSheet, error: countError } = await supa
-    .from("sheets")
-    .select("interest_count")
-    .eq("id", sheetId)
+  const { data, error: toggleError } = await supabaseAdmin
+    .rpc("toggle_sheet_interest", {
+      p_sheet_id: sheetId,
+      p_device_id: deviceId,
+      p_ip_hash: ipHash,
+    })
     .single();
 
-  if (countError) {
-    console.error("Error al obtener interest_count:", countError);
+  if (toggleError) {
+    console.error("Error al alternar el interés:", toggleError);
+
+    return jsonResponse(
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
+    );
   }
 
-  const previousCount = Number(
-    (sheet as SheetAvailability).interest_count ?? 0,
-  );
+  const result = data as ToggleInterestResult | null;
 
-  const fallbackCount = Math.max(0, previousCount + (interested ? 1 : -1));
+  if (!result) {
+    console.error("La función toggle_sheet_interest no devolvió resultado.");
 
-  const interestCount =
-    updatedSheet?.interest_count !== null &&
-    updatedSheet?.interest_count !== undefined
-      ? Number(updatedSheet.interest_count)
-      : fallbackCount;
+    return jsonResponse(
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
+    );
+  }
+
+  switch (result.status) {
+    case "not_found":
+    case "unavailable":
+      return jsonResponse(
+        {
+          error: "Plancha no disponible",
+        },
+        404,
+      );
+
+    case "solution_available":
+      return jsonResponse(
+        {
+          error: "La plancha ya cuenta con solucionario",
+        },
+        409,
+      );
+
+    case "ok":
+      break;
+
+    default:
+      console.error("Estado inesperado al alternar el interés:", result.status);
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+  }
+
+  const interestCount = Number(result.interest_count);
+
+  if (
+    typeof result.interested !== "boolean" ||
+    !Number.isSafeInteger(interestCount) ||
+    interestCount < 0
+  ) {
+    console.error("Respuesta inválida de toggle_sheet_interest:", result);
+
+    return jsonResponse(
+      {
+        error: "No se pudo procesar la solicitud",
+      },
+      500,
+    );
+  }
 
   return jsonResponse({
     success: true,
-    interested,
+    interested: result.interested,
     interest_count: interestCount,
   });
 };
