@@ -315,7 +315,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
               </label>
 
               <div class="relative">
-                <input type="hidden" id="teacher-hint" name="teacher_hint" />
+                <input type="hidden" id="teacher-id" name="teacher_id" />
 
                 <input
                   type="text"
@@ -790,8 +790,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     const teacherSearchInput = document.getElementById(
       "teacher-search",
     ) as HTMLInputElement;
-    const teacherHintInput = document.getElementById(
-      "teacher-hint",
+    const teacherIdInput = document.getElementById(
+      "teacher-id",
     ) as HTMLInputElement;
     const teacherDropdown = document.getElementById(
       "teacher-dropdown",
@@ -801,7 +801,12 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       "teacher-combobox-container",
     );
 
-    let allTeachers: string[] = [];
+    type TeacherOption = {
+      id: number;
+      full_name: string;
+    };
+
+    let allTeachers: TeacherOption[] = [];
     let lastFetchedCode = "";
 
     async function loadTeachersByCourse(code: string) {
@@ -828,13 +833,48 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
-        if (data.ok && data.profesores.length > 0) {
-          allTeachers = data.profesores.map((prof: any) => prof.full_name);
+        if (
+          data.ok &&
+          Array.isArray(data.profesores) &&
+          data.profesores.length > 0
+        ) {
+          const rawTeachers = data.profesores as unknown[];
 
-          if (teacherSearchInput) {
-            teacherSearchInput.removeAttribute("disabled");
-            teacherSearchInput.placeholder = "Buscar docente...";
+          allTeachers = rawTeachers
+            .map((prof: unknown): TeacherOption | null => {
+              if (
+                typeof prof !== "object" ||
+                prof === null ||
+                !("id" in prof) ||
+                !("full_name" in prof)
+              ) {
+                return null;
+              }
+
+              const id = Number(prof.id);
+              const fullName = String(prof.full_name ?? "").trim();
+
+              if (!Number.isSafeInteger(id) || id <= 0 || !fullName) {
+                return null;
+              }
+
+              return {
+                id,
+                full_name: fullName,
+              };
+            })
+            .filter(
+              (prof: TeacherOption | null): prof is TeacherOption =>
+                prof !== null,
+            );
+
+          if (allTeachers.length === 0) {
+            resetTeacherSelection("Sin profesores asociados");
+            return;
           }
+
+          teacherSearchInput.removeAttribute("disabled");
+          teacherSearchInput.placeholder = "Buscar docente...";
 
           renderTeacherDropdown(allTeachers);
         } else {
@@ -866,7 +906,9 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         teacherSearchInput.setAttribute("disabled", "true");
       }
 
-      if (teacherHintInput) teacherHintInput.value = "";
+      if (teacherIdInput) {
+        teacherIdInput.value = "";
+      }
 
       if (teacherDropdown) {
         teacherDropdown.innerHTML = "";
@@ -876,29 +918,36 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       allTeachers = [];
     }
 
-    function renderTeacherDropdown(teachersToRender: string[]) {
+    function renderTeacherDropdown(teachersToRender: TeacherOption[]) {
       if (!teacherDropdown) return;
 
       teacherDropdown.innerHTML = "";
 
       if (teachersToRender.length === 0) {
         const emptyItem = document.createElement("li");
+
         emptyItem.className =
           "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
+
         emptyItem.textContent = "No se encontraron docentes.";
         teacherDropdown.appendChild(emptyItem);
+
         return;
       }
 
       teachersToRender.forEach((teacher) => {
         const item = document.createElement("li");
+
         item.className =
           "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
-        item.textContent = teacher;
 
-        item.addEventListener("click", () => {
-          if (teacherHintInput) teacherHintInput.value = teacher;
-          if (teacherSearchInput) teacherSearchInput.value = teacher;
+        item.textContent = teacher.full_name;
+
+        item.addEventListener("mousedown", (event) => {
+          event.preventDefault();
+
+          teacherIdInput.value = String(teacher.id);
+          teacherSearchInput.value = teacher.full_name;
           teacherDropdown.classList.add("hidden");
         });
 
@@ -932,6 +981,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         teacherSpecificInfo?.classList.add("hidden");
         teacherToggleWrapper?.classList.remove("border-global-primary/50");
         teacherToggleWrapper?.classList.add("border-global-border");
+        teacherIdInput.value = "";
+        teacherSearchInput.value = "";
       }
 
       // Update teacher field required state and label
@@ -1366,13 +1417,15 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       evaluationDropdown?.classList.remove("hidden");
     });
 
-    teacherSearchInput?.addEventListener("input", (e) => {
-      const query = (e.target as HTMLInputElement).value.toLowerCase();
+    teacherSearchInput?.addEventListener("input", (event) => {
+      const query = (event.target as HTMLInputElement).value
+        .trim()
+        .toLowerCase();
 
-      if (teacherHintInput) teacherHintInput.value = "";
+      teacherIdInput.value = "";
 
       const filtered = allTeachers.filter((teacher) =>
-        teacher.toLowerCase().includes(query),
+        teacher.full_name.toLowerCase().includes(query),
       );
 
       renderTeacherDropdown(filtered);
@@ -1388,7 +1441,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
     teacherSearchInput?.addEventListener("blur", () => {
       setTimeout(() => {
-        if (teacherHintInput && !teacherHintInput.value) {
+        if (!teacherIdInput.value) {
           teacherSearchInput.value = "";
         }
       }, 150);
@@ -1517,7 +1570,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       const courseCode = String(formData.get("course_code") ?? "").trim();
       const cycle = String(formData.get("cycle") ?? "").trim();
       const evaluationId = Number(formData.get("evaluation_id") ?? 0);
-      const teacherHint = String(formData.get("teacher_hint") ?? "").trim();
+      const teacherId = Number(formData.get("teacher_id") ?? 0);
       const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
       const file = (formData.get("file") as File) || null;
       const solutionFile = (formData.get("solution_file") as File) || null;
@@ -1527,7 +1580,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         courseCode,
         cycle,
         evaluationId,
-        teacherHint,
+        teacherId: isTeacherSpecific ? teacherId : null,
         isTeacherSpecific,
         file,
         fileName: file?.name,
@@ -1546,7 +1599,13 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         resourceKind = "SOLUCIONARIO";
       }
 
-      if (!courseId || !courseCode || !cycle || !evaluationId) {
+      if (
+        !Number.isSafeInteger(courseId) ||
+        courseId <= 0 ||
+        !cycle ||
+        !Number.isSafeInteger(evaluationId) ||
+        evaluationId <= 0
+      ) {
         alert(
           "Por favor completa los metadatos del curso, ciclo y evaluación.",
         );
@@ -1561,10 +1620,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       }
 
       // Validate teacher_hint when teacher-specific is enabled
-      if (isTeacherSpecific && !teacherHint) {
+      if (
+        isTeacherSpecific &&
+        (!Number.isSafeInteger(teacherId) || teacherId <= 0)
+      ) {
         alert(
-          "Debes indicar el docente para una plancha de profesor específico.",
+          "Debes seleccionar un docente válido para una plancha de profesor específico.",
         );
+
         teacherSearchInput?.focus();
         return;
       }
@@ -1580,11 +1643,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             course_id: courseId,
-            course_code: courseCode,
             cycle,
             evaluation_id: evaluationId,
             resource_kind: resourceKind,
-            teacher_hint: teacherHint,
+            teacher_id: isTeacherSpecific ? teacherId : null,
             is_teacher_specific: isTeacherSpecific,
           }),
         });
@@ -1682,13 +1744,12 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            course_id: urlData.courseId,
+            course_id: courseId,
             cycle,
             evaluation_id: evaluationId,
-            exam_type: urlData.examType,
             resource_kind: resourceKind,
             storage_path: urlData.path,
-            teacher_hint: teacherHint,
+            teacher_id: isTeacherSpecific ? teacherId : null,
             thumb_storage_path: uploadedThumbPath,
             solution_storage_path: urlData.solutionPath,
             is_teacher_specific: isTeacherSpecific,

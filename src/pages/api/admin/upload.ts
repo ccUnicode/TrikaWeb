@@ -4,23 +4,31 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
+
+const RESOURCE_KINDS: ResourceKind[] = ["PLANCHA", "SOLUCIONARIO", "AMBOS"];
+
+const isPositiveInteger = (value: number): boolean =>
+  Number.isSafeInteger(value) && value > 0;
+
 /**
  * POST /api/admin/upload
- * Registra los metadatos de una plancha/solucionario/ambos en la BD,
- * después de que el archivo ya fue subido a Storage.
  *
- * Flujo:
- * 1. Valida campos requeridos (course_id, evaluation_id, cycle, resource_kind, storage_path)
- * 2. Valida que AMBOS incluya la ruta del solucionario
- * 3. Valida ciclo (formato AAAA-T) y lo crea si no existe
- * 4. Busca sheet existente por course_id + cycle + evaluation_id (+ teacher_hint si es específico)
- * 5. Hace upsert: actualiza si existe, inserta si no (PLANCHA/AMBOS) o actualiza SOLUCIONARIO
- * 6. Soporta resourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS"
+ * Registra los metadatos de una plancha, solucionario o ambos
+ * después de subir los archivos a Supabase Storage.
+ *
+ * El endpoint valida nuevamente todas las relaciones, aunque
+ * upload-url ya las haya validado. Esto evita que se pueda llamar
+ * directamente a este endpoint con datos manipulados.
  */
-
-export const GET: APIRoute = () => {
-  return Response.json({ ok: true, route: "/api/admin/upload" }, { status: 200 });
-};
+export const GET: APIRoute = () =>
+  Response.json(
+    {
+      ok: true,
+      route: "/api/admin/upload",
+    },
+    { status: 200 },
+  );
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const isAdmin = await validateAdminSession(cookies);
@@ -31,60 +39,72 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "No autorizado. Inicia sesión como admin.",
       },
-      { status: 401 }
+      { status: 401 },
     );
   }
 
   let body: Record<string, unknown>;
 
   try {
-    body = await request.json();
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
     return Response.json(
-      { ok: false, error: "Body JSON inválido" },
-      { status: 400 }
+      {
+        ok: false,
+        error: "Body JSON inválido",
+      },
+      { status: 400 },
     );
   }
 
   const courseId = Number(body.course_id);
-  const cycle = String(body.cycle ?? "").trim();
   const evaluationId = Number(body.evaluation_id);
-  const examType = String(body.exam_type ?? "").trim();
-  const resourceKind = String(body.resource_kind ?? "")
+  const teacherId = Number(body.teacher_id);
+
+  const cycle = String(body.cycle ?? "")
     .trim()
     .toUpperCase();
+
+  const rawResourceKind = String(body.resource_kind ?? "")
+    .trim()
+    .toUpperCase();
+
   const storagePath = String(body.storage_path ?? "").trim();
-  const teacherHint = String(body.teacher_hint ?? "").trim();
-  const solutionStoragePath = String(
-    body.solution_storage_path ?? ""
-  ).trim();
+
+  const solutionStoragePath = String(body.solution_storage_path ?? "").trim();
+
   const thumbStoragePath = String(body.thumb_storage_path ?? "").trim();
-  const isTeacherSpecific = Boolean(body.is_teacher_specific);
+
+  const isTeacherSpecific = body.is_teacher_specific === true;
 
   if (
-    !courseId ||
-    Number.isNaN(courseId) ||
-    !evaluationId ||
-    Number.isNaN(evaluationId) ||
+    !isPositiveInteger(courseId) ||
+    !isPositiveInteger(evaluationId) ||
     !cycle ||
-    !examType ||
-    !resourceKind ||
+    !rawResourceKind ||
     !storagePath
   ) {
     return Response.json(
-      { ok: false, error: "Faltan campos requeridos" },
-      { status: 400 }
+      {
+        ok: false,
+        error: "Faltan campos requeridos o son inválidos",
+      },
+      { status: 400 },
     );
   }
 
-  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
+  if (!RESOURCE_KINDS.includes(rawResourceKind as ResourceKind)) {
     return Response.json(
-      { ok: false, error: "resource_kind inválido" },
-      { status: 400 }
+      {
+        ok: false,
+        error: "resource_kind inválido",
+      },
+      { status: 400 },
     );
   }
 
-  // Si se seleccionó AMBOS, la ruta del solucionario es obligatoria.
+  const resourceKind = rawResourceKind as ResourceKind;
+
   if (resourceKind === "AMBOS" && !solutionStoragePath) {
     return Response.json(
       {
@@ -92,39 +112,265 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         error:
           "Debes proporcionar la ruta del solucionario cuando seleccionas AMBOS",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // Si la plancha es específica para un profesor, teacher_hint es obligatorio.
-  if (isTeacherSpecific && !teacherHint) {
+  if (isTeacherSpecific && !isPositiveInteger(teacherId)) {
     return Response.json(
       {
         ok: false,
         error:
-          "Debes indicar el docente para una plancha de profesor específico",
+          "Debes proporcionar un teacher_id válido para una plancha de profesor específico",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
-  // Validar el formato del ciclo antes de interactuar con la BD.
-  const match = cycle.match(/^(\d{4})-(I|II|III)$/i);
+  const cycleMatch = cycle.match(/^(\d{4})-(I|II|III)$/);
 
-  if (!match) {
+  if (!cycleMatch) {
     return Response.json(
       {
         ok: false,
         error:
           "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   try {
-    // Buscar una plancha existente incluyendo teacher_hint para evitar
-    // colisiones entre planchas generales y específicas de un profesor.
+    /*
+     * Validar que el curso exista.
+     */
+    const { data: course, error: courseError } = await supabaseAdmin
+      .from("courses")
+      .select("id, code")
+      .eq("id", courseId)
+      .maybeSingle();
+
+    if (courseError) {
+      console.error("Error al validar el curso:", courseError);
+
+      return Response.json(
+        {
+          ok: false,
+          error: "No se pudo validar el curso",
+        },
+        { status: 500 },
+      );
+    }
+
+    if (!course) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Curso no encontrado",
+        },
+        { status: 404 },
+      );
+    }
+
+    /*
+     * Validar que la evaluación pertenezca al curso.
+     */
+    const { data: courseEvaluation, error: courseEvaluationError } =
+      await supabaseAdmin
+        .from("course_evaluations")
+        .select("course_id, evaluation_id")
+        .eq("course_id", courseId)
+        .eq("evaluation_id", evaluationId)
+        .maybeSingle();
+
+    if (courseEvaluationError) {
+      console.error(
+        "Error al validar la relación curso-evaluación:",
+        courseEvaluationError,
+      );
+
+      return Response.json(
+        {
+          ok: false,
+          error: "No se pudo validar la evaluación del curso",
+        },
+        { status: 500 },
+      );
+    }
+
+    if (!courseEvaluation) {
+      return Response.json(
+        {
+          ok: false,
+          error: "La evaluación no pertenece al curso seleccionado",
+        },
+        { status: 400 },
+      );
+    }
+
+    /*
+     * Obtener exam_type desde la base de datos.
+     * Ya no se acepta como valor confiable desde el cliente.
+     */
+    const { data: evaluation, error: evaluationError } = await supabaseAdmin
+      .from("evaluation_type")
+      .select("evaluation_id, evaluation_name, evaluation_abr")
+      .eq("evaluation_id", evaluationId)
+      .maybeSingle();
+
+    if (evaluationError) {
+      console.error("Error al obtener la evaluación:", evaluationError);
+
+      return Response.json(
+        {
+          ok: false,
+          error: "No se pudo obtener la evaluación",
+        },
+        { status: 500 },
+      );
+    }
+
+    if (!evaluation) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Evaluación no encontrada",
+        },
+        { status: 404 },
+      );
+    }
+
+    const examType = String(evaluation.evaluation_abr ?? "")
+      .trim()
+      .toUpperCase();
+
+    if (!examType) {
+      return Response.json(
+        {
+          ok: false,
+          error: "La evaluación seleccionada no tiene una abreviatura válida",
+        },
+        { status: 400 },
+      );
+    }
+
+    /*
+     * Validar la asociación del profesor con el curso y obtener
+     * el nombre directamente desde teachers.
+     */
+    let teacherName: string | null = null;
+
+    if (isTeacherSpecific) {
+      const { data: courseTeacher, error: courseTeacherError } =
+        await supabaseAdmin
+          .from("courses_teachers")
+          .select("course_id, teacher_id")
+          .eq("course_id", courseId)
+          .eq("teacher_id", teacherId)
+          .maybeSingle();
+
+      if (courseTeacherError) {
+        console.error(
+          "Error al validar la relación curso-profesor:",
+          courseTeacherError,
+        );
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo validar el profesor del curso",
+          },
+          { status: 500 },
+        );
+      }
+
+      if (!courseTeacher) {
+        return Response.json(
+          {
+            ok: false,
+            error: "El profesor no está asociado al curso seleccionado",
+          },
+          { status: 400 },
+        );
+      }
+
+      const { data: teacher, error: teacherError } = await supabaseAdmin
+        .from("teachers")
+        .select("id, full_name")
+        .eq("id", teacherId)
+        .maybeSingle();
+
+      if (teacherError) {
+        console.error("Error al obtener el profesor:", teacherError);
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo obtener el profesor",
+          },
+          { status: 500 },
+        );
+      }
+
+      if (!teacher) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Profesor no encontrado",
+          },
+          { status: 404 },
+        );
+      }
+
+      teacherName = String(teacher.full_name ?? "").trim();
+
+      if (!teacherName) {
+        return Response.json(
+          {
+            ok: false,
+            error: "El profesor no tiene un nombre válido",
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    /*
+     * Registrar el ciclo mediante upsert para evitar condiciones
+     * de carrera entre dos solicitudes que intenten crearlo.
+     */
+    const cycleYear = Number(cycleMatch[1]);
+    const cycleTerm = cycleMatch[2];
+
+    const { error: cycleUpsertError } = await supabaseAdmin
+      .from("cycles")
+      .upsert(
+        {
+          cycle_code: cycle,
+          year: cycleYear,
+          term: cycleTerm,
+        },
+        {
+          onConflict: "cycle_code",
+        },
+      );
+
+    if (cycleUpsertError) {
+      console.error("Error al registrar el ciclo:", cycleUpsertError);
+
+      return Response.json(
+        {
+          ok: false,
+          error: "No se pudo registrar el ciclo",
+        },
+        { status: 500 },
+      );
+    }
+
+    /*
+     * Buscar una plancha existente utilizando el nombre validado
+     * del profesor, nunca un texto recibido desde el navegador.
+     */
     let lookupQuery = supabaseAdmin
       .from("sheets")
       .select("id")
@@ -132,54 +378,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       .eq("cycle", cycle)
       .eq("evaluation_id", evaluationId);
 
-    if (isTeacherSpecific && teacherHint) {
-      lookupQuery = lookupQuery.eq("teacher_hint", teacherHint);
+    if (isTeacherSpecific && teacherName) {
+      lookupQuery = lookupQuery
+        .eq("is_teacher_specific", true)
+        .eq("teacher_hint", teacherName);
     } else {
-      // Una plancha general no debe estar vinculada a un profesor específico.
-      lookupQuery = lookupQuery.or(
-        "teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos"
-      );
-    }
-
-    const { data: cycleExists, error: cycleError } = await supabaseAdmin
-      .from("cycles")
-      .select("cycle_id")
-      .eq("cycle_code", cycle)
-      .maybeSingle();
-
-    if (cycleError) {
-      console.error("Error al validar ciclo:", cycleError);
-      return Response.json(
-        { ok: false, error: "Error validando ciclo" },
-        { status: 500 }
-      );
-    }
-
-    if (!cycleExists) {
-      const year = parseInt(match[1], 10);
-      const term = match[2].toUpperCase();
-
-      const { error: insertError } = await supabaseAdmin
-        .from("cycles")
-        .insert([{ cycle_code: cycle, year, term }]);
-
-      if (insertError) {
-        console.error("Error insertando nuevo ciclo:", insertError);
-        return Response.json(
-          { ok: false, error: "Error creando nuevo ciclo" },
-          { status: 500 }
+      lookupQuery = lookupQuery
+        .eq("is_teacher_specific", false)
+        .or(
+          "teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos",
         );
-      }
     }
 
     const { data: existingSheet, error: lookupError } =
       await lookupQuery.maybeSingle();
 
     if (lookupError) {
-      console.error("Error al buscar sheet existente:", lookupError);
+      console.error("Error al buscar la plancha existente:", lookupError);
+
       return Response.json(
-        { ok: false, error: "No se pudo validar la plancha" },
-        { status: 500 }
+        {
+          ok: false,
+          error: "No se pudo validar la plancha",
+        },
+        { status: 500 },
       );
     }
 
@@ -190,29 +412,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         evaluation_id: evaluationId,
         exam_type: examType,
         exam_storage_path: storagePath,
-        teacher_hint: teacherHint || null,
+        teacher_hint: teacherName,
         thumb_storage_path: thumbStoragePath || null,
         is_hidden: false,
         is_teacher_specific: isTeacherSpecific,
-        ...(resourceKind === "AMBOS"
-          ? {
-              solution_kind: "pdf",
-              solution_storage_path: solutionStoragePath,
-            }
-          : {}),
       };
+
+      if (resourceKind === "AMBOS") {
+        insertPayload.solution_kind = "pdf";
+        insertPayload.solution_storage_path = solutionStoragePath;
+      }
 
       if (existingSheet) {
         const updatePayload: Record<string, unknown> = {
           evaluation_id: evaluationId,
           exam_type: examType,
           exam_storage_path: storagePath,
+          teacher_hint: teacherName,
           is_teacher_specific: isTeacherSpecific,
         };
-
-        if (teacherHint) {
-          updatePayload.teacher_hint = teacherHint;
-        }
 
         if (thumbStoragePath) {
           updatePayload.thumb_storage_path = thumbStoragePath;
@@ -230,28 +448,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (updateError) {
           console.error("Error al actualizar sheet:", updateError);
+
           return Response.json(
             {
               ok: false,
               error:
                 "El archivo se subió, pero no se pudo actualizar la plancha",
             },
-            { status: 500 }
+            { status: 500 },
           );
         }
       } else {
         const { error: insertError } = await supabaseAdmin
           .from("sheets")
-          .insert([insertPayload]);
+          .insert(insertPayload);
 
         if (insertError) {
           console.error("Error al insertar sheet:", insertError);
+
           return Response.json(
             {
               ok: false,
               error: "Archivo subido, pero falló el registro de la plancha",
             },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }
@@ -262,7 +482,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "Primero sube la plancha antes de adjuntar un solucionario",
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -276,20 +496,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (updateSolutionError) {
         console.error("Error al actualizar solucionario:", updateSolutionError);
+
         return Response.json(
           {
             ok: false,
-            error:
-              "Archivo subido, pero no se pudo registrar el solucionario",
+            error: "Archivo subido, pero no se pudo registrar el solucionario",
           },
-          { status: 500 }
+          { status: 500 },
         );
       }
     }
 
     const action =
       resourceKind === "AMBOS"
-        ? "Plancha y Solucionario"
+        ? "Plancha y solucionario"
         : resourceKind === "PLANCHA"
           ? "Plancha"
           : "Solucionario";
@@ -299,15 +519,20 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: true,
         message: `${action} guardado correctamente`,
         path: storagePath,
+        teacherId: isTeacherSpecific ? teacherId : null,
+        teacherName,
       },
-      { status: 200 }
+      { status: 200 },
     );
-  } catch (err) {
-    console.error("Error inesperado en /api/admin/upload:", err);
+  } catch (error) {
+    console.error("Error inesperado en /api/admin/upload:", error);
 
     return Response.json(
-      { ok: false, error: "Error interno en el servidor" },
-      { status: 500 }
+      {
+        ok: false,
+        error: "Error interno del servidor",
+      },
+      { status: 500 },
     );
   }
 };
