@@ -839,14 +839,42 @@ import Layout from "../../layouts/Layout.astro";
       return;
     }
 
-    const courses: Course[] = data.courses || [];
+    const courses: Course[] = Array.isArray(data.courses)
+  ? data.courses
+  : [];
 
-    if (visibleCountEl) {
-      visibleCountEl.textContent = String(data?.counts?.visible ?? 0);
-    }
-    if (hiddenCountEl) {
-      hiddenCountEl.textContent = String(data?.counts?.hidden ?? 0);
-    }
+const rawTotalPages = Number(data?.pagination?.totalPages);
+
+const totalPages =
+  Number.isSafeInteger(rawTotalPages) && rawTotalPages >= 0
+    ? rawTotalPages
+    : 0;
+
+/*
+ * Si la página solicitada quedó vacía después de eliminar
+ * el último curso, volver a consultar la última página válida.
+ *
+ * Ejemplos:
+ * - página 3 y ahora existen 2 páginas → cargar página 2;
+ * - página 2 y ya no existen resultados → cargar página 1.
+ */
+if (courses.length === 0 && page > 1) {
+  const targetPage =
+    totalPages > 0
+      ? Math.min(page - 1, totalPages)
+      : 1;
+
+  await loadCourses(targetPage);
+  return;
+}
+
+if (visibleCountEl) {
+  visibleCountEl.textContent = String(data.counts.visible);
+}
+
+if (hiddenCountEl) {
+  hiddenCountEl.textContent = String(data.counts.hidden);
+}
 
     if (!courses.length) {
       let emptyMessage =
@@ -975,7 +1003,7 @@ import Layout from "../../layouts/Layout.astro";
 
           if (
             !confirm(
-              "¿Estás seguro de que deseas eliminar este curso? Se eliminarán permanentemente todas sus planchas y calificaciones asociadas. Esta acción no se puede deshacer.",
+              "¿Estás seguro de que deseas eliminar este curso? Solo podrá eliminarse si no tiene planchas asociadas. Si contiene material, debes ocultarlo en su lugar. Esta acción no se puede deshacer.",
             )
           ) {
             return;
@@ -1011,9 +1039,6 @@ import Layout from "../../layouts/Layout.astro";
         });
       });
     }
-
-    const pagination = data.pagination;
-    const totalPages = Number(pagination?.totalPages || 0);
 
     if (totalPages > 1) {
       const prevDisabled = page <= 1;
