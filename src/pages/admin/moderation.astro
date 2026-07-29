@@ -182,14 +182,14 @@ if (!isAdmin) {
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
               <div>
                 <a href="/profesores/${c.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
-                  ${teacherName}
+                  ${escapeHtml(teacherName)}
                 </a>
                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
                 <p class="text-[11px] mt-1.5 flex items-center gap-1.5 flex-wrap">
                   <span class="px-2 py-0.5 font-semibold rounded-full ${c.is_anonymous ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}">
                     ${c.is_anonymous ? 'Anónimo' : 'Público'}
                   </span>
-                  <span class="text-global-text-muted">Por: <strong>${c.user_name || 'Estudiante'}</strong> (${c.user_email || 'Sin correo'})</span>
+                  <span class="text-global-text-muted">Por: <strong>${escapeHtml(c.user_name || 'Estudiante')}</strong> (${escapeHtml(c.user_email || 'Sin correo')})</span>
                 </p>
               </div>
               <div class="flex items-center gap-3">
