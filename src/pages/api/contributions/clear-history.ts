@@ -24,7 +24,19 @@ export const POST: APIRoute = async ({ cookies }) => {
       return new Response(JSON.stringify({ error: 'Error al consultar los aportes' }), { status: 500 });
     }
 
-    // 2. Si tiene archivos asociados, eliminarlos del bucket privado 'contributions'
+    // 2. Eliminar todos los registros de aportes del usuario en la base de datos
+    const { error: deleteError } = await supabaseAdmin
+      .from('contributions')
+      .delete()
+      .eq('user_id', user.uid)
+      .in('status', ['pending', 'rejected']);
+
+    if (deleteError) {
+      console.error('Error deleting contributions rows:', deleteError);
+      return new Response(JSON.stringify({ error: 'Error al eliminar el historial de aportes de la base de datos' }), { status: 500 });
+    }
+
+    // 3. Si se eliminaron de la BD con éxito y tienen archivos asociados, eliminarlos del bucket
     if (contributions && contributions.length > 0) {
       const filePaths = contributions
         .map((c) => c.file_storage_path)
@@ -37,21 +49,9 @@ export const POST: APIRoute = async ({ cookies }) => {
 
         if (storageError) {
           console.error('Error deleting user draft files from storage:', storageError);
-          // Continuamos de todas formas para no dejar el historial de BD bloqueado
+          // Al menos ya no bloqueamos la BD, aunque queden archivos huérfanos en Storage
         }
       }
-    }
-
-    // 3. Eliminar todos los registros de aportes del usuario en la base de datos
-    const { error: deleteError } = await supabaseAdmin
-      .from('contributions')
-      .delete()
-      .eq('user_id', user.uid)
-      .in('status', ['pending', 'rejected']);
-
-    if (deleteError) {
-      console.error('Error deleting contributions rows:', deleteError);
-      return new Response(JSON.stringify({ error: 'Error al eliminar el historial de aportes de la base de datos' }), { status: 500 });
     }
 
     return new Response(JSON.stringify({ success: true, message: 'Historial de aportes vaciado correctamente' }), { status: 200 });
