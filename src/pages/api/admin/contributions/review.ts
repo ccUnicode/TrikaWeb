@@ -177,6 +177,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ success: true, message: 'Aporte procesado correctamente' }), { status: 200 });
     }
 
+    // Retorno fallback requerido por Astro Check si la acción no coincidió (aunque ya se validó al inicio)
+    return new Response(JSON.stringify({ error: 'Acción inválida' }), { status: 400 });
+
   } catch (err: any) {
     console.error('Unexpected error in review API:', err);
     return new Response(JSON.stringify({ error: 'Error interno en el servidor' }), { status: 500 });
