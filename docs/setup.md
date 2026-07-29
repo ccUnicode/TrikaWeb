@@ -1,10 +1,11 @@
-﻿# Setup y Configuracion
+# Setup y Configuracion
 
 ## Requisitos
 
-- Node.js 18+
+- Node.js >=22.12.0
 - npm
 - Proyecto de Supabase (DB + Storage)
+- Proyecto de Firebase (Auth para estudiantes)
 
 ## Instalacion local
 
@@ -26,6 +27,9 @@ Fuente base: `.env.example`
 - `SUPABASE_SERVICE_KEY`
 - `IP_SALT`
 - `ADMIN_PASS`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
 - `GOOGLE_APPLICATION_CREDENTIALS` (si usas sync Drive)
 - `DRIVE_EXAMS_FOLDER_ID` (si usas sync Drive)
 - `DRIVE_SOLUTIONS_FOLDER_ID` (si usas sync Drive)
@@ -35,13 +39,15 @@ Fuente base: `.env.example`
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_ANON_KEY`
 
+Nota: Supabase sigue siendo la base de datos y storage; Firebase queda como proveedor de autenticación para estudiantes.
+
 ## Base de datos
 
 Ejecutar en SQL Editor de Supabase, en este orden:
 
 1. `supabase/schema.sql`
 2. `supabase/function_triggers.sql`
-3. `supabase/migrations/add_teacher_visibility.sql`
+3. Todos los archivos de la carpeta `supabase/migrations/` en orden numérico (01_..., 02_..., etc.)
 4. `supabase/seed.sql` (opcional)
 
 ## Storage buckets
@@ -51,6 +57,8 @@ Crear buckets:
 - `exams`
 - `solutions`
 - `thumbnails` (opcional)
+- `avatars` (público, para las fotos de perfil)
+- `contributions` (privado, para moderación)
 
 ## Scripts disponibles
 
@@ -64,5 +72,6 @@ Crear buckets:
 ## Notas operativas
 
 - `SUPABASE_SERVICE_KEY` no debe exponerse en cliente.
+- `FIREBASE_PRIVATE_KEY` debe mantenerse como secreto de servidor.
 - Si ejecutas scripts de Drive, valida acceso al archivo JSON de cuenta de servicio.
 - El endpoint `api/admin/upload` requiere `admin_pass` en el formulario.

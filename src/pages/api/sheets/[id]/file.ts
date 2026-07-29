@@ -16,11 +16,13 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const { data: sheet } = await supa
     .from("sheets")
-    .select("exam_storage_path, solution_storage_path, exam_type, cycle, courses:course_id(code)")
+    .select("exam_storage_path, solution_storage_path, exam_type, cycle, is_hidden, courses:course_id(code)")
     .eq("id", id)
     .single();
 
   if (!sheet) return new Response("Not found", { status: 404 });
+
+  if (sheet.is_hidden) return new Response("Not found", { status: 404 });
 
   const storagePath = type === "solution" ? sheet?.solution_storage_path : sheet?.exam_storage_path;
   const bucket = type === "solution" ? "solutions" : "exams";
@@ -30,7 +32,7 @@ export const GET: APIRoute = async ({ params, request }) => {
   if (streamMode) {
     const { data, error } = await supa.storage.from(bucket).download(storagePath);
     if (error || !data) {
-      console.error("Error descargando PDF:", error);
+      console.error("Error descargando archivo:", error);
       return new Response("Download error", { status: 500 });
     }
     const buffer = Buffer.from(await data.arrayBuffer());
@@ -40,12 +42,21 @@ export const GET: APIRoute = async ({ params, request }) => {
     const examType = sheet.exam_type?.replace(/\s+/g, "-") || "examen";
     const cycle = sheet.cycle?.replace(/\s+/g, "-") || "";
     const suffix = type === "solution" ? "-solucionario" : "";
-    const filename = `${courseCode}-${examType}-${cycle}${suffix}.pdf`.replace(/--+/g, "-");
+    
+    // Extraer extensión del storagePath original
+    const ext = storagePath.split('.').pop()?.toLowerCase() || "pdf";
+    let contentType = "application/pdf";
+    if (ext === "png") contentType = "image/png";
+    else if (ext === "webp") contentType = "image/webp";
+    else if (ext === "jpg" || ext === "jpeg") contentType = "image/jpeg";
+    
+    const filename = `${courseCode}-${examType}-${cycle}${suffix}.${ext}`.replace(/--+/g, "-");
     const disposition = mode === "download" ? "attachment" : "inline";
+    
     return new Response(buffer, {
       status: 200,
       headers: {
-        "Content-Type": "application/pdf",
+        "Content-Type": contentType,
         "Content-Disposition": `${disposition}; filename="${filename}"`,
         "Cache-Control": "private, max-age=600",
       },

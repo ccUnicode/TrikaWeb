@@ -3,6 +3,10 @@ export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import CardExam from "../../components/CardExam.astro";
 import { getCourseByCode } from "../../lib/data";
+import { getUserSession } from "../../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const code = Astro.params.code ?? "";
 const course = await getCourseByCode(code);
@@ -338,7 +342,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
                                 {courseCode}
                               </a>
                             )}
-                            <CardExam sheet={sheet} />
+                            <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                           </article>
                         );
                       })}
@@ -475,7 +479,14 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
       items.forEach((item, index) => {
         const htmlItem = item;
         if (index >= currentIndex && index < currentIndex + itemsPerPage) {
-          htmlItem.style.display = "";
+          if (htmlItem.style.display === "none") {
+            htmlItem.style.display = "";
+            htmlItem.classList.remove("animate-carousel-item");
+            void htmlItem.offsetWidth; // force reflow
+            htmlItem.classList.add("animate-carousel-item");
+          } else {
+            htmlItem.style.display = "";
+          }
         } else {
           htmlItem.style.display = "none";
         }
@@ -590,5 +601,20 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  @keyframes fadeInScale {
+    from {
+      opacity: 0.5;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-carousel-item {
+    animation: fadeInScale 0.25s ease-out forwards;
   }
 </style>

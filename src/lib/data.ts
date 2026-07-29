@@ -17,6 +17,7 @@ export interface SheetSummary {
   teacher_hint: string | null;
   solution_kind?: string | null;
   thumb_storage_path?: string | null;
+  exam_storage_path?: string | null;
   course_code?: string;
   course_name?: string;
 }
@@ -46,6 +47,10 @@ export interface TeacherReview {
   grading: number;
   comment: string | null;
   created_at: string;
+  is_anonymous?: boolean;
+  user_name?: string | null;
+  user_id?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface TeacherStats {
@@ -87,6 +92,7 @@ const sheetSelect = `
   teacher_hint,
   solution_kind,
   thumb_storage_path,
+  exam_storage_path,
   courses:course_id (code,name)
 `;
 
@@ -94,6 +100,7 @@ export async function getCourses(): Promise<CourseSummary[]> {
   const { data, error } = await supabaseClient
     .from('courses')
     .select('id, code, name, sheets(count)')
+    .eq('is_hidden', false)
     .order('name', { ascending: true });
 
   if (error || !data) return [];
@@ -112,6 +119,7 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
     .from('courses')
     .select('id, code, name, sheets:sheets (*)')
     .eq('code', normalized)
+    .eq('is_hidden', false)
     .single();
 
   if (error || !course) return null;
@@ -120,6 +128,7 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
     .from('sheets')
     .select(sheetSelect)
     .eq('course_id', course.id)
+    .eq('is_hidden', false)
     .order('cycle', { ascending: false })
     .order('exam_type', { ascending: true });
 
@@ -140,6 +149,7 @@ export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
   const { data } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
+    .eq('is_hidden', false)
     .gte('rating_count', minRatings)
     .order('avg_difficulty', { ascending: false })
     .limit(limit);
@@ -154,6 +164,7 @@ export async function getTopSheetsByViews(limit = 6, minViews = 5) {
   const { data } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
+    .eq('is_hidden', false)
     .gte('view_count', minViews)
     .order('view_count', { ascending: false })
     .limit(limit);
@@ -177,6 +188,7 @@ export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
   const { data, error } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
+    .eq('is_hidden', false)
     .in('id', uniqueIds);
 
   if (error || !data) {
@@ -372,7 +384,7 @@ export async function getTeacherDetail(
 
   // Stats por dimensión
   const { data: statsRow, error: statsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
       'avg_overall:avg(overall),avg_difficulty:avg(difficulty),avg_didactic:avg(didactic),avg_resources:avg(resources),avg_responsability:avg(responsability),avg_grading:avg(grading)'
     )
@@ -386,9 +398,9 @@ export async function getTeacherDetail(
 
   // Reseñas con paginación y count
   const { data: reviews, count, error: reviewsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
-      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at',
+      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name, user_id, avatar_url',
       { count: 'exact', head: false }
     )
     .eq('teacher_id', teacherId)
@@ -462,6 +474,7 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
     supabaseClient
       .from('courses')
       .select('id, code, name, sheets(count)')
+      .eq('is_hidden', false)
       .or(`code.ilike.${pattern},name.ilike.${pattern}`)
       .limit(safeLimit * 2),
     supabaseClient
@@ -523,6 +536,7 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
     .select(
       'id, exam_type, cycle, avg_difficulty, rating_count, view_count, teacher_hint, solution_kind, courses:course_id (id, code, name)'
     )
+    .eq('is_hidden', false)
     .or(sheetFilters.join(','))
     .limit(safeLimit * 2);
 

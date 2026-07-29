@@ -1,12 +1,21 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getUuidFromFirebaseUid, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { getUserSession } from '../../../../lib/auth';
 
-export const POST: APIRoute = async ({ params, request }) => {
+export const POST: APIRoute = async ({ params, request, cookies }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
   let body;
@@ -24,15 +33,21 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
-  }
-
+  const deviceId = getUuidFromFirebaseUid(user.uid);
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
 
   const supa = supabaseAdmin;
+
+  const { data: sheet } = await supa
+    .from('sheets')
+    .select('id, is_hidden')
+    .eq('id', sheetId)
+    .maybeSingle();
+
+  if (!sheet || sheet.is_hidden) {
+    return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+  }
 
   const rateLimit = await enforceIpRateLimit(supa, ipHash);
   if (!rateLimit.allowed) {
@@ -45,7 +60,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
   }
 
-  // Verificar si ya existe un voto de este device_id
+  // Verificar si ya existe un voto de este usuario
   const { data: existing } = await supa
     .from('sheet_ratings')
     .select('id')
@@ -130,25 +145,56 @@ export const POST: APIRoute = async ({ params, request }) => {
   );
 };
 
-// DELETE handler para quitar voto
-export const DELETE: APIRoute = async ({ params, request }) => {
+// GET handler para verificar si el usuario ya votó
+export const GET: APIRoute = async ({ params, cookies }) => {
   const sheetId = Number(params.id);
   if (!sheetId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ hasVoted: false, rating: null }),
+      { status: 200 }
+    );
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const supa = supabaseAdmin;
+
+  const { data: existing } = await supa
+    .from('sheet_ratings')
+    .select('id, score, created_at')
+    .eq('sheet_id', sheetId)
+    .eq('device_id', deviceId)
+    .maybeSingle();
+
+  return new Response(
+    JSON.stringify({
+      hasVoted: !!existing,
+      rating: existing || null
+    }),
+    { status: 200 }
+  );
+};
+
+// DELETE handler para quitar voto
+export const DELETE: APIRoute = async ({ params, cookies }) => {
+  const sheetId = Number(params.id);
+  if (!sheetId) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
+  }
+
+  const deviceId = getUuidFromFirebaseUid(user.uid);
   const supa = supabaseAdmin;
 
   // Verificar si existe el voto antes de eliminarlo

@@ -4,6 +4,10 @@ import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import { getUserSession } from "../../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const sheetId = Number(Astro.params.id);
 if (!sheetId) {
@@ -16,6 +20,7 @@ const { data: sheet, error } = await supa
   .select(
     `
     id,
+    is_hidden,
     exam_type,
     cycle,
     teacher_hint,
@@ -37,6 +42,10 @@ if (error || !sheet) {
   return Astro.redirect("/cursos");
 }
 
+if (sheet.is_hidden) {
+  return Astro.redirect("/cursos");
+}
+
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
 const courseCode = course?.code ?? "Curso";
 const courseName = course?.name ?? "Curso";
@@ -45,6 +54,14 @@ const headerTitle =
 const description =
   sheet.teacher_hint ||
   `${sheet.exam_type || "Evaluacion"} - ${sheet.cycle || "Sin ciclo"}`;
+
+const isImage = (path: string | null) => {
+  if (!path) return false;
+  const ext = path.split('.').pop()?.toLowerCase();
+  return ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+};
+
+const examIsImage = isImage(sheet.exam_storage_path);
 
 let examUrl: string | null = null;
 if (sheet.exam_storage_path) {
@@ -130,6 +147,7 @@ function getYouTubeId(url: string) {
           <button
             id="favorite-btn"
             data-sheet-id={sheet.id}
+            data-is-logged-in={isLoggedIn ? "true" : "false"}
             type="button"
             class="inline-flex items-center justify-center gap-2 rounded-full border-2 border-global-border hover:border-red-500 px-4 py-2 text-sm font-semibold text-global-text transition-all group cursor-pointer"
             title="Guardar plancha"
@@ -267,11 +285,17 @@ function getYouTubeId(url: string) {
               >
                 <iframe
                   id="pdf-viewer-iframe"
-                  src={`${examUrl}#toolbar=0&navpanes=0&view=FitH`}
+                  src={examIsImage ? "" : `${examUrl}#toolbar=0&navpanes=0&view=FitH`}
                   data-exam-url={examUrl}
-                  class="absolute inset-0 h-full w-full rounded-xl border-0"
+                  class={`absolute inset-0 h-full w-full rounded-xl border-0 ${examIsImage ? "hidden" : ""}`}
                   loading="lazy"
                   allowfullscreen
+                />
+                <img
+                  id="image-viewer"
+                  src={examIsImage ? examUrl : ""}
+                  alt="Visor de recurso"
+                  class={`absolute inset-0 h-full w-full object-contain rounded-xl ${examIsImage ? "" : "hidden"}`}
                 />
               </div>
             ) : (
@@ -317,6 +341,7 @@ function getYouTubeId(url: string) {
               sheetId={sheet.id}
               avg={sheet.avg_difficulty}
               count={sheet.rating_count}
+              isLoggedIn={isLoggedIn}
             />
           </div>
         </div>
@@ -339,6 +364,9 @@ function getYouTubeId(url: string) {
     const iframe = document.getElementById(
       "pdf-viewer-iframe",
     ) as HTMLIFrameElement;
+    const imgViewer = document.getElementById(
+      "image-viewer",
+    ) as HTMLImageElement;
     const container = document.getElementById("viewer-container");
     const solutionBtn = document.getElementById("view-solution-btn");
     const examBtn = document.getElementById("view-exam-btn");
@@ -347,11 +375,18 @@ function getYouTubeId(url: string) {
     ) as HTMLAnchorElement;
     const downloadText = document.getElementById("action-download-text");
 
-    if (!iframe || !container) return;
+    if (!iframe || !container || !imgViewer) return;
 
     // Helper classes
     const pdfClasses = ["sm:aspect-[3/4]", "min-h-[500px]", "sm:min-h-0"];
     const videoClasses = ["aspect-video"];
+
+    const isImageUrl = (url: string | null) => {
+      if (!url) return false;
+      const cleanUrl = url.split('?')[0].split('#')[0];
+      const ext = cleanUrl.split('.').pop()?.toLowerCase();
+      return ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+    };
 
     // Handle "Ver solucionario" button
     if (solutionBtn) {
@@ -384,6 +419,8 @@ function getYouTubeId(url: string) {
         if (solutionType === "video" && videoUrl) {
           const videoId = getYouTubeId(videoUrl);
           if (videoId) {
+            imgViewer.classList.add("hidden");
+            iframe.classList.remove("hidden");
             iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
             iframe.setAttribute(
               "allow",
@@ -394,9 +431,19 @@ function getYouTubeId(url: string) {
             container.classList.add(...videoClasses);
           }
         } else if (solutionUrl) {
-          // Change iframe src to solution PDF
-          iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
-          iframe.removeAttribute("allow");
+          // Change iframe src or img src depending on format
+          const isImg = isImageUrl(solutionUrl);
+          if (isImg) {
+            iframe.classList.add("hidden");
+            iframe.src = "";
+            imgViewer.src = solutionUrl;
+            imgViewer.classList.remove("hidden");
+          } else {
+            imgViewer.classList.add("hidden");
+            iframe.src = `${solutionUrl}#toolbar=0&navpanes=0&view=FitH`;
+            iframe.classList.remove("hidden");
+            iframe.removeAttribute("allow");
+          }
           // Ensure container is in PDF mode
           container.classList.remove(...videoClasses);
           container.classList.add(...pdfClasses);
@@ -432,9 +479,19 @@ function getYouTubeId(url: string) {
 
         if (!examUrl) return;
 
-        // Change iframe src back to exam PDF
-        iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
-        iframe.removeAttribute("allow");
+        // Change iframe src or img src depending on format
+        const isImg = isImageUrl(examUrl);
+        if (isImg) {
+          iframe.classList.add("hidden");
+          iframe.src = "";
+          imgViewer.src = examUrl;
+          imgViewer.classList.remove("hidden");
+        } else {
+          imgViewer.classList.add("hidden");
+          iframe.src = `${examUrl}#toolbar=0&navpanes=0&view=FitH`;
+          iframe.classList.remove("hidden");
+          iframe.removeAttribute("allow");
+        }
 
         // Ensure container is in PDF mode
         container.classList.remove(...videoClasses);
@@ -537,6 +594,11 @@ function getYouTubeId(url: string) {
 
     // Handle click
     btn.addEventListener("click", () => {
+      const logged = btn.dataset.isLoggedIn === "true";
+      if (!logged) {
+        window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+        return;
+      }
       const nowFavorited = toggleFavorite(sheetId);
       updateUI(nowFavorited);
 
@@ -647,6 +709,23 @@ function getYouTubeId(url: string) {
         }
       };
 
+      const logged = widget.getAttribute("data-is-logged-in") === "true";
+
+      // Verificar si ya votó si está logueado
+      if (logged && sheetId) {
+        fetch(`/api/sheets/${sheetId}/rate`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.hasVoted) {
+              userVoted = true;
+              currentUserScore = data.rating?.score ?? 0;
+              highlight(widget, currentUserScore);
+              updateRemoveButton(true);
+            }
+          })
+          .catch(err => console.error("Error cargando voto:", err));
+      }
+
       // Handler para quitar voto
       if (removeBtn) {
         removeBtn.addEventListener("click", async (e) => {
@@ -655,14 +734,18 @@ function getYouTubeId(url: string) {
 
           if (!sheetId) return;
 
+          const loggedCheck = widget.getAttribute("data-is-logged-in") === "true";
+          if (!loggedCheck) {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
+
           widget.classList.add("opacity-80", "pointer-events-none");
 
           try {
-            const deviceId = ensureDeviceId();
             const response = await fetch(`/api/sheets/${sheetId}/rate`, {
               method: "DELETE",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ device_id: deviceId }),
+              headers: { "Content-Type": "application/json" }
             });
 
             if (!response.ok) {
@@ -719,16 +802,22 @@ function getYouTubeId(url: string) {
         btn.addEventListener("click", async (e) => {
           e.preventDefault();
           e.stopPropagation();
+
+          const loggedCheck = widget.getAttribute("data-is-logged-in") === "true";
+          if (!loggedCheck) {
+            window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+            return;
+          }
+
           const score = Number((btn as HTMLElement).dataset.score);
           if (!Number.isFinite(score) || !sheetId) return;
           highlight(widget, score);
           widget.classList.add("opacity-80", "pointer-events-none");
           try {
-            const deviceId = ensureDeviceId();
             const response = await fetch(`/api/sheets/${sheetId}/rate`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ score, device_id: deviceId }),
+              body: JSON.stringify({ score }),
             });
             if (!response.ok) {
               const error = await response.json().catch(() => ({}));
