@@ -31,17 +31,34 @@ export async function ensureStudentProfile(user: User): Promise<UserProfile | nu
     return null;
   }
 
+  const email = user.email?.toLowerCase() ?? '';
+  const fullName = nameFromGoogleMetadata(user);
+  const avatarUrl = avatarFromGoogleMetadata(user);
+
+  // Ensure student_details row exists as well for the foreign key in teacher_ratings
+  const { error: sdError } = await supabaseAdmin
+    .from('student_details')
+    .upsert({
+      user_id: user.id,
+      email: email,
+      full_name: fullName,
+      avatar_url: avatarUrl,
+    }, { onConflict: 'user_id', ignoreDuplicates: true });
+
+  if (sdError) {
+    console.error('ensureStudentProfile student_details upsert error:', sdError);
+  }
+
   if (existing) {
     return existing as UserProfile;
   }
 
-  const email = user.email?.toLowerCase() ?? '';
   const insertRow = {
     id: user.id,
     email,
-    full_name: nameFromGoogleMetadata(user),
+    full_name: fullName,
     username: null,
-    avatar_url: avatarFromGoogleMetadata(user),
+    avatar_url: avatarUrl,
     role: 'student' as const,
   };
 
@@ -55,6 +72,7 @@ export async function ensureStudentProfile(user: User): Promise<UserProfile | nu
     console.error('ensureStudentProfile insert:', insertError);
     return null;
   }
+
 
   return created as UserProfile;
 }
