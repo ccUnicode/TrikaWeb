@@ -8,30 +8,25 @@
  * - El curso debe existir.
  * - La evaluación debe estar asociada al curso.
  * - Para recursos específicos, el profesor debe estar asociado al curso.
- * - El nombre y código utilizados en las rutas se obtienen desde la BD.
+ * - El nombre y código utilizados se obtienen desde la base de datos.
  * - Para SOLUCIONARIO debe existir previamente la plancha correspondiente.
+ * - Las planchas específicas se identifican mediante sheets.teacher_id.
  */
 
 export const prerender = false;
 
 import type { APIRoute } from "astro";
+import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
+import {
+  buildFinalSheetStoragePaths,
+  buildSheetStoragePaths,
+} from "../../../lib/adminUploadPaths";
 
 type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
 
 const RESOURCE_KINDS: ResourceKind[] = ["PLANCHA", "SOLUCIONARIO", "AMBOS"];
-
-/**
- * Convierte un texto en un segmento seguro para una ruta de Storage.
- */
-const sanitizePathSegment = (value: string): string =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9_-]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "");
 
 /**
  * Valida que un valor sea un identificador entero positivo.
@@ -48,7 +43,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "No autorizado. Inicia sesión como admin.",
       },
-      { status: 401 },
+      {
+        status: 401,
+      },
     );
   }
 
@@ -62,7 +59,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "Body JSON inválido",
       },
-      { status: 400 },
+      {
+        status: 400,
+      },
     );
   }
 
@@ -78,7 +77,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .trim()
     .toUpperCase();
 
-  const isTeacherSpecific = body.is_teacher_specific === true;
+  if (typeof body.is_teacher_specific !== "boolean") {
+    return Response.json(
+      {
+        ok: false,
+        error: "is_teacher_specific debe ser un valor booleano",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  const isTeacherSpecific = body.is_teacher_specific;
 
   if (
     !isPositiveInteger(courseId) ||
@@ -91,7 +102,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "Faltan campos obligatorios o son inválidos",
       },
-      { status: 400 },
+      {
+        status: 400,
+      },
     );
   }
 
@@ -101,7 +114,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "resource_kind inválido",
       },
-      { status: 400 },
+      {
+        status: 400,
+      },
     );
   }
 
@@ -114,7 +129,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         error:
           "Debes proporcionar un teacher_id válido para una plancha de profesor específico",
       },
-      { status: 400 },
+      {
+        status: 400,
+      },
     );
   }
 
@@ -127,14 +144,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         error:
           "Formato de ciclo inválido. Usa el formato 2026-I, 2026-II o 2026-III.",
       },
-      { status: 400 },
+      {
+        status: 400,
+      },
     );
   }
 
   try {
     /*
      * Obtener el curso desde la base de datos.
-     * El código ya no se acepta como una fuente confiable del cliente.
+     * El código no se acepta como una fuente confiable del cliente.
      */
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
@@ -150,7 +169,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "No se pudo validar el curso",
         },
-        { status: 500 },
+        {
+          status: 500,
+        },
       );
     }
 
@@ -160,7 +181,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "Curso no encontrado",
         },
-        { status: 404 },
+        {
+          status: 404,
+        },
       );
     }
 
@@ -174,13 +197,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "El curso no tiene un código válido",
         },
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
     /*
-     * Validar explícitamente que la evaluación esté habilitada
-     * para el curso seleccionado.
+     * Validar que la evaluación esté habilitada para el curso.
      */
     const { data: courseEvaluation, error: courseEvaluationError } =
       await supabaseAdmin
@@ -201,7 +225,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "No se pudo validar la evaluación del curso",
         },
-        { status: 500 },
+        {
+          status: 500,
+        },
       );
     }
 
@@ -211,13 +237,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "La evaluación no pertenece al curso seleccionado",
         },
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
     /*
-     * Obtener los datos de la evaluación después de comprobar
-     * su asociación con el curso.
+     * Obtener los datos de la evaluación desde la base de datos.
      */
     const { data: evaluation, error: evaluationError } = await supabaseAdmin
       .from("evaluation_type")
@@ -233,7 +260,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "No se pudo obtener la evaluación",
         },
-        { status: 500 },
+        {
+          status: 500,
+        },
       );
     }
 
@@ -243,7 +272,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "Evaluación no encontrada",
         },
-        { status: 404 },
+        {
+          status: 404,
+        },
       );
     }
 
@@ -257,13 +288,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "La evaluación seleccionada no tiene una abreviatura válida",
         },
-        { status: 400 },
+        {
+          status: 400,
+        },
       );
     }
 
     /*
      * Para una plancha específica se valida courses_teachers.
-     * El nombre del profesor nunca se toma del cuerpo de la petición.
+     * El nombre se conserva solo como información de presentación;
+     * la identidad estable de la plancha será teacher_id.
      */
     let teacherName: string | null = null;
 
@@ -287,7 +321,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "No se pudo validar el profesor del curso",
           },
-          { status: 500 },
+          {
+            status: 500,
+          },
         );
       }
 
@@ -297,7 +333,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "El profesor no está asociado al curso seleccionado",
           },
-          { status: 400 },
+          {
+            status: 400,
+          },
         );
       }
 
@@ -315,7 +353,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "No se pudo obtener el profesor",
           },
-          { status: 500 },
+          {
+            status: 500,
+          },
         );
       }
 
@@ -325,7 +365,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "Profesor no encontrado",
           },
-          { status: 404 },
+          {
+            status: 404,
+          },
         );
       }
 
@@ -337,7 +379,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "El profesor no tiene un nombre válido",
           },
-          { status: 400 },
+          {
+            status: 400,
+          },
         );
       }
     }
@@ -370,20 +414,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ok: false,
           error: "No se pudo registrar el ciclo en la base de datos",
         },
-        { status: 500 },
+        {
+          status: 500,
+        },
       );
     }
 
     /*
      * ID de la plancha que recibirá el solucionario.
-     * Se devuelve al frontend para identificar exactamente
-     * qué registro debe actualizarse después de la subida.
      */
     let targetSheetId: number | null = null;
 
     /*
-     * Para SOLUCIONARIO, comprobar que la plancha correspondiente
-     * ya exista.
+     * Para SOLUCIONARIO, comprobar que la plancha exista.
+     *
+     * Las planchas específicas se localizan mediante teacher_id.
+     * teacher_hint no se utiliza para identidad ni búsquedas.
      */
     if (resourceKind === "SOLUCIONARIO") {
       let sheetQuery = supabaseAdmin
@@ -393,16 +439,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         .eq("cycle", cycle)
         .eq("evaluation_id", evaluationId);
 
-      if (isTeacherSpecific && teacherName) {
+      if (isTeacherSpecific) {
         sheetQuery = sheetQuery
           .eq("is_teacher_specific", true)
-          .eq("teacher_hint", teacherName);
+          .eq("teacher_id", teacherId);
       } else {
         sheetQuery = sheetQuery
           .eq("is_teacher_specific", false)
-          .or(
-            "teacher_hint.is.null,teacher_hint.eq.todos los profesores,teacher_hint.eq.todos",
-          );
+          .is("teacher_id", null);
       }
 
       const { data: existingSheet, error: lookupError } =
@@ -456,18 +500,35 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     /*
-     * Construir las rutas usando únicamente datos validados
-     * y obtenidos desde la base de datos.
+     * Construir rutas utilizando datos validados.
+     * Para AMBOS se usan rutas temporales para no sobrescribir la plancha
+     * hasta que ambas subidas y el registro en BD terminen correctamente.
      */
-    const safeCourse = sanitizePathSegment(courseCode);
-    const safeCycle = sanitizePathSegment(cycle);
-    const safeExam = sanitizePathSegment(examType);
-    const safeTeacher = teacherName
-      ? `_${sanitizePathSegment(teacherName)}`
-      : "";
+    const uploadSessionId = resourceKind === "AMBOS" ? randomUUID() : null;
 
-    const path =
-      `${safeCourse}/${safeExam}/` + `${safeCycle}${safeTeacher}.pdf`;
+    const paths = buildSheetStoragePaths({
+      courseCode,
+      cycle,
+      examType,
+      isTeacherSpecific,
+      teacherId: isTeacherSpecific ? teacherId : null,
+      uploadSessionId,
+    });
+
+    const finalPaths =
+      uploadSessionId !== null
+        ? buildFinalSheetStoragePaths({
+            courseCode,
+            cycle,
+            examType,
+            isTeacherSpecific,
+            teacherId: isTeacherSpecific ? teacherId : null,
+          })
+        : null;
+
+    const path = paths.examPath;
+    const solutionPath = paths.solutionPath;
+    const thumbPath = paths.thumbPath;
 
     const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
 
@@ -476,15 +537,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     let solutionSignedUrl: string | undefined;
     let solutionToken: string | undefined;
-    let solutionPath: string | undefined;
 
     if (resourceKind === "AMBOS") {
       const { data: planchaData, error: planchaError } =
         await supabaseAdmin.storage.from("exams").createSignedUploadUrl(path, {
           upsert: true,
         });
-
-      solutionPath = path;
 
       const { data: solutionData, error: solutionError } =
         await supabaseAdmin.storage
@@ -505,7 +563,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "No se pudieron generar las URLs de subida conjunta",
           },
-          { status: 500 },
+          {
+            status: 500,
+          },
         );
       }
 
@@ -528,7 +588,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "No se pudo generar la URL de subida",
           },
-          { status: 500 },
+          {
+            status: 500,
+          },
         );
       }
 
@@ -537,12 +599,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     let thumbSignedUrl: string | undefined;
-    let thumbPath: string | undefined;
 
     if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-      thumbPath =
-        `${safeCourse}/${safeExam}/` + `${safeCycle}${safeTeacher}.jpg`;
-
       const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
         .from("thumbnails")
         .createSignedUploadUrl(thumbPath, {
@@ -563,6 +621,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         token,
         path,
         bucket: resourceKind === "AMBOS" ? "exams" : bucket,
+        uploadSessionId,
 
         courseId,
         evaluationId,
@@ -575,6 +634,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         thumbSignedUrl,
         thumbPath,
+        finalExamPath: finalPaths?.examPath ?? path,
+        finalSolutionPath: finalPaths?.solutionPath ?? solutionPath,
+        finalThumbPath: finalPaths?.thumbPath ?? thumbPath,
 
         solutionSignedUrl,
         solutionToken,
@@ -592,7 +654,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         ok: false,
         error: "Error interno del servidor",
       },
-      { status: 500 },
+      {
+        status: 500,
+      },
     );
   }
 };
