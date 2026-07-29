@@ -36,6 +36,7 @@ drop trigger if exists t_sheet_interests_count on public.sheet_interests;
 
 -- Eliminar implementaciones antiguas o duplicadas.
 drop function if exists public.toggle_sheet_interest(bigint, text, text);
+drop function if exists public.reset_sheet_interest(bigint);
 drop function if exists public.update_sheet_interest_count();
 drop function if exists public.refresh_sheet_interest_count();
 
@@ -71,8 +72,8 @@ begin
 end;
 $$;
 
-create or replace function public.reset_sheet_interest(p_sheet_id bigint)
-returns void
+create function public.reset_sheet_interest(p_sheet_id bigint)
+returns boolean
 language plpgsql
 security invoker
 set search_path = ''
@@ -84,7 +85,7 @@ begin
   for update;
 
   if not found then
-    raise exception 'Plancha no encontrada';
+    return false;
   end if;
 
   delete from public.sheet_interests
@@ -93,6 +94,8 @@ begin
   update public.sheets
   set interest_count = 0
   where id = p_sheet_id;
+
+  return true;
 end;
 $$;
 
@@ -107,26 +110,95 @@ security invoker
 set search_path = ''
 as $$
 declare
+  v_sheet public.sheets%rowtype;
   v_deleted_id bigint;
   v_is_interested boolean;
+  v_has_solution boolean;
   v_new_count bigint;
+  v_status text;
 begin
+  -- Validar parámetros obligatorios.
+  if p_sheet_id is null or p_sheet_id <= 0 then
+    return json_build_object(
+      'status', 'INVALID_REQUEST',
+      'interested', false,
+      'interest_count', 0,
+      'is_hidden', false,
+      'has_solution', false
+    );
+  end if;
+
   if p_device_id is null then
-    raise exception 'device_id es requerido';
+    return json_build_object(
+      'status', 'INVALID_REQUEST',
+      'interested', false,
+      'interest_count', 0,
+      'is_hidden', false,
+      'has_solution', false
+    );
   end if;
 
   if nullif(btrim(p_ip_hash), '') is null then
-    raise exception 'ip_hash es requerido';
+    return json_build_object(
+      'status', 'INVALID_REQUEST',
+      'interested', false,
+      'interest_count', 0,
+      'is_hidden', false,
+      'has_solution', false
+    );
   end if;
 
-  -- Serializa los toggles de una misma plancha y evita carreras.
-  perform 1
+  select *
+  into v_sheet
   from public.sheets
   where id = p_sheet_id
   for update;
 
   if not found then
-    raise exception 'Plancha no encontrada';
+    return json_build_object(
+      'status', 'NOT_FOUND',
+      'interested', false,
+      'interest_count', 0,
+      'is_hidden', false,
+      'has_solution', false
+    );
+  end if;
+
+  v_has_solution :=
+    (
+      v_sheet.solution_kind = 'pdf'
+      and nullif(
+        btrim(v_sheet.solution_storage_path),
+        ''
+      ) is not null
+    )
+    or
+    (
+      v_sheet.solution_kind = 'video'
+      and nullif(
+        btrim(v_sheet.solution_video_url),
+        ''
+      ) is not null
+    );
+
+  if coalesce(v_sheet.is_hidden, false) then
+    return json_build_object(
+      'status', 'HIDDEN',
+      'interested', false,
+      'interest_count', coalesce(v_sheet.interest_count, 0),
+      'is_hidden', true,
+      'has_solution', v_has_solution
+    );
+  end if;
+
+  if v_has_solution then
+    return json_build_object(
+      'status', 'SOLUTION_AVAILABLE',
+      'interested', false,
+      'interest_count', coalesce(v_sheet.interest_count, 0),
+      'is_hidden', false,
+      'has_solution', true
+    );
   end if;
 
   delete from public.sheet_interests
@@ -147,18 +219,23 @@ begin
     );
 
     v_is_interested := true;
+    v_status := 'REGISTERED';
   else
     v_is_interested := false;
+    v_status := 'REMOVED';
   end if;
 
-  select interest_count
+  select coalesce(s.interest_count, 0)
   into v_new_count
-  from public.sheets
-  where id = p_sheet_id;
+  from public.sheets as s
+  where s.id = p_sheet_id;
 
   return json_build_object(
+    'status', v_status,
     'interested', v_is_interested,
-    'interest_count', coalesce(v_new_count, 0)
+    'interest_count', coalesce(v_new_count, 0),
+    'is_hidden', false,
+    'has_solution', false
   );
 end;
 $$;

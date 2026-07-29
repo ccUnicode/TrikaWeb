@@ -12,6 +12,36 @@ const isPositiveInteger = (value: number): boolean =>
   Number.isSafeInteger(value) && value > 0;
 
 /**
+ * Elimina las solicitudes de solucionario de una plancha
+ * después de registrar correctamente su solucionario.
+ */
+const resetSheetInterests = async (sheetId: number): Promise<boolean> => {
+  const { data: wasReset, error } = await supabaseAdmin.rpc(
+    "reset_sheet_interest",
+    {
+      p_sheet_id: sheetId,
+    },
+  );
+
+  if (error) {
+    console.error("Error al reiniciar los intereses de la plancha:", error);
+
+    return false;
+  }
+
+  if (wasReset !== true) {
+    console.error("reset_sheet_interest no confirmó el reinicio:", {
+      sheetId,
+      wasReset,
+    });
+
+    return false;
+  }
+
+  return true;
+};
+
+/**
  * POST /api/admin/upload
  *
  * Registra los metadatos de una plancha, solucionario o ambos
@@ -431,6 +461,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       if (resourceKind === "AMBOS") {
         insertPayload.solution_kind = "pdf";
         insertPayload.solution_storage_path = solutionStoragePath;
+        insertPayload.solution_video_url = null;
       }
 
       if (existingSheet) {
@@ -449,6 +480,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (resourceKind === "AMBOS") {
           updatePayload.solution_kind = "pdf";
           updatePayload.solution_storage_path = solutionStoragePath;
+          updatePayload.solution_video_url = null;
         }
 
         const { error: updateError } = await supabaseAdmin
@@ -467,6 +499,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             },
             { status: 500 },
           );
+        }
+        if (resourceKind === "AMBOS") {
+          const interestsReset = await resetSheetInterests(
+            Number(existingSheet.id),
+          );
+
+          if (!interestsReset) {
+            return Response.json(
+              {
+                ok: false,
+                error:
+                  "El solucionario se guardó, pero no se pudieron reiniciar las solicitudes",
+              },
+              {
+                status: 500,
+              },
+            );
+          }
         }
       } else {
         const { error: insertError } = await supabaseAdmin
@@ -496,13 +546,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
       }
 
+      const targetSheetId = Number(existingSheet.id);
+
+      if (!Number.isSafeInteger(targetSheetId) || targetSheetId <= 0) {
+        console.error(
+          "La plancha encontrada tiene un ID inválido:",
+          existingSheet.id,
+        );
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo identificar la plancha",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
       const { error: updateSolutionError } = await supabaseAdmin
         .from("sheets")
         .update({
           solution_kind: "pdf",
           solution_storage_path: storagePath,
+          solution_video_url: null,
         })
-        .eq("id", existingSheet.id);
+        .eq("id", targetSheetId);
 
       if (updateSolutionError) {
         console.error("Error al actualizar solucionario:", updateSolutionError);
@@ -512,7 +582,24 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "Archivo subido, pero no se pudo registrar el solucionario",
           },
-          { status: 500 },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      const interestsReset = await resetSheetInterests(targetSheetId);
+
+      if (!interestsReset) {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "El solucionario se guardó, pero no se pudieron reiniciar las solicitudes",
+          },
+          {
+            status: 500,
+          },
         );
       }
     }

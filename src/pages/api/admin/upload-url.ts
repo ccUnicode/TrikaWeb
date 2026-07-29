@@ -375,6 +375,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     /*
+     * ID de la plancha que recibirá el solucionario.
+     * Se devuelve al frontend para identificar exactamente
+     * qué registro debe actualizarse después de la subida.
+     */
+    let targetSheetId: number | null = null;
+
+    /*
      * Para SOLUCIONARIO, comprobar que la plancha correspondiente
      * ya exista.
      */
@@ -409,7 +416,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             ok: false,
             error: "Error al validar la existencia de la plancha",
           },
-          { status: 500 },
+          {
+            status: 500,
+          },
         );
       }
 
@@ -420,7 +429,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             error:
               "Primero debes subir la plancha antes de adjuntar un solucionario",
           },
-          { status: 400 },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      targetSheetId = Number(existingSheet.id);
+
+      if (!Number.isSafeInteger(targetSheetId) || targetSheetId <= 0) {
+        console.error(
+          "La plancha encontrada tiene un ID inválido:",
+          existingSheet.id,
+        );
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo identificar la plancha",
+          },
+          {
+            status: 500,
+          },
         );
       }
     }
@@ -537,6 +567,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         courseId,
         evaluationId,
         examType,
+        targetSheetId,
 
         isTeacherSpecific,
         teacherId: isTeacherSpecific ? teacherId : null,
@@ -549,7 +580,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         solutionToken,
         solutionPath,
       },
-      { status: 200 },
+      {
+        status: 200,
+      },
     );
   } catch (error) {
     console.error("Error inesperado en /api/admin/upload-url:", error);

@@ -14,49 +14,55 @@ import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 
+const supa = supabaseAdmin;
 const sheetId = Number(Astro.params.id);
-if (!sheetId) {
+
+if (!Number.isSafeInteger(sheetId) || sheetId <= 0) {
   return Astro.redirect("/cursos");
 }
 
-const supa = supabaseAdmin;
-const { data: sheet, error } = await supa
+const { data: sheet, error } = await supabaseAdmin
   .from("sheets")
   .select(
     `
-    id,
-    exam_type,
-    cycle,
-    teacher_hint,
-    avg_difficulty,
-    rating_count,
-    view_count,
-    exam_storage_path,
-    solution_kind,
-    solution_storage_path,
-    solution_video_url,
-    thumb_storage_path,
-    courses:course_id (code,name)
-  `,
+      id,
+      exam_type,
+      cycle,
+      teacher_hint,
+      avg_difficulty,
+      rating_count,
+      view_count,
+      interest_count,
+      exam_storage_path,
+      solution_kind,
+      solution_storage_path,
+      solution_video_url,
+      thumb_storage_path,
+      courses:course_id!inner(code,name,is_hidden)
+    `,
   )
   .eq("id", sheetId)
-  .single();
+  .eq("is_hidden", false)
+  .eq("courses.is_hidden", false)
+  .maybeSingle();
 
-if (error || !sheet) {
+if (error) {
+  console.error("Error al cargar la plancha:", error);
   return Astro.redirect("/cursos");
 }
 
-// RF-04: Fetch interest_count separately (graceful fallback if column doesn't exist yet)
-let interestCount = 0;
-try {
-  const { count } = await supa
-    .from("sheet_interests")
-    .select("*", { count: "exact", head: true })
-    .eq("sheet_id", sheetId);
-  interestCount = count ?? 0;
-} catch {
-  // Table doesn't exist yet — migration pending
+if (!sheet) {
+  return Astro.redirect("/cursos");
 }
+
+const solutionKind = sheet.solution_kind?.trim().toLowerCase();
+
+const hasValidSolution =
+  (solutionKind === "pdf" && Boolean(sheet.solution_storage_path?.trim())) ||
+  (solutionKind === "video" && Boolean(sheet.solution_video_url?.trim()));
+
+// RF-04: Fetch interest_count separately (graceful fallback if column doesn't exist yet)
+const interestCount = Number(sheet.interest_count ?? 0);
 
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
 const courseCode = course?.code ?? "Curso";
@@ -133,7 +139,7 @@ function getYouTubeId(url: string) {
               )
             }
             {
-              !sheet.solution_kind && (
+              !hasValidSolution && (
                 <span>
                   Solicitudes:{" "}
                   <strong id="interest-count-display">{interestCount}</strong>
@@ -159,7 +165,7 @@ function getYouTubeId(url: string) {
             /* RF-03: Botón "Pedir solucionario" — solo si NO tiene solucionario */
           }
           {
-            !sheet.solution_kind && (
+            !hasValidSolution && (
               <button
                 id="interest-btn"
                 data-sheet-id={sheet.id}
@@ -870,19 +876,36 @@ function getYouTubeId(url: string) {
   import { ensureDeviceId } from "../../lib/client/device";
 
   /**
-   * Botón "Pedir solucionario" — feature RF-04.
+   * Botón "Pedir solucionario".
    *
-   * Almacena el estado localmente en localStorage (trikaweb:interests)
-   * y sincroniza con el servidor mediante GET (consulta) y POST (toggle).
-   * Usa optimistic UI: actualiza visualmente antes de la respuesta del servidor
-   * y revierte en caso de error.
+   * Guarda un estado local para mostrar una respuesta inmediata y
+   * lo sincroniza con la fuente de verdad almacenada en el servidor.
    */
   const INTEREST_STORAGE_KEY = "trikaweb:interests";
+
+  interface InterestResponse {
+    interested?: unknown;
+    interest_count?: unknown;
+    error?: unknown;
+  }
 
   function getStoredInterests(): number[] {
     try {
       const stored = localStorage.getItem(INTEREST_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
+
+      if (!stored) {
+        return [];
+      }
+
+      const parsed: unknown = JSON.parse(stored);
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter(
+        (value): value is number => Number.isSafeInteger(value) && value > 0,
+      );
     } catch {
       return [];
     }
@@ -895,65 +918,108 @@ function getYouTubeId(url: string) {
   function setLocalInterest(id: number, interested: boolean): void {
     const interests = getStoredInterests();
     const index = interests.indexOf(id);
+
     if (interested && index === -1) {
       interests.push(id);
     } else if (!interested && index >= 0) {
       interests.splice(index, 1);
     }
+
     localStorage.setItem(INTEREST_STORAGE_KEY, JSON.stringify(interests));
   }
 
-  function applyDetailInterestState(btn: HTMLElement, sheetId: number) {
+  function applyDetailInterestState(
+    btn: HTMLButtonElement,
+    sheetId: number,
+  ): void {
     const label = btn.querySelector(".interest-detail-label");
     const svg = btn.querySelector("svg");
+    const isInterested = isSheetInterested(sheetId);
 
-    if (isSheetInterested(sheetId)) {
-      if (label) label.textContent = "¡Solicitud enviada!";
-      if (svg) svg.setAttribute("fill", "currentColor");
+    if (isInterested) {
+      if (label) {
+        label.textContent = "¡Solicitud enviada!";
+      }
+
+      svg?.setAttribute("fill", "currentColor");
+
       btn.style.backgroundColor = "rgb(var(--global-primary))";
       btn.style.color = "black";
       btn.style.borderColor = "rgb(var(--global-primary))";
-    } else {
-      if (label) label.textContent = "Pedir solucionario";
-      if (svg) svg.setAttribute("fill", "none");
-      btn.style.backgroundColor = "transparent";
-      btn.style.color = "rgb(var(--global-primary))";
-      btn.style.borderColor = "rgb(var(--global-primary))";
+
+      return;
     }
+
+    if (label) {
+      label.textContent = "Pedir solucionario";
+    }
+
+    svg?.setAttribute("fill", "none");
+
+    btn.style.backgroundColor = "transparent";
+    btn.style.color = "rgb(var(--global-primary))";
+    btn.style.borderColor = "rgb(var(--global-primary))";
   }
 
-  function initInterestButton() {
-    const btn = document.getElementById("interest-btn");
-    if (!btn) return;
+  function initInterestButton(): void {
+    const element = document.getElementById("interest-btn");
+
+    if (!(element instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const btn = element;
+
+    /*
+     * Evita añadir los listeners dos veces cuando se disparan
+     * DOMContentLoaded y astro:page-load sobre el mismo elemento.
+     */
+    if (btn.dataset.initialized === "true") {
+      return;
+    }
+
+    btn.dataset.initialized = "true";
 
     const sheetId = Number(btn.dataset.sheetId);
-    if (!Number.isFinite(sheetId)) return;
+
+    if (!Number.isSafeInteger(sheetId) || sheetId <= 0) {
+      return;
+    }
 
     const countDisplay = document.getElementById("interest-count-display");
 
-    // Apply initial state from localStorage
     applyDetailInterestState(btn, sheetId);
 
-    // Sync localStorage with the API (handles admin resets)
-    const deviceId = ensureDeviceId();
+    /*
+     * Sincronizar localStorage con la base de datos.
+     * Esto también refleja reinicios realizados por un administrador.
+     */
+    const initialDeviceId = ensureDeviceId();
+
     fetch(
-      `/api/sheets/${sheetId}/interest?device_id=${encodeURIComponent(deviceId)}`,
+      `/api/sheets/${sheetId}/interest?device_id=${encodeURIComponent(
+        initialDeviceId,
+      )}`,
     )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && typeof data.interested === "boolean") {
-          const localState = isSheetInterested(sheetId);
-          if (localState !== data.interested) {
-            setLocalInterest(sheetId, data.interested);
-            applyDetailInterestState(btn, sheetId);
-          }
+      .then(async (response) => {
+        if (!response.ok) {
+          return null;
         }
+
+        return (await response.json()) as InterestResponse;
+      })
+      .then((result) => {
+        if (!result || typeof result.interested !== "boolean") {
+          return;
+        }
+
+        setLocalInterest(sheetId, result.interested);
+        applyDetailInterestState(btn, sheetId);
       })
       .catch(() => {
-        /* silently ignore sync errors */
+        // La sincronización inicial no debe bloquear la página.
       });
 
-    // Hover effects
     btn.addEventListener("mouseenter", () => {
       if (!isSheetInterested(sheetId)) {
         btn.style.backgroundColor = "rgb(var(--global-primary))";
@@ -968,51 +1034,85 @@ function getYouTubeId(url: string) {
     });
 
     btn.addEventListener("click", async () => {
-      // Optimistic UI update
+      if (btn.dataset.pending === "true") {
+        return;
+      }
+
+      btn.dataset.pending = "true";
+      btn.disabled = true;
+      btn.setAttribute("aria-busy", "true");
+
       const wasInterested = isSheetInterested(sheetId);
+
+      // Actualización optimista.
       setLocalInterest(sheetId, !wasInterested);
-
-      // Visual pulse animation
-      btn.classList.add("scale-110");
-      setTimeout(() => btn.classList.remove("scale-110"), 200);
-
-      // Update button state
       applyDetailInterestState(btn, sheetId);
 
-      // Call API
+      btn.classList.add("scale-110");
+
+      window.setTimeout(() => {
+        btn.classList.remove("scale-110");
+      }, 200);
+
       try {
         const deviceId = ensureDeviceId();
+
         const response = await fetch(`/api/sheets/${sheetId}/interest`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_id: deviceId }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            device_id: deviceId,
+          }),
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          // Sync localStorage with API response
-          setLocalInterest(sheetId, result.interested);
-          applyDetailInterestState(btn, sheetId);
+        const result = (await response
+          .json()
+          .catch(() => null)) as InterestResponse | null;
 
-          // Update counter display
-          if (countDisplay) {
-            countDisplay.textContent = String(result.interest_count ?? 0);
-          }
-        } else {
-          // Revert on error
+        if (!response.ok) {
           setLocalInterest(sheetId, wasInterested);
           applyDetailInterestState(btn, sheetId);
-          console.error("Error al registrar interés");
+
+          console.error(
+            "Error al registrar interés:",
+            typeof result?.error === "string" ? result.error : response.status,
+          );
+
+          return;
         }
-      } catch (err) {
-        // Revert on network error
+
+        const interestCount = Number(result?.interest_count);
+
+        if (
+          typeof result?.interested !== "boolean" ||
+          !Number.isSafeInteger(interestCount) ||
+          interestCount < 0
+        ) {
+          throw new Error("Respuesta inválida del endpoint de intereses");
+        }
+
+        setLocalInterest(sheetId, result.interested);
+        applyDetailInterestState(btn, sheetId);
+
+        if (countDisplay) {
+          countDisplay.textContent = String(interestCount);
+        }
+      } catch (error) {
         setLocalInterest(sheetId, wasInterested);
         applyDetailInterestState(btn, sheetId);
-        console.error("Error de red:", err);
+
+        console.error("Error al registrar interés:", error);
+      } finally {
+        btn.dataset.pending = "false";
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
       }
     });
   }
 
   document.addEventListener("astro:page-load", initInterestButton);
+
   document.addEventListener("DOMContentLoaded", initInterestButton);
 </script>
