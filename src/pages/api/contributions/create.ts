@@ -12,6 +12,14 @@ const ALLOWED_TYPES = new Set([
   'image/webp'
 ]);
 
+const VALID_EXAM_TYPES = new Set([
+  'PC1', 'PC2', 'PC3', 'PC4', 'PC5', 
+  'Parcial', 'Final', 'Sustitutorio'
+]);
+
+// Valida formatos como 2024-I, 2024-II, 2024-0
+const CYCLE_REGEX = /^20\d{2}-(I|II|0)$/;
+
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { user, profile } = await getUserSession(cookies);
 
@@ -38,6 +46,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (contributionType !== 'sheet' && contributionType !== 'solution') {
       return new Response(JSON.stringify({ error: 'Tipo de aporte inválido' }), { status: 400 });
+    }
+
+    if (!VALID_EXAM_TYPES.has(examType)) {
+      return new Response(JSON.stringify({ error: 'Tipo de evaluación inválido' }), { status: 400 });
+    }
+
+    if (!CYCLE_REGEX.test(cycle)) {
+      return new Response(JSON.stringify({ error: 'Formato de ciclo inválido. Use el formato YYYY-I, YYYY-II o YYYY-0 (ej. 2025-I)' }), { status: 400 });
     }
 
     if (!(file instanceof File)) {
