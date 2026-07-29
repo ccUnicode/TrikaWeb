@@ -111,6 +111,7 @@ set search_path = ''
 as $$
 declare
   v_sheet public.sheets%rowtype;
+  v_course_hidden boolean;
   v_deleted_id bigint;
   v_is_interested boolean;
   v_has_solution boolean;
@@ -181,7 +182,12 @@ begin
       ) is not null
     );
 
-  if coalesce(v_sheet.is_hidden, false) then
+  select coalesce(c.is_hidden, false)
+  into v_course_hidden
+  from public.courses as c
+  where c.id = v_sheet.course_id;
+
+  if coalesce(v_sheet.is_hidden, false) or coalesce(v_course_hidden, false) then
     return json_build_object(
       'status', 'HIDDEN',
       'interested', false,
@@ -241,6 +247,79 @@ end;
 $$;
 
 
+/*
+ * Registra el solucionario y reinicia los intereses en una sola transacción.
+ * Si se proporciona p_exam_storage_path, también actualiza la plancha (caso AMBOS).
+ */
+create or replace function public.register_sheet_solution(
+  p_sheet_id bigint,
+  p_solution_storage_path text,
+  p_exam_storage_path text default null,
+  p_thumb_storage_path text default null,
+  p_evaluation_id integer default null,
+  p_exam_type text default null,
+  p_teacher_id bigint default null,
+  p_teacher_hint text default null,
+  p_is_teacher_specific boolean default null
+)
+returns boolean
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if p_sheet_id is null
+    or p_sheet_id <= 0
+    or nullif(btrim(p_solution_storage_path), '') is null then
+    return false;
+  end if;
+
+  perform 1
+  from public.sheets
+  where id = p_sheet_id
+  for update;
+
+  if not found then
+    return false;
+  end if;
+
+  if p_exam_storage_path is not null then
+    update public.sheets
+    set
+      evaluation_id = coalesce(p_evaluation_id, evaluation_id),
+      exam_type = coalesce(nullif(btrim(p_exam_type), ''), exam_type),
+      exam_storage_path = p_exam_storage_path,
+      teacher_id = p_teacher_id,
+      teacher_hint = p_teacher_hint,
+      is_teacher_specific = coalesce(p_is_teacher_specific, is_teacher_specific),
+      thumb_storage_path = coalesce(
+        nullif(btrim(p_thumb_storage_path), ''),
+        thumb_storage_path
+      ),
+      solution_kind = 'pdf',
+      solution_storage_path = p_solution_storage_path,
+      solution_video_url = null
+    where id = p_sheet_id;
+  else
+    update public.sheets
+    set
+      solution_kind = 'pdf',
+      solution_storage_path = p_solution_storage_path,
+      solution_video_url = null
+    where id = p_sheet_id;
+  end if;
+
+  delete from public.sheet_interests
+  where sheet_id = p_sheet_id;
+
+  update public.sheets
+  set interest_count = 0
+  where id = p_sheet_id;
+
+  return true;
+end;
+$$;
+
 create trigger t_sheet_interests_stats
 after insert or delete or update of sheet_id
 on public.sheet_interests
@@ -292,6 +371,20 @@ grant execute
 on function public.reset_sheet_interest(bigint)
 to service_role;
 
+grant execute
+on function public.register_sheet_solution(
+  bigint,
+  text,
+  text,
+  text,
+  integer,
+  text,
+  bigint,
+  text,
+  boolean
+)
+to service_role;
+
 -- Bloquear ejecución directa desde roles cliente.
 revoke execute
 on function public.refresh_interest_count()
@@ -303,6 +396,20 @@ from public, anon, authenticated;
 
 revoke execute
 on function public.reset_sheet_interest(bigint)
+from public, anon, authenticated;
+
+revoke execute
+on function public.register_sheet_solution(
+  bigint,
+  text,
+  text,
+  text,
+  integer,
+  text,
+  bigint,
+  text,
+  boolean
+)
 from public, anon, authenticated;
 
 commit;
