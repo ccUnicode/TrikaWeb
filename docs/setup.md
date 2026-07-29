@@ -47,7 +47,7 @@ Ejecutar en SQL Editor de Supabase, en este orden:
 
 1. `supabase/schema.sql`
 2. `supabase/function_triggers.sql`
-3. `supabase/migrations/add_teacher_visibility.sql`
+3. Todos los archivos de la carpeta `supabase/migrations/` en orden numérico (01_..., 02_..., etc.)
 4. `supabase/seed.sql` (opcional)
 
 ## Storage buckets
@@ -57,6 +57,8 @@ Crear buckets:
 - `exams`
 - `solutions`
 - `thumbnails` (opcional)
+- `avatars` (público, para las fotos de perfil)
+- `contributions` (privado, para moderación)
 
 ## Scripts disponibles
 
