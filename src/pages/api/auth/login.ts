@@ -49,6 +49,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (upsertError) {
        console.error('Error creando perfil base del estudiante:', upsertError);
+       return new Response(JSON.stringify({ error: 'No se pudo crear el perfil base del estudiante. Inténtelo de nuevo.' }), { status: 500 });
     }
 
     const expiresIn = 1000 * 60 * 60 * 24 * 5;
