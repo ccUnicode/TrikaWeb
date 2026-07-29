@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getFirebaseAdminAuth, hasFirebaseAdminEnv } from '../../../lib/firebase-admin';
+import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   try {
@@ -35,6 +36,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (!email || !email.endsWith('@uni.pe')) {
       return new Response(JSON.stringify({ error: 'Solo se permiten correos @uni.pe' }), { status: 403 });
+    }
+
+    // Asegurar que el estudiante tenga un perfil base para no romper las FKs
+    const { error: upsertError } = await supabaseAdmin
+      .from('student_details')
+      .upsert({
+        user_id: decodedToken.uid,
+        email: email,
+        full_name: decodedToken.name || email.split('@')[0] || 'Estudiante'
+      }, { onConflict: 'user_id' });
+
+    if (upsertError) {
+       console.error('Error creando perfil base del estudiante:', upsertError);
     }
 
     const expiresIn = 1000 * 60 * 60 * 24 * 5;
