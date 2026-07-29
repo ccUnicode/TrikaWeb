@@ -31,12 +31,7 @@ create policy "contributions_select_approved"
   on public.contributions for select
   using (status = 'approved');
 
--- Política: El estudiante puede crear sus propios aportes
-drop policy if exists "contributions_insert_own" on public.contributions;
-create policy "contributions_insert_own"
-  on public.contributions for insert
-  with check (true);
-
--- Permisos para roles de Supabase
-grant select, insert on public.contributions to authenticated;
+-- Importante: El INSERT se realiza únicamente desde el backend con service_role para validar estado y usuario.
+-- Se omiten user_email y file_storage_path de la lectura pública por seguridad.
+grant select (id, user_id, user_name, course_id, cycle, exam_type, contribution_type, status, admin_notes, created_at, updated_at) on public.contributions to anon, authenticated;
 grant usage on sequence public.contributions_id_seq to authenticated;
