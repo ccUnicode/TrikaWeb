@@ -1,8 +1,8 @@
-﻿# Setup y Configuracion
+# Setup y Configuracion
 
 ## Requisitos
 
-- Node.js 18+
+- Node.js >=22.12.0
 - npm
 - Proyecto de Supabase (DB + Storage)
 - Proyecto de Firebase (Auth para estudiantes)
