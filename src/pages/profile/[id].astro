@@ -34,7 +34,13 @@ const { data: profileDb } = await supabaseAdmin
   .maybeSingle();
 
 if (profileDb) {
-  studentProfile = profileDb;
+  studentProfile = {
+    id: profileDb.user_id,
+    full_name: profileDb.full_name,
+    email: profileDb.email,
+    avatar_url: profileDb.avatar_url,
+    role: "student"
+  };
 } else if (contributions && contributions.length > 0) {
   studentProfile.full_name = contributions[0].user_name || "Estudiante";
   studentProfile.email = contributions[0].user_email || "";
