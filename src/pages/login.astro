@@ -1,11 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { getUserSession } from "../lib/auth";
+import { getSafeRedirect } from "../lib/urlUtils";
 
 // Si ya está logueado
 const { user } = await getUserSession(Astro.cookies);
 const redirectUrl = Astro.url.searchParams.get("redirect") || "/profile";
-const safeRedirect = redirectUrl.startsWith("/") ? redirectUrl : "/profile";
+const safeRedirect = getSafeRedirect(redirectUrl);
 
 if (user) {
   return Astro.redirect(safeRedirect);
@@ -59,14 +60,18 @@ if (user) {
 </Layout>
 
 <script>
-  import { FirebaseError } from "firebase/app";
-
   import {
-    auth,
-    provider,
+    getAuth,
     signInWithPopup,
+    GoogleAuthProvider,
     signOut as firebaseSignOut,
-  } from "../../firebase/firebaseConfig.js";
+  } from "firebase/auth";
+  import { app } from "../lib/client/firebase";
+  import { FirebaseError } from "firebase/app";
+  import { getSafeRedirect } from "../lib/urlUtils";
+
+  const auth = getAuth(app);
+  const provider = new GoogleAuthProvider();
 
   document.addEventListener("DOMContentLoaded", () => {
     const googleBtnElement = document.getElementById("google-login-btn");
@@ -183,8 +188,7 @@ if (user) {
 
         const urlParams = new URLSearchParams(window.location.search);
         const redirect = urlParams.get("redirect") || "/profile";
-
-        const safeRedirect = redirect.startsWith("/") ? redirect : "/profile";
+        const safeRedirect = getSafeRedirect(redirect);
 
         window.location.href = safeRedirect;
       } catch (error: unknown) {
