@@ -3,6 +3,10 @@ export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import CardExam from "../../components/CardExam.astro";
 import { getCourseByCode } from "../../lib/data";
+import { getUserSession } from "../../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const code = Astro.params.code ?? "";
 const course = await getCourseByCode(code);
@@ -338,7 +342,7 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
                                 {courseCode}
                               </a>
                             )}
-                            <CardExam sheet={sheet} />
+                            <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                           </article>
                         );
                       })}

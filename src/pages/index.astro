@@ -1,4 +1,4 @@
-﻿---
+---
 export const prerender = false;
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
@@ -10,6 +10,10 @@ import {
   getTopSheetsByViews,
   getTopTeachers,
 } from "../lib/data";
+import { getUserSession } from "../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopSheetsByViews(6),
@@ -158,7 +162,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                             {courseCode}
                           </a>
                         )}
-                        <CardExam sheet={sheet} />
+                        <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                       </article>
                     );
                   })
@@ -267,7 +271,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                             {courseCode}
                           </a>
                         )}
-                        <CardExam sheet={sheet} />
+                        <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                       </article>
                     );
                   })

@@ -1,10 +1,6 @@
 ---
 import type { SheetSummary } from "../lib/data";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
-import { getUserSession } from "../lib/auth";
-
-const { user } = await getUserSession(Astro.cookies);
-const isLoggedIn = !!user;
 
 /* 1. Definimos las "props" (las variables) que la tarjeta va a recibir */
 export interface Props {
@@ -14,8 +10,9 @@ export interface Props {
   tieneSolucion?: boolean;
   evaluacion?: string;
   href?: string;
+  isLoggedIn?: boolean;
 }
-const { sheet, ciclo, profesor, tieneSolucion, evaluacion, href } =
+const { sheet, ciclo, profesor, tieneSolucion, evaluacion, href, isLoggedIn = false } =
   Astro.props as Props;
 
 const courseLabel =
