@@ -19,7 +19,30 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const specialty = String(formData.get('specialty') ?? '').trim();
     const file = formData.get('avatar');
     
+    // Validar especialidad
+    if (specialty) {
+      const { data: validSpecialty, error: specError } = await supabaseAdmin
+        .from('specialties')
+        .select('name')
+        .eq('name', specialty)
+        .maybeSingle();
+      if (!validSpecialty || specError) {
+        return new Response(JSON.stringify({ error: 'Especialidad inválida' }), { status: 400 });
+      }
+    }
+
+    // Obtener avatar actual
+    const { data: currentProfile } = await supabaseAdmin
+      .from('student_details')
+      .select('avatar_url')
+      .eq('user_id', user.uid)
+      .maybeSingle();
+    const oldAvatarPath = currentProfile?.avatar_url && !currentProfile.avatar_url.startsWith('http') 
+      ? currentProfile.avatar_url 
+      : null;
+
     let avatarUrl = undefined;
+    let uploadedPath: string | null = null;
 
     // Si hay archivo, subirlo al bucket avatars
     if (file && file instanceof File && file.size > 0) {
@@ -51,8 +74,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         console.error('Error al subir avatar:', uploadError);
         return new Response(JSON.stringify({ error: `Error subiendo foto: ${uploadError.message}` }), { status: 500 });
       }
-      const { data: publicUrlData } = supabaseAdmin.storage.from('avatars').getPublicUrl(storagePath);
-      avatarUrl = publicUrlData.publicUrl;
+      avatarUrl = storagePath;
+      uploadedPath = storagePath;
     }
 
     // Preparar objeto de actualización
@@ -70,7 +93,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       if (updateError) {
         console.error('Error al actualizar perfil:', updateError);
+        if (uploadedPath) {
+          await supabaseAdmin.storage.from('avatars').remove([uploadedPath]);
+        }
         return new Response(JSON.stringify({ error: 'Error al actualizar el perfil en la base de datos' }), { status: 500 });
+      }
+
+      // Eliminar avatar anterior si se subió uno nuevo
+      if (uploadedPath && oldAvatarPath && oldAvatarPath !== uploadedPath) {
+        await supabaseAdmin.storage.from('avatars').remove([oldAvatarPath]);
       }
 
     return new Response(JSON.stringify({ success: true, avatarUrl, specialty }), { status: 200 });
