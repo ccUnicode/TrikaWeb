@@ -990,9 +990,15 @@ function getYouTubeId(url: string) {
 
     applyDetailInterestState(btn, sheetId);
 
+    btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
+
+    let userInteracted = false;
+
     /*
      * Sincronizar localStorage con la base de datos.
-     * Esto también refleja reinicios realizados por un administrador.
+     * El botón permanece deshabilitado hasta terminar para evitar
+     * que una respuesta GET tardía sobrescriba un clic del usuario.
      */
     const initialDeviceId = ensureDeviceId();
 
@@ -1009,6 +1015,10 @@ function getYouTubeId(url: string) {
         return (await response.json()) as InterestResponse;
       })
       .then((result) => {
+        if (userInteracted) {
+          return;
+        }
+
         if (!result || typeof result.interested !== "boolean") {
           return;
         }
@@ -1018,6 +1028,12 @@ function getYouTubeId(url: string) {
       })
       .catch(() => {
         // La sincronización inicial no debe bloquear la página.
+      })
+      .finally(() => {
+        if (!userInteracted && btn.dataset.pending !== "true") {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+        }
       });
 
     btn.addEventListener("mouseenter", () => {
@@ -1038,6 +1054,7 @@ function getYouTubeId(url: string) {
         return;
       }
 
+      userInteracted = true;
       btn.dataset.pending = "true";
       btn.disabled = true;
       btn.setAttribute("aria-busy", "true");

@@ -808,30 +808,54 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
     let allTeachers: TeacherOption[] = [];
     let lastFetchedCode = "";
+    let teachersAbortController: AbortController | null = null;
+    let evaluationsAbortController: AbortController | null = null;
+    let activeCourseId: number | null = null;
 
-    async function loadTeachersByCourse(code: string) {
+    async function loadTeachersByCourse(code: string, expectedCourseId?: number) {
       const trimmed = code.trim().toUpperCase();
 
-      // Validar formato de código de curso (3 letras + 2 dígitos o 2-4 letras + 2-3 dígitos)
       if (!/^[A-Z]{2,4}[0-9]{2,3}$/.test(trimmed)) {
         resetTeacherSelection("Ingresa un curso primero");
         return;
       }
 
-      // No repetir fetch si el código no cambió
       if (trimmed === lastFetchedCode) return;
       lastFetchedCode = trimmed;
 
-      // Mostrar loading
+      teachersAbortController?.abort();
+      teachersAbortController = new AbortController();
+      const { signal } = teachersAbortController;
+
       resetTeacherSelection("Cargando profesores...");
       teacherLoading?.classList.remove("hidden");
 
       try {
         const res = await fetch(
           `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
+          { signal },
         );
+
+        if (signal.aborted) {
+          return;
+        }
+
+        if (
+          expectedCourseId !== undefined &&
+          activeCourseId !== expectedCourseId
+        ) {
+          return;
+        }
+
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
+
+        if (
+          expectedCourseId !== undefined &&
+          activeCourseId !== expectedCourseId
+        ) {
+          return;
+        }
 
         if (
           data.ok &&
@@ -881,10 +905,16 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           resetTeacherSelection("Sin profesores asociados");
         }
       } catch (err) {
+        if (signal.aborted) {
+          return;
+        }
+
         console.error("Error cargando profesores:", err);
         resetTeacherSelection("Error al cargar profesores");
       } finally {
-        teacherLoading?.classList.add("hidden");
+        if (!signal.aborted) {
+          teacherLoading?.classList.add("hidden");
+        }
       }
     }
 
@@ -1201,6 +1231,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     async function loadEvaluationOptions(courseId: number) {
       if (!evaluationSearchInput) return;
 
+      evaluationsAbortController?.abort();
+      evaluationsAbortController = new AbortController();
+      const { signal } = evaluationsAbortController;
+
       resetEvaluationSelection("Cargando evaluaciones...");
 
       try {
@@ -1209,13 +1243,22 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           {
             method: "GET",
             credentials: "include",
+            signal,
           },
         );
+
+        if (signal.aborted || activeCourseId !== courseId) {
+          return;
+        }
 
         const data = await res.json().catch(() => null);
 
         if (!res.ok || !data?.ok) {
           resetEvaluationSelection("No se pudieron cargar evaluaciones");
+          return;
+        }
+
+        if (activeCourseId !== courseId) {
           return;
         }
 
@@ -1233,6 +1276,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         evaluationSearchInput.placeholder = "Buscar evaluación...";
         renderEvaluationDropdown(allEvaluations);
       } catch (error) {
+        if (signal.aborted || activeCourseId !== courseId) {
+          return;
+        }
+
         console.error("Error cargando evaluaciones:", error);
         resetEvaluationSelection("Error cargando evaluaciones");
       }
@@ -1285,6 +1332,9 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     }
 
     function selectCourse(course: CourseOption) {
+      activeCourseId = course.id;
+      lastFetchedCode = "";
+
       courseSearchInput.value = `${course.code} – ${course.name}`;
       courseIdHidden.value = String(course.id);
       courseCodeHidden.value = course.code;
@@ -1295,7 +1345,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       loadEvaluationOptions(course.id);
 
       resetTeacherSelection("Cargando profesores...");
-      loadTeachersByCourse(course.code);
+      loadTeachersByCourse(course.code, course.id);
     }
 
     function filterCourses(query: string) {
@@ -1376,9 +1426,13 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     }
 
     courseSearchInput?.addEventListener("input", () => {
+      activeCourseId = null;
       courseIdHidden.value = "";
       courseCodeHidden.value = "";
       lastFetchedCode = "";
+
+      teachersAbortController?.abort();
+      evaluationsAbortController?.abort();
 
       const filtered = filterCourses(courseSearchInput.value);
       renderCourseDropdown(filtered);
@@ -1386,9 +1440,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     });
 
     courseSearchInput?.addEventListener("focus", async () => {
+      activeCourseId = null;
+
       if (courseIdHidden) courseIdHidden.value = "";
       if (courseCodeHidden) courseCodeHidden.value = "";
       courseSearchInput.value = "";
+
+      teachersAbortController?.abort();
+      evaluationsAbortController?.abort();
 
       resetEvaluationSelection("Selecciona primero un curso");
       resetTeacherSelection("Ingresa un curso primero");
@@ -1748,10 +1807,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
             cycle,
             evaluation_id: evaluationId,
             resource_kind: resourceKind,
-            storage_path: urlData.path,
+            upload_session_id:
+              resourceKind === "AMBOS" ? urlData.uploadSessionId : undefined,
+            has_thumb_upload: Boolean(uploadedThumbPath),
             teacher_id: isTeacherSpecific ? teacherId : null,
-            thumb_storage_path: uploadedThumbPath,
-            solution_storage_path: urlData.solutionPath,
             is_teacher_specific: isTeacherSpecific,
           }),
         });
@@ -1773,6 +1832,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         // Reset fields
         resetTeacherSelection("Ingresa un curso primero");
         lastFetchedCode = "";
+        activeCourseId = null;
         resetEvaluationSelection("Selecciona primero un curso");
         if (courseSearchInput) courseSearchInput.value = "";
         // Reset year/term UI
