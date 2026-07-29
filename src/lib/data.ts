@@ -50,7 +50,7 @@ export interface TeacherReview {
   is_anonymous?: boolean;
   user_name?: string | null;
   user_id?: string | null;
-  student_details?: { avatar_url?: string | null } | null;
+  avatar_url?: string | null;
 }
 
 export interface TeacherStats {
@@ -384,7 +384,7 @@ export async function getTeacherDetail(
 
   // Stats por dimensión
   const { data: statsRow, error: statsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
       'avg_overall:avg(overall),avg_difficulty:avg(difficulty),avg_didactic:avg(didactic),avg_resources:avg(resources),avg_responsability:avg(responsability),avg_grading:avg(grading)'
     )
@@ -398,9 +398,9 @@ export async function getTeacherDetail(
 
   // Reseñas con paginación y count
   const { data: reviews, count, error: reviewsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
-      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name, user_id, student_details(avatar_url)',
+      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name, user_id, avatar_url',
       { count: 'exact', head: false }
     )
     .eq('teacher_id', teacherId)

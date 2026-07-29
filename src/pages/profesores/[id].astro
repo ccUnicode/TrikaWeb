@@ -263,8 +263,8 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                       <header class="flex items-center justify-between text-sm">
                         <div class="flex items-center gap-3">
                           <div class="w-8 h-8 flex-shrink-0 rounded-full border border-global-border bg-global-background overflow-hidden flex items-center justify-center">
-                            {(!review.is_anonymous && review.student_details?.avatar_url) ? (
-                              <img src={review.student_details.avatar_url} class="w-full h-full object-cover" />
+                            {(!review.is_anonymous && review.avatar_url) ? (
+                              <img src={review.avatar_url} class="w-full h-full object-cover" />
                             ) : (
                               <svg class="w-4 h-4 text-global-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                             )}
