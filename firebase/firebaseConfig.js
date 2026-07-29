@@ -2,12 +2,12 @@ import { getApp, getApps, initializeApp } from "firebase/app";
 import { GoogleAuthProvider, getAuth, signInWithPopup, signOut } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyARazmRkvJA3Y8JAbr0KmqQkw7BkcAwkJk",
-  authDomain: "unicode-2d937.firebaseapp.com",
-  projectId: "unicode-2d937",
-  storageBucket: "unicode-2d937.firebasestorage.app",
-  messagingSenderId: "815175741640",
-  appId: "1:815175741640:web:c9b3e503194408cede75fd"
+  apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
+  authDomain: import.meta.env.PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.PUBLIC_FIREBASE_APP_ID
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
