@@ -61,17 +61,13 @@ if (user) {
 
 <script>
   import {
-    getAuth,
+    auth,
+    provider,
     signInWithPopup,
-    GoogleAuthProvider,
     signOut as firebaseSignOut,
-  } from "firebase/auth";
-  import { app } from "../lib/client/firebase";
+  } from "../../firebase/firebaseConfig.js";
   import { FirebaseError } from "firebase/app";
   import { getSafeRedirect } from "../lib/urlUtils";
-
-  const auth = getAuth(app);
-  const provider = new GoogleAuthProvider();
 
   document.addEventListener("DOMContentLoaded", () => {
     const googleBtnElement = document.getElementById("google-login-btn");
