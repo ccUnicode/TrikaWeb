@@ -115,7 +115,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const normalizedSearch = String(body.search ?? "")
       .trim()
-      .slice(0, 100);
+      .slice(0, 100)
+      .replace(/[,()]/g, "");
 
     const normalizedStatus = normalizeStatusFilter(body.status);
 

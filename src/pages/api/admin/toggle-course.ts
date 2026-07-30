@@ -24,7 +24,7 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
 
         const { course_id, is_hidden } = body || {};
         const id = Number(course_id);
-        if (!Number.isFinite(id) || id <= 0) {
+        if (!Number.isSafeInteger(id) || id <= 0) {
             return Response.json({ ok: false, error: 'ID de curso inválido' }, { status: 400 });
         }
 
