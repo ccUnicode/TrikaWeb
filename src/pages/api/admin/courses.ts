@@ -114,9 +114,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const safeSize = Math.min(requestedPageSize, 100);
 
     const normalizedSearch = String(body.search ?? "")
+      .normalize("NFKC")
+      .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+      .replace(/\s+/g, " ")
       .trim()
-      .slice(0, 100)
-      .replace(/[,()]/g, "");
+      .slice(0, 100);
 
     const normalizedStatus = normalizeStatusFilter(body.status);
 
