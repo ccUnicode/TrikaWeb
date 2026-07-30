@@ -148,7 +148,15 @@ Agrega:
 
 Esta migración debe ejecutarse después de crear `evaluation_type` y `course_evaluations`.
 
-#### 8. Solicitudes de solucionario
+#### 8. Eliminación segura de cursos
+
+```text
+supabase/migrations/prevent_deleting_courses_with_sheets.sql
+```
+
+Crea la función `delete_empty_course` que impide eliminar cursos con planchas asociadas, evitando archivos huérfanos en Storage.
+
+#### 9. Solicitudes de solucionario
 
 ```text
 supabase/migrations/add_sheet_interests.sql
@@ -164,7 +172,7 @@ Agrega:
 
 La tabla `sheet_interests` es interna y solo puede ser utilizada desde el backend mediante `supabaseAdmin` y `service_role`.
 
-#### 9. Seguridad de valoraciones, vistas y límites
+#### 10. Seguridad de valoraciones, vistas y límites
 
 Ejecutar estas migraciones al final:
 
