@@ -219,16 +219,9 @@ values
 
 update public.courses as course
 set
-  code = source.code,
-  name = source.name,
-  credits = source.credits,
-  is_hidden = source.is_hidden,
   system_id = source.system_id,
   subsystem_id = source.subsystem_id,
-  summary = source.summary,
-  is_elective = source.is_elective,
-  avg_difficulty = source.avg_difficulty,
-  status = source.status
+  is_elective = source.is_elective
 from migration_course_state as source
 where upper(btrim(course.code)) = source.code;
 
