@@ -946,14 +946,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             evaluation_id: evaluationId,
             exam_type: examType,
             exam_storage_path: examStoragePath,
+            thumb_storage_path: thumbStoragePath,
             teacher_id: resolvedTeacherId,
             teacher_hint: teacherName,
             is_teacher_specific: isTeacherSpecific,
           };
-
-          if (thumbStoragePath) {
-            updatePayload.thumb_storage_path = thumbStoragePath;
-          }
 
           const { error: updateError } = await supabaseAdmin
             .from("sheets")
