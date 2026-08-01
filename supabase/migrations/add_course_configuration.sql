@@ -4,98 +4,14 @@
 
 begin;
 
-
 alter table public.courses
-  add column if not exists is_hidden boolean default false,
+  add column if not exists is_hidden boolean,
   add column if not exists system_id integer,
   add column if not exists subsystem_id integer,
   add column if not exists summary text,
-  add column if not exists is_elective boolean default false,
-  add column if not exists avg_difficulty numeric(3,2) default 0.00,
-  add column if not exists status varchar(20) default 'INCOMPLETO' not null;
-
-update public.courses
-set
-  is_hidden = coalesce(is_hidden, false),
-  is_elective = coalesce(is_elective, false),
-  avg_difficulty = coalesce(avg_difficulty, 0.00)
-where is_hidden is null
-   or is_elective is null
-   or avg_difficulty is null;
-
-alter table public.courses
-  alter column is_hidden set default false,
-  alter column is_hidden set not null,
-  alter column is_elective set default false,
-  alter column is_elective set not null;
-
-alter table public.courses
-  drop constraint if exists courses_code_format;
-
-alter table public.courses
-  add constraint courses_code_format
-  check (code ~ '^[A-Z]{2,3}[0-9]{2,3}$');
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.courses'::regclass
-      and conname = 'courses_status_check'
-  ) then
-    alter table public.courses
-      add constraint courses_status_check
-      check (status in ('INCOMPLETO', 'COMPLETO', 'ARCHIVADO'));
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.courses'::regclass
-      and conname = 'courses_summary_length_check'
-  ) then
-    alter table public.courses
-      add constraint courses_summary_length_check
-      check (
-        summary is null
-        or (
-          char_length(btrim(summary)) >= 1
-          and char_length(btrim(summary)) <= 1000
-        )
-      );
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.courses'::regclass
-      and conname = 'courses_code_key'
-  ) then
-    alter table public.courses
-      add constraint courses_code_key unique (code);
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.courses'::regclass
-      and conname = 'courses_system_id_fkey'
-  ) then
-    alter table public.courses
-      add constraint courses_system_id_fkey
-      foreign key (system_id)
-      references public.evaluation_systems(system_id);
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.courses'::regclass
-      and conname = 'courses_subsystem_id_fkey'
-  ) then
-    alter table public.courses
-      add constraint courses_subsystem_id_fkey
-      foreign key (subsystem_id)
-      references public.evaluation_subsystems(subsystem_id);
-  end if;
-end
-$$;
+  add column if not exists is_elective boolean,
+  add column if not exists avg_difficulty numeric(3,2),
+  add column if not exists status varchar(20);
 
 -- Configuración recuperada para los cursos existentes.
 create temporary table migration_course_state (
@@ -217,16 +133,88 @@ values
   ('SI705', 'Estándares de la Ingeniería de Sistemas', 2, false, 6, null, null, false, 0.00, 'INCOMPLETO'),
   ('SW501', 'Arquitectura de Computadoras II', 3, false, 7, 1, null, false, 0.00, 'INCOMPLETO');
 
+-- Completar únicamente los campos vacíos de los cursos existentes.
+-- Los valores ya configurados en la base de datos se preservan.
 update public.courses as course
 set
-  system_id = source.system_id,
-  subsystem_id = source.subsystem_id,
-  is_elective = source.is_elective
+  name = case
+    when nullif(btrim(course.name), '') is null
+      then source.name
+    else course.name
+  end,
+
+  credits = coalesce(
+    course.credits,
+    source.credits
+  ),
+
+  is_hidden = coalesce(
+    course.is_hidden,
+    source.is_hidden,
+    false
+  ),
+
+  system_id = coalesce(
+    course.system_id,
+    source.system_id
+  ),
+
+  subsystem_id = coalesce(
+    course.subsystem_id,
+    source.subsystem_id
+  ),
+
+  summary = case
+    when nullif(btrim(course.summary), '') is null
+      then nullif(btrim(source.summary), '')
+    else course.summary
+  end,
+
+  is_elective = coalesce(
+    course.is_elective,
+    source.is_elective,
+    false
+  ),
+
+  avg_difficulty = coalesce(
+    course.avg_difficulty,
+    source.avg_difficulty,
+    0.00
+  ),
+
+  status = case
+    when nullif(btrim(course.status), '') is null
+      then source.status
+    else upper(btrim(course.status))
+  end
 from migration_course_state as source
 where upper(btrim(course.code)) = source.code;
 
--- Si existen cursos que no estaban en el snapshot usado para el backfill,
--- se detiene la migración antes de imponer NOT NULL para no inventar datos.
+-- Normalizar sumillas vacías para que el constraint las trate como ausentes.
+update public.courses
+set summary = null
+where summary is not null
+  and btrim(summary) = '';
+
+-- Completar valores predeterminados únicamente después del backfill.
+-- Los cursos no incluidos en el snapshot quedan INCOMPLETO.
+update public.courses
+set
+  is_hidden = coalesce(is_hidden, false),
+  is_elective = coalesce(is_elective, false),
+  avg_difficulty = coalesce(avg_difficulty, 0.00),
+  status = coalesce(
+    nullif(upper(btrim(status)), ''),
+    'INCOMPLETO'
+  )
+where is_hidden is null
+   or is_elective is null
+   or avg_difficulty is null
+   or status is null
+   or btrim(status) = ''
+   or status <> upper(btrim(status));
+
+-- Validar el backfill antes de imponer restricciones.
 do $$
 begin
   if exists (
@@ -237,30 +225,141 @@ begin
     raise exception
       'Backfill incompleto: existen cursos sin system_id. Revise migration_course_state.';
   end if;
+
+  if exists (
+    select 1
+    from public.courses
+    where status not in ('INCOMPLETO', 'COMPLETO', 'ARCHIVADO')
+  ) then
+    raise exception
+      'Backfill inválido: existen cursos con status fuera del catálogo permitido.';
+  end if;
+
+  if exists (
+    select 1
+    from public.courses
+    where code is null
+       or code !~ '^[A-Z]{2,3}[0-9]{2,3}$'
+  ) then
+    raise exception
+      'Backfill inválido: existen cursos con códigos fuera del formato permitido.';
+  end if;
+
+  if exists (
+    select upper(btrim(code))
+    from public.courses
+    group by upper(btrim(code))
+    having count(*) > 1
+  ) then
+    raise exception
+      'Backfill inválido: existen códigos de curso duplicados.';
+  end if;
+end
+$$;
+
+-- Aplicar DEFAULT y NOT NULL después de recuperar los datos existentes.
+alter table public.courses
+  alter column is_hidden set default false,
+  alter column is_hidden set not null,
+  alter column is_elective set default false,
+  alter column is_elective set not null,
+  alter column avg_difficulty set default 0.00,
+  alter column status set default 'INCOMPLETO',
+  alter column status set not null,
+  alter column system_id set not null;
+
+-- Recrear las restricciones dependientes de los datos normalizados.
+alter table public.courses
+  drop constraint if exists courses_code_format,
+  drop constraint if exists courses_status_check,
+  drop constraint if exists courses_summary_length_check;
+
+alter table public.courses
+  add constraint courses_code_format
+    check (code ~ '^[A-Z]{2,3}[0-9]{2,3}$'),
+  add constraint courses_status_check
+    check (status in ('INCOMPLETO', 'COMPLETO', 'ARCHIVADO')),
+  add constraint courses_summary_length_check
+    check (
+      summary is null
+      or (
+        char_length(btrim(summary)) >= 1
+        and char_length(btrim(summary)) <= 1000
+      )
+    );
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.courses'::regclass
+      and conname = 'courses_code_key'
+  ) then
+    alter table public.courses
+      add constraint courses_code_key
+      unique (code);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.courses'::regclass
+      and conname = 'courses_system_id_fkey'
+  ) then
+    alter table public.courses
+      add constraint courses_system_id_fkey
+      foreign key (system_id)
+      references public.evaluation_systems(system_id);
+  end if;
+
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.courses'::regclass
+      and conname = 'courses_subsystem_id_fkey'
+  ) then
+    alter table public.courses
+      add constraint courses_subsystem_id_fkey
+      foreign key (subsystem_id)
+      references public.evaluation_subsystems(subsystem_id);
+  end if;
 end
 $$;
 
 alter table public.courses
-  alter column system_id set not null;
+  enable row level security;
 
+drop policy if exists "public read courses"
+  on public.courses;
 
-alter table public.courses enable row level security;
-
-drop policy if exists "public read courses" on public.courses;
-drop policy if exists "public read visible courses" on public.courses;
+drop policy if exists "public read visible courses"
+  on public.courses;
 
 create policy "public read visible courses"
 on public.courses
-for select to anon, authenticated
+for select
+to anon, authenticated
 using (is_hidden = false);
 
-revoke all privileges on table public.courses
-  from public, anon, authenticated;
-revoke all privileges on sequence public.courses_id_seq
-  from public, anon, authenticated;
+revoke all privileges
+on table public.courses
+from public, anon, authenticated;
 
-grant all privileges on table public.courses to service_role;
-grant all privileges on sequence public.courses_id_seq to service_role;
-grant select on public.courses to anon, authenticated;
+revoke all privileges
+on sequence public.courses_id_seq
+from public, anon, authenticated;
+
+grant all privileges
+on table public.courses
+to service_role;
+
+grant all privileges
+on sequence public.courses_id_seq
+to service_role;
+
+grant select
+on public.courses
+to anon, authenticated;
 
 commit;
