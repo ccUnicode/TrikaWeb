@@ -61,8 +61,35 @@ export const buildSheetStoragePaths = (
 };
 
 /**
+ * Construye una ruta final versionada sin modificar el nombre base
+ * calculado por buildFinalSheetStoragePaths.
+ *
+ * Ejemplo:
+ * BMA02/PC1/2026-I.pdf
+ * BMA02/PC1/versions/<session-id>/2026-I.pdf
+ */
+
+export const buildVersionedStoragePath = (
+  originalPath: string,
+  version: string,
+): string => {
+  const lastSlashIndex = originalPath.lastIndexOf("/");
+
+  const directory =
+    lastSlashIndex >= 0 ? originalPath.slice(0, lastSlashIndex) : "";
+
+  const fileName =
+    lastSlashIndex >= 0 ? originalPath.slice(lastSlashIndex + 1) : originalPath;
+
+  const versionedPath = `versions/${version}/${fileName}`;
+
+  return directory ? `${directory}/${versionedPath}` : versionedPath;
+};
+
+/**
  * Rutas finales sin sufijo de staging (para promover archivos temporales).
  */
 export const buildFinalSheetStoragePaths = (
   input: Omit<BuildSheetStoragePathsInput, "uploadSessionId">,
-): SheetStoragePaths => buildSheetStoragePaths({ ...input, uploadSessionId: null });
+): SheetStoragePaths =>
+  buildSheetStoragePaths({ ...input, uploadSessionId: null });

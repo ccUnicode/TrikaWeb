@@ -6,6 +6,7 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 import {
   buildFinalSheetStoragePaths,
   buildSheetStoragePaths,
+  buildVersionedStoragePath,
   isValidUploadSessionId,
 } from "../../../lib/adminUploadPaths";
 import {
@@ -15,13 +16,63 @@ import {
 
 type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
 
+type StorageBucket = "exams" | "solutions" | "thumbnails";
+
+interface StorageObjectReference {
+  bucket: StorageBucket;
+  path: string;
+}
+
 const RESOURCE_KINDS: ResourceKind[] = ["PLANCHA", "SOLUCIONARIO", "AMBOS"];
 
 const isPositiveInteger = (value: number): boolean =>
   Number.isSafeInteger(value) && value > 0;
 
 /**
- * Registra el solucionario y reinicia intereses en una sola transacción SQL.
+ * Elimina objetos de Storage agrupándolos por bucket.
+ *
+ * La limpieza es compensatoria: Storage y PostgreSQL no comparten
+ * una misma transacción, por lo que los archivos nuevos deben
+ * eliminarse manualmente si falla una operación posterior.
+ */
+const removeStorageObjects = async (
+  objects: StorageObjectReference[],
+  context: string,
+): Promise<void> => {
+  const objectsByBucket = new Map<StorageBucket, Set<string>>();
+
+  for (const object of objects) {
+    if (!object.path) {
+      continue;
+    }
+
+    const paths = objectsByBucket.get(object.bucket) ?? new Set<string>();
+
+    paths.add(object.path);
+    objectsByBucket.set(object.bucket, paths);
+  }
+
+  for (const [bucket, pathSet] of objectsByBucket) {
+    const paths = [...pathSet];
+
+    if (paths.length === 0) {
+      continue;
+    }
+
+    const { error } = await supabaseAdmin.storage.from(bucket).remove(paths);
+
+    if (error) {
+      console.error(`Error al limpiar ${context} del bucket ${bucket}:`, {
+        paths,
+        error,
+      });
+    }
+  }
+};
+
+/**
+ * Registra el solucionario y reinicia las solicitudes de interés
+ * dentro de una única transacción PostgreSQL.
  */
 const registerSheetSolution = async (params: {
   sheetId: number;
@@ -50,21 +101,38 @@ const registerSheetSolution = async (params: {
   );
 
   if (error) {
-    console.error("Error al registrar solucionario transaccional:", error);
+    console.error(
+      "Error al registrar el solucionario transaccionalmente:",
+      error,
+    );
+
     return false;
   }
 
-  return wasRegistered === true;
+  if (wasRegistered !== true) {
+    console.error("register_sheet_solution no confirmó el registro:", {
+      sheetId: params.sheetId,
+      wasRegistered,
+    });
+
+    return false;
+  }
+
+  return true;
 };
 
 /**
  * POST /api/admin/upload
  *
- * Registra los metadatos de una plancha, solucionario o ambos
+ * Registra los metadatos de una plancha, un solucionario o ambos
  * después de subir los archivos a Supabase Storage.
  *
- * Recalcula las rutas en el servidor, verifica que los objetos existan
- * y promueve archivos temporales antes de escribir en sheets.
+ * Para AMBOS:
+ * - Los archivos se suben inicialmente a rutas temporales.
+ * - Se comprueba que todos los objetos esperados existan.
+ * - Se promueven a rutas finales versionadas.
+ * - Se registra la operación en la base de datos.
+ * - Si falla una promoción o el registro, se eliminan los objetos nuevos.
  */
 export const GET: APIRoute = () =>
   Response.json(
@@ -174,7 +242,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       {
         ok: false,
         error:
-          "Debes proporcionar upload_session_id válido cuando seleccionas AMBOS",
+          "Debes proporcionar un upload_session_id válido cuando seleccionas AMBOS",
       },
       {
         status: 400,
@@ -210,7 +278,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     );
   }
 
+  /*
+   * Se establece únicamente para AMBOS.
+   * Permite limpiar los archivos versionados ante una excepción
+   * inesperada posterior a las promociones.
+   */
+  let cleanupOnUnexpectedFailure: (() => Promise<void>) | null = null;
+
   try {
+    /*
+     * Validar el curso.
+     */
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
       .select("id, code")
@@ -259,6 +337,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    /*
+     * Validar la relación curso-evaluación.
+     */
     const { data: courseEvaluation, error: courseEvaluationError } =
       await supabaseAdmin
         .from("course_evaluations")
@@ -296,6 +377,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    /*
+     * Obtener la abreviatura oficial de la evaluación.
+     */
     const { data: evaluation, error: evaluationError } = await supabaseAdmin
       .from("evaluation_type")
       .select("evaluation_id, evaluation_name, evaluation_abr")
@@ -344,6 +428,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    /*
+     * Validar el profesor específico.
+     */
     let teacherName: string | null = null;
 
     if (isTeacherSpecific) {
@@ -433,6 +520,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     const resolvedTeacherId = isTeacherSpecific ? teacherId : null;
 
+    /*
+     * Registrar el ciclo.
+     */
     const cycleYear = Number(cycleMatch[1]);
     const cycleTerm = cycleMatch[2];
 
@@ -463,143 +553,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    const pathInput = {
-      courseCode,
-      cycle,
-      examType,
-      isTeacherSpecific,
-      teacherId: resolvedTeacherId,
-    };
-
-    const stagingPaths =
-      resourceKind === "AMBOS"
-        ? buildSheetStoragePaths({
-            ...pathInput,
-            uploadSessionId,
-          })
-        : null;
-
-    const finalPaths = buildFinalSheetStoragePaths(pathInput);
-
-    let examStoragePath = finalPaths.examPath;
-    let solutionStoragePath: string | null = null;
-    let thumbStoragePath: string | null = null;
-
-    if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-      const sourceExamPath =
-        resourceKind === "AMBOS" ? stagingPaths!.examPath : finalPaths.examPath;
-
-      const examExists = await storageObjectExists("exams", sourceExamPath);
-
-      if (!examExists) {
-        return Response.json(
-          {
-            ok: false,
-            error: "No se encontró la plancha subida en Storage",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-
-      if (resourceKind === "AMBOS") {
-        const promoted = await promoteStorageObject(
-          "exams",
-          stagingPaths!.examPath,
-          finalPaths.examPath,
-        );
-
-        if (!promoted) {
-          return Response.json(
-            {
-              ok: false,
-              error: "No se pudo finalizar la plancha subida",
-            },
-            {
-              status: 500,
-            },
-          );
-        }
-      }
-
-      examStoragePath = finalPaths.examPath;
-
-      if (hasThumbUpload) {
-        const sourceThumbPath =
-          resourceKind === "AMBOS"
-            ? stagingPaths!.thumbPath
-            : finalPaths.thumbPath;
-
-        const thumbExists = await storageObjectExists(
-          "thumbnails",
-          sourceThumbPath,
-        );
-
-        if (thumbExists) {
-          if (resourceKind === "AMBOS") {
-            const promotedThumb = await promoteStorageObject(
-              "thumbnails",
-              stagingPaths!.thumbPath,
-              finalPaths.thumbPath,
-            );
-
-            if (promotedThumb) {
-              thumbStoragePath = finalPaths.thumbPath;
-            }
-          } else {
-            thumbStoragePath = finalPaths.thumbPath;
-          }
-        }
-      }
-    }
-
-    if (resourceKind === "SOLUCIONARIO" || resourceKind === "AMBOS") {
-      const sourceSolutionPath =
-        resourceKind === "AMBOS"
-          ? stagingPaths!.solutionPath
-          : finalPaths.solutionPath;
-
-      const solutionExists = await storageObjectExists(
-        "solutions",
-        sourceSolutionPath,
-      );
-
-      if (!solutionExists) {
-        return Response.json(
-          {
-            ok: false,
-            error: "No se encontró el solucionario subido en Storage",
-          },
-          {
-            status: 400,
-          },
-        );
-      }
-
-      if (resourceKind === "AMBOS") {
-        const promotedSolution = await promoteStorageObject(
-          "solutions",
-          stagingPaths!.solutionPath,
-          finalPaths.solutionPath,
-        );
-
-        if (!promotedSolution) {
-          return Response.json(
-            {
-              ok: false,
-              error: "No se pudo finalizar el solucionario subido",
-            },
-            {
-              status: 500,
-            },
-          );
-        }
-      }
-
-      solutionStoragePath = finalPaths.solutionPath;
-    }
-
+    /*
+     * Buscar la plancha antes de realizar promociones.
+     *
+     * De este modo, un error de consulta no deja archivos
+     * promocionados innecesariamente.
+     */
     let lookupQuery = supabaseAdmin
       .from("sheets")
       .select("id")
@@ -634,11 +593,315 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
+    if (resourceKind === "SOLUCIONARIO" && !existingSheet) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Primero sube la plancha antes de adjuntar un solucionario",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    /*
+     * Calcular rutas confiables en el servidor.
+     */
+    const pathInput = {
+      courseCode,
+      cycle,
+      examType,
+      isTeacherSpecific,
+      teacherId: resolvedTeacherId,
+    };
+
+    const baseFinalPaths = buildFinalSheetStoragePaths(pathInput);
+
+    const stagingPaths =
+      resourceKind === "AMBOS"
+        ? buildSheetStoragePaths({
+            ...pathInput,
+            uploadSessionId,
+          })
+        : null;
+
+    /*
+     * AMBOS utiliza una versión nueva e inmutable.
+     * PLANCHA y SOLUCIONARIO conservan el flujo existente
+     * para mantener compatibilidad con upload-url.
+     */
+    const finalPaths =
+      resourceKind === "AMBOS"
+        ? {
+            examPath: buildVersionedStoragePath(
+              baseFinalPaths.examPath,
+              uploadSessionId,
+            ),
+            solutionPath: buildVersionedStoragePath(
+              baseFinalPaths.solutionPath,
+              uploadSessionId,
+            ),
+            thumbPath: buildVersionedStoragePath(
+              baseFinalPaths.thumbPath,
+              uploadSessionId,
+            ),
+          }
+        : baseFinalPaths;
+
+    let examStoragePath: string | null = null;
+
+    let solutionStoragePath: string | null = null;
+
+    let thumbStoragePath: string | null = null;
+
+    const promotedObjects: StorageObjectReference[] = [];
+
+    const stagingObjects: StorageObjectReference[] =
+      resourceKind === "AMBOS" && stagingPaths
+        ? [
+            {
+              bucket: "exams",
+              path: stagingPaths.examPath,
+            },
+            {
+              bucket: "solutions",
+              path: stagingPaths.solutionPath,
+            },
+            ...(hasThumbUpload
+              ? [
+                  {
+                    bucket: "thumbnails" as const,
+                    path: stagingPaths.thumbPath,
+                  },
+                ]
+              : []),
+          ]
+        : [];
+
+    const cleanupAmbosUpload = async (): Promise<void> => {
+      await removeStorageObjects(promotedObjects, "objetos finales promovidos");
+
+      await removeStorageObjects(stagingObjects, "objetos temporales");
+    };
+
+    if (resourceKind === "AMBOS" && stagingPaths) {
+      cleanupOnUnexpectedFailure = cleanupAmbosUpload;
+
+      /*
+       * Verificar todos los objetos antes de iniciar
+       * cualquier promoción.
+       */
+      const [stagingExamExists, stagingSolutionExists, stagingThumbExists] =
+        await Promise.all([
+          storageObjectExists("exams", stagingPaths.examPath),
+          storageObjectExists("solutions", stagingPaths.solutionPath),
+          hasThumbUpload
+            ? storageObjectExists("thumbnails", stagingPaths.thumbPath)
+            : Promise.resolve(true),
+        ]);
+
+      if (!stagingExamExists || !stagingSolutionExists || !stagingThumbExists) {
+        await removeStorageObjects(
+          stagingObjects,
+          "objetos temporales incompletos",
+        );
+
+        cleanupOnUnexpectedFailure = null;
+
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "La subida conjunta está incompleta. Vuelve a subir los archivos.",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      /*
+       * Registrar el destino antes de copiarlo.
+       * Si la copia crea parcialmente el objeto y reporta error,
+       * la limpieza también intentará eliminarlo.
+       */
+      promotedObjects.push({
+        bucket: "exams",
+        path: finalPaths.examPath,
+      });
+
+      const examPromoted = await promoteStorageObject(
+        "exams",
+        stagingPaths.examPath,
+        finalPaths.examPath,
+      );
+
+      if (!examPromoted) {
+        await cleanupAmbosUpload();
+        cleanupOnUnexpectedFailure = null;
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo finalizar la plancha subida",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      promotedObjects.push({
+        bucket: "solutions",
+        path: finalPaths.solutionPath,
+      });
+
+      const solutionPromoted = await promoteStorageObject(
+        "solutions",
+        stagingPaths.solutionPath,
+        finalPaths.solutionPath,
+      );
+
+      if (!solutionPromoted) {
+        await cleanupAmbosUpload();
+        cleanupOnUnexpectedFailure = null;
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo finalizar el solucionario subido",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
+      if (hasThumbUpload) {
+        promotedObjects.push({
+          bucket: "thumbnails",
+          path: finalPaths.thumbPath,
+        });
+
+        const thumbPromoted = await promoteStorageObject(
+          "thumbnails",
+          stagingPaths.thumbPath,
+          finalPaths.thumbPath,
+        );
+
+        if (!thumbPromoted) {
+          await cleanupAmbosUpload();
+          cleanupOnUnexpectedFailure = null;
+
+          return Response.json(
+            {
+              ok: false,
+              error: "No se pudo finalizar la miniatura subida",
+            },
+            {
+              status: 500,
+            },
+          );
+        }
+
+        thumbStoragePath = finalPaths.thumbPath;
+      }
+
+      examStoragePath = finalPaths.examPath;
+
+      solutionStoragePath = finalPaths.solutionPath;
+    } else if (resourceKind === "PLANCHA") {
+      const examExists = await storageObjectExists(
+        "exams",
+        finalPaths.examPath,
+      );
+
+      if (!examExists) {
+        return Response.json(
+          {
+            ok: false,
+            error: "No se encontró la plancha subida en Storage",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      examStoragePath = finalPaths.examPath;
+
+      if (hasThumbUpload) {
+        const thumbExists = await storageObjectExists(
+          "thumbnails",
+          finalPaths.thumbPath,
+        );
+
+        if (!thumbExists) {
+          return Response.json(
+            {
+              ok: false,
+              error: "No se encontró la miniatura subida en Storage",
+            },
+            {
+              status: 400,
+            },
+          );
+        }
+
+        thumbStoragePath = finalPaths.thumbPath;
+      }
+    } else {
+      const solutionExists = await storageObjectExists(
+        "solutions",
+        finalPaths.solutionPath,
+      );
+
+      if (!solutionExists) {
+        return Response.json(
+          {
+            ok: false,
+            error: "No se encontró el solucionario subido en Storage",
+          },
+          {
+            status: 400,
+          },
+        );
+      }
+
+      solutionStoragePath = finalPaths.solutionPath;
+    }
+
+    /*
+     * Registrar los metadatos.
+     */
     if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+      if (!examStoragePath) {
+        if (resourceKind === "AMBOS") {
+          await cleanupAmbosUpload();
+          cleanupOnUnexpectedFailure = null;
+        }
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo determinar la ruta de la plancha",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+
       if (existingSheet) {
         const targetSheetId = Number(existingSheet.id);
 
         if (!Number.isSafeInteger(targetSheetId) || targetSheetId <= 0) {
+          if (resourceKind === "AMBOS") {
+            await cleanupAmbosUpload();
+            cleanupOnUnexpectedFailure = null;
+          }
+
           return Response.json(
             {
               ok: false,
@@ -664,6 +927,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           });
 
           if (!registered) {
+            await cleanupAmbosUpload();
+            cleanupOnUnexpectedFailure = null;
+
             return Response.json(
               {
                 ok: false,
@@ -725,7 +991,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (resourceKind === "AMBOS" && solutionStoragePath) {
           insertPayload.solution_kind = "pdf";
+
           insertPayload.solution_storage_path = solutionStoragePath;
+
           insertPayload.solution_video_url = null;
         }
 
@@ -736,10 +1004,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         if (insertError) {
           console.error("Error al insertar la plancha:", insertError);
 
+          if (resourceKind === "AMBOS") {
+            await cleanupAmbosUpload();
+            cleanupOnUnexpectedFailure = null;
+          }
+
           return Response.json(
             {
               ok: false,
-              error: "Archivo subido, pero falló el registro de la plancha",
+              error:
+                "Los archivos se subieron, pero falló el registro de la plancha",
             },
             {
               status: 500,
@@ -748,7 +1022,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
       }
     } else {
-      if (!existingSheet) {
+      /*
+       * SOLUCIONARIO siempre requiere una plancha existente.
+       */
+      if (!existingSheet || !solutionStoragePath) {
         return Response.json(
           {
             ok: false,
@@ -776,20 +1053,39 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
       const registered = await registerSheetSolution({
         sheetId: targetSheetId,
-        solutionStoragePath: solutionStoragePath!,
+        solutionStoragePath,
       });
 
       if (!registered) {
         return Response.json(
           {
             ok: false,
-            error: "Archivo subido, pero no se pudo registrar el solucionario",
+            error:
+              "El archivo se subió, pero no se pudo registrar el solucionario",
           },
           {
             status: 500,
           },
         );
       }
+    }
+
+    /*
+     * La base de datos ya referencia las rutas finales.
+     * Desde este punto no debe eliminarse la versión promovida.
+     */
+    cleanupOnUnexpectedFailure = null;
+
+    if (resourceKind === "AMBOS") {
+      /*
+       * La limpieza temporal no afecta la respuesta:
+       * si falla, se registra el error para mantenimiento,
+       * pero la operación final ya quedó consistente.
+       */
+      await removeStorageObjects(
+        stagingObjects,
+        "objetos temporales posteriores al registro",
+      );
     }
 
     const action =
@@ -799,11 +1095,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           ? "Plancha"
           : "Solucionario";
 
+    const registeredPath =
+      resourceKind === "SOLUCIONARIO" ? solutionStoragePath : examStoragePath;
+
     return Response.json(
       {
         ok: true,
         message: `${action} guardado correctamente`,
-        path: examStoragePath,
+        path: registeredPath,
         teacherId: resolvedTeacherId,
         teacherName,
       },
@@ -812,6 +1111,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       },
     );
   } catch (error) {
+    if (cleanupOnUnexpectedFailure) {
+      await cleanupOnUnexpectedFailure();
+    }
+
     console.error("Error inesperado en /api/admin/upload:", error);
 
     return Response.json(

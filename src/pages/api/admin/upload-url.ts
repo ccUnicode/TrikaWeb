@@ -11,6 +11,11 @@
  * - El nombre y código utilizados se obtienen desde la base de datos.
  * - Para SOLUCIONARIO debe existir previamente la plancha correspondiente.
  * - Las planchas específicas se identifican mediante sheets.teacher_id.
+ *
+ * Estrategia de rutas:
+ * - PLANCHA y SOLUCIONARIO suben directamente a su ruta final.
+ * - AMBOS sube primero a rutas temporales asociadas a uploadSessionId.
+ * - upload.ts promueve después los archivos a rutas finales versionadas.
  */
 
 export const prerender = false;
@@ -22,6 +27,8 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 import {
   buildFinalSheetStoragePaths,
   buildSheetStoragePaths,
+  buildVersionedStoragePath,
+  isValidUploadSessionId,
 } from "../../../lib/adminUploadPaths";
 
 type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
@@ -52,7 +59,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   let body: Record<string, unknown>;
 
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    const parsedBody: unknown = await request.json();
+
+    if (
+      typeof parsedBody !== "object" ||
+      parsedBody === null ||
+      Array.isArray(parsedBody)
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Body JSON inválido",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    body = parsedBody as Record<string, unknown>;
   } catch {
     return Response.json(
       {
@@ -153,7 +178,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   try {
     /*
      * Obtener el curso desde la base de datos.
-     * El código no se acepta como una fuente confiable del cliente.
+     * El código no se acepta como fuente confiable del cliente.
      */
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
@@ -244,7 +269,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     /*
-     * Obtener los datos de la evaluación desde la base de datos.
+     * Obtener la abreviatura oficial de la evaluación.
      */
     const { data: evaluation, error: evaluationError } = await supabaseAdmin
       .from("evaluation_type")
@@ -296,8 +321,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     /*
      * Para una plancha específica se valida courses_teachers.
-     * El nombre se conserva solo como información de presentación;
-     * la identidad estable de la plancha será teacher_id.
+     * teacher_id se usa como identidad estable.
+     * teacherName se conserva únicamente para presentación.
      */
     let teacherName: string | null = null;
 
@@ -386,9 +411,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
+    const resolvedTeacherId = isTeacherSpecific ? teacherId : null;
+
     /*
-     * Registrar el ciclo después de validar curso, evaluación
-     * y profesor.
+     * Registrar el ciclo después de validar las relaciones.
      */
     const cycleYear = Number(cycleMatch[1]);
     const cycleTerm = cycleMatch[2];
@@ -421,16 +447,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     /*
-     * ID de la plancha que recibirá el solucionario.
+     * Para SOLUCIONARIO se valida que exista previamente
+     * la plancha correspondiente.
      */
     let targetSheetId: number | null = null;
 
-    /*
-     * Para SOLUCIONARIO, comprobar que la plancha exista.
-     *
-     * Las planchas específicas se localizan mediante teacher_id.
-     * teacher_hint no se utiliza para identidad ni búsquedas.
-     */
     if (resourceKind === "SOLUCIONARIO") {
       let sheetQuery = supabaseAdmin
         .from("sheets")
@@ -500,37 +521,87 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     /*
-     * Construir rutas utilizando datos validados.
-     * Para AMBOS se usan rutas temporales para no sobrescribir la plancha
-     * hasta que ambas subidas y el registro en BD terminen correctamente.
+     * Las rutas se calculan exclusivamente en el servidor.
      */
-    const uploadSessionId = resourceKind === "AMBOS" ? randomUUID() : null;
-
-    const paths = buildSheetStoragePaths({
+    const pathInput = {
       courseCode,
       cycle,
       examType,
       isTeacherSpecific,
-      teacherId: isTeacherSpecific ? teacherId : null,
-      uploadSessionId,
-    });
+      teacherId: resolvedTeacherId,
+    };
 
-    const finalPaths =
+    const baseFinalPaths = buildFinalSheetStoragePaths(pathInput);
+
+    let uploadSessionId: string | null = null;
+
+    if (resourceKind === "AMBOS") {
+      uploadSessionId = randomUUID();
+
+      /*
+       * Aunque randomUUID devuelve un UUID válido, se comprueba
+       * con la misma función utilizada posteriormente por upload.ts.
+       */
+      if (!isValidUploadSessionId(uploadSessionId)) {
+        console.error("No se pudo generar un upload_session_id válido.");
+
+        return Response.json(
+          {
+            ok: false,
+            error: "No se pudo inicializar la subida conjunta",
+          },
+          {
+            status: 500,
+          },
+        );
+      }
+    }
+
+    /*
+     * AMBOS sube a staging.
+     * Las cargas individuales suben directamente a su ruta final.
+     */
+    const uploadPaths =
       uploadSessionId !== null
-        ? buildFinalSheetStoragePaths({
-            courseCode,
-            cycle,
-            examType,
-            isTeacherSpecific,
-            teacherId: isTeacherSpecific ? teacherId : null,
+        ? buildSheetStoragePaths({
+            ...pathInput,
+            uploadSessionId,
           })
-        : null;
+        : baseFinalPaths;
 
-    const path = paths.examPath;
-    const solutionPath = paths.solutionPath;
-    const thumbPath = paths.thumbPath;
+    /*
+     * Estas rutas deben coincidir exactamente con las calculadas
+     * por upload.ts después de recibir uploadSessionId.
+     */
+    const registeredFinalPaths =
+      uploadSessionId !== null
+        ? {
+            examPath: buildVersionedStoragePath(
+              baseFinalPaths.examPath,
+              uploadSessionId,
+            ),
+            solutionPath: buildVersionedStoragePath(
+              baseFinalPaths.solutionPath,
+              uploadSessionId,
+            ),
+            thumbPath: buildVersionedStoragePath(
+              baseFinalPaths.thumbPath,
+              uploadSessionId,
+            ),
+          }
+        : baseFinalPaths;
 
-    const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
+    /*
+     * Para una carga individual se firma la ruta que corresponde
+     * al tipo de recurso. SOLUCIONARIO debe usar solutionPath.
+     */
+    const primaryUploadPath =
+      resourceKind === "SOLUCIONARIO"
+        ? uploadPaths.solutionPath
+        : uploadPaths.examPath;
+
+    const primaryBucket =
+      resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
 
     let signedUrl: string | undefined;
     let token: string | undefined;
@@ -540,23 +611,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (resourceKind === "AMBOS") {
       const { data: planchaData, error: planchaError } =
-        await supabaseAdmin.storage.from("exams").createSignedUploadUrl(path, {
-          upsert: true,
-        });
+        await supabaseAdmin.storage
+          .from("exams")
+          .createSignedUploadUrl(uploadPaths.examPath, {
+            /*
+             * El UUID hace que la ruta temporal sea única.
+             * No debe sobrescribirse una sesión previa.
+             */
+            upsert: false,
+          });
 
       const { data: solutionData, error: solutionError } =
         await supabaseAdmin.storage
           .from("solutions")
-          .createSignedUploadUrl(solutionPath, {
-            upsert: true,
+          .createSignedUploadUrl(uploadPaths.solutionPath, {
+            upsert: false,
           });
 
       if (planchaError || !planchaData || solutionError || !solutionData) {
-        console.error(
-          "Error al crear las URLs firmadas:",
+        console.error("Error al crear las URLs firmadas:", {
           planchaError,
           solutionError,
-        );
+        });
 
         return Response.json(
           {
@@ -576,9 +652,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       solutionToken = solutionData.token;
     } else {
       const { data: signedData, error: signedError } =
-        await supabaseAdmin.storage.from(bucket).createSignedUploadUrl(path, {
-          upsert: true,
-        });
+        await supabaseAdmin.storage
+          .from(primaryBucket)
+          .createSignedUploadUrl(primaryUploadPath, {
+            /*
+             * Las cargas individuales conservan el comportamiento
+             * de reemplazo de la ruta final.
+             */
+            upsert: true,
+          });
 
       if (signedError || !signedData) {
         console.error("Error al crear la URL firmada:", signedError);
@@ -598,29 +680,54 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       token = signedData.token;
     }
 
+    /*
+     * La miniatura se genera para PLANCHA y AMBOS.
+     *
+     * En AMBOS se usa la ruta temporal de la misma sesión.
+     * En PLANCHA se utiliza directamente la ruta final.
+     */
     let thumbSignedUrl: string | undefined;
 
     if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
       const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
         .from("thumbnails")
-        .createSignedUploadUrl(thumbPath, {
-          upsert: true,
+        .createSignedUploadUrl(uploadPaths.thumbPath, {
+          upsert: resourceKind !== "AMBOS",
         });
 
       if (!thumbError && thumbData) {
         thumbSignedUrl = thumbData.signedUrl;
       } else {
-        console.error("Error al crear la URL de miniatura:", thumbError);
+        /*
+         * La miniatura es opcional.
+         * El frontend debe enviar has_thumb_upload=false si
+         * no consiguió subirla.
+         */
+        console.error(
+          "Error al crear la URL firmada de miniatura:",
+          thumbError,
+        );
       }
     }
+
+    const solutionUploadPath =
+      resourceKind === "PLANCHA" ? undefined : uploadPaths.solutionPath;
 
     return Response.json(
       {
         ok: true,
+
+        /*
+         * Datos de la carga principal.
+         */
         signedUrl,
         token,
-        path,
-        bucket: resourceKind === "AMBOS" ? "exams" : bucket,
+        path: primaryUploadPath,
+        bucket: primaryBucket,
+
+        /*
+         * AMBOS debe enviar este valor posteriormente a upload.ts.
+         */
         uploadSessionId,
 
         courseId,
@@ -629,18 +736,33 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         targetSheetId,
 
         isTeacherSpecific,
-        teacherId: isTeacherSpecific ? teacherId : null,
+        teacherId: resolvedTeacherId,
         teacherName,
 
+        /*
+         * Miniatura.
+         */
         thumbSignedUrl,
-        thumbPath,
-        finalExamPath: finalPaths?.examPath ?? path,
-        finalSolutionPath: finalPaths?.solutionPath ?? solutionPath,
-        finalThumbPath: finalPaths?.thumbPath ?? thumbPath,
+        thumbPath:
+          resourceKind === "PLANCHA" || resourceKind === "AMBOS"
+            ? uploadPaths.thumbPath
+            : undefined,
 
+        /*
+         * Segunda subida de AMBOS.
+         */
         solutionSignedUrl,
         solutionToken,
-        solutionPath,
+        solutionPath: solutionUploadPath,
+
+        /*
+         * Rutas que upload.ts registrará si la operación termina.
+         * No deben enviarse de vuelta como fuente confiable;
+         * upload.ts las recalcula.
+         */
+        finalExamPath: registeredFinalPaths.examPath,
+        finalSolutionPath: registeredFinalPaths.solutionPath,
+        finalThumbPath: registeredFinalPaths.thumbPath,
       },
       {
         status: 200,

@@ -187,13 +187,23 @@ begin
   from public.courses as c
   where c.id = v_sheet.course_id;
 
+  if not found then
+    return json_build_object(
+      'status', 'NOT_FOUND',
+      'interested', false,
+      'interest_count', 0,
+      'is_hidden', false,
+      'has_solution', false
+    );
+  end if;
+
   if coalesce(v_sheet.is_hidden, false) or coalesce(v_course_hidden, false) then
     return json_build_object(
       'status', 'HIDDEN',
       'interested', false,
-      'interest_count', coalesce(v_sheet.interest_count, 0),
+      'interest_count', 0,
       'is_hidden', true,
-      'has_solution', v_has_solution
+      'has_solution', false
     );
   end if;
 
@@ -254,26 +264,46 @@ $$;
 create or replace function public.register_sheet_solution(
   p_sheet_id bigint,
   p_solution_storage_path text,
-  p_exam_storage_path text default null,
-  p_thumb_storage_path text default null,
-  p_evaluation_id integer default null,
-  p_exam_type text default null,
-  p_teacher_id bigint default null,
-  p_teacher_hint text default null,
-  p_is_teacher_specific boolean default null
+  p_exam_storage_path text,
+  p_thumb_storage_path text,
+  p_evaluation_id integer,
+  p_exam_type text,
+  p_teacher_id bigint,
+  p_teacher_hint text,
+  p_is_teacher_specific boolean
 )
 returns boolean
 language plpgsql
-security invoker
+security definer
 set search_path = ''
 as $$
 begin
+  /*
+   * Validaciones mínimas.
+   */
   if p_sheet_id is null
-    or p_sheet_id <= 0
-    or nullif(btrim(p_solution_storage_path), '') is null then
+     or p_sheet_id <= 0
+     or nullif(btrim(p_solution_storage_path), '') is null then
     return false;
   end if;
 
+  if p_is_teacher_specific is true
+     and (
+       p_teacher_id is null
+       or p_teacher_id <= 0
+     ) then
+    return false;
+  end if;
+
+  if p_is_teacher_specific is false
+     and p_teacher_id is not null then
+    return false;
+  end if;
+
+  /*
+   * Bloquea la plancha para serializar el registro del
+   * solucionario y el reinicio de intereses.
+   */
   perform 1
   from public.sheets
   where id = p_sheet_id
@@ -283,38 +313,68 @@ begin
     return false;
   end if;
 
-  if p_exam_storage_path is not null then
-    update public.sheets
-    set
-      evaluation_id = coalesce(p_evaluation_id, evaluation_id),
-      exam_type = coalesce(nullif(btrim(p_exam_type), ''), exam_type),
-      exam_storage_path = p_exam_storage_path,
-      teacher_id = p_teacher_id,
-      teacher_hint = p_teacher_hint,
-      is_teacher_specific = coalesce(p_is_teacher_specific, is_teacher_specific),
-      thumb_storage_path = coalesce(
-        nullif(btrim(p_thumb_storage_path), ''),
-        thumb_storage_path
-      ),
-      solution_kind = 'pdf',
-      solution_storage_path = p_solution_storage_path,
-      solution_video_url = null
-    where id = p_sheet_id;
-  else
-    update public.sheets
-    set
-      solution_kind = 'pdf',
-      solution_storage_path = p_solution_storage_path,
-      solution_video_url = null
-    where id = p_sheet_id;
-  end if;
-
+  /*
+   * El solucionario deja sin efecto las solicitudes existentes.
+   */
   delete from public.sheet_interests
   where sheet_id = p_sheet_id;
 
-  update public.sheets
-  set interest_count = 0
-  where id = p_sheet_id;
+  /*
+   * En SOLUCIONARIO solo se actualizan los campos del solucionario.
+   *
+   * En AMBOS también se reciben los datos de la nueva plancha.
+   * Cuando AMBOS no incluye miniatura, se limpia la miniatura
+   * anterior para evitar que represente un PDF reemplazado.
+   */
+  update public.sheets as sheet
+  set
+    solution_kind = 'pdf',
+    solution_storage_path = btrim(p_solution_storage_path),
+    solution_video_url = null,
+
+    exam_storage_path = coalesce(
+      nullif(btrim(p_exam_storage_path), ''),
+      sheet.exam_storage_path
+    ),
+
+    thumb_storage_path = case
+      when p_exam_storage_path is not null then
+        nullif(btrim(p_thumb_storage_path), '')
+      else
+        sheet.thumb_storage_path
+    end,
+
+    evaluation_id = coalesce(
+      p_evaluation_id,
+      sheet.evaluation_id
+    ),
+
+    exam_type = coalesce(
+      nullif(btrim(p_exam_type), ''),
+      sheet.exam_type
+    ),
+
+    teacher_id = case
+      when p_is_teacher_specific is null then
+        sheet.teacher_id
+      else
+        p_teacher_id
+    end,
+
+    teacher_hint = case
+      when p_is_teacher_specific is null then
+        sheet.teacher_hint
+      else
+        nullif(btrim(p_teacher_hint), '')
+    end,
+
+    is_teacher_specific = coalesce(
+      p_is_teacher_specific,
+      sheet.is_teacher_specific
+    ),
+
+    interest_count = 0
+  where sheet.id = p_sheet_id;
 
   return true;
 end;
@@ -398,7 +458,7 @@ revoke execute
 on function public.reset_sheet_interest(bigint)
 from public, anon, authenticated;
 
-revoke execute
+revoke all
 on function public.register_sheet_solution(
   bigint,
   text,
