@@ -18,31 +18,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ error: 'Faltan campos obligatorios' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Si es actual, marcamos los demás como false
-    if (is_current) {
-      const { error: updateError } = await supabaseAdmin
-        .from('study_plans')
-        .update({ is_current: false })
-        .eq('specialty_id', specialty_id);
-
-      if (updateError) {
-        console.error("Error real al actualizar mallas previas:", updateError);
-        // No lanzamos excepción para no detener el flujo si es la primera malla
-      }
-    }
-
-    // Insertar nueva malla
-    const { data: newPlan, error: insertError } = await supabaseAdmin
-      .from('study_plans')
-      .insert({
+    // Ejecutar ambas operaciones de manera atómica (desmarcar anteriores e insertar la nueva)
+    const { data: newPlan, error: rpcError } = await supabaseAdmin.rpc('add_malla_transaction', {
+      payload: {
         specialty_id,
         year,
         is_current: is_current || false
-      })
-      .select()
-      .single();
+      }
+    });
 
-    if (insertError) throw insertError;
+    if (rpcError) {
+      console.error("Error en la transacción add_malla_transaction:", rpcError);
+      throw rpcError;
+    }
 
     return new Response(JSON.stringify({
       ok: true,
