@@ -1,11 +1,20 @@
 -- DDL para el módulo de mallas curriculares: study_plans, plan_courses y course_prerequisites
 
+-- 0. Tabla specialties (Especialidades o Carreras)
+CREATE TABLE IF NOT EXISTS specialties (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(20) UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 1. Tabla study_plans
 CREATE TABLE IF NOT EXISTS study_plans (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   specialty_id INT NOT NULL REFERENCES specialties(id) ON DELETE CASCADE,
   year VARCHAR(20) NOT NULL,
   is_current BOOLEAN NOT NULL DEFAULT false,
+  is_published BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -16,7 +25,7 @@ CREATE INDEX IF NOT EXISTS idx_study_plans_is_current ON study_plans(is_current)
 -- 2. Tabla plan_courses (Cursos pertenecientes a un plan de estudios)
 CREATE TABLE IF NOT EXISTS plan_courses (
   id SERIAL PRIMARY KEY,
-  plan_id INT NOT NULL REFERENCES study_plans(id) ON DELETE CASCADE,
+  plan_id UUID NOT NULL REFERENCES study_plans(id) ON DELETE CASCADE,
   course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   cycle INT NOT NULL,
   row_index INT NOT NULL DEFAULT 0,
@@ -31,7 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_plan_courses_course_id ON plan_courses(course_id)
 -- 3. Tabla course_prerequisites (Prerrequisitos de cursos en un plan)
 CREATE TABLE IF NOT EXISTS course_prerequisites (
   id SERIAL PRIMARY KEY,
-  plan_id INT NOT NULL REFERENCES study_plans(id) ON DELETE CASCADE,
+  plan_id UUID NOT NULL REFERENCES study_plans(id) ON DELETE CASCADE,
   course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   prerequisite_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),

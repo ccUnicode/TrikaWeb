@@ -10,6 +10,13 @@
 - teacher_ratings (id, teacher_id, device_id, overall, clarity, fairness, workload, availability, comment, ... )
 - sheet_views (id, sheet_id, ip_hash, device_id, type, created_at)
 
+## Mallas Curriculares
+
+- specialties (id, name, code, created_at)
+- study_plans (id: uuid, specialty_id, year, is_current, is_published, created_at)
+- plan_courses (id, plan_id: uuid, course_id, cycle, row_index, created_at)
+- course_prerequisites (id, plan_id: uuid, course_id, prerequisite_id, created_at)
+
 ## Storage
 
 - exams (privado): PDFs de planchas → ejemplo: `BMA02/PC1/2024-II.pdf`
