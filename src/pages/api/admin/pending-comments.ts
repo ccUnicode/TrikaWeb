@@ -27,7 +27,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const status = body?.status ?? "pending";       // "pending" | "all"
     const page = Number(body?.page ?? 1);
     const pageSize = Number(body?.pageSize ?? 20);
-    const searchQuery = String(body?.search ?? "").trim().toLowerCase();
+    // Remover caracteres especiales que rompen el parser de PostgREST en .or()
+    const searchQuery = String(body?.search ?? "").trim().toLowerCase().replace(/[,()"]/g, ' ');
 
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
@@ -56,9 +57,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (searchQuery) {
             // Buscar en tablas relacionadas primero para los IDs
-            const { data: allSheets } = await supabaseAdmin
+            const { data: allSheets, error: allSheetsError } = await supabaseAdmin
                 .from('sheets')
                 .select('id, exam_type, cycle, courses(code)');
+                
+            if (allSheetsError) {
+                console.error("Error fetching auxiliary sheets:", allSheetsError);
+                return new Response(JSON.stringify({ ok: false, error: "Error al buscar planchas" }), { status: 500 });
+            }
                 
             const matchingSheetIds = (allSheets || []).filter((s: any) => {
                 const course = Array.isArray(s.courses) ? s.courses[0] : s.courses;
@@ -169,9 +175,14 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
         if (searchQuery) {
             // Pre-buscar IDs de profesores que coincidan
-            const { data: allTeachers } = await supabaseAdmin
+            const { data: allTeachers, error: allTeachersError } = await supabaseAdmin
                 .from('teachers')
                 .select('id, full_name');
+            
+            if (allTeachersError) {
+                console.error("Error fetching auxiliary teachers:", allTeachersError);
+                return new Response(JSON.stringify({ ok: false, error: "Error al buscar profesores" }), { status: 500 });
+            }
             
             const matchingTeacherIds = (allTeachers || [])
                 .filter(t => t.full_name.toLowerCase().includes(searchQuery))

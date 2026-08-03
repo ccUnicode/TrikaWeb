@@ -102,6 +102,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         grading,
         comment: comment || null,
         is_hidden: false, // Visible by default per user request (stars immediate)
+        needs_review: true,
         updated_at: new Date().toISOString()
       })
       .eq('teacher_id', teacherId)
@@ -143,6 +144,7 @@ export const POST: APIRoute = async ({ params, request }) => {
         grading,
         comment: comment || null,
         is_hidden: false, // Visible by default per user request
+        needs_review: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
