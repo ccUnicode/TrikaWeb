@@ -6,6 +6,7 @@ import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../
 import moderationConfig from "../../../../../config/moderation.json";
 
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const POST: APIRoute = async ({ params, request }) => {
   const sheetId = Number(params.id);
@@ -59,8 +60,8 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  if (!deviceId || !UUID_REGEX.test(deviceId)) {
+    return new Response(JSON.stringify({ error: 'Falta device_id o formato inválido' }), { status: 400 });
   }
 
   const clientIP = getClientIP(request);
@@ -69,11 +70,16 @@ export const POST: APIRoute = async ({ params, request }) => {
   const supa = supabaseAdmin;
 
   // Verificar que la plancha existe y es visible
-  const { data: sheet } = await supa
+  const { data: sheet, error: sheetError } = await supa
     .from('sheets')
     .select('id, is_hidden')
     .eq('id', sheetId)
     .maybeSingle();
+
+  if (sheetError) {
+    console.error('Error fetching sheet in POST:', sheetError);
+    return new Response(JSON.stringify({ error: 'Error interno verificando la plancha' }), { status: 500 });
+  }
 
   if (!sheet || sheet.is_hidden) {
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
@@ -186,6 +192,9 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const url = new URL(request.url);
   const deviceId = url.searchParams.get('device_id');
+  if (deviceId && !UUID_REGEX.test(deviceId)) {
+    return new Response(JSON.stringify({ error: 'Formato de device_id inválido' }), { status: 400 });
+  }
   let page = Number(url.searchParams.get('page') ?? 1);
   let pageSize = Number(url.searchParams.get('pageSize') ?? 10);
 
@@ -202,11 +211,16 @@ export const GET: APIRoute = async ({ params, request }) => {
   const supa = supabaseAdmin;
 
   // Verificar que la plancha existe y es visible
-  const { data: sheet } = await supa
+  const { data: sheet, error: sheetError } = await supa
     .from('sheets')
     .select('id, is_hidden')
     .eq('id', sheetId)
     .maybeSingle();
+
+  if (sheetError) {
+    console.error('Error fetching sheet in GET:', sheetError);
+    return new Response(JSON.stringify({ error: 'Error interno verificando la plancha' }), { status: 500 });
+  }
 
   if (!sheet || sheet.is_hidden) {
     return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
@@ -293,8 +307,8 @@ export const DELETE: APIRoute = async ({ params, request }) => {
   }
 
   const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  if (!deviceId || !UUID_REGEX.test(deviceId)) {
+    return new Response(JSON.stringify({ error: 'Falta device_id o formato inválido' }), { status: 400 });
   }
 
   const supa = supabaseAdmin;
