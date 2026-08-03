@@ -24,28 +24,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             );
         }
 
-        // Si se marca como vigente, primero quitamos el vigente a las demás mallas de la misma especialidad
-        if (is_current) {
-            const { error: resetError } = await supabaseAdmin
-                .from('study_plans')
-                .update({ is_current: false })
-                .eq('specialty_id', specialty_id)
-                .neq('id', id);
-
-            if (resetError) {
-                console.error("Error real al actualizar mallas previas en edit:", resetError);
-                // No detenemos el flujo, es posible que no haya mallas previas
+        // Ejecutar la edición de forma atómica mediante RPC
+        const { error: rpcError } = await supabaseAdmin.rpc('edit_malla_transaction', {
+            payload: {
+                id,
+                specialty_id,
+                year,
+                is_current
             }
-        }
+        });
 
-        // Actualizar la malla
-        const { error: updateError } = await supabaseAdmin
-            .from('study_plans')
-            .update({ year, is_current })
-            .eq('id', id);
-
-        if (updateError) {
-            console.error('Error al actualizar malla:', updateError);
+        if (rpcError) {
+            console.error('Error al actualizar malla en transacción:', rpcError);
             return new Response(
                 JSON.stringify({ ok: false, error: 'Error al actualizar en base de datos' }),
                 { status: 500, headers: { 'Content-Type': 'application/json' } }
