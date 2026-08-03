@@ -15,11 +15,27 @@ test.describe('Sheet Feedback & Rating Flow', () => {
       await route.fulfill({ json });
     });
 
-    // Como es difícil levantar la base de datos real en CI sin variables de entorno,
-    // podríamos inyectar HTML directamente para probar el componente aislado,
-    // o asumir que si la página SSR falla, testeamos el componente renderizándolo.
+    // Navegar a la página del solucionario de la plancha
+    await page.goto('/exams/1');
+
+    // Clic en "Ver solucionario" para que la sección de comentarios se muestre
+    // (según la lógica del cliente, los comentarios solo se ven en modo solucionario)
+    const viewSolutionBtn = page.locator('#view-solution-btn');
+    if (await viewSolutionBtn.isVisible()) {
+      await viewSolutionBtn.click();
+    }
+
+    // Comprobar que la sección de comentarios es visible
+    const feedbackSection = page.locator('#feedback-section');
+    await expect(feedbackSection).toBeVisible();
+
+    // Comprobar que el estado vacío es visible y tiene el texto correcto
+    const emptyState = page.locator('#feedback-empty');
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState).toContainText('Aún no hay comentarios');
     
-    // Por ahora, simulamos una respuesta básica para que el test pase y el flujo de CI se valide.
-    expect(true).toBe(true);
+    // Comprobar que el spinner de carga ya no está visible
+    const loadingState = page.locator('#feedback-loading');
+    await expect(loadingState).toBeHidden();
   });
 });
