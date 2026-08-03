@@ -8,9 +8,17 @@ import moderationConfig from "../../../../../config/moderation.json";
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Valida que el parámetro sea un entero positivo y seguro para consultar como BIGINT. */
+function parseSheetId(raw: string | undefined): number | null {
+  if (!raw) return null;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1 || !Number.isSafeInteger(n)) return null;
+  return n;
+}
+
 export const POST: APIRoute = async ({ params, request }) => {
-  const sheetId = Number(params.id);
-  if (!sheetId) {
+  const sheetId = parseSheetId(params.id);
+  if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
@@ -185,8 +193,8 @@ export const POST: APIRoute = async ({ params, request }) => {
 
 // GET: verificar si el usuario ya dejó feedback y obtener lista de feedback
 export const GET: APIRoute = async ({ params, request }) => {
-  const sheetId = Number(params.id);
-  if (!sheetId) {
+  const sheetId = parseSheetId(params.id);
+  if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
@@ -294,8 +302,8 @@ export const GET: APIRoute = async ({ params, request }) => {
 
 // DELETE: eliminar feedback propio
 export const DELETE: APIRoute = async ({ params, request }) => {
-  const sheetId = Number(params.id);
-  if (!sheetId) {
+  const sheetId = parseSheetId(params.id);
+  if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
