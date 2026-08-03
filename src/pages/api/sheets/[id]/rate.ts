@@ -179,11 +179,6 @@ export const GET: APIRoute = async ({ params, cookies }) => {
   );
 };
 
-/**
- * Elimina el voto del dispositivo para esta plancha.
- * Verifica existencia antes de eliminar, retorna stats actualizadas.
- */
-export const DELETE: APIRoute = async ({ params, request }) => {
 // DELETE handler para quitar voto
 export const DELETE: APIRoute = async ({ params, cookies }) => {
   const sheetId = Number(params.id);
