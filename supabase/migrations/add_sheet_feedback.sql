@@ -26,9 +26,8 @@ CREATE INDEX IF NOT EXISTS idx_sheet_feedback_is_hidden ON sheet_feedback (is_hi
 -- Habilitar RLS
 ALTER TABLE sheet_feedback ENABLE ROW LEVEL SECURITY;
 
--- Crear policy para lectura pública de feedbacks visibles
-CREATE POLICY "public read visible sheet feedback" ON sheet_feedback
-  FOR SELECT USING (is_hidden = false);
+-- Se elimina la policy de lectura pública directa porque filtra filas pero no columnas (device_id, ip_hash).
+-- La lectura de los comentarios ahora se realiza exclusivamente a través de un endpoint API usando supabaseAdmin.
 
 -- Crear función para obtener el promedio de estrellas
 CREATE OR REPLACE FUNCTION get_average_stars(p_sheet_id BIGINT)
@@ -46,4 +45,5 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Otorgar permisos básicos
-GRANT SELECT ON sheet_feedback TO anon, authenticated;
+-- No se otorgan a anon ni authenticated para restringir el acceso directo
+-- GRANT SELECT ON sheet_feedback TO anon, authenticated;
