@@ -2,8 +2,12 @@
 import Layout from "../../layouts/Layout.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 import ModalConfirm from "../../components/ModalConfirm.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
 
-
+const isValid = await validateAdminSession(Astro.cookies);
+if (!isValid) {
+    return Astro.redirect("/admin/login");
+}
 // Obtener especialidades para el select
 const { data: specialties, error: specError } = await supabaseAdmin
     .from("specialties")

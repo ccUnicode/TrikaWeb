@@ -4,6 +4,12 @@ export const prerender = false;
 import Layout from "../../../../layouts/Layout.astro";
 import CurriculumBuilder from "../../../../components/Malla/CurriculumBuilder";
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import { validateAdminSession } from "../../../../lib/adminAuth";
+
+const isValid = await validateAdminSession(Astro.cookies);
+if (!isValid) {
+    return Astro.redirect("/admin/login");
+}
 
 const { id } = Astro.params;
 
@@ -129,6 +135,7 @@ const initialPlacedCourses = planCourses ? planCourses.map((pc: any) => ({
 
             <!-- Canvas Container -->
             <div class="w-full">
+                {/* @ts-ignore - TS a veces no reconoce client:load de Astro en componentes React */}
                 <CurriculumBuilder client:load planId={formattedPlan.id} plan={formattedPlan} initialCourses={courses || []} initialPlacedCourses={initialPlacedCourses} />
             </div>
         </div>
