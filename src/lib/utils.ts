@@ -1,5 +1,35 @@
+import cryptoNode from 'node:crypto';
 //Hashing functions
 import type { SupabaseClient } from '@supabase/supabase-js';
+
+export function getUuidFromFirebaseUid(uid: string): string {
+  const hash = cryptoNode.createHash('md5').update(uid).digest('hex');
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    hash.substring(12, 16),
+    hash.substring(16, 20),
+    hash.substring(20, 32)
+  ].join('-');
+}
+
+/**
+ * Genera un hash SHA-256 del texto de entrada.
+ * Se usa para ofuscar direcciones IP (combinadas con IP_SALT)
+ * antes de almacenarlas, como medida de privacidad.
+ */
+
+export function getUuidFromFirebaseUid(uid: string): string {
+  const hash = cryptoNode.createHash('md5').update(uid).digest('hex');
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    hash.substring(12, 16),
+    hash.substring(16, 20),
+    hash.substring(20, 32)
+  ].join('-');
+}
+
 
 /**
  * Genera un hash SHA-256 del texto de entrada.

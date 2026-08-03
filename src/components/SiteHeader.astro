@@ -61,6 +61,28 @@ import IconHome from "./icons/IconHome.astro";
         </a>
         <a
           class="rounded-xl p-2 hover:bg-global-card/50 text-global-text hover:text-global-primary-soft transition-colors"
+          aria-label="Perfil"
+          href="/profile"
+          title="Perfil"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-user"
+          >
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </a>
+        <a
+          class="rounded-xl p-2 hover:bg-global-card/50 text-global-text hover:text-global-primary-soft transition-colors"
           aria-label="Inicio"
           href="/"
           title="Inicio"
@@ -158,6 +180,12 @@ import IconHome from "./icons/IconHome.astro";
         class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
       >
         Inicio
+      </a>
+      <a
+        href="/profile"
+        class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
+      >
+        Perfil
       </a>
     </nav>
   </div>

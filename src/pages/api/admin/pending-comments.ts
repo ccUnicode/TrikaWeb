@@ -27,6 +27,9 @@ export const POST: APIRoute = async ({ cookies }) => {
       comment,
       created_at,
       teacher_id,
+      is_anonymous,
+      user_name,
+      user_email,
       teachers (
         id,
         full_name

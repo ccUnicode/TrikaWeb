@@ -47,6 +47,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       created_at,
       is_hidden,
       teacher_id,
+      is_anonymous,
+      user_name,
+      user_email,
       teachers:teacher_id (
         id,
         full_name

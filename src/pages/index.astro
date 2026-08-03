@@ -1,4 +1,4 @@
-﻿---
+---
 export const prerender = false;
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
@@ -10,6 +10,10 @@ import {
   getTopSheetsByViews,
   getTopTeachers,
 } from "../lib/data";
+import { getUserSession } from "../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 /**
  * Carga en paralelo los datos para las tres secciones del home:
@@ -165,7 +169,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                             {courseCode}
                           </a>
                         )}
-                        <CardExam sheet={sheet} />
+                        <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                       </article>
                     );
                   })
@@ -274,7 +278,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                             {courseCode}
                           </a>
                         )}
-                        <CardExam sheet={sheet} />
+                        <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                       </article>
                     );
                   })

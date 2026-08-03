@@ -280,7 +280,7 @@ async function syncExams(courseMap: Map<string, number>, tmpDir: string) {
 
                     if (insertError) throw insertError;
 
-                    console.log(`      ✅ Successfully synced: ${examStoragePath}`);
+                    console.log(`      Successfully synced: ${examStoragePath}`);
                     syncedCount++;
 
                     // Cleanup local file
@@ -289,7 +289,7 @@ async function syncExams(courseMap: Map<string, number>, tmpDir: string) {
                     }
 
                 } catch (err) {
-                    console.error(`      ❌ Error processing ${examStoragePath}:`, err);
+                    console.error(`      Error processing ${examStoragePath}:`, err);
                 }
             }
         }
@@ -357,7 +357,7 @@ async function syncSolutions(courseMap: Map<string, number>, tmpDir: string) {
                     .maybeSingle();
 
                 if (lookupError) {
-                    console.error(`      ❌ Error looking up sheet:`, lookupError);
+                    console.error(`      Error looking up sheet:`, lookupError);
                     continue;
                 }
 
@@ -396,7 +396,7 @@ async function syncSolutions(courseMap: Map<string, number>, tmpDir: string) {
 
                     if (updateError) throw updateError;
 
-                    console.log(`      ✅ Successfully synced solution: ${solutionStoragePath}`);
+                    console.log(`      Successfully synced solution: ${solutionStoragePath}`);
                     syncedCount++;
 
                     // Cleanup local file
@@ -405,7 +405,7 @@ async function syncSolutions(courseMap: Map<string, number>, tmpDir: string) {
                     }
 
                 } catch (err) {
-                    console.error(`      ❌ Error processing solution ${solutionStoragePath}:`, err);
+                    console.error(`      Error processing solution ${solutionStoragePath}:`, err);
                 }
             }
         }

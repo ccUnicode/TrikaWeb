@@ -1,55 +1,22 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
+import { validateAdminSession } from "../../lib/adminAuth";
+
+const isAdmin = await validateAdminSession(Astro.cookies);
+if (!isAdmin) {
+    return Astro.redirect("/admin/login");
+}
 ---
 
 <Layout title="Moderar Comentarios | TrikaWeb Admin">
     <div class="min-h-screen py-8">
         <div class="mx-auto w-full max-w-3xl px-4">
             <!-- Header Section -->
-            <div class="mb-8 flex flex-row items-center justify-between gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold text-global-text">
-                        Moderar Comentarios
-                    </h1>
-                    <p class="mt-1 text-sm text-global-text-muted">
-                        Aprueba o rechaza comentarios de profesores
-                    </p>
-                </div>
-                <div class="flex gap-2">
-                    <a
-                        href="/admin/courses"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Cursos
-                    </a>
-                    <a
-                        href="/admin/teachers"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Profesores
-                    </a>
-                    <a
-                        href="/admin/ratings"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        Calificaciones
-                    </a>
-                    <a
-                        href="/admin/upload"
-                        class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-                    >
-                        ← Panel de subida
-                    </a>
-                    <form action="/api/admin/logout" method="POST">
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-                        >
-                            Cerrar Sesión
-                        </button>
-                    </form>
-                </div>
-            </div>
+            <AdminHeader 
+                title="Moderar Comentarios" 
+                description="Aprueba o rechaza comentarios de profesores" 
+            />
 
             <!-- Comments Section -->
             <section id="comments-section">
@@ -142,6 +109,9 @@ import Layout from "../../layouts/Layout.astro";
             comment: string;
             created_at: string;
             teacher_id: string;
+            is_anonymous?: boolean;
+            user_name?: string | null;
+            user_email?: string | null;
             teachers: {
                 id: string;
                 full_name: string;
@@ -212,9 +182,15 @@ import Layout from "../../layouts/Layout.astro";
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
               <div>
                 <a href="/profesores/${c.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
-                  ${teacherName}
+                  ${escapeHtml(teacherName)}
                 </a>
                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
+                <p class="text-[11px] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 font-semibold rounded-full ${c.is_anonymous ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}">
+                    ${c.is_anonymous ? 'Anónimo' : 'Público'}
+                  </span>
+                  <span class="text-global-text-muted">Por: <strong>${escapeHtml(c.user_name || 'Estudiante')}</strong> (${escapeHtml(c.user_email || 'Sin correo')})</span>
+                </p>
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-yellow-400 text-sm">${stars}</span>

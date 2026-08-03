@@ -1,6 +1,12 @@
 ---
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
+import { getUserSession } from "../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+if (!user) {
+  return Astro.redirect("/login?redirect=" + encodeURIComponent(Astro.url.pathname));
+}
 ---
 
 <Layout

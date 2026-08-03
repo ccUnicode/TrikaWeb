@@ -1,11 +1,11 @@
-﻿# Setup y Configuración
+# Setup y Configuración
 
 ## Requisitos
 
-- Node.js 18 o superior
+- Node.js >=22.12.0
 - npm
-- Proyecto de Supabase con Database y Storage
-- Acceso administrativo al proyecto de Supabase
+- Proyecto de Supabase (DB + Storage)
+- Proyecto de Firebase (Auth para estudiantes)
 
 ## Instalación local
 
@@ -31,16 +31,21 @@ Usar `.env.example` como referencia.
 * `SUPABASE_SERVICE_KEY`
 * `IP_SALT`
 * `ADMIN_PASS`
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_CLIENT_EMAIL`
+- `FIREBASE_PRIVATE_KEY`
 * `GOOGLE_APPLICATION_CREDENTIALS`, si se utiliza la sincronización con Drive
 * `DRIVE_EXAMS_FOLDER_ID`, si se utiliza la sincronización con Drive
 * `DRIVE_SOLUTIONS_FOLDER_ID`, si se utiliza la sincronización con Drive
 
 Estas variables no deben exponerse mediante el prefijo `PUBLIC_` ni utilizarse directamente en componentes ejecutados en el navegador.
 
-### Cliente — variables públicas
+### Cliente (publicas)
 
-* `PUBLIC_SUPABASE_URL`
-* `PUBLIC_SUPABASE_ANON_KEY`
+- `PUBLIC_SUPABASE_URL`
+- `PUBLIC_SUPABASE_ANON_KEY`
+
+Nota: Supabase sigue siendo la base de datos y storage; Firebase queda como proveedor de autenticación para estudiantes.
 
 ## Base de datos
 
@@ -234,8 +239,10 @@ Crear los siguientes buckets:
 * `exams`
 * `solutions`
 * `thumbnails`
-
+* `avatars` (público, para las fotos de perfil)
+* `contributions` (privado, para moderación)
 Los buckets deben ser privados. El acceso a los archivos se realiza mediante URLs firmadas generadas por endpoints del servidor.
+
 
 ## Scripts disponibles
 

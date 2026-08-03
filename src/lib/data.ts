@@ -17,6 +17,7 @@ export interface SheetSummary {
   teacher_hint: string | null;
   solution_kind?: string | null;
   thumb_storage_path?: string | null;
+  exam_storage_path?: string | null;
   course_code?: string;
   course_name?: string;
 }
@@ -46,6 +47,10 @@ export interface TeacherReview {
   grading: number;
   comment: string | null;
   created_at: string;
+  is_anonymous?: boolean;
+  user_name?: string | null;
+  user_id?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface TeacherStats {
@@ -87,6 +92,7 @@ const sheetSelect = `
   teacher_hint,
   solution_kind,
   thumb_storage_path,
+  exam_storage_path,
   courses:course_id!inner (code,name)
 `;
 
@@ -448,7 +454,7 @@ export async function getTeacherDetail(
 
   // Stats por dimensión
   const { data: statsRow, error: statsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
       'avg_overall:avg(overall),avg_difficulty:avg(difficulty),avg_didactic:avg(didactic),avg_resources:avg(resources),avg_responsability:avg(responsability),avg_grading:avg(grading)'
     )
@@ -462,9 +468,9 @@ export async function getTeacherDetail(
 
   // Reseñas con paginación y count
   const { data: reviews, count, error: reviewsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
-      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at',
+      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name, user_id, avatar_url',
       { count: 'exact', head: false }
     )
     .eq('teacher_id', teacherId)

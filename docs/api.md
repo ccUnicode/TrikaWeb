@@ -1,4 +1,4 @@
-﻿# Referencia API
+# Referencia API
 
 Base local: `http://localhost:4321`
 
@@ -371,13 +371,13 @@ file=@plancha.pdf
 **Campos:**
 | Campo | Requerido | Descripción |
 |-------|-----------|-------------|
-| `admin_pass` | ✅ | Contraseña de admin |
-| `course_code` | ✅ | Código del curso (ej: `MAT01`) |
-| `exam_type` | ✅ | Tipo de examen |
-| `cycle` | ✅ | Ciclo académico (ej: `2024-1`) |
-| `resource_kind` | ✅ | `PLANCHA` o `SOLUCIONARIO` |
-| `teacher_hint` | ❌ | Nombre del profesor (opcional) |
-| `file` | ✅ | Archivo PDF |
+| `admin_pass` | Si | Contraseña de admin |
+| `course_code` | Si | Código del curso (ej: `MAT01`) |
+| `exam_type` | Si | Tipo de examen |
+| `cycle` | Si | Ciclo académico (ej: `2024-1`) |
+| `resource_kind` | Si | `PLANCHA` o `SOLUCIONARIO` |
+| `teacher_hint` | No | Nombre del profesor (opcional) |
+| `file` | Si | Archivo PDF |
 
 ---
 

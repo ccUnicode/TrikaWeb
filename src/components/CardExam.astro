@@ -10,8 +10,9 @@ export interface Props {
   tieneSolucion?: boolean;
   evaluacion?: string;
   href?: string;
+  isLoggedIn?: boolean;
 }
-const { sheet, ciclo, profesor, tieneSolucion, evaluacion, href } =
+const { sheet, ciclo, profesor, tieneSolucion, evaluacion, href, isLoggedIn = false } =
   Astro.props as Props;
 
 const courseLabel =
@@ -39,6 +40,27 @@ if (sheet?.thumb_storage_path) {
     thumbUrl = data?.signedUrl ?? null;
   } catch (error) {
     console.error("Error signing thumb url:", error);
+  }
+} else if (sheet?.exam_storage_path) {
+  // Si no hay miniatura pero el archivo de examen original es una imagen, la usamos como miniatura
+  const path = sheet.exam_storage_path;
+  const ext = path.split('.').pop()?.toLowerCase();
+  const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+
+  if (isImg) {
+    try {
+      const storagePath = path.startsWith("exams/")
+        ? path.replace("exams/", "")
+        : path;
+
+      const supa = supabaseAdmin;
+      const { data } = await supa.storage
+        .from("exams")
+        .createSignedUrl(storagePath, 3600);
+      thumbUrl = data?.signedUrl ?? null;
+    } catch (error) {
+      console.error("Error signing exam image as thumbnail:", error);
+    }
   }
 }
 
@@ -74,6 +96,7 @@ const noCheckIcon = `
     class="absolute right-3 top-3 z-50 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/20 text-white/80 backdrop-blur-sm transition hover:scale-110 hover:bg-black/40 hover:text-global-primary cursor-pointer"
     data-fav-btn
     data-sheet-id={sheet?.id}
+    data-is-logged-in={isLoggedIn ? "true" : "false"}
     aria-label="Guardar plancha"
     aria-pressed="false"
   >
@@ -178,6 +201,12 @@ const noCheckIcon = `
         e.stopPropagation(); // Stop bubbling to card link
 
         const target = e.currentTarget as HTMLElement;
+        const logged = target.dataset.isLoggedIn === "true";
+        if (!logged) {
+          window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+          return;
+        }
+
         const id = Number(target.dataset.sheetId);
 
         if (Number.isInteger(id)) {

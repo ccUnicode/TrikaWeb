@@ -165,6 +165,19 @@ const fields = [
       </label>
     </div>
 
+    <div class="flex items-center gap-2.5 py-1">
+      <input
+        type="checkbox"
+        id={`is_anonymous-${teacherId}`}
+        name="is_anonymous"
+        checked
+        class="rounded border-global-border-subtle bg-global-bg/50 text-global-primary focus:ring-global-primary focus:ring-offset-global-surface h-4 w-4 transition-all cursor-pointer"
+      />
+      <label class="font-medium text-global-text-muted text-xs cursor-pointer select-none" for={`is_anonymous-${teacherId}`}>
+        Calificar de forma anónima (tu nombre no será visible para otros estudiantes)
+      </label>
+    </div>
+
     <div class="flex flex-col items-center gap-3">
       <button
         type="submit"
@@ -322,6 +335,8 @@ const fields = [
         }
       });
 
+      payload.is_anonymous = formData.has("is_anonymous");
+
       const missing = [
         "difficulty",
         "didactic",
@@ -339,7 +354,6 @@ const fields = [
         return;
       }
 
-      payload.device_id = ensureDeviceId();
       widget.classList.add("opacity-50", "pointer-events-none");
       if (status) {
         status.textContent = "Enviando...";
@@ -391,6 +405,41 @@ const fields = [
         widget.classList.remove("opacity-50", "pointer-events-none");
       }
     });
+
+    // prefill previous vote if user already rated
+    if (teacherId) {
+      fetch(`/api/profesores/${teacherId}/rate`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.hasVoted && data.rating) {
+            const rating = data.rating;
+            const commentArea = form.querySelector('[name="comment"]') as HTMLTextAreaElement | null;
+            if (commentArea) commentArea.value = rating.comment || "";
+            const anonCheckbox = form.querySelector('[name="is_anonymous"]') as HTMLInputElement | null;
+            if (anonCheckbox) anonCheckbox.checked = rating.is_anonymous !== false;
+            const fields = ["difficulty", "didactic", "resources", "responsability", "grading"];
+            fields.forEach(field => {
+              const val = rating[field];
+              if (val) {
+                const input = form.querySelector(`#input-${field}-${teacherId}`) as HTMLInputElement | null;
+                if (input) input.value = val.toString();
+                const group = form.querySelector(`[data-star-group="${field}"]`);
+                if (group) {
+                  const buttons = group.querySelectorAll(".star-btn");
+                  buttons.forEach((b, idx) => {
+                    if (idx + 1 <= val) {
+                      b.classList.add("active");
+                    } else {
+                      b.classList.remove("active");
+                    }
+                  });
+                }
+              }
+            });
+          }
+        })
+        .catch(err => console.error("Error prefilling rating form:", err));
+    }
   };
 
   if (typeof window !== "undefined") {

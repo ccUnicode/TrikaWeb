@@ -170,34 +170,31 @@ create table public.sheets (
   avg_difficulty numeric(3,2) default 0,
   rating_count integer default 0,
   view_count bigint default 0,
-  is_hidden boolean default false not null,
-  interest_count bigint default 0,
-  evaluation_id integer,
-  is_teacher_specific boolean default false not null
+
+  constraint sheets_solution_present_ck
+  check (
+    solution_kind is null
+    or (solution_kind = 'pdf'   and solution_storage_path is not null)
+    or (solution_kind = 'video' and solution_video_url     is not null)
+  )
 );
 
-create table public.specialties (
-  id uuid default gen_random_uuid() not null,
-  name text not null
-);
+--Índice para nicidad 
+create unique index if not exists uq_sheets_course_cycle_title
+  on sheets (course_id, cycle, lower(exam_type));
 
-create table public.study_plans (
-  id uuid default gen_random_uuid() not null,
-  specialty_id uuid,
-  year text not null,
-  is_current boolean default false,
-  is_published boolean default true
-);
+--Índice para búsqueda
+create index if not exists ix_sheets_course on sheets (course_id);
 
-create table public.system_grades_consider (
-  system_id integer not null,
-  grade_id integer not null,
-  weight integer not null
-);
+--RLS y public read
+alter table sheets enable row level security;
+create policy "public read sheets" on sheets
+  for select using (true); 
 
-create table public.teacher_ratings (
-  id bigserial not null,
-  teacher_id bigint not null,
+--Tabla intermedia para las calificaciones
+create table if not exists sheet_ratings (
+  id bigserial primary key,
+  sheet_id bigint not null references sheets(id) on delete cascade,
   device_id uuid not null,
   ip_hash text not null,
   overall numeric(3,2) not null,
