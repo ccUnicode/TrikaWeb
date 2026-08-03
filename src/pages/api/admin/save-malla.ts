@@ -43,9 +43,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     // Validar el payload antes de cualquier operación
-    const isValidPayload = placedCourses.every((pc: any) => 
-      typeof pc.course_id === 'number' && 
-      typeof pc.cycle === 'number' && 
+    const isValidPayload = placedCourses.every((pc: any) =>
+      typeof pc.course_id === 'number' &&
+      typeof pc.cycle === 'number' &&
       typeof pc.row_index === 'number' &&
       (pc.prerequisites === undefined || Array.isArray(pc.prerequisites))
     );
@@ -54,10 +54,28 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ error: 'Estructura de payload inválida' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
+    // Limpiar y revalidar los prerrequisitos
+    // 1. El curso prerrequisito debe seguir existiendo en la malla
+    // 2. El curso prerrequisito debe estar en un ciclo estrictamente menor
+    const courseCycleMap = new Map<number, number>();
+    placedCourses.forEach((pc: any) => courseCycleMap.set(pc.course_id, pc.cycle));
+
+    const sanitizedCourses = placedCourses.map((pc: any) => {
+      const validPrerequisites = (pc.prerequisites || []).filter((prereqId: number) => {
+        const prereqCycle = courseCycleMap.get(prereqId);
+        return prereqCycle !== undefined && prereqCycle < pc.cycle;
+      });
+
+      return {
+        ...pc,
+        prerequisites: validPrerequisites
+      };
+    });
+
     // Ejecutar todo el reemplazo en una única transacción mediante RPC
     const { error: rpcError } = await supabase.rpc('save_malla_transaction', {
       p_plan_id: planId,
-      p_placed_courses: placedCourses
+      p_placed_courses: sanitizedCourses
     });
 
     if (rpcError) {
