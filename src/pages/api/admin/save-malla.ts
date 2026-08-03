@@ -8,16 +8,9 @@ import { validateAdminSession } from '../../../lib/adminAuth';
  * Persiste la estructura visual de una malla curricular en la base de datos.
  * 
  * Este endpoint es el núcleo de persistencia del Constructor de Mallas. Recibe el 
- * arreglo de cursos posicionados y ejecuta un patrón "eliminar e insertar" (delete-then-insert) 
- * de manera seudo-transaccional:
- * 1. Elimina todos los cursos previamente asignados a este plan.
- * 2. Inserta los nuevos cursos con sus coordenadas lógicas (`cycle`, `row_index`).
- * 3. Itera sobre cada curso insertado, elimina sus pre-requisitos anteriores, 
- *    y registra las nuevas conexiones estructurales.
- * 
- * Nota de Deuda Técnica: Actualmente las operaciones se ejecutan secuencialmente en el 
- * backend de Node.js. En una futura iteración de rendimiento y consistencia, se recomienda 
- * envolver toda esta lógica en un único Procedimiento Almacenado (RPC) de Supabase.
+ * arreglo de cursos posicionados y valida su estructura (payload). Luego, delega todo el patrón 
+ * de reemplazo ("eliminar e insertar") a un Procedimiento Almacenado (RPC) en Supabase, 
+ * garantizando integridad atómica y transaccional a nivel de base de datos.
  * 
  * @param {Request} request - El objeto request HTTP que contiene `planId` y `placedCourses`.
  * @returns {Response} Un JSON confirmando el éxito o el error detallado.
@@ -45,71 +38,31 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const body = await request.json();
     const { planId, placedCourses } = body;
 
-    if (!planId) {
-      return new Response(JSON.stringify({ error: 'Faltan campos obligatorios' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    if (!planId || !Array.isArray(placedCourses)) {
+      return new Response(JSON.stringify({ error: 'Faltan campos obligatorios o formato inválido' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // 1. Eliminar los cursos previos de este plan
-    const { error: deleteError } = await supabase
-      .from('plan_courses')
-      .delete()
-      .eq('plan_id', planId);
+    // Validar el payload antes de cualquier operación
+    const isValidPayload = placedCourses.every((pc: any) => 
+      typeof pc.course_id === 'number' && 
+      typeof pc.cycle === 'number' && 
+      typeof pc.row_index === 'number' &&
+      (pc.prerequisites === undefined || Array.isArray(pc.prerequisites))
+    );
 
-    if (deleteError) {
-      console.error("Error al eliminar cursos del plan anterior:", deleteError);
-      throw deleteError;
+    if (!isValidPayload) {
+      return new Response(JSON.stringify({ error: 'Estructura de payload inválida' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // 2. Insertar los nuevos cursos si existen
-    if (placedCourses && placedCourses.length > 0) {
-      const inserts = placedCourses.map((pc: any) => ({
-        plan_id: planId,
-        course_id: pc.course_id,
-        cycle: pc.cycle,
-        row_index: pc.row_index
-      }));
+    // Ejecutar todo el reemplazo en una única transacción mediante RPC
+    const { error: rpcError } = await supabase.rpc('save_malla_transaction', {
+      p_plan_id: planId,
+      p_placed_courses: placedCourses
+    });
 
-      const { error: insertError } = await supabase
-        .from('plan_courses')
-        .insert(inserts);
-
-      if (insertError) {
-        console.error("Error al insertar cursos en plan_courses:", insertError);
-        throw insertError;
-      }
-
-      // 3. Persistir Pre-requisitos
-      for (const pc of placedCourses) {
-        // Eliminar pre-requisitos previos
-        const { error: delPrereqError } = await supabase
-          .from('course_prerequisites')
-          .delete()
-          .eq('course_id', pc.course_id)
-          .eq('plan_id', planId);
-
-        if (delPrereqError) {
-           console.error("Error al eliminar pre-requisitos:", delPrereqError);
-           throw delPrereqError;
-        }
-
-        // Insertar nuevos pre-requisitos si existen
-        if (pc.prerequisites && pc.prerequisites.length > 0) {
-          const prereqInserts = pc.prerequisites.map((prereqId: number) => ({
-            plan_id: planId,
-            course_id: pc.course_id,
-            prerequisite_id: prereqId
-          }));
-
-          const { error: insPrereqError } = await supabase
-            .from('course_prerequisites')
-            .insert(prereqInserts);
-
-          if (insPrereqError) {
-            console.error("Error al insertar pre-requisitos:", insPrereqError);
-            throw insPrereqError;
-          }
-        }
-      }
+    if (rpcError) {
+      console.error("Error en la transacción save_malla_transaction:", rpcError);
+      throw rpcError;
     }
 
     return new Response(JSON.stringify({
