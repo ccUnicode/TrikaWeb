@@ -333,7 +333,7 @@ function getYouTubeId(url: string) {
       {
         (solutionUrl || (sheet.solution_kind === "video" && sheet.solution_video_url)) && (
           <div id="feedback-section" class="hidden transition-all duration-300">
-            <SheetFeedback sheetId={sheet.id} avgRating={sheet.avg_difficulty} />
+            <SheetFeedback sheetId={sheet.id} />
           </div>
         )
       }
