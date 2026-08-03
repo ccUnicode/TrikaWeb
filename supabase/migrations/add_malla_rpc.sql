@@ -24,3 +24,7 @@ BEGIN
   RETURN row_to_json(new_plan)::JSONB;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Revocar permisos públicos para evitar modificaciones sin autenticación
+REVOKE EXECUTE ON FUNCTION add_malla_transaction(JSONB) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION add_malla_transaction(JSONB) TO authenticated, service_role;

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION save_malla_transaction(p_plan_id INT, p_placed_courses JSONB)
+CREATE OR REPLACE FUNCTION save_malla_transaction(p_plan_id UUID, p_placed_courses JSONB)
 RETURNS VOID AS $$
 DECLARE
   course RECORD;
@@ -31,3 +31,7 @@ BEGIN
 
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Revocar permisos públicos para evitar modificaciones sin autenticación
+REVOKE EXECUTE ON FUNCTION save_malla_transaction(UUID, JSONB) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION save_malla_transaction(UUID, JSONB) TO authenticated, service_role;

@@ -1,12 +1,12 @@
 CREATE OR REPLACE FUNCTION edit_malla_transaction(payload JSONB)
 RETURNS VOID AS $$
 DECLARE
-  v_id INT;
+  v_id UUID;
   v_specialty_id INT;
   v_year TEXT;
   v_is_current BOOLEAN;
 BEGIN
-  v_id := (payload->>'id')::INT;
+  v_id := (payload->>'id')::UUID;
   v_specialty_id := (payload->>'specialty_id')::INT;
   v_year := payload->>'year';
   v_is_current := (payload->>'is_current')::BOOLEAN;
@@ -25,3 +25,7 @@ BEGIN
   
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Revocar permisos públicos para evitar modificaciones sin autenticación
+REVOKE EXECUTE ON FUNCTION edit_malla_transaction(JSONB) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION edit_malla_transaction(JSONB) TO authenticated, service_role;
