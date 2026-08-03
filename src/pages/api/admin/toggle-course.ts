@@ -4,65 +4,48 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
-export const POST: APIRoute = async ({ request, cookies }) => {
+/**
+ * Cambia la visibilidad de un curso (mostrar/ocultar en páginas públicas).
+ * Los cursos ocultos no aparecen en listados ni búsquedas del frontend.
+ */
+export const PATCH: APIRoute = async ({ request, cookies }) => {
     try {
         const isValid = await validateAdminSession(cookies);
         if (!isValid) {
-            return new Response(JSON.stringify({ ok: false, error: 'Sesión inválida' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Response.json({ ok: false, error: 'Sesión inválida' }, { status: 401 });
         }
 
-        const body = await request.json();
-        const { course_id, is_hidden } = body;
+        let body;
+        try {
+            body = await request.json();
+        } catch (err) {
+            return Response.json({ ok: false, error: 'Cuerpo de petición inválido o vacío' }, { status: 400 });
+        }
 
+        const { course_id, is_hidden } = body || {};
         const id = Number(course_id);
-        if (!Number.isFinite(id) || id <= 0) {
-            return new Response(JSON.stringify({ ok: false, error: 'ID de curso inválido' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return Response.json({ ok: false, error: 'ID de curso inválido' }, { status: 400 });
         }
 
         if (typeof is_hidden !== 'boolean') {
-            return new Response(JSON.stringify({ ok: false, error: 'Valor de visibilidad inválido' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Response.json({ ok: false, error: 'Valor de visibilidad inválido' }, { status: 400 });
         }
 
-        const { error } = await supabaseAdmin.from('courses').update({ is_hidden }).eq('id', id);
+        const { data, error } = await supabaseAdmin.from('courses').update({ is_hidden }).eq('id', id).select();
 
         if (error) {
             console.error('Error toggling course visibility:', error);
-            return new Response(JSON.stringify({ ok: false, error: 'Error al actualizar visibilidad' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Response.json({ ok: false, error: 'Error al actualizar visibilidad' }, { status: 500 });
         }
 
-        const { count: visibleCount } = await supabaseAdmin
-            .from('courses')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_hidden', false);
-        const { count: hiddenCount } = await supabaseAdmin
-            .from('courses')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_hidden', true);
+        if (!data || data.length === 0) {
+            return Response.json({ ok: false, error: 'Curso no encontrado' }, { status: 404 });
+        }
 
-        return new Response(JSON.stringify({ 
-            ok: true, 
-            counts: { visible: visibleCount ?? 0, hidden: hiddenCount ?? 0 } 
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ ok: true }, { status: 200 });
     } catch (err) {
         console.error('toggle-course API error:', err);
-        return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return Response.json({ ok: false, error: 'Error interno del servidor' }, { status: 500 });
     }
 };

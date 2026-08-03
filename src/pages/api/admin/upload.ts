@@ -1,7 +1,3 @@
-// src/pages/api/admin/upload.ts
-// Registers sheet metadata in the DB after the file has already been
-// uploaded directly to Supabase Storage by the browser.
-
 export const prerender = false;
 
 import type { APIRoute } from "astro";
@@ -15,8 +11,14 @@ export const GET: APIRoute = () => {
   );
 };
 
+/**
+ * Registra los metadatos de una plancha o solucionario en la BD.
+ * El archivo ya fue subido a Supabase Storage por el navegador.
+ * Si ya existe una plancha para el mismo curso+ciclo+exam_type, actualiza
+ * el storage_path; si no, crea un registro nuevo.
+ * Los solucionarios requieren que la plancha exista previamente.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Validate admin session via cookie
   const isAdmin = await validateAdminSession(cookies);
   if (!isAdmin) {
     return new Response(

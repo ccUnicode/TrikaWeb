@@ -242,6 +242,13 @@ const fields = [
 <script>
   import { ensureDeviceId } from "../lib/client/device";
 
+  /**
+   * Inicializa el formulario de calificación de profesor:
+   * - Estrellas interactivas con hover preview y estado activo
+   * - Validación de que todas las 5 dimensiones estén completas
+   * - Envío POST a /api/profesores/:id/rate con device_id
+   * - Recarga la página tras éxito para actualizar stats globales
+   */
   const init = (widget: HTMLElement) => {
     if (widget.dataset.bound === "true") return;
     widget.dataset.bound = "true";
@@ -249,7 +256,7 @@ const fields = [
     const status = widget.querySelector("[data-status]") as HTMLElement;
     const teacherId = widget.dataset.teacherId;
 
-    // --- Star Rating Logic ---
+    /** Configura las estrellas interactivas para cada dimensión (dificultad, didáctica, etc.) */
     const starGroups = widget.querySelectorAll("[data-star-group]");
 
     starGroups.forEach((group) => {
@@ -262,7 +269,7 @@ const fields = [
 
       let currentValue = 0;
 
-      // Helper to update visual state
+      /** Actualiza las clases visuales de las estrellas según el valor seleccionado */
       const updateStars = (val: number) => {
         buttons.forEach((b, idx) => {
           const btn = b as HTMLButtonElement;
@@ -275,17 +282,13 @@ const fields = [
         });
       };
 
-      // Handle Click
+      /** Al hacer clic en una estrella: fija el valor y anima */
       buttons.forEach((b) => {
         const btn = b as HTMLButtonElement;
         btn.addEventListener("click", () => {
           const val = Number(btn.dataset.value);
-          if (currentValue === val) {
-            // Optional/No-op
-          } else {
-            currentValue = val;
-          }
-          if (input) input.value = (currentValue || "").toString();
+          currentValue = val;
+          if (input) input.value = currentValue.toString();
           updateStars(currentValue);
 
           const svg = btn.querySelector("svg");
@@ -295,14 +298,14 @@ const fields = [
           }
         });
 
-        // Handle Hover Preview
+        /** Vista previa al pasar el mouse sobre las estrellas */
         btn.addEventListener("mouseenter", () => {
           const val = Number(btn.dataset.value);
           updateStars(val);
         });
       });
 
-      // Reset on mouse leave stars container
+      /** Al salir del área, restaura el valor seleccionado */
       g.querySelector("[data-stars-container]")?.addEventListener(
         "mouseleave",
         () => {
@@ -310,14 +313,13 @@ const fields = [
         },
       );
     });
-    // -------------------------
 
+    /** Envío del formulario: valida, construye payload y envía al servidor */
     form?.addEventListener("submit", async (event: SubmitEvent) => {
       event.preventDefault();
       const formData = new FormData(form);
       const payload: Record<string, any> = {};
       formData.forEach((value, key) => {
-        // Convert rating fields to numbers
         if (
           [
             "difficulty",
@@ -375,8 +377,7 @@ const fields = [
           return;
         }
 
-        // Success - Show success state and hide form
-        // Success - Reload page to update main stats
+        // Éxito: muestra mensaje y recarga para actualizar stats del perfil
         const result = await response.json();
         const successState = widget.querySelector("[data-success-state]");
 
@@ -386,7 +387,6 @@ const fields = [
           status.classList.add("text-green-500");
         }
 
-        // Short delay to show success message then reload
         setTimeout(() => {
           window.location.reload();
         }, 1000);

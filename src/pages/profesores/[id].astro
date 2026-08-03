@@ -64,12 +64,16 @@ const formatDate = (iso: string) => {
   });
 };
 
+/**
+ * Define el color de la barra de estadística según el puntaje:
+ * 0-2: Rojo (Malo), 2-3: Naranja (Regular), 3-4: Amarillo (Bueno), 4-5: Verde (Excelente)
+ */
 const getBarColor = (value: number | null): string => {
-  if (value === null || value === undefined) return "#6B7280"; // Gray for null
-  if (value <= 2.0) return "#EF4444"; // Red - Malo
-  if (value <= 3.0) return "#F97316"; // Orange - Regular
-  if (value <= 4.0) return "#EAB308"; // Yellow - Bueno
-  return "#22C55E"; // Green - Excelente
+  if (value === null || value === undefined) return "#6B7280";
+  if (value <= 2.0) return "#EF4444";
+  if (value <= 3.0) return "#F97316";
+  if (value <= 4.0) return "#EAB308";
+  return "#22C55E";
 };
 
 const safeBio =
@@ -77,6 +81,7 @@ const safeBio =
     ? detail.teacher.bio
     : "Sin descripción disponible.";
 
+/** Construye la URL pública del avatar desde Supabase Storage o usa el fallback */
 const toAvatarUrl = (src?: string | null) => {
   const fallback = "/img/fallback_teacher.jpeg";
   const cleanSrc = (src || "").trim();
@@ -425,6 +430,12 @@ const toStudentAvatarUrl = (src?: string | null) => {
 </script>
 
 <script>
+  /**
+   * Gestiona el flujo de eliminación de calificación:
+   * 1. Consulta si el usuario ya votó (GET /api/profesores/:id/rate?device_id=...)
+   * 2. Si ya votó, muestra el botón "Eliminar mi calificación"
+   * 3. Al hacer clic, envía DELETE y recarga la página con stats actualizadas
+   */
   const initDeleteRating = async () => {
     const deleteBtn = document.getElementById(
       "delete-rating-btn",
@@ -439,7 +450,7 @@ const toStudentAvatarUrl = (src?: string | null) => {
     const logged = document.getElementById("open-rating-modal")?.dataset.isLoggedIn === "true";
     if (!logged) return;
 
-    // Verificar si el usuario ya votó
+    // Consulta si el usuario ya votó para mostrar/ocultar el botón de eliminar
     try {
       const response = await fetch(
         `/api/profesores/${teacherId}/rate`

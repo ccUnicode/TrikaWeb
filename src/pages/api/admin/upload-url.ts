@@ -1,15 +1,15 @@
-// src/pages/api/admin/upload-url.ts
-// Generates a signed upload URL so the browser can upload PDFs
-// directly to Supabase Storage, bypassing Vercel's 4.5 MB body limit.
-
 export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Genera una URL firmada para que el navegador suba PDFs directamente
+ * a Supabase Storage, evitando el límite de 4.5 MB del body en Vercel.
+ * La ruta de almacenamiento se construye como: {courseCode}/{examType}/{cycle}.pdf
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-    // Validate admin session via cookie
     const isAdmin = await validateAdminSession(cookies);
     if (!isAdmin) {
         return new Response(

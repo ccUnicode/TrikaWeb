@@ -8,6 +8,14 @@ import moderationConfig from "../../../../../config/moderation.json";
 
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
+/**
+ * Crea o actualiza una calificación de profesor.
+ * - Calcula el overall automáticamente como promedio de las 5 dimensiones.
+ * - Valida contra palabras prohibidas (moderation.json).
+ * - Aplica rate limiting por IP y límite de 3 votos por IP por profesor.
+ * - Las calificaciones se crean visibles por defecto.
+ */
+
 export const POST: APIRoute = async ({ params, request, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -31,7 +39,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
 
   const { difficulty, didactic, resources, responsability, grading, comment, is_anonymous } = body;
 
-  // check for bad words
+  // Revisar por palabras no permitidas
   if (comment) {
     const commentLower = comment.toLowerCase();
     const foundBadWord = bannedWords.find((word: string) => commentLower.includes(word));
@@ -62,7 +70,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
     );
   }
 
-  // Calculate overall automatically
+  // Calcular overall automaticamente
   const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
   const deviceId = getUuidFromFirebaseUid(user.uid);
@@ -188,7 +196,10 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
   );
 };
 
-// GET handler para verificar si el usuario ya votó
+/**
+ * Verifica si el dispositivo ya calificó a este profesor.
+ * Usado por el frontend para mostrar/ocultar el botón "Eliminar mi calificación".
+ */
 export const GET: APIRoute = async ({ params, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
@@ -225,7 +236,10 @@ export const GET: APIRoute = async ({ params, cookies }) => {
   );
 };
 
-// DELETE handler para quitar calificación
+/**
+ * Elimina la calificación del dispositivo para este profesor.
+ * Verifica que exista antes de eliminar, luego retorna las stats actualizadas.
+ */
 export const DELETE: APIRoute = async ({ params, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {

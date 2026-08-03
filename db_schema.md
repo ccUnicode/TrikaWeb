@@ -2,7 +2,7 @@
 
 ## Tablas principales
 
-- courses (id, code, name, faculty, cycle, ...)
+- courses (id, code, name, summary, credits, subsystem_id, status, is_hidden, ...)
 - teachers (id, name, nickname, department, ...)
 - courses_teachers (course_id, teacher_id)
 - sheets (id, course_id, title, exam_storage_path, solution_kind, solution_storage_path, solution_video_url, avg_difficulty, rating_count, view_count, thumb_storage_path)

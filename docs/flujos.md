@@ -217,7 +217,11 @@ erDiagram
         bigint id PK
         text code UK
         text name
+        text summary
         int credits
+        bigint subsystem_id FK
+        text status "INCOMPLETO | COMPLETO | ARCHIVADO"
+        boolean is_hidden
     }
     
     TEACHERS {

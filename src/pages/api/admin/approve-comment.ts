@@ -4,8 +4,11 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Aprueba un comentario pendiente cambiando is_hidden a false.
+ * Una vez aprobado, el comentario se vuelve visible en el perfil del profesor.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-    // Validate session from cookie
     const isValid = await validateAdminSession(cookies);
     if (!isValid) {
         return new Response(

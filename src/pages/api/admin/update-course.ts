@@ -4,6 +4,16 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+type EvaluationIdsResult =
+  | {
+      valid: true;
+      values: number[];
+    }
+  | {
+      valid: false;
+      error: string;
+    };
+
 const normalizeCode = (value: unknown): string =>
   String(value ?? "")
     .trim()
@@ -26,7 +36,7 @@ const normalizeCredits = (value: unknown): number => {
 const normalizeRequiredId = (value: unknown): number | null => {
   const normalizedValue = Number(value);
 
-  if (!Number.isInteger(normalizedValue) || normalizedValue <= 0) {
+  if (!Number.isSafeInteger(normalizedValue) || normalizedValue <= 0) {
     return null;
   }
 
@@ -54,19 +64,11 @@ const normalizeOptionalId = (
   };
 };
 
-type EvaluationIdsResult =
-  | {
-      valid: true;
-      values: number[];
-    }
-  | {
-      valid: false;
-      error: string;
-    };
-
 /**
- * Valida el arreglo original de evaluaciones sin eliminar
- * silenciosamente valores inválidos o repetidos.
+ * Valida el arreglo original de evaluaciones.
+ *
+ * No convierte cadenas a números ni elimina silenciosamente
+ * IDs inválidos o repetidos.
  */
 const validateEvaluationIds = (value: unknown): EvaluationIdsResult => {
   if (value === undefined) {
@@ -99,7 +101,7 @@ const validateEvaluationIds = (value: unknown): EvaluationIdsResult => {
 
   const evaluationIds = value as number[];
 
-  if (new Set(evaluationIds).size !== evaluationIds.length) {
+  if (new Set<number>(evaluationIds).size !== evaluationIds.length) {
     return {
       valid: false,
       error: "Las evaluaciones seleccionadas no pueden contener IDs repetidos",
@@ -124,11 +126,15 @@ const jsonError = (error: string, status: number): Response =>
   );
 
 /**
- * Crea un nuevo curso con su sistema, subsistema y evaluaciones asociadas.
- * Delega la lógica de BD a la función RPC create_course_with_evaluations.
- * Realiza validaciones extensas: código, nombre, créditos, sistema, etc.
+ * PATCH /api/admin/update-course
+ *
+ * Actualiza un curso existente junto con su sistema,
+ * subsistema y evaluaciones asociadas.
+ *
+ * La modificación se delega a la RPC
+ * update_course_with_evaluations.
  */
-export const POST: APIRoute = async ({ request, cookies }) => {
+export const PATCH: APIRoute = async ({ request, cookies }) => {
   try {
     const isValid = await validateAdminSession(cookies);
 
@@ -154,19 +160,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return jsonError("Body JSON inválido", 400);
     }
 
+    const courseId = normalizeRequiredId(body.course_id);
+
     const code = normalizeCode(body.code);
     const name = normalizeName(body.name);
-
     const summary = normalizeSummary(body.summary);
-
     const credits = normalizeCredits(body.credits);
 
-    const system_id = normalizeRequiredId(body.system_id);
+    const systemId = normalizeRequiredId(body.system_id);
 
     const normalizedSubsystem = normalizeOptionalId(body.subsystem_id);
 
-    const subsystem_id = normalizedSubsystem.value;
+    const subsystemId = normalizedSubsystem.value;
 
+    /*
+     * Validar el arreglo original antes de modificarlo.
+     * Cualquier ID inválido o repetido produce una respuesta 400.
+     */
     const evaluationIdsResult = validateEvaluationIds(
       body.selected_evaluations,
     );
@@ -175,7 +185,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return jsonError(evaluationIdsResult.error, 400);
     }
 
-    const selected_evaluations = evaluationIdsResult.values;
+    const selectedEvaluations = evaluationIdsResult.values;
+
+    if (courseId === null) {
+      return jsonError("Curso inválido", 400);
+    }
 
     if (!code || code.length < 2) {
       return jsonError("El código es requerido (mínimo 2 caracteres)", 400);
@@ -185,10 +199,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return jsonError("El nombre es requerido (mínimo 2 caracteres)", 400);
     }
 
-    /*
-     * La sumilla es opcional.
-     * Solo se valida el máximo cuando existe.
-     */
     if (summary !== null && summary.length > 1000) {
       return jsonError("La sumilla no puede superar los 1000 caracteres", 400);
     }
@@ -200,15 +210,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    if (system_id === null) {
-      return jsonError("Sistema inválido", 400);
+    if (systemId === null) {
+      return jsonError("Debe seleccionar un sistema de evaluación válido", 400);
     }
 
     if (!normalizedSubsystem.valid) {
       return jsonError("Subsistema inválido", 400);
     }
 
-    if (subsystem_id === null && selected_evaluations.length > 0) {
+    if (subsystemId === null && selectedEvaluations.length > 0) {
       return jsonError(
         "No se pueden seleccionar evaluaciones sin un subsistema de evaluación",
         400,
@@ -216,26 +226,27 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     const { data: result, error: rpcError } = await supabaseAdmin.rpc(
-      "create_course_with_evaluations",
+      "update_course_with_evaluations",
       {
+        p_course_id: courseId,
         p_code: code,
         p_name: name,
         p_summary: summary,
         p_credits: credits,
-        p_system_id: system_id,
-        p_subsystem_id: subsystem_id,
-        p_selected_evaluations: selected_evaluations,
+        p_system_id: systemId,
+        p_subsystem_id: subsystemId,
+        p_selected_evaluations: selectedEvaluations,
       },
     );
 
     if (rpcError) {
-      console.error("Error calling create_course_with_evaluations:", rpcError);
+      console.error("Error calling update_course_with_evaluations:", rpcError);
 
-      return jsonError("Error al crear curso", 500);
+      return jsonError("Error al actualizar el curso", 500);
     }
 
     if (!result?.ok) {
-      return jsonError(result?.error || "No se pudo crear el curso", 400);
+      return jsonError(result?.error || "No se pudo actualizar el curso", 400);
     }
 
     return Response.json(
@@ -248,7 +259,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       },
     );
   } catch (error) {
-    console.error("add-course API error:", error);
+    console.error("update-course API error:", error);
 
     return jsonError("Error interno del servidor", 500);
   }

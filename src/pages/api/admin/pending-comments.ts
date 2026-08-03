@@ -4,8 +4,12 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Obtiene los comentarios pendientes de moderación (is_hidden = true).
+ * Incluye datos del profesor asociado para facilitar la revisión.
+ * Ordenados del más reciente al más antiguo.
+ */
 export const POST: APIRoute = async ({ cookies }) => {
-    // Validate session from cookie
     const isValid = await validateAdminSession(cookies);
     if (!isValid) {
         return new Response(
@@ -14,7 +18,7 @@ export const POST: APIRoute = async ({ cookies }) => {
         );
     }
 
-    // Fetch all hidden comments with teacher info
+    // Obtiene comentarios ocultos con info del profesor
     const { data, error } = await supabaseAdmin
         .from("teacher_ratings")
         .select(`
