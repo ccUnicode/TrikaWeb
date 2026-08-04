@@ -67,7 +67,7 @@ sequenceDiagram
     participant DB as Supabase DB
     participant Trigger as refresh_sheet_stats
     
-    User->>UI: Selecciona ⭐⭐⭐ (3)
+    User->>UI: Selecciona 3 estrellas (3)
     UI->>API: POST { score: 3, device_id }
     API->>API: Valida device_id y rate limit
     API->>DB: INSERT sheet_ratings
@@ -217,7 +217,11 @@ erDiagram
         bigint id PK
         text code UK
         text name
+        text summary
         int credits
+        bigint subsystem_id FK
+        text status "INCOMPLETO | COMPLETO | ARCHIVADO"
+        boolean is_hidden
     }
     
     TEACHERS {
@@ -282,8 +286,8 @@ flowchart LR
     end
     
     subgraph Resultado
-        BLOCK["❌ Rechazado"]
-        ALLOW["✅ Permitido"]
+        BLOCK["[X] Rechazado"]
+        ALLOW["[V] Permitido"]
     end
     
     IP --> HASH

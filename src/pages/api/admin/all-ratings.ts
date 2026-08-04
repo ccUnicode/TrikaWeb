@@ -4,8 +4,12 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Obtiene todas las calificaciones visibles con paginación, filtro por profesor
+ * y búsqueda por texto (nombre del profesor o contenido del comentario).
+ * Solo retorna calificaciones con is_hidden = false.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-    // Validate session from cookie
     const isValid = await validateAdminSession(cookies);
     if (!isValid) {
         return new Response(
@@ -29,7 +33,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const teacherFilter = body?.teacher_id ? Number(body.teacher_id) : null;
     const searchQuery = String(body?.search ?? "").trim().toLowerCase();
 
-    // Obtener todas las calificaciones visibles
     let query = supabaseAdmin
         .from("teacher_ratings")
         .select(`
@@ -44,6 +47,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       created_at,
       is_hidden,
       teacher_id,
+      is_anonymous,
+      user_name,
+      user_email,
       teachers:teacher_id (
         id,
         full_name

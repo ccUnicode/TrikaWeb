@@ -91,6 +91,7 @@ const teachers = await getTeachers();
 </Layout>
 
 <script>
+  /** Normaliza texto eliminando tildes para búsqueda insensible a acentos */
   const normalize = (value = "") =>
     value
       .toLowerCase()

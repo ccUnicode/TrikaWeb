@@ -7,7 +7,9 @@ calificaciones de profesores universitarios.
 
 - Frontend: Astro + Tailwind CSS
 - Backend: Astro API Routes (output server)
-- Base de datos y auth: Supabase (PostgreSQL)
+- Base de datos y storage: Supabase (PostgreSQL)
+- Auth de estudiantes: Firebase
+- Auth de administrador: Supabase Auth
 - Deploy: Vercel
 
 ## Inicio rapido
@@ -40,3 +42,18 @@ La documentacion completa esta en `docs/`:
 - `npm run drive:sync`: sync completo desde Google Drive
 - `npm run drive:sync-exams`: sync solo examenes
 - `npm run drive:sync-solutions`: sync solo solucionarios
+
+### Mantenimiento manual (no sale en `package.json`)
+
+**Regenerar miniaturas faltantes** — `scripts/rebuild-missing-thumbnails.mjs`
+
+- **Que hace:** Lee planchas con PDF en Storage; si no existe el JPG en el bucket `thumbnails` (o con `--force`), descarga el examen, renderiza la primera pagina con PDF.js + `canvas` en Node y sube la miniatura; opcionalmente actualiza `thumb_storage_path` en la tabla `sheets`.
+- **Cuando ejecutarlo:** A mano, despues de cargas masivas, imports o si quedaron PDFs sin miniatura. No corre en deploy ni en CI salvo que lo configures tu.
+- **Requisitos:** `npm install` (incluye dependencias de desarrollo usadas por el script: `canvas`, etc.), variables `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (o `SUPABASE_SERVICE_KEY`) en `.env` / `.env.local`.
+- **Comando:**
+
+```bash
+node scripts/rebuild-missing-thumbnails.mjs
+```
+
+- **Opcion `--force`:** Vuelve a generar aunque el archivo ya exista en Storage.
