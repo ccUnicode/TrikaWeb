@@ -26,6 +26,7 @@ export default defineConfig({
       SUPABASE_SERVICE_KEY: 'dummy',
       PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co',
       PUBLIC_SUPABASE_ANON_KEY: 'dummy',
+      ASTRO_DEV_BACKGROUND: '0',
     }
   },
 });
