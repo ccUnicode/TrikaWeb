@@ -1,7 +1,7 @@
 export const prerender = false;
 
 import type { APIRoute } from 'astro';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
 /**
@@ -22,18 +22,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ ok: false, error: 'Sesión inválida' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const adminSession = cookies.get('admin_session')?.value;
-    const supabase = createClient(
-      import.meta.env.PUBLIC_SUPABASE_URL,
-      import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${adminSession}`
-          }
-        }
-      }
-    );
+    // Se validó correctamente al admin arriba; podemos usar supabaseAdmin con service_role
 
     const body = await request.json();
     const { planId, placedCourses } = body;
@@ -72,8 +61,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       };
     });
 
-    // Ejecutar todo el reemplazo en una única transacción mediante RPC
-    const { error: rpcError } = await supabase.rpc('save_malla_transaction', {
+    // Ejecutar todo el reemplazo en una única transacción mediante RPC usando privilegios de administrador (service_role)
+    const { error: rpcError } = await supabaseAdmin.rpc('save_malla_transaction', {
       p_plan_id: planId,
       p_placed_courses: sanitizedCourses
     });

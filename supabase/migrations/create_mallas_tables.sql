@@ -68,12 +68,9 @@ CREATE POLICY "Public read plan_courses" ON plan_courses FOR SELECT USING (true)
 DROP POLICY IF EXISTS "Public read course_prerequisites" ON course_prerequisites;
 CREATE POLICY "Public read course_prerequisites" ON course_prerequisites FOR SELECT USING (true);
 
--- Políticas de administración para usuarios autenticados (Admin)
+-- Políticas de administración para usuarios (restringidas a service_role por defecto al no crear política)
 DROP POLICY IF EXISTS "Admin write study_plans" ON study_plans;
-CREATE POLICY "Admin write study_plans" ON study_plans FOR ALL USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Admin write plan_courses" ON plan_courses;
-CREATE POLICY "Admin write plan_courses" ON plan_courses FOR ALL USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Admin write course_prerequisites" ON course_prerequisites;
-CREATE POLICY "Admin write course_prerequisites" ON course_prerequisites FOR ALL USING (auth.role() = 'authenticated');
