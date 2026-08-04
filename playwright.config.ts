@@ -21,5 +21,11 @@ export default defineConfig({
     command: 'npm run dev',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
+    env: {
+      SUPABASE_URL: 'https://dummy.supabase.co',
+      SUPABASE_SERVICE_KEY: 'dummy',
+      PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co',
+      PUBLIC_SUPABASE_ANON_KEY: 'dummy',
+    }
   },
 });

@@ -15,8 +15,8 @@ test.describe('Sheet Feedback & Rating Flow', () => {
       await route.fulfill({ json });
     });
 
-    // Navegar a la página del solucionario de la plancha
-    await page.goto('/exams/1');
+    // Navegar a la página del fixture de prueba que no depende de Supabase en SSR
+    await page.goto('/tests/sheet-feedback-fixture');
 
     // Clic en "Ver solucionario" para que la sección de comentarios se muestre
     // (según la lógica del cliente, los comentarios solo se ven en modo solucionario)
