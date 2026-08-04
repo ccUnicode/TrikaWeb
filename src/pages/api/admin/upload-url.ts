@@ -1,15 +1,15 @@
-// src/pages/api/admin/upload-url.ts
-// Generates a signed upload URL so the browser can upload PDFs
-// directly to Supabase Storage, bypassing Vercel's 4.5 MB body limit.
-
 export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Genera una URL firmada para que el navegador suba PDFs directamente
+ * a Supabase Storage, evitando el límite de 4.5 MB del body en Vercel.
+ * La ruta de almacenamiento se construye como: {courseCode}/{examType}/{cycle}.pdf
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-    // Validate admin session via cookie
     const isAdmin = await validateAdminSession(cookies);
     if (!isAdmin) {
         return new Response(
@@ -41,7 +41,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         );
     }
 
-    if (!["PLANCHA", "SOLUCIONARIO"].includes(resourceKind)) {
+    if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKind)) {
         return new Response(
             JSON.stringify({ ok: false, error: "resource_kind inválido" }),
             { status: 400, headers: { "Content-Type": "application/json" } }
@@ -69,32 +69,85 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const bucket = resourceKind === "SOLUCIONARIO" ? "solutions" : "exams";
     const safeCycle = cycle.replace(/[^a-zA-Z0-9\-_]/g, "_");
     const safeExam = examType.replace(/[^a-zA-Z0-9\-_]/g, "_");
+    // Misma convención de clave en `exams` y `solutions`; solo cambia el bucket de Storage.
     const path = `${normalizedCode}/${safeExam}/${safeCycle}.pdf`;
 
-    // Generate signed upload URL
-    const { data: signedData, error: signedError } = await supabaseAdmin.storage
-        .from(bucket)
-        .createSignedUploadUrl(path);
+    let signedUrl: string | undefined;
+    let token: string | undefined;
+    let solutionSignedUrl: string | undefined;
+    let solutionPath: string | undefined;
 
-    if (signedError || !signedData) {
-        console.error("Error creating signed upload URL:", signedError);
-        return new Response(
-            JSON.stringify({
-                ok: false,
-                error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
-            }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+    if (resourceKind === "AMBOS") {
+        // Generate signed URL for Plancha
+        const { data: pData, error: pError } = await supabaseAdmin.storage
+            .from("exams")
+            .createSignedUploadUrl(path, { upsert: true });
+
+        solutionPath = path;
+        const { data: sData, error: sError } = await supabaseAdmin.storage
+            .from("solutions")
+            .createSignedUploadUrl(solutionPath, { upsert: true });
+
+        if (pError || !pData || sError || !sData) {
+            console.error("Error creating signed upload URLs for AMBOS:", pError, sError);
+            return new Response(
+                JSON.stringify({ ok: false, error: "No se pudo generar URLs de subida conjunta." }),
+                { status: 500, headers: { "Content-Type": "application/json" } }
+            );
+        }
+        signedUrl = pData.signedUrl;
+        token = pData.token;
+        solutionSignedUrl = sData.signedUrl;
+    } else {
+        // Generate signed upload URL for the single file
+        const { data: signedData, error: signedError } = await supabaseAdmin.storage
+            .from(bucket)
+            .createSignedUploadUrl(path, { upsert: true });
+
+        if (signedError || !signedData) {
+            console.error("Error creating signed upload URL:", signedError);
+            return new Response(
+                JSON.stringify({
+                    ok: false,
+                    error: "No se pudo generar la URL de subida. ¿El archivo ya existe?",
+                }),
+                { status: 500, headers: { "Content-Type": "application/json" } }
+            );
+        }
+        signedUrl = signedData.signedUrl;
+        token = signedData.token;
+    }
+
+    // Optional: Generate signed upload URL for thumbnail if it's a Plancha
+    let thumbSignedUrl: string | undefined = undefined;
+    let thumbPath: string | undefined = undefined;
+
+    if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+        thumbPath = `${normalizedCode}/${safeExam}/${safeCycle}.jpg`;
+        const { data: thumbData, error: thumbError } = await supabaseAdmin.storage
+            .from("thumbnails")
+            .createSignedUploadUrl(thumbPath, { upsert: true });
+
+        if (!thumbError && thumbData) {
+            thumbSignedUrl = thumbData.signedUrl;
+        } else {
+            console.error("Error creating signed upload URL for thumbnail:", thumbError);
+            // Non-fatal, we can still upload the PDF even if thumb url fails
+        }
     }
 
     return new Response(
         JSON.stringify({
             ok: true,
-            signedUrl: signedData.signedUrl,
-            token: signedData.token,
+            signedUrl,
+            token,
             path,
-            bucket,
+            bucket: resourceKind === "AMBOS" ? "exams" : bucket,
             courseId,
+            thumbSignedUrl,
+            thumbPath,
+            solutionSignedUrl,
+            solutionPath
         }),
         { status: 200, headers: { "Content-Type": "application/json" } }
     );

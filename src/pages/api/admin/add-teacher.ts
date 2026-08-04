@@ -4,9 +4,13 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabaseAdmin';
 import { validateAdminSession } from '../../../lib/adminAuth';
 
+/**
+ * Crea un profesor y opcionalmente lo asocia a cursos existentes.
+ * Verifica que no exista otro profesor con el mismo nombre (case-insensitive).
+ * La modalidad por defecto es "T" (Teoría).
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {
-        // Validate session from cookie
         const isValid = await validateAdminSession(cookies);
         if (!isValid) {
             return new Response(
@@ -18,7 +22,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         const body = await request.json();
         const { full_name, bio = '', course_ids = [] } = body;
 
-        // Validate full_name
         const name = (full_name || '').trim();
         if (!name || name.length < 2) {
             return new Response(

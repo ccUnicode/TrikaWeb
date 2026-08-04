@@ -4,8 +4,11 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Elimina permanentemente una calificación (no solo la oculta).
+ * Es una operación irreversible a diferencia de hide-comment.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-    // Validate session from cookie
     const isValid = await validateAdminSession(cookies);
     if (!isValid) {
         return new Response(

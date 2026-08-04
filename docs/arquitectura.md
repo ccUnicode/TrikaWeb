@@ -128,7 +128,7 @@ flowchart LR
 
 | Tabla | Descripción |
 |-------|-------------|
-| `courses` | Cursos (`code`, `name`, `credits`) |
+| `courses` | Cursos (`code`, `name`, `summary`, `credits`, `subsystem_id`, `status`) |
 | `teachers` | Docentes (`full_name`, `bio`, `avg_overall`, `is_hidden`) |
 | `courses_teachers` | Relación N:M cursos ↔ docentes |
 | `sheets` | Planchas y solucionarios (metadata + paths) |
@@ -159,15 +159,16 @@ erDiagram
     PLAN_COURSES ||--o{ COURSE_PREREQUISITES : requires
 ```
 
-## Triggers y Cálculos Derivados
+## Triggers, Funciones y Cálculos Derivados
 
 Definidos en `supabase/function_triggers.sql`:
 
-| Trigger | Tabla origen | Efecto |
-|---------|--------------|--------|
-| `refresh_sheet_stats` | `sheet_ratings` | Recalcula `avg_difficulty` y `rating_count` en `sheets` |
-| `refresh_view_count` | `sheet_views` | Recalcula `view_count` en `sheets` |
-| `refresh_teacher_stats` | `teacher_ratings` | Recalcula `avg_overall` y `rating_count` en `teachers` |
+| Trigger/Función | Tabla origen | Efecto |
+|-----------------|--------------|--------|
+| `refresh_sheet_stats` (trigger) | `sheet_ratings` | Recalcula `avg_difficulty` y `rating_count` en `sheets` |
+| `refresh_view_count` (trigger) | `sheet_views` | Recalcula `view_count` en `sheets` |
+| `refresh_teacher_stats` (trigger) | `teacher_ratings` | Recalcula `avg_overall` y `rating_count` en `teachers` |
+| `create_course_with_evaluations` (función) | — | Crea un curso, asigna `status` automático (`INCOMPLETO`/`COMPLETO`) y asocia evaluaciones según el sistema |
 
 ## Seguridad
 

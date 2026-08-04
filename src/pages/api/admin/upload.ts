@@ -1,7 +1,3 @@
-// src/pages/api/admin/upload.ts
-// Registers sheet metadata in the DB after the file has already been
-// uploaded directly to Supabase Storage by the browser.
-
 export const prerender = false;
 
 import type { APIRoute } from "astro";
@@ -15,8 +11,14 @@ export const GET: APIRoute = () => {
   );
 };
 
+/**
+ * Registra los metadatos de una plancha o solucionario en la BD.
+ * El archivo ya fue subido a Supabase Storage por el navegador.
+ * Si ya existe una plancha para el mismo curso+ciclo+exam_type, actualiza
+ * el storage_path; si no, crea un registro nuevo.
+ * Los solucionarios requieren que la plancha exista previamente.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-  // Validate admin session via cookie
   const isAdmin = await validateAdminSession(cookies);
   if (!isAdmin) {
     return new Response(
@@ -39,20 +41,52 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const courseId = Number(body.course_id);
   const cycle = String(body.cycle ?? "").trim();
   const examType = String(body.exam_type ?? "").trim();
-  const resourceKind = String(body.resource_kind ?? "").trim().toUpperCase();
+  const resourceKindRaw = String(body.resource_kind ?? "").trim().toUpperCase();
   const storagePath = String(body.storage_path ?? "").trim();
+  const thumbStoragePath = String(body.thumb_storage_path ?? "").trim() || null;
   const teacherHint = String(body.teacher_hint ?? "").trim();
+  const solutionStoragePathRaw = String(body.solution_storage_path ?? "").trim();
 
-  if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKind || !storagePath) {
+  if (!courseId || Number.isNaN(courseId) || !cycle || !examType || !resourceKindRaw || !storagePath) {
     return new Response(
       JSON.stringify({ ok: false, error: "Faltan campos requeridos" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  if (!["PLANCHA", "SOLUCIONARIO"].includes(resourceKind)) {
+  if (!["PLANCHA", "SOLUCIONARIO", "AMBOS"].includes(resourceKindRaw)) {
     return new Response(
       JSON.stringify({ ok: false, error: "resource_kind inválido" }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  const treatsExamSide = resourceKindRaw !== "SOLUCIONARIO";
+  // Subida conjunta: la decide el backend por paths recibidos, no solo por resource_kind === "AMBOS".
+  const hasSolutionAttachment = treatsExamSide && solutionStoragePathRaw.length > 0;
+  const isCombinedExamAndSolution = hasSolutionAttachment;
+
+  if (resourceKindRaw === "AMBOS" && !hasSolutionAttachment) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "AMBOS requiere solution_storage_path con la clave del PDF en el bucket solutions",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
+  if (
+    resourceKindRaw === "SOLUCIONARIO" &&
+    solutionStoragePathRaw.length > 0 &&
+    solutionStoragePathRaw !== storagePath
+  ) {
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error:
+          "Para SOLUCIONARIO use solo storage_path; no envíe solution_storage_path distinto",
+      }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -75,13 +109,21 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    if (resourceKind === "PLANCHA") {
+    if (treatsExamSide) {
       const insertPayload = {
         course_id: courseId,
         cycle,
         exam_type: examType,
         exam_storage_path: storagePath,
         teacher_hint: teacherHint || null,
+        thumb_storage_path: thumbStoragePath,
+        is_hidden: false,
+        ...(isCombinedExamAndSolution
+          ? {
+              solution_kind: "pdf",
+              solution_storage_path: solutionStoragePathRaw,
+            }
+          : {}),
       };
 
       if (existingSheet) {
@@ -90,6 +132,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         };
         if (teacherHint) {
           updatePayload.teacher_hint = teacherHint;
+        }
+        if (thumbStoragePath) {
+          updatePayload.thumb_storage_path = thumbStoragePath;
+        }
+        if (isCombinedExamAndSolution && solutionStoragePathRaw) {
+          updatePayload.solution_kind = "pdf";
+          updatePayload.solution_storage_path = solutionStoragePathRaw;
         }
 
         const { error: updateError } = await supabaseAdmin
@@ -154,7 +203,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
     }
 
-    const action = resourceKind === "PLANCHA" ? "Plancha" : "Solucionario";
+    const action = isCombinedExamAndSolution
+      ? "Plancha y Solucionario"
+      : treatsExamSide
+        ? "Plancha"
+        : "Solucionario";
 
     return new Response(
       JSON.stringify({
