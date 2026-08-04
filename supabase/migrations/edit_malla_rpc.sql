@@ -26,6 +26,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Revocar permisos públicos para evitar modificaciones sin autenticación
+-- Revocar permisos públicos y de usuarios autenticados para evitar modificaciones sin privilegios
 REVOKE EXECUTE ON FUNCTION edit_malla_transaction(JSONB) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION edit_malla_transaction(JSONB) TO authenticated, service_role;
+REVOKE EXECUTE ON FUNCTION edit_malla_transaction(JSONB) FROM authenticated;
+-- Otorgar permiso de ejecución únicamente a service_role (usado por supabaseAdmin)
+GRANT EXECUTE ON FUNCTION edit_malla_transaction(JSONB) TO service_role;
