@@ -842,6 +842,81 @@ Crea un profesor y lo asocia a uno o más cursos.
 }
 ```
 
+---
+
+### POST `/api/admin/mallas`
+
+Lista planes de estudio paginados.
+
+**Request:**
+```json
+{ "page": 1, "pageSize": 10 }
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "plans": [
+    {
+      "id": "uuid",
+      "year": 2021,
+      "is_current": true,
+      "is_published": true,
+      "specialties": { "id": 1, "name": "Ingeniería de Software" },
+      "plan_courses": [{ "count": 31 }]
+    }
+  ],
+  "pagination": { "total": 5, "page": 1, "pageSize": 10, "totalPages": 1 }
+}
+```
+
+---
+
+### POST `/api/admin/add-malla`
+
+Crea un nuevo plan de estudios. Si `is_current` es `true`, se desmarca automáticamente el plan vigente anterior de la misma especialidad (función RPC `add_malla_transaction`).
+
+**Request:**
+```json
+{
+  "specialty_id": 1,
+  "year": 2025,
+  "is_current": true
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "plan": {
+    "id": "uuid",
+    "specialty_id": 1,
+    "year": "2025",
+    "is_current": true,
+    "is_published": false
+  }
+}
+```
+
+---
+
+### POST `/api/admin/edit-malla`
+
+Edita metadatos de un plan existente. Cuando `is_current` es `true`, desmarca atómicamente los demás planes vigentes de la misma especialidad (función RPC `edit_malla_transaction`).
+
+**Request:**
+```json
+{
+  "id": "uuid",
+  "specialty_id": 1,
+  "year": 2025,
+  "is_current": true
+}
+```
+
 **Response (200):**
 
 ```json
@@ -849,6 +924,81 @@ Crea un profesor y lo asocia a uno o más cursos.
   "ok": true
 }
 ```
+
+---
+
+### POST `/api/admin/delete-malla`
+
+Elimina un plan de estudios (borrado en cascada sobre `plan_courses` y `course_prerequisites`).
+
+**Request:**
+```json
+{ "id": "uuid" }
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true
+}
+```
+
+---
+
+### POST `/api/admin/toggle-malla`
+
+Alterna el estado de publicación (`is_published`) de una malla.
+
+**Request:**
+```json
+{ "planId": "uuid" }
+```
+
+**Response (200):**
+```json
+{ "ok": true, "is_published": true }
+```
+
+---
+
+### POST `/api/admin/save-malla`
+
+Persiste la estructura completa de una malla desde el constructor visual. Ejecuta un *delete-then-insert* transaccional para `plan_courses` y `course_prerequisites` (función RPC `save_malla_transaction`).
+
+**Request:**
+```json
+{
+  "planId": "uuid",
+  "placedCourses": [
+    {
+      "course_id": 42,
+      "cycle": 3,
+      "row_index": 2,
+      "prerequisites": [10, 15]
+    }
+  ]
+}
+```
+
+**Comportamiento:**
+1. Elimina todos los registros de `plan_courses` para el `planId`.
+2. Inserta los nuevos cursos con su posición (`cycle`, `row_index`).
+3. Reinserta los prerrequisitos de cada curso en `course_prerequisites`.
+4. El servidor valida que cada prerrequisito exista en el plan y que su ciclo sea estrictamente menor al del curso; los inválidos se descartan.
+
+---
+
+### POST `/api/admin/drive-sync`
+
+Sincroniza Google Drive con Supabase Storage (placeholder).
+
+**Request:**
+```json
+{ "type": "exams" }
+```
+
+**Response:** `501 Not Implemented` - usar CLI: `npm run drive:sync`
 
 ---
 
@@ -1460,22 +1610,346 @@ Content-Type: application/json
 
 ---
 
-### POST `/api/admin/drive-sync`
+## Endpoints de autenticación
 
-Endpoint reservado para sincronización con Google Drive.
+> Los endpoints de autenticación de estudiantes usan Firebase Auth y emiten/consumen la cookie `firebase_session` (HTTP-only). El correo debe terminar en `@uni.pe`.
+
+### POST `/api/auth/login`
+
+Inicia sesión con la cuenta institucional de Firebase (Google).
 
 **Request:**
 
 ```http
-POST /api/admin/drive-sync
+POST /api/auth/login
 Content-Type: application/json
 
 {
-  "type": "exams"
+  "idToken": "<idToken de Firebase>"
 }
 ```
 
-**Response:**
+**Response (200):**
 
-- `501 Not Implemented`.
-- La sincronización se realiza actualmente mediante `npm run drive:sync`.
+```json
+{
+  "success": true,
+  "user": {
+    "uid": "firebase-uid",
+    "email": "estudiante@uni.pe",
+    "name": "Nombre Apellido"
+  }
+}
+```
+
+**Efecto:**
+
+- Verifica el `idToken` con el Admin SDK de Firebase.
+- Exige correo `@uni.pe`.
+- Crea/actualiza la fila en `student_details` (`user_id`, `email`, `full_name`).
+- Establece la cookie `firebase_session`.
+
+**Errores:**
+
+- `400`: Falta el token.
+- `403`: El correo no es `@uni.pe`.
+- `503`: Variables de entorno de Firebase ausentes.
+
+---
+
+### POST `/api/auth/register`
+
+Registro directo de usuarios (deshabilitado a propósito).
+
+**Response (410):**
+
+```json
+{
+  "error": "El registro ahora se realiza con Google institucional"
+}
+```
+
+---
+
+### POST `/api/auth/logout`
+
+Cierra la sesión del usuario.
+
+**Request:**
+
+```http
+POST /api/auth/logout
+Content-Type: application/json
+```
+
+**Response** (si se espera JSON): `{ "success": true }` o redirección según implementación del cliente (`src/pages/api/auth/logout.ts`).
+
+---
+
+## Endpoints de perfil
+
+### POST `/api/profile/update`
+
+Actualiza la especialidad y/o el avatar del estudiante mediante `multipart/form-data`.
+
+**Campos:**
+
+| Campo | Requerido | Descripción |
+|---|---|---|
+| `specialty` | ❌ | Nombre de la especialidad; se valida contra la tabla `specialties` |
+| `avatar` | ❌ | Imagen (`image/jpeg`, `image/png`, `image/webp`), máx. 5 MB |
+
+**Efecto:** sube el avatar (si se envía) al bucket `avatars` y actualiza `student_details`.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "avatarUrl": "https://...",
+  "specialty": "Ingeniería de Software"
+}
+```
+
+### POST `/api/profile/avatar`
+
+Reemplaza el avatar del estudiante.
+
+**Campos (`multipart/form-data`):**
+
+| Campo | Requerido | Descripción |
+|---|---|---|
+| `avatar` | ✅ | Imagen (`image/jpeg`, `image/png`, `image/webp`), máx. 2 MB |
+
+**Efecto:** sube el archivo al bucket `avatars` y actualiza `profiles.avatar_url`.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "profile": { "id": "...", "avatar_url": "https://...", "...": "..." }
+}
+```
+
+---
+
+## Endpoints de contribuciones
+
+> Requieren una sesión de estudiante (`firebase_session`).
+
+### POST `/api/contributions/create`
+
+Envía una contribución de plancha/solucionario.
+
+**Campos (`multipart/form-data`):**
+
+| Campo | Requerido | Descripción |
+|---|---|---|
+| `course_id` | ✅ | ID del curso |
+| `cycle` | ✅ | Formato `20XX-(I|II|0)` |
+| `exam_type` | ✅ | `PC1..PC5`, `Parcial`, `Final` o `Sustitutorio` |
+| `contribution_type` | ✅ | `sheet` o `solution` |
+| `file` | ✅ | PDF o imagen, máx. 10 MB |
+
+**Efecto:** sube el archivo al bucket `contributions` e inserta una fila con `status: "pending"`.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "contribution": { "id": 1, "status": "pending", "...": "..." }
+}
+```
+
+### GET `/api/contributions/my-contributions`
+
+Lista las contribuciones del estudiante autenticado (más recientes primero).
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "contributions": [ { "id": 1, "status": "pending", "...": "..." } ]
+}
+```
+
+### POST `/api/contributions/clear-history`
+
+Limpia el historial de contribuciones del estudiante: elimina las de estado `pending` o `rejected` (y sus archivos en `contributions`). Las aprobadas se conservan.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Historial de contribuciones vaciado correctamente"
+}
+```
+
+---
+
+## Endpoints administrativos (planchas y contribuciones)
+
+### POST `/api/admin/sheets`
+
+Lista planchas del panel administrativo, incluyendo ocultas.
+
+**Request:**
+
+```json
+{
+  "page": 1,
+  "pageSize": 20,
+  "course": "cálculo",
+  "q": "parcial"
+}
+```
+
+**Campos:**
+
+| Campo | Requerido | Default | Descripción |
+|---|---|---|---|
+| `page` | ❌ | `1` | Página actual |
+| `pageSize` | ❌ | `20` | Máx. `100` |
+| `course` | ❌ | `""` | Filtro por código o nombre de curso |
+| `q` | ❌ | `""` | Búsqueda por `exam_type`, `cycle` o `teacher_hint` |
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "sheets": [
+    {
+      "id": 1,
+      "exam_type": "Parcial 1",
+      "cycle": "2024-1",
+      "is_hidden": false,
+      "course_code": "MAT01",
+      "course_name": "Cálculo I"
+    }
+  ],
+  "counts": { "visible": 45, "hidden": 5 },
+  "pagination": { "page": 1, "pageSize": 20, "total": 50, "totalPages": 3 }
+}
+```
+
+### POST `/api/admin/toggle-sheet`
+
+Alterna la visibilidad de una plancha.
+
+**Request:**
+
+```json
+{
+  "sheet_id": 1,
+  "is_hidden": true
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "counts": { "visible": 45, "hidden": 5 }
+}
+```
+
+### POST `/api/admin/delete-sheet`
+
+Elimina una plancha y sus archivos de Storage (`exams`, `solutions`, `thumbnails`).
+
+**Request:**
+
+```json
+{
+  "sheet_id": 1
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "counts": { "visible": 45, "hidden": 5 }
+}
+```
+
+**Errores:**
+
+- `400`: ID de plancha inválido.
+- `401`: Sesión administrativa inválida.
+- `404`: Plancha no encontrada o ya eliminada.
+
+### POST `/api/admin/delete-teacher`
+
+Elimina un profesor.
+
+**Request:**
+
+```json
+{
+  "teacher_id": 5
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true
+}
+```
+
+---
+
+### GET `/api/admin/contributions/list`
+
+Lista las contribuciones (incluye URL firmada de 1 hora para cada archivo).
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "contributions": [
+    {
+      "id": 1,
+      "status": "pending",
+      "signedUrl": "https://...",
+      "...": "..."
+    }
+  ]
+}
+```
+
+### POST `/api/admin/contributions/review`
+
+Aprueba o rechaza una contribución.
+
+**Campos (`multipart/form-data`):**
+
+| Campo | Requerido | Descripción |
+|---|---|---|
+| `contribution_id` | ✅ | ID de la contribución |
+| `action` | ✅ | `approve` o `reject` |
+| `admin_notes` | ❌ | Nota del administrador |
+
+**Comportamiento:**
+
+- `reject`: marca la contribución como `rejected` (con `post_status`).
+- `approve` (tipo `sheet`): copia el archivo de `contributions` a `exams` y crea/actualiza la plancha correspondiente con `is_hidden: false`; el registro queda `approved`.
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Contribución aprobada correctamente"
+}
+```

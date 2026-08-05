@@ -1,4 +1,4 @@
-﻿# Arquitectura del Proyecto
+# Arquitectura del Proyecto
 
 ## Objetivo
 
@@ -24,12 +24,13 @@ validaciones explícitas y el cliente administrativo de Supabase.
 | Capa | Tecnología |
 |---|---|
 | **Frontend** | Astro + TypeScript + Tailwind CSS |
+| **Islas React** | `@astrojs/react` + React 19 + `@xyflow/react` (mallas) |
 | **Backend** | Astro API Routes (`src/pages/api`) |
 | **Base de datos** | Supabase PostgreSQL |
 | **Storage** | Supabase Storage |
-| **Autenticación de estudiantes** | Firebase Authentication |
-| **Sesión administrativa** | Cookie `admin_session` validada en el servidor |
-| **Deploy** | Vercel mediante `@astrojs/vercel` |
+| **Autenticación de estudiantes** | Firebase Authentication (cookie `firebase_session`, correos `@uni.pe`) |
+| **Sesión administrativa** | Supabase Auth con cookie `admin_session` validada en el servidor |
+| **Deploy** | Vercel mediante `@astrojs/vercel` (output `server`) |
 | **Documentación** | Markdown + diagramas Mermaid |
 
 ---
@@ -38,54 +39,200 @@ validaciones explícitas y el cliente administrativo de Supabase.
 
 ```text
 src/
-├── components/
+├── assets/                     # Recursos estáticos (imágenes, favicon...)
+├── components/                 # UI reutilizable (Astro y React)
+│   ├── Malla/                  # Componentes React del módulo de mallas curriculares
+│   │   ├── Curriculum.tsx         # Lienzo público (ReactFlow + panel lateral)
+│   │   ├── CurriculumBuilder.tsx  # Constructor drag-and-drop para admin
+│   │   ├── CourseNode.tsx         # Nodo visual de curso en la malla
+│   │   ├── CycleHeaderNode.tsx    # Nodo decorativo de encabezado de ciclo
+│   │   └── CourseDetailPanel.tsx  # Panel lateral de detalles del curso
+│   ├── icons/                       # Iconos SVG en Astro
+│   │   ├── IconChevronDown.astro
+│   │   ├── IconHome.astro
+│   │   ├── IconSearch.astro
+│   │   └── IconStar.astro
 │   ├── AdminHeader.astro
+│   ├── CardExam.astro
+│   ├── ContainerCardExam.astro
+│   ├── DownloadButton.astro
+│   ├── IntroductionOfTeachers.astro
+│   ├── ModalConfirm.astro
+│   ├── PageSubHeader.astro
 │   ├── SearchAutocomplete.astro
 │   ├── SheetRating.astro
-│   └── ...
-├── layouts/
+│   ├── SiteHeader.astro
+│   ├── TeacherAvatar.astro
+│   ├── TeacherCard.astro
+│   └── TeacherRatingForm.astro
+├── layouts/                     # Layout base de páginas
 │   └── Layout.astro
-├── lib/
-│   ├── adminAuth.ts
-│   ├── auth.ts
-│   ├── data.ts
-│   ├── supabaseAdmin.ts
-│   ├── supabaseClient.ts
-│   ├── utils.ts
-│   ├── client/
-│   │   └── device.ts
+├── lib/                         # Lógica de acceso a datos y utilidades
+│   ├── data.ts                     # Consultas públicas (getCourses, searchEntities, getTeacherDetail...)
+│   ├── curriculumTypes.ts          # Interfaces TypeScript del módulo de mallas
+│   ├── supabase.client.ts          # Cliente público de Supabase (anon key)
+│   ├── supabaseAdmin.ts            # Cliente administrativo (Service Key, omite RLS)
+│   ├── adminAuth.ts                # Validación de la sesión administrativa
+│   ├── adminUploadPaths.ts         # Construcción de rutas de Storage para subidas
+│   ├── adminUploadStorage.ts       # Verificación y promoción de objetos en Storage
+│   ├── auth.ts                     # Sesión de estudiantes (Firebase) y getUserSession
+│   ├── authConstants.ts            # Constantes de autenticación (sufijo @uni.pe)
+│   ├── firebase-admin.ts           # Inicialización/verificación del Admin SDK de Firebase
+│   ├── sessionCookies.ts           # Helpers de cookies de sesión
+│   ├── favorites.ts                # Favoritos en localStorage
+│   ├── urlUtils.ts                 # Utilitarios de URLs
+│   ├── utils.ts                    # Hashing de IP, rate limiting, getUuidFromFirebaseUid...
+│   ├── client/                     # Lógica de cliente
+│   │   ├── device.ts               # device_id persistido en localStorage
+│   │   └── favorites.ts
 │   └── server/
-│       └── getVisibleSheet.ts
-├── pages/
-│   ├── admin/
-│   │   ├── courses.astro
+│       └── getVisibleSheet.ts      # Consulta centralizada de planchas visibles
+├── middleware.ts                # Protección SSR de rutas /admin (cookie admin_session)
+├── pages/                       # Páginas Astro y endpoints HTTP
+│   ├── admin/                           # Vistas de administración (protegidas)
+│   │   ├── mallas.astro                # CRUD de planes de estudio (client:load)
+│   │   ├── mallas/builder/[id].astro   # Constructor visual por plan
+│   │   ├── courses.astro               # Listado/gestión de cursos
+│   │   ├── courses/[id]/edit.astro     # Edición de un curso
 │   │   ├── teachers.astro
-│   │   ├── upload.astro
-│   │   └── ...
-│   ├── api/
-│   │   ├── admin/
-│   │   ├── cursos/
-│   │   ├── profesores/
-│   │   └── sheets/
-│   ├── cursos/
-│   ├── exams/
+│   │   ├── sheets.astro                   # Gestión de planchas
+│   │   ├── upload.astro          # Panel de subida
+│   │   ├── contributions.astro  # Revisión de contribuciones
+│   │   ├── ratings.astro   # Gestión de calificaciones
+│   │   ├── moderation.astro  # Moderación de comentarios
+│   │   └── login.astro               # Inicio de sesión admin
+│   ├── api/                        # Endpoints HTTP (ver api.md)
+│   │   ├── search.ts                 # Búsqueda global
+│   │   ├── admin/                  # Endpoints administrativos protegidos
+│   │   │   ├── login.ts                # POST /api/admin/login
+│   │   │   ├── logout.ts              # POST /api/admin/logout
+│   │   │   ├── courses.ts             # Lista cursos (POST)
+│   │   │   ├── add-course.ts          # Crear curso
+│   │   │   ├── update-course.ts       # PATCH actualizar curso
+│   │   │   ├── delete-course.ts       # Eliminar curso
+│   │   │   ├── toggle-course.ts       # Ocultar/mostrar curso
+│   │   │   ├── course-details.ts     # Detalle para edición
+│   │   │   ├── course-options.ts     # Opciones de cursos para selects
+│   │   │   ├── course-evaluations.ts # Evaluaciones de un curso
+│   │   │   ├── course-evaluation-options.ts # Evaluaciones variables por sistema
+│   │   │   ├── cycles.ts             # Ciclos académicos
+│   │   │   ├── evaluation-systems.ts
+│   │   │   ├── evaluation-subsystems.ts
+│   │   │   ├── teachers.ts
+│   │   │   ├── add-teacher.ts
+│   │   │   ├── delete-teacher.ts
+│   │   │   ├── toggle-teacher.ts
+│   │   │   ├── sheets.ts             # Lista planchas (POST)
+│   │   │   ├── upload.ts             # Registrar metadata de subida
+│   │   │   ├── upload-url.ts         # URL firmada para subir a Storage
+│   │   │   ├── delete-sheet.ts
+│   │   │   ├── toggle-sheet.ts
+│   │   │   ├── all-ratings.ts
+│   │   │   ├── delete-rating.ts
+│   │   │   ├── approve-comment.ts
+│   │   │   ├── hide-comment.ts
+│   │   │   ├── pending-comments.ts
+│   │   │   ├── reset-interest.ts
+│   │   │   ├── drive-sync.ts
+│   │   │   ├── mallas.ts             # Listar planes (POST)
+│   │   │   ├── add-malla.ts
+│   │   │   ├── edit-malla.ts
+│   │   │   ├── delete-malla.ts
+│   │   │   ├── toggle-malla.ts
+│   │   │   ├── save-malla.ts
+│   │   │   └── contributions/
+│   │   │       ├── list.ts          # GET /api/admin/contributions/list
+│   │   │       └── review.ts        # POST /api/admin/contributions/review
+│   │   ├── auth/                  # Autenticación de estudiantes (Firebase)
+│   │   │   ├── login.ts
+│   │   │   ├── register.ts
+│   │   │   └── logout.ts
+│   │   ├── contributions/         # Contribuciones de usuarios
+│   │   │   ├── create.ts
+│   │   │   ├── my-contributions.ts
+│   │   │   └── clear-history.ts
+│   │   ├── profile/               # Perfil y avatar
+│   │   │   ├── update.ts
+│   │   │   └── avatar.ts
+│   │   ├── cursos/                  # Rutas de cursos
+│   │   │   ├── index.ts                 # GET /api/cursos (autocompletado)
+│   │   │   └── [cursoCode]/profesores.ts  # GET /api/cursos/:cursoCode/profesores
+│   │   ├── profesores/            # Rutas de profesores
+│   │   │   ├── [id]/detail.ts        # GET /api/profesores/:id/detail
+│   │   │   └── [id]/rate.ts          # POST/GET/DELETE /api/profesores/:id/rate
+│   │   └── sheets/                # Rutas de planchas
+│   │       ├── batch.ts             # POST /api/sheets/batch
+│   │       └── [id]/
+│   │           ├── file.ts          # GET /api/sheets/:id/file
+│   │           ├── interest.ts      # GET/POST /api/sheets/:id/interest
+│   │           ├── rate.ts          # POST/GET/DELETE /api/sheets/:id/rate
+│   │           ├── solution.ts      # GET /api/sheets/:id/solution
+│   │           └── view.ts          # POST /api/sheets/:id/view
+│   ├── curso/                      # Rutas dinámicas /curso/[code]
+│   │   ├── [code].astro
+│   │   └── [code]/profesores.astro
+│   ├── especialidades/             # Mallas curriculares públicas
+│   │   ├── index.astro            # Catálogo agrupado por carrera
+│   │   └── [id].astro             # Vista interactiva de malla
+│   ├── exams/                      # Detalle de planchas /exams/[id]
 │   │   └── [id].astro
-│   ├── profesores/
-│   └── index.astro
-└── styles/
+│   ├── profesores/                 # Detalle de profesores
+│   │   └── [id].astro
+│   ├── profile/                    # Perfiles de usuario
+│   │   └── [id].astro
+│   ├── cursos.astro                # Catálogo de cursos
+│   ├── profesores.astro            # Catálogo de profesores
+│   ├── login.astro                 # Login de estudiantes
+│   ├── profile.astro               # Perfil propio
+│   ├── saved.astro                 # Elementos guardados
+│   ├── privacidad.astro
+│   ├── terminos.astro
+│   ├── sitemap.xml.ts
+│   ├── index.astro                # Página principal
+│   └── ...
+├── scripts/                   # Scripts de cliente
+│   └── profile-form.ts
+└── styles/                      # Estilos globales
     └── global.css
-
-supabase/
-├── migrations/
-├── schema.sql
-└── function_triggers.sql
-
-docs/
-├── api.md
-├── arquitectura.md
-├── flujos.md
-└── setup.md
 ```
+
+## Arquitectura Frontend (Módulo Mallas)
+
+### Jerarquía de Componentes Principales
+
+```
+[id].astro (página Astro, SSR)
+└── <Curriculum /> (React, client:load)
+    ├── <ReactFlowProvider>
+    │   └── <CurriculumInner>
+    │       ├── <CourseDetailPanel /> (panel lateral)
+    │       ├── <ReactFlow>
+    │       │   ├── <CourseNode /> (nodo personalizado)
+    │       │   └── <CycleHeaderNode /> (nodo decorativo)
+    │       └── Controles flotantes (zoom, reset, fullscreen)
+    └── Datos inyectados desde Astro → props.data: CurriculumData
+```
+
+### Tipado Central (`curriculumTypes.ts`)
+
+| Interface | Propósito |
+|-----------|-----------|
+| `CurriculumCourse` | Curso con ciclo, créditos, sumilla, dificultad y docentes |
+| `CoursePrerequisite` | Relación `course_id → prerequisite_id` |
+| `CurriculumData` | Payload completo que el servidor inyecta al componente React |
+
+### Constructor administrativo
+
+```
+/admin/mallas/builder/[id].astro (página Astro, SSR)
+└── <CurriculumBuilder /> (React, client:load)
+    ├── Sidebar con buscador de cursos y tarjetas arrastrables
+    ├── Cuadrícula 10 ciclos × 15 filas (grid drag-and-drop)
+    ├── Gestión de prerrequisitos por curso posicionado
+    └── Botón de guardado portaleado a #react-save-button-root
+```
+
+---
 
 ### Responsabilidades principales
 
@@ -93,7 +240,7 @@ docs/
 - `src/components`: componentes reutilizables de interfaz.
 - `src/lib/data.ts`: consultas compartidas para páginas públicas.
 - `src/lib/supabaseAdmin.ts`: cliente exclusivo del servidor con privilegios administrativos.
-- `src/lib/supabaseClient.ts`: cliente de Supabase utilizado donde corresponda una sesión o acceso no administrativo.
+- `src/lib/supabase.client.ts`: cliente de Supabase utilizado donde corresponda una sesión o acceso no administrativo.
 - `src/lib/auth.ts`: integración de autenticación de estudiantes.
 - `src/lib/adminAuth.ts`: validación de la sesión administrativa.
 - `src/lib/utils.ts`: hashing, IP del cliente, rate limiting y normalización de identificadores.
@@ -162,6 +309,29 @@ flowchart LR
 
 ---
 
+Las tablas de alto nivel del sistema se resumen en la siguiente tabla; los detalles
+y columnas completas están en [`db_schema.md`](../db_schema.md).
+
+| Tabla | Descripción |
+|-------|-------------|
+| `courses` | Cursos (`code`, `name`, `summary`, `credits`, `subsystem_id`, `status`) |
+| `teachers` | Docentes (`full_name`, `bio`, `avg_overall`, `is_hidden`) |
+| `courses_teachers` | Relación N:M cursos ↔ docentes |
+| `sheets` | Planchas y solucionarios (metadata + paths) |
+| `sheet_ratings` | Votos de dificultad por plancha |
+| `sheet_views` | Eventos de vista/descarga |
+| `teacher_ratings` | Calificaciones de profesores |
+| `write_limits` | Control de rate-limit por IP |
+| `specialties` | Carreras/especialidades (`name`) |
+| `study_plans` | Planes de estudio por especialidad (`year`, `is_current`, `is_published`, `specialty_id`) |
+| `plan_courses` | Cursos asignados a un plan con posición en la malla (`plan_id`, `course_id`, `cycle`, `row_index`) |
+| `course_prerequisites` | Prerrequisitos entre cursos dentro de un plan (`plan_id`, `course_id`, `prerequisite_id`) |
+
+> Las columnas `study_plans.id`, `plan_id` y `specialty_id` son «source of truth» de
+> `supabase/migrations/create_mallas_tables.sql`. A diferencia de `specialties` (serial),
+> `study_plans.id` es `uuid` con `gen_random_uuid()` y las eliminaciones en cascada
+> (`ON DELETE CASCADE`) se aplican sobre `plan_courses` y `course_prerequisites`.
+
 ## Autenticación e identidad
 
 ### Estudiantes
@@ -185,9 +355,35 @@ sequenceDiagram
     A-->>U: Respuesta
 ```
 
+El flujo de autenticación de estudiantes usa Firebase Auth y una cookie de sesión
+`firebase_session` (creada en `POST /api/auth/login`, ver `api.md`). La verificación la
+realiza el servidor mediante `getFirebaseAdminAuth().verifySessionCookie`, y el correo
+debe terminar en `@uni.pe` (constante en `authConstants.ts`).
+
+```mermaid
+erDiagram
+    COURSES ||--o{ SHEETS : has
+    COURSES ||--o{ COURSES_TEACHERS : participates
+    TEACHERS ||--o{ COURSES_TEACHERS : teaches
+    TEACHERS ||--o{ TEACHER_RATINGS : receives
+    SHEETS ||--o{ SHEET_RATINGS : receives
+    SHEETS ||--o{ SHEET_VIEWS : tracks
+    SPECIALTIES ||--o{ STUDY_PLANS : defines
+    STUDY_PLANS ||--o{ PLAN_COURSES : contains
+    COURSES ||--o{ PLAN_COURSES : assigned_to
+    PLAN_COURSES ||--o{ COURSE_PREREQUISITES : requires
+```
+
 Para tablas que almacenan `device_id` como UUID, el backend transforma el UID de
 Firebase mediante `getUuidFromFirebaseUid`. De esta forma, el identificador no
 depende de un UUID arbitrario enviado por el navegador.
+
+La sesión de estudiante se establece mediante `POST /api/auth/login`: el navegador
+envía el `idToken` de Firebase, el servidor lo verifica con el Admin SDK, exige que el
+correo termine en `@uni.pe`, persiste/actualiza la fila en `student_details` y emite la
+cookie `firebase_session` (HTTP-only, 5 días). `getUserSession` (en `src/lib/auth.ts`)
+la valida en cada solicitud protegida. El registro directo (`/api/auth/register`) está
+deshabilitado: solo se permite el ingreso con la cuenta institucional Google.
 
 ### Administradores
 
@@ -241,10 +437,17 @@ ejecutar consultas o modificaciones.
 
 | Tabla | Descripción |
 |---|---|
-| `study_plans` | Planes de estudio |
-| `specialties` | Especialidades o carreras |
-| `plan_courses` | Cursos incluidos en un plan |
-| `course_prerequisites` | Prerrequisitos entre cursos |
+| `specialties` | Especialidades o carreras (`id` serial, `name`, `code`) |
+| `study_plans` | Planes de estudio (`id` uuid, `specialty_id`, `year`, `is_current`, `is_published`) |
+| `plan_courses` | Cursos incluidos en un plan con posición (`plan_id`, `course_id`, `cycle`, `row_index`) |
+| `course_prerequisites` | Prerrequisitos entre cursos del plan (`plan_id`, `course_id`, `prerequisite_id`) |
+
+Las escrituras sobre `study_plans`, `plan_courses` y `course_prerequisites` se realizan
+mediante las funciones RPC `add_malla_transaction`, `edit_malla_transaction` y
+`save_malla_transaction` (`SECURITY DEFINER`, ejecutables solo por `service_role`), ya que
+el esquema deja las políticas de escritura deshabilitadas para `anon`/`authenticated`.
+La lectura pública está habilitada mediante políticas `FOR SELECT` (solo se muestran
+planes publicados desde la aplicación).
 
 ### Seguridad y control
 
@@ -252,6 +455,8 @@ ejecutar consultas o modificaciones.
 |---|---|
 | `write_limits` | Ventanas de rate limiting por IP hasheada |
 | `profiles` | Metadatos de perfil y rol de aplicación, cuando corresponda |
+| `student_details` | Datos de estudiantes (`user_id`, `email`, `full_name`, `specialty`, `avatar_url`) |
+| `contributions` | Contribuciones de usuarios y su estado de revisión |
 
 ---
 
@@ -406,6 +611,9 @@ en Supabase.
 | `reset_sheet_interest` | Elimina intereses y restablece el contador de forma atómica |
 | `get_average_stars` | Calcula el promedio visible de feedback de plancha |
 | `handle_new_user` | Crea metadatos de perfil cuando el flujo de autenticación correspondiente lo utiliza |
+| `add_malla_transaction` | Crea un plan de estudios y, si `is_current`, desmarca atómicamente el vigente de la especialidad |
+| `edit_malla_transaction` | Actualiza un plan y desmarca atómicamente otros vigentes de la especialidad cuando corresponde |
+| `save_malla_transaction` | Persiste cursos y prerrequisitos de un plan mediante *delete-then-insert* transaccional |
 
 ### Atomicidad del interés
 
@@ -462,6 +670,7 @@ Las políticas exactas se versionan en migraciones. A nivel arquitectónico:
 | Sistemas, subsistemas y ciclos | Lectura pública o autenticada según política |
 | Ratings, vistas y rate limits | Escritura mediante backend |
 | `sheet_interests` | Sin escritura directa para `anon` o `authenticated`; se modifica mediante RPC/backend |
+| `study_plans`, `plan_courses`, `course_prerequisites` | Lectura pública (`FOR SELECT`); escritura solo vía funciones RPC nombradas por `service_role` |
 | Operaciones administrativas | Exclusivamente mediante endpoints con sesión administrativa |
 | Storage privado | Acceso mediante URL firmada o backend |
 
@@ -495,8 +704,11 @@ en las migraciones o configuración de Supabase Storage.
 | `SUPABASE_URL` | URL del proyecto Supabase |
 | `SUPABASE_SERVICE_KEY` | Operaciones administrativas del servidor |
 | `IP_SALT` | Hasheo de direcciones IP |
-| Variables públicas de Firebase | Inicialización de Firebase Auth en el cliente |
-| Credenciales privadas de Firebase | Validación del lado servidor cuando corresponda |
+| `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` | Cliente público de Supabase (navegador) |
+| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Admin SDK de Firebase (verificación de sesión de estudiantes) |
+| `PUBLIC_FIREBASE_*` | Inicialización de Firebase Auth en el cliente |
+| `ADMIN_PASS` | Contraseña administrativa heredada (según versión) |
+| `DRIVE_EXAMS_FOLDER_ID` / `DRIVE_SOLUTIONS_FOLDER_ID` / `GOOGLE_APPLICATION_CREDENTIALS` | Sincronización con Google Drive |
 
 ### Reglas
 

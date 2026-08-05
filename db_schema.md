@@ -28,6 +28,18 @@
 | avatar_url | text | SI | |
 | is_hidden | boolean | NO | false |
 
+## Mallas Curriculares
+
+- specialties (id: serial, name, code, created_at)
+- study_plans (id: uuid, specialty_id, year, is_current, is_published, created_at)
+- plan_courses (id, plan_id: uuid, course_id, cycle, row_index, created_at)
+- course_prerequisites (id, plan_id: uuid, course_id, prerequisite_id, created_at)
+
+> Las escrituras sobre estas tablas se realizan mediante las funciones RPC
+> `add_malla_transaction`, `edit_malla_transaction` y `save_malla_transaction`
+> (`SECURITY DEFINER`, ejecutables solo por `service_role`). La lectura es pública
+> (`FOR SELECT`). Fuente: `supabase/migrations/create_mallas_tables.sql`.
+
 ### courses_teachers
 | Columna | Tipo | Nulo |
 |---------|------|------|
