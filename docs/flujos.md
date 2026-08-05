@@ -158,6 +158,63 @@ sequenceDiagram
 
 ---
 
+## Flujos del Módulo de Mallas Curriculares
+
+### Estado y Re-renderizados en la Vista Pública
+
+```
+                  ┌──────────────┐
+ click en nodo →  │ selectedCourseId │──→ CourseDetailPanel recibe curso
+                  └───────┬──────┘
+                          │
+                   useMemo filtra
+                   data.courses
+                          │
+                  ┌───────▼──────┐
+                  │ selectedCourse│──→ Se pasa como prop `course`
+                  └──────────────┘
+
+ hover en nodo →  hoveredNode ──→ useMemo recalcula edges con estilos
+                                  condicionales (color, strokeWidth, opacity, animated)
+```
+
+**Variables de estado locales (`CurriculumInner`):**
+- `selectedCourseId`: ID del curso seleccionado; alimenta el panel lateral.
+- `hoveredNode`: ID del nodo bajo el cursor; controla highlight de aristas.
+- `isFullscreen`: Alterna entre layout incrustado y pantalla completa.
+- `minZoom`: Zoom mínimo calculado dinámicamente según el ancho del contenedor.
+- `currentZoom`: Zoom actual del viewport; determina indicador "Libre" / "Centrado".
+
+### Navegación por Prerrequisitos (Malla)
+
+Cuando el usuario hace clic en un prerrequisito desde el panel lateral:
+
+1. Se invoca `handlePrerequisiteClick(prerequisiteId)`.
+2. Se busca la posición del nodo con `getNode(prerequisiteId)` del hook de ReactFlow.
+3. Se centra el viewport en ese nodo usando `setCenter(x + 110, y + 55, { duration: 800, zoom: 1 })`.
+4. Se actualiza `selectedCourseId` para que el panel lateral muestre los datos del nuevo curso.
+
+Este flujo permite "navegar" la malla saltando entre cursos sin perder contexto visual.
+
+### Auto-zoom y Encuadre de Malla
+
+Al inicializar o al cambiar el tamaño de la ventana, el viewport se ajusta automáticamente para mostrar la malla completa.
+
+**Fórmula de cálculo (`handleResize`):**
+```
+minZoom = containerWidth / 3400px (EXTENT_WIDTH)
+viewport = { x: X_PADDING * minZoom, y: Y_PADDING * minZoom, zoom: minZoom }
+```
+
+### Layout Grid de Nodos
+
+Cada nodo en la malla se posiciona matemáticamente en una cuadrícula fija:
+- **Separación horizontal:** 320px (`COLUMN_WIDTH`)
+- **Separación vertical:** 160px (`ROW_HEIGHT`)
+- **Fórmula:** `x = (cycle - 1) * 320`, `y = row_index * 160`
+
+---
+
 ## Flujo: Administración - Subida de Plancha
 
 ```mermaid

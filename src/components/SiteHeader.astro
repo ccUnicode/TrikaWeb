@@ -33,6 +33,14 @@ import IconHome from "./icons/IconHome.astro";
         }`}
         href="/profesores">Profesores</a
       >
+      <a
+        class={`text-lg font-medium transition-colors hover:text-global-primary-soft ${
+          Astro.url.pathname.startsWith("/especialidades")
+            ? "text-global-primary"
+            : "text-global-text"
+        }`}
+        href="/especialidades">Especialidades</a
+      >
 
       <div
         class="flex items-center gap-2 border-l border-global-border pl-6 ml-2"
@@ -168,6 +176,12 @@ import IconHome from "./icons/IconHome.astro";
         class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
       >
         Profesores
+      </a>
+      <a
+        href="/especialidades"
+        class="block w-full px-6 py-3 text-lg font-medium text-global-text transition-colors hover:bg-global-card/30 active:bg-white/10 active:text-gray-300"
+      >
+        Especialidades
       </a>
       <a
         href="/saved"

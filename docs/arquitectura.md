@@ -1,4 +1,4 @@
-﻿# Arquitectura del Proyecto
+# Arquitectura del Proyecto
 
 ## Objetivo
 
@@ -20,15 +20,34 @@ estudiantes calificar planchas y profesores con controles anti-spam.
 ```
 src/
 ├── components/      # UI reutilizable (Cards, Modals, SearchBar...)
+│   └── Malla/       # Componentes React del módulo de mallas curriculares
+│       ├── Curriculum.tsx         # Lienzo público (ReactFlow + panel lateral)
+│       ├── CurriculumBuilder.tsx  # Constructor drag-and-drop para admin
+│       ├── CourseNode.tsx         # Nodo visual de curso en la malla
+│       ├── CycleHeaderNode.tsx    # Nodo decorativo de encabezado de ciclo
+│       └── CourseDetailPanel.tsx  # Panel lateral de detalles del curso
 ├── layouts/         # Layout base de páginas
 ├── lib/             # Lógica de acceso a datos y utilidades
-│   ├── data.ts      # Funciones de consulta (getCourses, searchEntities...)
+│   ├── data.ts              # Funciones de consulta (getCourses, searchEntities...)
+│   ├── curriculumTypes.ts   # Interfaces TypeScript del módulo de mallas
 │   ├── supabase.client.ts   # Cliente público de Supabase
 │   └── supabase.admin.ts    # Cliente admin (Service Key)
 ├── pages/
 │   ├── admin/       # Vistas de administración
+│   │   ├── mallas.astro              # CRUD de planes de estudio
+│   │   └── mallas/builder/[id].astro # Constructor visual por plan
 │   ├── api/         # Endpoints HTTP (ver api.md)
+│   │   └── admin/
+│   │       ├── add-malla.ts     # Crear plan de estudios
+│   │       ├── edit-malla.ts    # Editar metadatos del plan
+│   │       ├── delete-malla.ts  # Eliminar plan
+│   │       ├── toggle-malla.ts  # Publicar/despublicar plan
+│   │       ├── save-malla.ts    # Persistir cursos + prerrequisitos del builder
+│   │       └── mallas.ts        # Listar planes paginados
 │   ├── curso/       # Rutas dinámicas /curso/[code]
+│   ├── especialidades/   # Mallas curriculares públicas
+│   │   ├── index.astro   # Catálogo agrupado por carrera
+│   │   └── [id].astro    # Vista interactiva de malla
 │   ├── exams/       # Detalle de planchas /exams/[id]
 │   └── profesores/  # Listado y detalle de profesores
 └── styles/          # Estilos globales
@@ -38,6 +57,31 @@ supabase/
 ├── function_triggers.sql   # Triggers para métricas derivadas
 └── migrations/             # Migraciones incrementales
 ```
+
+## Arquitectura Frontend (Módulo Mallas)
+
+### Jerarquía de Componentes Principales
+
+```
+[id].astro (página Astro, SSR)
+└── <Curriculum /> (React, client:load)
+    ├── <ReactFlowProvider>
+    │   └── <CurriculumInner>
+    │       ├── <CourseDetailPanel /> (panel lateral)
+    │       ├── <ReactFlow>
+    │       │   ├── <CourseNode /> (nodo personalizado)
+    │       │   └── <CycleHeaderNode /> (nodo decorativo)
+    │       └── Controles flotantes (zoom, reset, fullscreen)
+    └── Datos inyectados desde Astro → props.data: CurriculumData
+```
+
+### Tipado Central (`curriculumTypes.ts`)
+
+| Interface | Propósito |
+|-----------|-----------|
+| `CurriculumCourse` | Curso con ciclo, créditos, sumilla, dificultad y docentes |
+| `CoursePrerequisite` | Relación `course_id → prerequisite_id` |
+| `CurriculumData` | Payload completo que el servidor inyecta al componente React |
 
 ## Diagramas de Flujo
 
@@ -92,6 +136,10 @@ flowchart LR
 | `sheet_views` | Eventos de vista/descarga |
 | `teacher_ratings` | Calificaciones de profesores |
 | `write_limits` | Control de rate-limit por IP |
+| `specialties` | Carreras/especialidades (`name`) |
+| `study_plans` | Planes de estudio por especialidad (`year`, `is_current`, `is_published`, `specialty_id`) |
+| `plan_courses` | Cursos asignados a un plan con posición en la malla (`plan_id`, `course_id`, `cycle`, `row_index`) |
+| `course_prerequisites` | Prerrequisitos entre cursos dentro de un plan (`plan_id`, `course_id`, `prerequisite_id`) |
 
 ### Diagrama ER
 
@@ -105,6 +153,10 @@ erDiagram
     TEACHERS ||--o{ TEACHER_RATINGS : receives
     SHEETS ||--o{ SHEET_RATINGS : receives
     SHEETS ||--o{ SHEET_VIEWS : tracks
+    SPECIALTIES ||--o{ STUDY_PLANS : defines
+    STUDY_PLANS ||--o{ PLAN_COURSES : contains
+    COURSES ||--o{ PLAN_COURSES : assigned_to
+    PLAN_COURSES ||--o{ COURSE_PREREQUISITES : requires
 ```
 
 ## Triggers, Funciones y Cálculos Derivados
