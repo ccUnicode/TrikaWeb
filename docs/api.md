@@ -486,6 +486,119 @@ Crear nuevo profesor.
 
 ---
 
+### POST `/api/admin/mallas`
+
+Listar planes de estudio paginados.
+
+**Request:**
+```json
+{ "page": 1, "pageSize": 10 }
+```
+
+**Response (200):**
+```json
+{
+  "ok": true,
+  "plans": [
+    {
+      "id": "uuid",
+      "year": 2021,
+      "is_current": true,
+      "is_published": true,
+      "specialties": { "id": 1, "name": "Ingeniería de Software" },
+      "plan_courses": [{ "count": 31 }]
+    }
+  ],
+  "pagination": { "total": 5, "page": 1, "pageSize": 10, "totalPages": 1 }
+}
+```
+
+---
+
+### POST `/api/admin/add-malla`
+
+Crear un nuevo plan de estudios. Si `is_current` es `true`, se desmarca automáticamente el plan vigente anterior de la misma especialidad.
+
+**Request:**
+```json
+{
+  "specialty_id": 1,
+  "year": 2025,
+  "is_current": true
+}
+```
+
+---
+
+### POST `/api/admin/edit-malla`
+
+Editar metadatos de un plan existente.
+
+**Request:**
+```json
+{
+  "id": "uuid",
+  "specialty_id": 1,
+  "year": 2025,
+  "is_current": true
+}
+```
+
+---
+
+### POST `/api/admin/delete-malla`
+
+Eliminar un plan de estudios (cascada sobre `plan_courses` y `course_prerequisites`).
+
+**Request:**
+```json
+{ "id": "uuid" }
+```
+
+---
+
+### POST `/api/admin/toggle-malla`
+
+Alternar el estado de publicación (`is_published`) de una malla.
+
+**Request:**
+```json
+{ "planId": "uuid" }
+```
+
+**Response (200):**
+```json
+{ "ok": true, "is_published": true }
+```
+
+---
+
+### POST `/api/admin/save-malla`
+
+Persistir la estructura completa de una malla desde el constructor visual. Ejecuta un *delete-then-insert* para cursos y prerrequisitos.
+
+**Request:**
+```json
+{
+  "planId": "uuid",
+  "placedCourses": [
+    {
+      "course_id": 42,
+      "cycle": 3,
+      "row_index": 2,
+      "prerequisites": [10, 15]
+    }
+  ]
+}
+```
+
+**Comportamiento:**
+1. Elimina todos los registros de `plan_courses` para el `planId`.
+2. Inserta los nuevos cursos con su posición (`cycle`, `row_index`).
+3. Para cada curso, elimina sus prerrequisitos en `course_prerequisites` y reinserta los nuevos.
+
+---
+
 ### POST `/api/admin/drive-sync`
 
 Sincronizar con Google Drive (placeholder).
@@ -497,6 +610,8 @@ Sincronizar con Google Drive (placeholder).
 
 **Response:** `501 Not Implemented` - usar CLI: `npm run drive:sync`
 
+
+---
 ---
 
 ### POST `/api/admin/upload-url`
@@ -918,3 +1033,4 @@ Content-Type: application/json
 - `400`: `system_id` inválido
 - `401`: Sesión admin inválida
 - `500`: Error al obtener evaluaciones
+

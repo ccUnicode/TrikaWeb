@@ -1,0 +1,304 @@
+---
+export const prerender = false;
+import Layout from "../../layouts/Layout.astro";
+import Curriculum from "../../components/Malla/Curriculum";
+import { supabaseAdmin } from "../../lib/supabaseAdmin";
+import type {
+    CurriculumData,
+    CurriculumCourse,
+    CoursePrerequisite,
+} from "../../lib/curriculumTypes";
+
+const { id } = Astro.params;
+
+// Validar formato UUID
+const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+if (!id || !uuidRegex.test(id)) {
+    return Astro.redirect("/especialidades");
+}
+
+// 1. Buscar el plan de estudios por ID (solo si está publicado)
+const { data: plan, error: planError } = await supabaseAdmin
+    .from("study_plans")
+    .select(
+        `
+        id,
+        year,
+        is_current,
+        specialty_id,
+        specialties (
+            id,
+            name
+        )
+    `,
+    )
+    .eq("id", id)
+    .eq("is_published", true)
+    .single();
+
+if (planError || !plan) {
+    return Astro.redirect("/especialidades");
+}
+
+const specialtyData = Array.isArray(plan.specialties)
+    ? plan.specialties[0]
+    : plan.specialties;
+const specialtyName =
+    (specialtyData as any)?.name || "Especialidad Desconocida";
+const planYear = String(plan.year);
+
+// 1.5 Obtener otras versiones del plan para el historial
+const { data: siblingPlans, error: siblingsError } = await supabaseAdmin
+    .from("study_plans")
+    .select("id, year, is_current")
+    .eq("specialty_id", plan.specialty_id)
+    .eq("is_published", true)
+    .order("year", { ascending: false });
+
+const planOptions = siblingPlans || [];
+
+// 2. Obtener los cursos del plan (join con courses para code, name, credits y evaluation_systems)
+let courses: CurriculumCourse[] = [];
+const { data: planCourses, error: pcError } = await supabaseAdmin
+    .from("plan_courses")
+    .select(
+        "plan_id, course_id, cycle, row_index, courses (id, code, name, credits, summary, is_elective, avg_difficulty, evaluation_systems (system_cod, formula), courses_teachers (teachers (id, full_name, avatar_url)))",
+    )
+    .eq("plan_id", plan.id);
+
+if (pcError) {
+    console.error("[Malla Dinámica] Error obteniendo cursos:", pcError);
+}
+
+if (planCourses) {
+    courses = planCourses.map((pc: any) => ({
+        course_id: pc.course_id,
+        code: pc.courses?.code ?? "",
+        name: pc.courses?.name ?? "",
+        cycle: pc.cycle,
+        credits: pc.courses?.credits ?? undefined,
+        evaluation_system: pc.courses?.evaluation_systems?.system_cod ?? "N/A",
+        evaluation_formula: pc.courses?.evaluation_systems?.formula ?? null,
+        row_index: pc.row_index,
+        summary: pc.courses?.summary ?? null,
+        is_elective: pc.courses?.is_elective ?? false,
+        avg_difficulty: pc.courses?.avg_difficulty ?? 0,
+        teachers:
+            pc.courses?.courses_teachers
+                ?.map((ct: any) => ct.teachers)
+                .filter(Boolean) ?? [],
+    }));
+}
+
+// 3. Obtener los pre-requisitos del plan
+let prerequisites: CoursePrerequisite[] = [];
+const { data: prereqs, error: prError } = await supabaseAdmin
+    .from("course_prerequisites")
+    .select("course_id, prerequisite_id")
+    .eq("plan_id", plan.id);
+
+if (prError) {
+    console.error("[Malla Dinámica] Error obteniendo pre-requisitos:", prError);
+}
+
+if (prereqs) {
+    prerequisites = prereqs.map((pr: any) => ({
+        course_id: pr.course_id,
+        prerequisite_id: pr.prerequisite_id,
+    }));
+}
+
+// 4. Estructurar data para el componente
+const curriculumData: CurriculumData = {
+    specialtyName,
+    planYear,
+    courses,
+    prerequisites,
+};
+---
+
+<Layout
+    title={`Malla Curricular - ${curriculumData.specialtyName} | TrikaWeb`}
+    description={`Plan de estudios ${curriculumData.planYear} de ${curriculumData.specialtyName} en la Universidad Nacional de Ingeniería. Visualiza cursos, ciclos y pre-requisitos.`}
+    keywords={`malla curricular, ${curriculumData.specialtyName.toLowerCase()}, plan de estudios, uni, universidad nacional de ingenieria, cursos, pre-requisitos`}
+>
+    <div class="flex w-full flex-col items-center gap-4 mt-4 sm:mt-6 px-4 pb-4">
+        <section class="mx-auto flex w-full max-w-[1400px] flex-col gap-2">
+            <div
+                class="flex flex-col md:flex-row justify-between items-end w-full gap-6"
+            >
+                <div class="flex flex-col items-start gap-2">
+                    <!-- Title -->
+                    <div class="space-y-5">
+                        <h1
+                            class="text-3xl sm:text-4xl font-bold text-global-text"
+                        >
+                            {curriculumData.specialtyName}
+                        </h1>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            {
+                                planOptions.length > 1 ? (
+                                    <div
+                                        class="relative"
+                                        id="plan-version-container"
+                                    >
+                                        <button
+                                            type="button"
+                                            id="plan-version-trigger"
+                                            class="flex items-center justify-between gap-3 rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text-muted outline-none hover:border-global-primary hover:text-global-text focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-all cursor-pointer"
+                                        >
+                                            <span id="plan-version-label">
+                                                Plan de Estudios{" "}
+                                                {curriculumData.planYear}
+                                            </span>
+                                            <svg
+                                                id="plan-version-chevron"
+                                                class="h-4 w-4 text-gray-400 transition-transform"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M19 9l-7 7-7-7"
+                                                />
+                                            </svg>
+                                        </button>
+                                        <div
+                                            id="plan-version-dropdown"
+                                            class="absolute z-50 left-0 mt-1.5 min-w-full max-h-60 overflow-y-auto rounded-xl border border-global-border bg-global-card p-1 shadow-2xl hidden"
+                                        >
+                                            {planOptions.map((opt: any) => (
+                                                <a
+                                                    href={`/especialidades/${opt.id}`}
+                                                    class:list={[
+                                                        "block px-4 py-2 text-sm rounded-lg cursor-pointer transition-colors whitespace-nowrap",
+                                                        opt.id === id
+                                                            ? "bg-global-primary/15 text-global-primary font-medium"
+                                                            : "text-global-text hover:bg-[#222938] hover:text-white",
+                                                    ]}
+                                                >
+                                                    Plan de Estudios {opt.year}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <span class="rounded-xl border border-global-border bg-global-bg px-4 py-2 text-sm text-global-text-muted font-medium">
+                                        Plan de Estudios{" "}
+                                        {curriculumData.planYear}
+                                    </span>
+                                )
+                            }
+                            <span
+                                class="text-global-text-muted text-sm font-medium"
+                                >• {curriculumData.courses.length} cursos</span
+                            >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div
+                    class="flex flex-wrap items-center gap-4 text-sm text-global-text-muted"
+                >
+                    <div class="flex items-center gap-2">
+                        <div
+                            class="w-3 h-3 rounded-sm bg-[#1E2430] border border-[#2A3240]"
+                        >
+                        </div>
+                        <span>Curso</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-0.5 bg-[#22c55e]"></div>
+                        <span>Pre-requisito</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="text-global-text-muted"
+                            ><path d="M15 15l-2 5L9 9l11 4-5 2z"></path><path
+                                d="M14 14L22 22"></path></svg
+                        >
+                        <span>Click en un curso</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- React Flow Container -->
+            <div class="w-full">
+                {
+                    courses.length === 0 ? (
+                        <div class="flex flex-col items-center justify-center py-20 text-global-text-muted">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="48"
+                                height="48"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="mb-4 opacity-50"
+                            >
+                                <>
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </>
+                            </svg>
+                            <p class="text-lg font-medium">
+                                No se encontraron cursos
+                            </p>
+                            <p class="text-sm mt-1">
+                                Verifica que el plan de estudios esté
+                                configurado en la base de datos.
+                            </p>
+                        </div>
+                    ) : (
+                        <Curriculum client:load data={curriculumData} />
+                    )
+                }
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const container = document.getElementById("plan-version-container");
+        const trigger = document.getElementById("plan-version-trigger");
+        const dropdown = document.getElementById("plan-version-dropdown");
+        const chevron = document.getElementById("plan-version-chevron");
+
+        if (trigger && dropdown && container && chevron) {
+            trigger.addEventListener("click", () => {
+                const isOpen = !dropdown.classList.contains("hidden");
+                if (isOpen) {
+                    dropdown.classList.add("hidden");
+                    chevron.style.transform = "";
+                } else {
+                    dropdown.classList.remove("hidden");
+                    chevron.style.transform = "rotate(180deg)";
+                }
+            });
+
+            document.addEventListener("click", (e) => {
+                if (!container.contains(e.target as Node)) {
+                    dropdown.classList.add("hidden");
+                    chevron.style.transform = "";
+                }
+            });
+        }
+    </script>
+</Layout>

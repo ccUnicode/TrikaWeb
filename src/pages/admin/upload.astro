@@ -360,6 +360,7 @@ if (!isAdmin) {
   </div>
 
   <script>
+    // @ts-expect-error No type declarations available for pdfjs-dist mjs files
     import * as pdfjsLib from "pdfjs-dist/build/pdf.mjs";
     import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
     pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
