@@ -1,3 +1,7 @@
+/**
+ * Valida la sesión de administrador a partir de la cookie 'admin_session'.
+ * Verifica el token contra Supabase Auth.
+ */
 import type { AstroCookies } from "astro";
 import { supabaseAdmin } from "./supabaseAdmin";
 

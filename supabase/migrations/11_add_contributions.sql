@@ -1,3 +1,4 @@
+-- Migración 11
 -- Migración para la tabla de aportes/donaciones de estudiantes (RF-23)
 
 create table if not exists public.contributions (

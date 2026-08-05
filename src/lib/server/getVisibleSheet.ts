@@ -28,6 +28,7 @@ export const getVisibleSheetById = async (sheetId: number) => {
         avg_difficulty,
         rating_count,
         view_count,
+        interest_count,
         exam_storage_path,
         solution_kind,
         solution_storage_path,

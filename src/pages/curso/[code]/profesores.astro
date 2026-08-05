@@ -1,4 +1,9 @@
 ---
+/*
+Página de profesores filtrados por curso.
+Agrupa a los docentes por modalidad (Teoría, Práctica, Laboratorio)
+y los ordena por calificación descendente.
+*/
 export const prerender = false;
 import Layout from "../../../layouts/Layout.astro";
 import TeacherCard from "../../../components/TeacherCard.astro";
@@ -22,7 +27,6 @@ const theoryTeachers = teachersData.filter((t) => t.modality === "T");
 const practiceTeachers = teachersData.filter((t) => t.modality === "P");
 const labTeachers = teachersData.filter((t) => t.modality === "L");
 
-// Sort by rating desc
 const sortByRating = (a: any, b: any) =>
   (b.teacher.avg_overall ?? 0) - (a.teacher.avg_overall ?? 0);
 theoryTeachers.sort(sortByRating);
@@ -375,7 +379,7 @@ labTeachers.sort(sortByRating);
     </div>
 
     <script>
-      /** Ordena los profesores de cada modalidad por calificación ascendente o descendente */
+      // Ordena los profesores de cada modalidad por calificación ascendente o descendente
       function setupSorting() {
         const dropdowns = document.querySelectorAll(".sort-teacher-dropdown");
 
@@ -408,7 +412,7 @@ labTeachers.sort(sortByRating);
         });
       }
 
-      /** Búsqueda en tiempo real por nombre de profesor, oculta secciones sin resultados */
+      // Búsqueda en tiempo real por nombre de profesor, oculta secciones sin resultados
       const normalize = (value = "") =>
         value
           .toLowerCase()

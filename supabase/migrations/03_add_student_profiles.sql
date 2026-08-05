@@ -1,3 +1,4 @@
+-- Migración 3
 -- Perfiles de estudiantes (vinculados a auth.users de Supabase)
 -- Compatible con tablas profiles ya existentes (rama feat/profiles-db, etc.)
 

@@ -1,3 +1,4 @@
+-- Migración 6
 -- Tabla independiente para guardar detalles de usuarios que se loguean con Firebase
 create table if not exists public.student_details (
   user_id text primary key,

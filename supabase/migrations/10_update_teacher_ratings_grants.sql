@@ -1,3 +1,4 @@
+-- Migración 10
 -- Revocar lectura directa de la tabla base para evitar exponer datos de reseñas anónimas
 REVOKE SELECT ON public.teacher_ratings FROM anon, authenticated;
 

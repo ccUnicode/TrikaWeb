@@ -1,5 +1,5 @@
--- ============================================================================
--- TrikaWeb - Endurecimiento de acceso a la base de datos
+-- Migración 24
+-- Endurecimiento de acceso a la base de datos
 -- Fecha: 2026-07-24
 --
 -- Objetivos:
@@ -11,9 +11,7 @@
 --
 -- IMPORTANTE:
 --   - Ejecute primero en un entorno de prueba.
---   - sheet_interests conserva INSERT/DELETE anónimos por compatibilidad.
---   - Ese flujo debe migrarse posteriormente a un endpoint o RPC controlado.
--- ============================================================================
+--   - sheet_interests permanece reservado para el backend/service_role.
 
 begin;
 
@@ -505,15 +503,23 @@ revoke all privileges on table public.sheet_ratings from anon, authenticated;
 revoke all privileges on table public.sheet_views from anon, authenticated;
 revoke all privileges on table public.write_limits from anon, authenticated;
 
--- sheet_interests conserva el flujo público actual, pero sin SELECT, UPDATE,
--- TRUNCATE, REFERENCES ni TRIGGER. La política DELETE sigue siendo débil porque
--- device_id no constituye autenticación; migre este flujo al servidor.
+-- sheet_interests se modifica exclusivamente mediante endpoints/RPC del
+-- backend. No se concede acceso directo a roles cliente.
 drop policy if exists
   "public read sheet_interests"
   on public.sheet_interests;
 
-revoke all privileges on table public.sheet_interests from anon, authenticated;
-grant insert, delete on table public.sheet_interests to anon, authenticated;
+drop policy if exists
+  "allow insert sheet_interests"
+  on public.sheet_interests;
+
+drop policy if exists
+  "allow delete sheet_interests"
+  on public.sheet_interests;
+
+revoke all privileges
+on table public.sheet_interests
+from public, anon, authenticated;
 
 -- El backend usa service_role; se garantiza acceso completo a objetos de datos.
 grant all privileges on all tables in schema public to service_role;
@@ -531,8 +537,6 @@ revoke all privileges on all sequences in schema public
   from anon, authenticated;
 
 grant usage on sequence public.sheet_feedback_id_seq
-  to anon, authenticated;
-grant usage on sequence public.sheet_interests_id_seq
   to anon, authenticated;
 grant usage on sequence public.contributions_id_seq
   to authenticated;

@@ -1,4 +1,5 @@
--- Migración 14: Eliminar user_email de la vista pública de reseñas
+-- Migración 14 
+-- Eliminar user_email de la vista pública de reseñas
 
 -- 1. Eliminar la vista anterior para poder quitar una columna
 DROP VIEW IF EXISTS public.public_teacher_ratings;

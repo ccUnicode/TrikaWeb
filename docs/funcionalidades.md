@@ -6,6 +6,8 @@
 - Visualizacion de planchas por curso y ciclo.
 - Visualizacion de ranking de planchas por dificultad y vistas.
 - Descarga o visualizacion de PDF de planchas y solucionarios.
+- Interés en planchas: toggle "me interesa" para medir demanda.
+- Feedback en planchas: estrellas y comentarios con moderación.
 
 ## Modulo de profesores
 
@@ -18,6 +20,21 @@
   - `responsability`
   - `grading`
 - Calculo de `overall` automatico en backend.
+- Comentarios anónimos u opcionalmente con nombre/email.
+
+## Sistema de evaluaciones
+
+- Gestión de sistemas de evaluación (regímenes de notas).
+- Tipos de evaluación configurables (PC1, PC2, EP, EF, etc.) asociados a cada curso.
+- Pesos de notas configurables por sistema de evaluación.
+- Subsistemas con cantidad de prácticas variable.
+
+## Plan de estudios
+
+- Gestión de planes de estudio por especialidad/carrera.
+- Organización de cursos por ciclo dentro de un plan.
+- Prerrequisitos entre cursos.
+- Especialidades y carreras disponibles.
 
 ## Módulo de mallas curriculares
 
@@ -57,16 +74,19 @@
 - Un voto por `device_id` para planchas y profesores.
 - Limite por IP hasheada para evitar abuso.
 - Votacion editable y eliminable por el mismo cliente.
+- Límite de 3 votos por IP por profesor/plancha.
 
 ## Busqueda
 
 - Endpoint de autocomplete (`/api/search`) sobre cursos, profesores y planchas.
 - Matching por texto en codigo, nombre, ciclo, exam_type y comentario.
+- Scoring por relevancia con normalización Unicode.
 
 ## Administracion
 
-- Login/logout de administrador.
+- Login/logout de administrador con Supabase Auth.
 - Carga de planchas/solucionarios via `multipart/form-data`.
+- Subida directa a Storage mediante URL firmada (evita límite 4.5MB de Vercel).
 - Moderacion de comentarios:
   - listar pendientes
   - aprobar
@@ -76,10 +96,36 @@
   - listar (incluyendo ocultos)
   - ocultar/mostrar
   - crear profesor y asociar cursos
+- Gestion de cursos:
+  - crear curso con sistema de evaluación
+  - ocultar/mostrar
+  - eliminar
 - Gestión de mallas curriculares:
   - crear, editar, eliminar planes de estudio
   - publicar/despublicar mallas
   - constructor visual drag-and-drop
+- Visualización de todas las calificaciones con filtros.
+- Gestión de ciclos académicos.
+- Gestión de planchas:
+  - listar con filtros por curso y búsqueda
+  - ocultar/mostrar
+  - eliminar (incluye limpieza de archivos en Storage)
+- Reinicio de contador de interés de planchas.
+- Revisión de contribuciones de usuarios (aprobar/rechazar).
+
+## Contribuciones de usuarios
+
+- Usuarios externos pueden enviar planchas/solucionarios.
+- Las contribuciones pasan por un flujo de revisión (pending → approved/rejected).
+- Almacena datos del contribuyente (nombre, email).
+- El usuario puede listar sus contribuciones y limpiar su historial (las aprobadas se conservan).
+- Al aprobar una contribución, el archivo se copia a `exams` y se crea la plancha.
+
+## Perfiles de usuario
+
+- Perfiles vinculados a Supabase Auth (estudiantes con correo institucional `@uni.pe`).
+- Datos del perfil en `student_details` (specialty, avatar).
+- Avatares y nombres de usuario.
 
 ## Sincronizacion externa
 
@@ -88,13 +134,19 @@
   - `npm run drive:sync-exams`
   - `npm run drive:sync-solutions`
 
+## Autenticación y sesiones
+
+- Inicio de sesión de estudiantes mediante Google institucional (Firebase Auth).
+- Restricción a correos `@uni.pe`.
+- Sesión administrativa independiente mediante Supabase Auth y cookie `admin_session`.
+- Registro directo deshabilitado (410 Gone).
+
 ## Alcance actual y proximo
 
-Estado actual cubre flujo principal de consulta, descarga, calificacion, moderacion y mallas curriculares.
+Estado actual cubre flujo principal de consulta, descarga, calificacion, moderacion, mallas curriculares y contribuciones.
 Como siguientes pasos recomendados:
 
 - CI con pruebas automatizadas de API.
 - Documentar contrato de errores estandar (schema comun).
 - Endurecer endpoint `/api/admin/drive-sync` para usar la misma sesion admin.
 - Automatización de ingreso de mallas vía CSV (deuda técnica documentada).
-

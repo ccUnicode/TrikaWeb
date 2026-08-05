@@ -1,3 +1,4 @@
+-- Migración 5
 -- 1. Crear la tabla de especialidades
 create table if not exists public.specialties (
     id uuid default gen_random_uuid() primary key,

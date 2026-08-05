@@ -1,4 +1,5 @@
--- Migración 13: Corrección de permisos en student_details y FK idempotente
+-- Migración 13
+-- Corrección de permisos en student_details y FK idempotente
 
 -- 1. Revocar el SELECT completo que se haya dado en versiones anteriores
 REVOKE SELECT ON public.student_details FROM anon, authenticated;

@@ -1,4 +1,5 @@
--- Migración: agregar configuración y estados de cursos
+-- Migración 17
+-- Agregar configuración y estados de cursos
 -- Añade sistema, subsistema, sumilla, estado, visibilidad y backfill de cursos.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 
@@ -12,6 +13,7 @@ alter table public.courses
   add column if not exists is_elective boolean,
   add column if not exists avg_difficulty numeric(3,2),
   add column if not exists status varchar(20);
+
 
 -- Configuración recuperada para los cursos existentes.
 create temporary table migration_course_state (
@@ -215,6 +217,7 @@ where is_hidden is null
    or status <> upper(btrim(status));
 
 -- Validar el backfill antes de imponer restricciones.
+
 do $$
 begin
   if exists (
@@ -324,6 +327,7 @@ begin
       foreign key (subsystem_id)
       references public.evaluation_subsystems(subsystem_id);
   end if;
+
 end
 $$;
 

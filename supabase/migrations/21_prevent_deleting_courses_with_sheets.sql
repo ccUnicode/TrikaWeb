@@ -1,4 +1,5 @@
--- Migración: impedir la eliminación de cursos con planchas asociadas.
+-- Migración 21
+-- Impedir la eliminación de cursos con planchas asociadas.
 --
 -- La función bloquea el curso durante la validación para evitar que
 -- se registre una plancha entre la comprobación y la eliminación.

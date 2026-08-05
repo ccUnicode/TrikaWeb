@@ -265,56 +265,118 @@ stateDiagram-v2
 erDiagram
     COURSES ||--o{ SHEETS : has
     COURSES ||--o{ COURSES_TEACHERS : participates
+    COURSES ||--o{ COURSE_EVALUATIONS : configures
+    COURSE_EVALUATIONS ||--o{ EVALUATION_TYPE : references
+    COURSES }o--|| EVALUATION_SYSTEMS : belongs_to
+    EVALUATION_SYSTEMS ||--o{ EVALUATION_SUBSYSTEMS : has
+    EVALUATION_SYSTEMS ||--o{ SYSTEM_GRADES_CONSIDER : defines
+    SYSTEM_GRADES_CONSIDER ||--o{ EVAL_SYSTEM_GRADES : references
     TEACHERS ||--o{ COURSES_TEACHERS : teaches
     TEACHERS ||--o{ TEACHER_RATINGS : receives
     SHEETS ||--o{ SHEET_RATINGS : receives
     SHEETS ||--o{ SHEET_VIEWS : tracks
-    
+    SHEETS ||--o{ SHEET_INTERESTS : liked_by
+    SHEETS ||--o{ SHEET_FEEDBACK : feedback
+    SHEETS }o--|| EVALUATION_TYPE : typed_by
+    STUDY_PLANS ||--o{ PLAN_COURSES : contains
+    STUDY_PLANS }o--|| SPECIALTIES : belongs_to
+    PLAN_COURSES ||--o{ COURSE_PREREQUISITES : has_prereqs
+    PROFILES ||--o{ CONTRIBUTIONS : submits
+    COURSES ||--o{ CONTRIBUTIONS : targets
+
     COURSES {
         bigint id PK
         text code UK
         text name
         text summary
         int credits
-        bigint subsystem_id FK
-        text status "INCOMPLETO | COMPLETO | ARCHIVADO"
         boolean is_hidden
+        int system_id FK
+        int subsystem_id FK
+        text status "INCOMPLETO | COMPLETO | ARCHIVADO"
+        boolean is_elective
+        numeric avg_difficulty
     }
-    
+
     TEACHERS {
         bigint id PK
         text full_name UK
         text bio
         numeric avg_overall
         int rating_count
+        text avatar_url
         boolean is_hidden
     }
-    
+
+    COURSES_TEACHERS {
+        bigint course_id PK
+        bigint teacher_id PK
+        text modality
+    }
+
     SHEETS {
         bigint id PK
         bigint course_id FK
         text cycle
         text exam_type
+        text teacher_hint
         text exam_storage_path
         text solution_kind
+        text solution_storage_path
+        text solution_video_url
+        text thumb_storage_path
         numeric avg_difficulty
         int rating_count
         bigint view_count
+        boolean is_hidden
+        bigint interest_count
+        int evaluation_id FK
+        boolean is_teacher_specific
     }
-    
+
     SHEET_RATINGS {
         bigint id PK
         bigint sheet_id FK
         uuid device_id
         text ip_hash
         int score
+        timestamptz created_at
     }
-    
+
+    SHEET_VIEWS {
+        bigint id PK
+        bigint sheet_id FK
+        text type
+        uuid device_id
+        text ip_hash
+        timestamptz occurred_at
+    }
+
+    SHEET_INTERESTS {
+        bigint id PK
+        bigint sheet_id FK
+        uuid device_id
+        text ip_hash
+        timestamptz created_at
+    }
+
+    SHEET_FEEDBACK {
+        bigint id PK
+        bigint sheet_id FK
+        smallint stars
+        text content
+        uuid device_id
+        text ip_hash
+        boolean is_hidden
+        boolean needs_review
+        timestamptz created_at
+    }
+
     TEACHER_RATINGS {
         bigint id PK
         bigint teacher_id FK
         uuid device_id
-        int overall
+        numeric overall
         int difficulty
         int didactic
         int resources
@@ -322,7 +384,147 @@ erDiagram
         int grading
         text comment
         boolean is_hidden
+        boolean needs_review
+        boolean is_anonymous
+        text user_name
+        text user_email
+        timestamptz created_at
+        timestamptz updated_at
     }
+
+    EVALUATION_SYSTEMS {
+        int system_id PK
+        character system_cod
+        text system_description
+        boolean requires_subsystem
+    }
+
+    EVALUATION_SUBSYSTEMS {
+        int subsystem_id PK
+        varchar subsystem_cod
+        int practices_quantity
+    }
+
+    EVALUATION_TYPE {
+        int evaluation_id PK
+        text evaluation_name
+        text evaluation_abr
+        text evaluation_category
+    }
+
+    COURSE_EVALUATIONS {
+        int course_id
+        int evaluation_id
+    }
+
+    CONTRIBUTIONS {
+        bigint id PK
+        text user_id
+        text user_email
+        text user_name
+        bigint course_id FK
+        text cycle
+        text exam_type
+        text contribution_type
+        text file_storage_path
+        text status
+        text admin_notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    WRITE_LIMITS {
+        text ip_hash PK
+        timestamptz last_at
+        int count_1h
+    }
+```
+
+---
+
+## Flujo: Subida con URL Firmada (upload-url)
+
+```mermaid
+sequenceDiagram
+    actor Admin as Administrador
+    participant UI as Panel Admin
+    participant API1 as /api/admin/upload-url
+    participant Storage as Supabase Storage
+    participant API2 as /api/admin/upload
+    participant DB as Supabase DB
+
+    Admin->>UI: Completa formulario (course, exam, cycle)
+    UI->>API1: POST { course_code, exam_type, cycle, resource_kind }
+    API1->>API1: Valida sesión admin
+    API1->>Storage: createSignedUploadUrl(path)
+    Storage-->>API1: signedUrl + token
+    API1-->>UI: { signedUrl, token, path, courseId }
+    UI->>Storage: PUT file a signedUrl (directo desde browser)
+    Storage-->>UI: Upload OK
+    UI->>API2: POST multipart (metadata + path)
+    API2->>DB: INSERT sheets
+    DB-->>API2: Sheet creada
+    API2-->>UI: { success: true }
+    UI-->>Admin: Confirma subida exitosa
+```
+
+---
+
+## Flujo: Interés en Plancha (Toggle)
+
+Cuando un usuario marca/desmarca "me interesa" en una plancha:
+
+```mermaid
+sequenceDiagram
+    actor User as Estudiante
+    participant UI as Frontend
+    participant API as /api/sheets/:id/interest
+    participant DB as Supabase DB
+    
+    User->>UI: Click "Me interesa"
+    UI->>API: POST { device_id }
+    API->>API: Valida rate limit (300/h)
+    API->>DB: SELECT sheet_interests WHERE sheet_id AND device_id
+    DB-->>API: ¿Ya existe?
+
+    alt Ya tiene interés
+        API->>DB: DELETE sheet_interests (quitar)
+    else No tiene interés
+        API->>DB: INSERT sheet_interests (agregar)
+    end
+
+    API->>DB: SELECT COUNT(*) sheet_interests WHERE sheet_id
+    API->>DB: UPDATE sheets SET interest_count
+    DB-->>API: Actualizado
+    API-->>UI: { success, interested, interest_count }
+    UI-->>User: Actualiza icono (lleno/vacío)
+```
+
+---
+
+## Flujo: Contribuciones de Usuarios
+
+Cuando un usuario externo envía una plancha:
+
+```mermaid
+sequenceDiagram
+    actor User as Estudiante
+    participant UI as Frontend
+    participant API as Contribución
+    participant DB as Supabase DB
+    participant AdminUI as Panel Admin
+    
+    User->>UI: Completa formulario de contribución
+    UI->>API: POST (course, exam, cycle, file, datos usuario)
+    API->>DB: INSERT contributions (status: "pending")
+    DB-->>API: Contribución creada
+    API-->>UI: { success: true }
+    UI-->>User: "Contribución enviada, gracias"
+
+    Note over AdminUI: Administrador revisa
+    AdminUI->>AdminUI: Revisa contribuciones pendientes
+    AdminUI->>DB: UPDATE contributions SET status = "approved" | "rejected"
+    DB-->>AdminUI: Actualizado
 ```
 
 ---

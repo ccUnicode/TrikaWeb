@@ -6,13 +6,13 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 
 export const GET: APIRoute = async ({ cookies }) => {
   try {
-    const isValid = await validateAdminSession(cookies);
+    const isAdmin = await validateAdminSession(cookies);
 
-    if (!isValid) {
+    if (!isAdmin) {
       return Response.json(
         {
           ok: false,
-          error: "Sesión inválida",
+          error: "No autorizado",
         },
         {
           status: 401,
@@ -21,18 +21,18 @@ export const GET: APIRoute = async ({ cookies }) => {
     }
 
     const { data, error } = await supabaseAdmin
-      .from("courses")
-      .select("id, code, name")
-      .eq("is_hidden", false)
-      .order("code", { ascending: true });
+      .from("cycles")
+      .select("cycle_id, cycle_code, year, term")
+      .order("year", { ascending: false })
+      .order("term", { ascending: true });
 
     if (error) {
-      console.error("Error fetching course options:", error);
+      console.error("Error al cargar los ciclos:", error);
 
       return Response.json(
         {
           ok: false,
-          error: "Error al obtener cursos",
+          error: "No se pudieron cargar los ciclos",
         },
         {
           status: 500,
@@ -43,19 +43,19 @@ export const GET: APIRoute = async ({ cookies }) => {
     return Response.json(
       {
         ok: true,
-        courses: data ?? [],
+        cycles: data ?? [],
       },
       {
         status: 200,
       },
     );
   } catch (error) {
-    console.error("course-options API error:", error);
+    console.error("Error inesperado en GET /api/admin/cycles:", error);
 
     return Response.json(
       {
         ok: false,
-        error: "Error interno del servidor",
+        error: "Ocurrió un error al procesar la solicitud",
       },
       {
         status: 500,

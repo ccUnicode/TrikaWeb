@@ -1,4 +1,5 @@
--- Migración 12: Limpieza de políticas y permisos antiguos en la tabla contributions
+-- Migración 12
+-- Limpieza de políticas y permisos antiguos en la tabla contributions
 
 -- 1. Revocar los permisos de SELECT e INSERT directos en toda la tabla 
 -- (para limpiar cualquier GRANT ALL o GRANT SELECT general previo)

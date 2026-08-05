@@ -1,4 +1,8 @@
 ---
+/*
+Listado completo de profesores con búsqueda en cliente y paginación.
+Usa el mismo patrón de paginación con ventana deslizante que cursos.
+*/
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
 import TeacherCard from "../components/TeacherCard.astro";
@@ -107,7 +111,7 @@ const teachers = await getTeachers();
     document.querySelectorAll(".teacher-item"),
   ) as HTMLElement[];
 
-  const ITEMS_PER_PAGE = 6; // 2 filas x 3 columnas
+  const ITEMS_PER_PAGE = 6;
   let currentPage = 1;
 
   function updatePagination(filteredItems: HTMLElement[]) {

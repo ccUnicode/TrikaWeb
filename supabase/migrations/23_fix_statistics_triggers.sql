@@ -1,11 +1,7 @@
--- ============================================================================
--- TrikaWeb - Sincronización de estadísticas y updated_at
--- Fecha: 2026-07-24
---
+-- Migración 23
 -- Esta migración es idempotente y mantiene el comportamiento actual:
 -- view_count contabiliza tanto eventos 'view' como 'download'.
 -- Para contar solo vistas, agregue: AND sv.type = 'view'.
--- ============================================================================
 
 begin;
 
@@ -55,6 +51,7 @@ $function$;
 create or replace function public.refresh_teacher_stats()
 returns trigger
 language plpgsql
+security invoker
 set search_path to ''
 as $function$
 declare
@@ -71,22 +68,26 @@ begin
       raise exception 'Operación de trigger no soportada: %', tg_op;
   end case;
 
-  update public.teachers as t
+  update public.teachers as teacher
   set
     avg_overall = coalesce(
       (
-        select avg(tr.overall)::numeric(3, 2)
-        from public.teacher_ratings as tr
-        where tr.teacher_id = t.id
+        select avg(rating.overall)::numeric(3, 2)
+        from public.teacher_ratings as rating
+        where rating.teacher_id = teacher.id
+          and coalesce(rating.is_hidden, false) = false
+          and coalesce(rating.needs_review, true) = false
       ),
       0
     ),
     rating_count = (
       select count(*)
-      from public.teacher_ratings as tr
-      where tr.teacher_id = t.id
+      from public.teacher_ratings as rating
+      where rating.teacher_id = teacher.id
+        and coalesce(rating.is_hidden, false) = false
+        and coalesce(rating.needs_review, true) = false
     )
-  where t.id = any(v_teacher_ids);
+  where teacher.id = any(v_teacher_ids);
 
   return null;
 end;
@@ -177,7 +178,8 @@ create trigger t_sheet_ratings_stats
 
 drop trigger if exists t_teacher_ratings_stats on public.teacher_ratings;
 create trigger t_teacher_ratings_stats
-  after insert or delete or update
+  after insert or delete
+    or update of teacher_id, overall, is_hidden, needs_review
   on public.teacher_ratings
   for each row
   execute function public.refresh_teacher_stats();
@@ -266,20 +268,24 @@ set
     where si.sheet_id = s.id
   );
 
-update public.teachers as t
+update public.teachers as teacher
 set
   avg_overall = coalesce(
     (
-      select avg(tr.overall)::numeric(3, 2)
-      from public.teacher_ratings as tr
-      where tr.teacher_id = t.id
+      select avg(rating.overall)::numeric(3, 2)
+      from public.teacher_ratings as rating
+      where rating.teacher_id = teacher.id
+        and coalesce(rating.is_hidden, false) = false
+        and coalesce(rating.needs_review, true) = false
     ),
     0
   ),
   rating_count = (
     select count(*)
-    from public.teacher_ratings as tr
-    where tr.teacher_id = t.id
+    from public.teacher_ratings as rating
+    where rating.teacher_id = teacher.id
+      and coalesce(rating.is_hidden, false) = false
+      and coalesce(rating.needs_review, true) = false
   );
 
 commit;

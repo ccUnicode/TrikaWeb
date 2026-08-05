@@ -1,4 +1,13 @@
 ---
+/*
+Página de detalle de una plancha (examen).
+Muestra:
+  - Visor de PDF/video conmutador entre examen y solucionario
+  - Widget de votación de dificultad (SheetRating)
+  - Botón de favoritos (localStorage)
+  - Botón "Pedir solucionario" (registro de interés con API + localStorage)
+  - Registro automático de vista al cargar la página (sendBeacon)
+*/
 export const prerender = false;
 
 import "../../styles/global.css";
@@ -33,6 +42,15 @@ if (sheetError) {
 if (!sheet) {
   return Astro.redirect("/cursos");
 }
+
+const solutionKind = sheet.solution_kind?.trim().toLowerCase();
+
+const hasValidSolution =
+  (solutionKind === "pdf" && Boolean(sheet.solution_storage_path?.trim())) ||
+  (solutionKind === "video" && Boolean(sheet.solution_video_url?.trim()));
+
+// RF-04: Fetch interest_count separately (graceful fallback if column doesn't exist yet)
+const interestCount = Number(sheet.interest_count ?? 0);
 
 const course = Array.isArray(sheet.courses) ? sheet.courses[0] : sheet.courses;
 
@@ -77,7 +95,7 @@ if (sheet.exam_storage_path) {
 
 let solutionUrl: string | null = null;
 
-if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
+if (solutionKind === "pdf" && sheet.solution_storage_path) {
   const { data, error } = await supabaseAdmin.storage
     .from("solutions")
     .createSignedUrl(sheet.solution_storage_path, 600);
@@ -125,6 +143,14 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
                 </span>
               )
             }
+            {
+              !hasValidSolution && (
+                <span>
+                  Solicitudes:{" "}
+                  <strong id="interest-count-display">{interestCount}</strong>
+                </span>
+              )
+            }
           </div>
 
           {
@@ -139,7 +165,43 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
           }
         </div>
 
-        <div class="flex flex-wrap items-center gap-3">
+        <!-- Right side: Action buttons -->
+        <div class="flex flex-wrap gap-3 items-center">
+          {
+            /* RF-03: Botón "Pedir solucionario" — solo si NO tiene solucionario */
+          }
+          {
+            !hasValidSolution && (
+              <button
+                id="interest-btn"
+                data-sheet-id={sheet.id}
+                type="button"
+                class="inline-flex items-center justify-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-semibold transition-all group cursor-pointer"
+                style="border-color: rgb(var(--global-primary)); color: rgb(var(--global-primary));"
+                title="Solicitar solucionario para esta plancha"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="transition-all"
+                >
+                  <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                  <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  <path d="m9 14 2 2 4-4" />
+                </svg>
+                <span class="interest-detail-label">Pedir solucionario</span>
+              </button>
+            )
+          }
+
+          <!-- Save/Favorite Button -->
           <button
             id="favorite-btn"
             data-sheet-id={sheet.id}
@@ -176,7 +238,7 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
                 href={`/api/sheets/${sheet.id}/file?mode=download`}
                 data-exam-href={`/api/sheets/${sheet.id}/file?mode=download`}
                 data-solution-href={
-                  sheet.solution_kind === "pdf" && sheet.solution_storage_path
+                  solutionKind === "pdf" && sheet.solution_storage_path
                     ? `/api/sheets/${sheet.id}/file?mode=download&type=solution`
                     : ""
                 }
@@ -740,6 +802,11 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
 </script>
 
 <script is:inline define:vars={{ sheetId }}>
+  /*
+   * Registra automáticamente una vista al cargar la página
+   * usando sendBeacon (o fetch con keepalive como fallback),
+   * para que el contador se actualice incluso si el usuario navega inmediatamente.
+   */
   const DEVICE_STORAGE_KEY = "tw_device_id";
   const SHEET_ID = sheetId;
 
@@ -1114,4 +1181,266 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
   } else {
     initRatings();
   }
+</script>
+
+<script>
+  import { ensureDeviceId } from "../../lib/client/device";
+
+  /**
+   * Botón "Pedir solucionario".
+   *
+   * Guarda un estado local para mostrar una respuesta inmediata y
+   * lo sincroniza con la fuente de verdad almacenada en el servidor.
+   */
+  const INTEREST_STORAGE_KEY = "trikaweb:interests";
+
+  interface InterestResponse {
+    interested?: unknown;
+    interest_count?: unknown;
+    error?: unknown;
+  }
+
+  function getStoredInterests(): number[] {
+    try {
+      const stored = localStorage.getItem(INTEREST_STORAGE_KEY);
+
+      if (!stored) {
+        return [];
+      }
+
+      const parsed: unknown = JSON.parse(stored);
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      return parsed.filter(
+        (value): value is number => Number.isSafeInteger(value) && value > 0,
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  function isSheetInterested(id: number): boolean {
+    return getStoredInterests().includes(id);
+  }
+
+  function setLocalInterest(id: number, interested: boolean): void {
+    const interests = getStoredInterests();
+    const index = interests.indexOf(id);
+
+    if (interested && index === -1) {
+      interests.push(id);
+    } else if (!interested && index >= 0) {
+      interests.splice(index, 1);
+    }
+
+    localStorage.setItem(INTEREST_STORAGE_KEY, JSON.stringify(interests));
+  }
+
+  function applyDetailInterestState(
+    btn: HTMLButtonElement,
+    sheetId: number,
+  ): void {
+    const label = btn.querySelector(".interest-detail-label");
+    const svg = btn.querySelector("svg");
+    const isInterested = isSheetInterested(sheetId);
+
+    if (isInterested) {
+      if (label) {
+        label.textContent = "¡Solicitud enviada!";
+      }
+
+      svg?.setAttribute("fill", "currentColor");
+
+      btn.style.backgroundColor = "rgb(var(--global-primary))";
+      btn.style.color = "black";
+      btn.style.borderColor = "rgb(var(--global-primary))";
+
+      return;
+    }
+
+    if (label) {
+      label.textContent = "Pedir solucionario";
+    }
+
+    svg?.setAttribute("fill", "none");
+
+    btn.style.backgroundColor = "transparent";
+    btn.style.color = "rgb(var(--global-primary))";
+    btn.style.borderColor = "rgb(var(--global-primary))";
+  }
+
+  function initInterestButton(): void {
+    const element = document.getElementById("interest-btn");
+
+    if (!(element instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    const btn = element;
+
+    /*
+     * Evita añadir los listeners dos veces cuando se disparan
+     * DOMContentLoaded y astro:page-load sobre el mismo elemento.
+     */
+    if (btn.dataset.initialized === "true") {
+      return;
+    }
+
+    btn.dataset.initialized = "true";
+
+    const sheetId = Number(btn.dataset.sheetId);
+
+    if (!Number.isSafeInteger(sheetId) || sheetId <= 0) {
+      return;
+    }
+
+    const countDisplay = document.getElementById("interest-count-display");
+
+    applyDetailInterestState(btn, sheetId);
+
+    btn.disabled = true;
+    btn.setAttribute("aria-busy", "true");
+
+    let userInteracted = false;
+
+    /*
+     * Sincronizar localStorage con la base de datos.
+     * El botón permanece deshabilitado hasta terminar para evitar
+     * que una respuesta GET tardía sobrescriba un clic del usuario.
+     */
+    const initialDeviceId = ensureDeviceId();
+
+    fetch(
+      `/api/sheets/${sheetId}/interest?device_id=${encodeURIComponent(
+        initialDeviceId,
+      )}`,
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          return null;
+        }
+
+        return (await response.json()) as InterestResponse;
+      })
+      .then((result) => {
+        if (userInteracted) {
+          return;
+        }
+
+        if (!result || typeof result.interested !== "boolean") {
+          return;
+        }
+
+        setLocalInterest(sheetId, result.interested);
+        applyDetailInterestState(btn, sheetId);
+      })
+      .catch(() => {
+        // La sincronización inicial no debe bloquear la página.
+      })
+      .finally(() => {
+        if (!userInteracted && btn.dataset.pending !== "true") {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+        }
+      });
+
+    btn.addEventListener("mouseenter", () => {
+      if (!isSheetInterested(sheetId)) {
+        btn.style.backgroundColor = "rgb(var(--global-primary))";
+        btn.style.color = "black";
+      } else {
+        btn.style.backgroundColor = "rgb(var(--global-primary-hover))";
+      }
+    });
+
+    btn.addEventListener("mouseleave", () => {
+      applyDetailInterestState(btn, sheetId);
+    });
+
+    btn.addEventListener("click", async () => {
+      if (btn.dataset.pending === "true") {
+        return;
+      }
+
+      userInteracted = true;
+      btn.dataset.pending = "true";
+      btn.disabled = true;
+      btn.setAttribute("aria-busy", "true");
+
+      const wasInterested = isSheetInterested(sheetId);
+
+      // Actualización optimista.
+      setLocalInterest(sheetId, !wasInterested);
+      applyDetailInterestState(btn, sheetId);
+
+      btn.classList.add("scale-110");
+
+      window.setTimeout(() => {
+        btn.classList.remove("scale-110");
+      }, 200);
+
+      try {
+        const deviceId = ensureDeviceId();
+
+        const response = await fetch(`/api/sheets/${sheetId}/interest`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            device_id: deviceId,
+          }),
+        });
+
+        const result = (await response
+          .json()
+          .catch(() => null)) as InterestResponse | null;
+
+        if (!response.ok) {
+          setLocalInterest(sheetId, wasInterested);
+          applyDetailInterestState(btn, sheetId);
+
+          console.error(
+            "Error al registrar interés:",
+            typeof result?.error === "string" ? result.error : response.status,
+          );
+
+          return;
+        }
+
+        const interestCount = Number(result?.interest_count);
+
+        if (
+          typeof result?.interested !== "boolean" ||
+          !Number.isSafeInteger(interestCount) ||
+          interestCount < 0
+        ) {
+          throw new Error("Respuesta inválida del endpoint de intereses");
+        }
+
+        setLocalInterest(sheetId, result.interested);
+        applyDetailInterestState(btn, sheetId);
+
+        if (countDisplay) {
+          countDisplay.textContent = String(interestCount);
+        }
+      } catch (error) {
+        setLocalInterest(sheetId, wasInterested);
+        applyDetailInterestState(btn, sheetId);
+
+        console.error("Error al registrar interés:", error);
+      } finally {
+        btn.dataset.pending = "false";
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+      }
+    });
+  }
+
+  document.addEventListener("astro:page-load", initInterestButton);
+
+  document.addEventListener("DOMContentLoaded", initInterestButton);
 </script>

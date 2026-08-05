@@ -1,3 +1,4 @@
+-- Migración 9
 -- Ejecutar en el SQL Editor de Supabase
 -- Permite que todos los estudiantes puedan ver las reseñas de los profesores
 DROP POLICY IF EXISTS "ratings_select_all" ON public.teacher_ratings;

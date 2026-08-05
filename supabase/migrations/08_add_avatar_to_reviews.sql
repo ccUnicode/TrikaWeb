@@ -1,3 +1,4 @@
+-- Migración 8
 -- Dar permisos de lectura a student_details solo en columnas públicas
 GRANT SELECT (user_id, full_name, avatar_url, specialty) ON public.student_details TO anon, authenticated;
 

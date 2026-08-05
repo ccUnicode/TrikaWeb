@@ -17,6 +17,7 @@ const { user } = await getUserSession(Astro.cookies);
 const isLoggedIn = !!user;
 
 /**
+ * Página principal del sitio
  * Carga en paralelo los datos para las tres secciones del home:
  * - Planchas populares (más vistas)
  * - Planchas más difíciles (según votos)
@@ -526,11 +527,14 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
 </Layout>
 
 <script>
-  /**
-   * Controla el carrusel de cards con navegación por flechas, toque y dots.
-   * Se adapta responsive: 3 items en lg, 2 en sm, 1 en móvil.
-   * Crea dots indicadores en mobile y los sincroniza con la posición actual.
-   */
+  /*
+  Configura un carrusel paginado para una sección de cards.
+  Soporta:
+    - Navegación por botones (anterior/siguiente)
+    - Indicadores de puntos (mobile)
+    - Desplazamiento táctil (swipe)
+    - Recalculo en resize del viewport
+  */
   function setupCarousel(
     prevBtnId: string,
     nextBtnId: string,

@@ -1,4 +1,11 @@
 ---
+/*
+Página de detalle de un curso individual.
+Agrupa las planchas por tipo de examen (PC, EP, EF, etc.)
+y las ordena según un orden lógico predefinido.
+Cada grupo se muestra en una sección con carrusel responsivo
+y selector de ordenamiento por ciclo.
+*/
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import CardExam from "../../components/CardExam.astro";
@@ -28,7 +35,6 @@ course.sheets.forEach((sheet) => {
   sheetsByType[type].push(sheet);
 });
 
-// Define exam type order and labels
 const examTypeConfig: Record<string, string> = {
   PC1: "Práctica Calificada 1",
   PC2: "Práctica Calificada 2",
@@ -43,7 +49,6 @@ const examTypeConfig: Record<string, string> = {
   Otros: "Otros Exámenes",
 };
 
-// Sort types in logical order
 const typeOrder = [
   "PC1",
   "PC2",

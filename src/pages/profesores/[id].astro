@@ -1,4 +1,13 @@
 ---
+/*
+Página de perfil de un profesor.
+Muestra:
+  - Avatar, nombre y puntuación general
+  - Barras de estadísticas por dimensión (didáctica, dificultad, etc.)
+  - Cursos asociados
+  - Comentarios paginados
+  - Modal para calificar y botón para eliminar calificación propia
+*/
 export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
@@ -465,7 +474,7 @@ const toStudentAvatarUrl = (src?: string | null) => {
       console.error("Error verificando votación:", err);
     }
 
-    // Handler para eliminar calificación
+    /* Elimina la calificación del usuario y recarga la página */
     deleteBtn.addEventListener("click", async () => {
       if (
         !confirm(
@@ -501,7 +510,6 @@ const toStudentAvatarUrl = (src?: string | null) => {
           statusMsg.classList.add("text-green-500");
         }
 
-        // Recargar la página para actualizar estadísticas
         setTimeout(() => {
           window.location.reload();
         }, 1000);

@@ -5,6 +5,7 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
 /**
+ * POST /api/admin/pending-comments
  * Obtiene los comentarios pendientes de moderación (is_hidden = true).
  * Incluye datos del profesor asociado para facilitar la revisión.
  * Ordenados del más reciente al más antiguo.

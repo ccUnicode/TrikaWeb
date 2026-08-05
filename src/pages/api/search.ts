@@ -3,6 +3,7 @@ import type { APIRoute } from "astro";
 import { searchEntities } from "../../lib/data";
 
 /**
+ * GET /api/search?query=
  * Endpoint de búsqueda global para el autocomplete del header.
  * Retorna sugerencias de cursos, profesores y planchas formateadas
  * con texto visible, tipo y URL de destino.

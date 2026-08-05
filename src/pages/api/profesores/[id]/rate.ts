@@ -95,7 +95,6 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
     return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
   }
 
-  // Verificar si ya existe
   const { data: existing } = await supa
     .from('teacher_ratings')
     .select('id')
@@ -105,9 +104,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
 
   let error;
 
-  // IMPORTANT: is_hidden is always true on write to enforce moderation
   if (existing) {
-    // Actualizar
     const result = await supa
       .from('teacher_ratings')
       .update({
@@ -131,7 +128,6 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
 
     error = result.error;
   } else {
-    // Verificar límite de votos por IP para este profesor (Anti-spam)
     const { count, error: countError } = await supa
       .from('teacher_ratings')
       .select('id', { count: 'exact', head: true })
@@ -150,7 +146,6 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
       );
     }
 
-    // Insertar
     const result = await supa
       .from('teacher_ratings')
       .insert({
@@ -257,7 +252,6 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
   const deviceId = getUuidFromFirebaseUid(user.uid);
   const supa = supabaseAdmin;
 
-  // Verificar si existe la calificación antes de eliminarla
   const { data: existing } = await supa
     .from('teacher_ratings')
     .select('id')
@@ -269,7 +263,6 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
     return new Response(JSON.stringify({ error: 'No hay calificación para eliminar' }), { status: 404 });
   }
 
-  // Eliminar la calificación
   const { error } = await supa
     .from('teacher_ratings')
     .delete()
@@ -284,7 +277,6 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
     );
   }
 
-  // Obtener estadísticas actualizadas
   const { data: stats } = await supa
     .from('teachers')
     .select('avg_overall, rating_count')
