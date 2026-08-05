@@ -4,6 +4,7 @@ export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
+import SheetFeedback from "../../components/SheetFeedback.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 import { getUserSession } from "../../lib/auth";
 import { getVisibleSheetById } from "../../lib/server/getVisibleSheet";
@@ -194,9 +195,9 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                  <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
 
                 <span id="action-download-text">Descargar examen</span>
@@ -228,11 +229,11 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
                   stroke-linecap="round"
                   stroke-linejoin="round"
                 >
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="16" y1="13" x2="8" y2="13"></line>
-                  <line x1="16" y1="17" x2="8" y2="17"></line>
-                  <polyline points="10 9 9 9 8 9"></polyline>
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
                 </svg>
 
                 <span>Ver solucionario</span>
@@ -318,7 +319,8 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
       </div>
 
       <div
-        class="mx-auto max-w-4xl rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6"
+        id="rating-widget-container"
+        class="mx-auto max-w-4xl rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 transition-all duration-300"
       >
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -358,6 +360,16 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
           </div>
         </div>
       </div>
+
+      <!-- Sección de comentarios (Solo para solucionarios) -->
+      {
+        (solutionUrl ||
+          (sheet.solution_kind === "video" && sheet.solution_video_url)) && (
+          <div id="feedback-section" class="hidden transition-all duration-300">
+            <SheetFeedback sheetId={sheet.id} />
+          </div>
+        )
+      }
     </section>
   </main>
 </Layout>
@@ -398,6 +410,8 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
     ) as HTMLAnchorElement | null;
 
     const downloadText = document.getElementById("action-download-text");
+    const feedbackSection = document.getElementById("feedback-section");
+    const ratingWidget = document.getElementById("rating-widget-container");
 
     if (!iframe || !container || !imageViewer) {
       return;
@@ -497,6 +511,14 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
           examButton.classList.remove("hidden");
           examButton.classList.add("inline-flex");
         }
+
+        // Show feedback section and hide rating widget
+        if (feedbackSection) {
+          feedbackSection.classList.remove("hidden");
+        }
+        if (ratingWidget) {
+          ratingWidget.classList.add("hidden");
+        }
       });
     }
 
@@ -546,6 +568,14 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
         if (solutionButton) {
           solutionButton.classList.remove("hidden");
           solutionButton.classList.add("inline-flex");
+        }
+
+        // Hide feedback section and show rating widget
+        if (feedbackSection) {
+          feedbackSection.classList.add("hidden");
+        }
+        if (ratingWidget) {
+          ratingWidget.classList.remove("hidden");
         }
       });
     }
@@ -709,7 +739,7 @@ if (sheet.solution_kind === "pdf" && sheet.solution_storage_path) {
   document.addEventListener("DOMContentLoaded", initFavoriteButton);
 </script>
 
-<script define:vars={{ sheetId }}>
+<script is:inline define:vars={{ sheetId }}>
   const DEVICE_STORAGE_KEY = "tw_device_id";
   const SHEET_ID = sheetId;
 
