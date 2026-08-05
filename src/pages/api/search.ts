@@ -4,8 +4,10 @@ import { searchEntities } from "../../lib/data";
 
 /**
  * GET /api/search?query=
- * Autocomplete global: busca cursos, profesores y planchas.
- * Cada resultado se formatea con texto visible, tipo y URL de navegación.
+ * Endpoint de búsqueda global para el autocomplete del header.
+ * Retorna sugerencias de cursos, profesores y planchas formateadas
+ * con texto visible, tipo y URL de destino.
+ * Requiere al menos 2 caracteres para evitar consultas vacías.
  */
 export const GET: APIRoute = async ({ request }) => {
     const url = new URL(request.url);
@@ -21,6 +23,7 @@ export const GET: APIRoute = async ({ request }) => {
     try {
         const results = await searchEntities(query, 5);
 
+        // Formatea resultados para el autocomplete del frontend
         const suggestions = [
             ...results.courses.map(c => ({
                 text: `${c.code} - ${c.name}`,

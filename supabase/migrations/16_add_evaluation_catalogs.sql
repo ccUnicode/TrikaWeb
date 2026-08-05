@@ -1,4 +1,5 @@
--- Migración: agregar catálogos de evaluación y ciclos académicos
+-- Migración 16
+-- Agregar catálogos de evaluación y ciclos académicos
 -- Crea sistemas, subsistemas, tipos de evaluación, ponderaciones y ciclos.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 

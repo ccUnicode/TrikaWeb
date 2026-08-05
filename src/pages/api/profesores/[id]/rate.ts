@@ -1,21 +1,33 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getUuidFromFirebaseUid, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { getUserSession } from '../../../../lib/auth';
 // @ts-ignore
 import moderationConfig from "../../../../../config/moderation.json";
 
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
 /**
- * POST /api/profesores/:id/rate
  * Crea o actualiza una calificación de profesor.
- * Flujo: modera palabras clave → valida campos 1-5 → calcula overall → rate-limit por IP → anti-spam (3 votos/IP) → upsert con is_hidden=false
+ * - Calcula el overall automáticamente como promedio de las 5 dimensiones.
+ * - Valida contra palabras prohibidas (moderation.json).
+ * - Aplica rate limiting por IP y límite de 3 votos por IP por profesor.
+ * - Las calificaciones se crean visibles por defecto.
  */
-export const POST: APIRoute = async ({ params, request }) => {
+
+export const POST: APIRoute = async ({ params, request, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
   let body;
@@ -25,8 +37,9 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const { difficulty, didactic, resources, responsability, grading, comment } = body;
+  const { difficulty, didactic, resources, responsability, grading, comment, is_anonymous } = body;
 
+  // Revisar por palabras no permitidas
   if (comment) {
     const commentLower = comment.toLowerCase();
     const foundBadWord = bannedWords.find((word: string) => commentLower.includes(word));
@@ -57,15 +70,17 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
+  // Calcular overall automaticamente
   const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
-  }
-
+  const deviceId = getUuidFromFirebaseUid(user.uid);
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
+
+  // Set anonymity logic (defaults to true if undefined or null)
+  const isAnonymous = is_anonymous !== false;
+  const userName = user.name || user.email?.split('@')[0] || 'Estudiante';
+  const userEmail = user.email || '';
 
   const supa = supabaseAdmin;
 
@@ -101,7 +116,11 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
-        is_hidden: false,
+        is_anonymous: isAnonymous,
+        user_name: userName,
+        user_email: userEmail,
+        user_id: user.uid,
+        is_hidden: false, // Visible by default per user request (stars immediate)
         updated_at: new Date().toISOString()
       })
       .eq('teacher_id', teacherId)
@@ -140,7 +159,11 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
-        is_hidden: false,
+        is_anonymous: isAnonymous,
+        user_name: userName,
+        user_email: userEmail,
+        user_id: user.uid,
+        is_hidden: false, // Visible by default per user request
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
@@ -169,27 +192,32 @@ export const POST: APIRoute = async ({ params, request }) => {
 };
 
 /**
- * GET /api/profesores/:id/rate?device_id=
- * Verifica si el dispositivo ya votó por este profesor.
+ * Verifica si el dispositivo ya calificó a este profesor.
+ * Usado por el frontend para mostrar/ocultar el botón "Eliminar mi calificación".
  */
-export const GET: APIRoute = async ({ params, request }) => {
+export const GET: APIRoute = async ({ params, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  const url = new URL(request.url);
-  const deviceId = url.searchParams.get('device_id');
-
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({
+        hasVoted: false,
+        rating: null
+      }),
+      { status: 200 }
+    );
   }
 
+  const deviceId = getUuidFromFirebaseUid(user.uid);
   const supa = supabaseAdmin;
 
   const { data: existing } = await supa
     .from('teacher_ratings')
-    .select('id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at')
+    .select('id, overall, difficulty, didactic, resources, responsability, grading, comment, is_anonymous, created_at')
     .eq('teacher_id', teacherId)
     .eq('device_id', deviceId)
     .maybeSingle();
@@ -204,27 +232,24 @@ export const GET: APIRoute = async ({ params, request }) => {
 };
 
 /**
- * DELETE /api/profesores/:id/rate
- * Elimina la calificación del dispositivo.
+ * Elimina la calificación del dispositivo para este profesor.
+ * Verifica que exista antes de eliminar, luego retorna las stats actualizadas.
  */
-export const DELETE: APIRoute = async ({ params, request }) => {
+export const DELETE: APIRoute = async ({ params, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
-  }
-
+  const deviceId = getUuidFromFirebaseUid(user.uid);
   const supa = supabaseAdmin;
 
   const { data: existing } = await supa

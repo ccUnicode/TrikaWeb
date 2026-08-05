@@ -1,4 +1,5 @@
--- Migración: asegurar límites de escritura por IP
+-- Migración 27
+-- Asegurar límites de escritura por IP
 -- Reserva write_limits para el backend y evita que clientes alteren el rate limit.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 

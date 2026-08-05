@@ -1,4 +1,5 @@
--- Migración: agregar el seguimiento de interés en las planchas
+-- Migración 20
+-- Agregar el seguimiento de interés en las planchas
 -- Agrega el contador desnormalizado a sheets y crea sheet_interests.
 -- Es seguro ejecutarla sobre una base de datos existente.
 

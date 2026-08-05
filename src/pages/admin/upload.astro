@@ -11,6 +11,7 @@ Permite:
   - Visualizar planchas más solicitadas (intereses) y reiniciar contadores
 */
 import Layout from "../../layouts/Layout.astro";
+import AdminHeader from "../../components/AdminHeader.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
@@ -26,42 +27,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   <div class="min-h-screen py-8">
     <div class="mx-auto w-full max-w-3xl px-4">
       <!-- Header Section -->
-      <div class="mb-8 flex flex-row items-center justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-global-text">Panel de subida</h1>
-          <p class="mt-1 text-sm text-global-text-muted">
-            Sube PDFs de planchas y solucionarios
-          </p>
-        </div>
-        <div class="flex flex-row gap-4">
-          <a
-            href="/admin/teachers"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-          >
-            Profesores
-          </a>
-          <a
-            href="/admin/ratings"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-          >
-            Calificaciones
-          </a>
-          <a
-            href="/admin/moderation"
-            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
-          >
-            Moderar comentarios
-          </a>
-          <form action="/api/admin/logout" method="POST">
-            <button
-              type="submit"
-              class="rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-            >
-              Cerrar Sesión
-            </button>
-          </form>
-        </div>
-      </div>
+      <AdminHeader
+        title="Panel de subida"
+        description="Sube PDFs de planchas y solucionarios"
+      />
 
       <!-- Upload Form Card -->
       <section
@@ -83,6 +52,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
               </label>
               <div class="relative">
                 <input type="hidden" id="course-id" name="course_id" required />
+
                 <input
                   type="hidden"
                   id="course-code"
@@ -432,14 +402,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
                 class="hidden"
               />
             </div>
+
             <div>
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
                 for="solution-file"
               >
-                PDF del Solucionario <span class="text-global-text-muted"
-                  >(opcional)</span
-                >
+                PDF del Solucionario
+                <span class="text-global-text-muted">(opcional)</span>
               </label>
               <label
                 for="solution-file"
@@ -694,6 +664,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       - PDF.js para generar miniatura de la 1ª página
       - Subida secuencial: upload-url → miniatura → Storage → metadatos DB
     */
+    import * as pdfjsLib from "pdfjs-dist";
+    import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
     const syncAllBtn = document.getElementById("sync-all-btn");
@@ -736,13 +710,13 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
         if (data.ok) {
           if (syncMessage)
-            syncMessage.textContent = "✅ Sincronización completada";
+            syncMessage.textContent = "Sincronización completada";
         } else {
           if (syncMessage)
-            syncMessage.textContent = `⚠️ ${data.error || "Error desconocido"}`;
+            syncMessage.textContent = `${data.error || "Error desconocido"}`;
         }
       } catch (err) {
-        if (syncMessage) syncMessage.textContent = `❌ Error de red: ${err}`;
+        if (syncMessage) syncMessage.textContent = `Error de red: ${err}`;
       } finally {
         // Re-enable buttons
         [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
@@ -1096,6 +1070,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     const evaluationComboboxContainer = document.getElementById(
       "evaluation-combobox-container",
     );
+
     const courseDropdown = document.getElementById(
       "course-dropdown",
     ) as HTMLUListElement;
@@ -1438,6 +1413,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       evaluationsAbortController?.abort();
 
       const filtered = filterCourses(courseSearchInput.value);
+
       renderCourseDropdown(filtered);
       courseDropdown?.classList.remove("hidden");
     });
@@ -1552,29 +1528,11 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       loadCourseOptions();
     });
 
-    // Load PDF.js dynamically
-    async function loadPdfJs() {
-      if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
-      return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-        script.onload = () => {
-          const pdfjsLib = (window as any).pdfjsLib;
-          pdfjsLib.GlobalWorkerOptions.workerSrc =
-            "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-          resolve(pdfjsLib);
-        };
-        script.onerror = reject;
-        document.head.appendChild(script);
-      });
-    }
-
     async function generatePdfThumbnail(file: File): Promise<Blob | null> {
       try {
-        const pdfjsLib = await loadPdfJs();
         const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
         const page = await pdf.getPage(1);
 
         // Adjust scale as needed for quality vs size (1.5 gives good resolution)
@@ -1587,7 +1545,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         canvas.height = viewport.height;
         canvas.width = viewport.width;
 
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({canvas, canvasContext: ctx, viewport,}).promise;
 
         return new Promise((resolve) => {
           canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
@@ -1743,6 +1701,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         );
 
         teacherSearchInput?.focus();
+
         return;
       }
 
@@ -1951,7 +1910,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         }
 
         // Success!
-        setUploadUI(`✅ ${regData.message}`, 100, false);
+        setUploadUI(`${regData.message}`, 100, false);
         uploadForm.reset();
         if (fileNameEl) fileNameEl.textContent = "Sin archivo";
         if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
@@ -1982,7 +1941,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         setTimeout(() => resetUploadUI(), 4000);
       } catch (err) {
         console.error("Upload error:", err);
-        setUploadUI(`❌ Error de red: ${err}`, 0, false);
+        setUploadUI(`Error de red: ${err}`, 0, false);
         submitBtn?.removeAttribute("disabled");
       }
     });
@@ -2050,8 +2009,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           interest_count: number;
           solution_kind: string | null;
           courses:
-            | { code: string; name: string }
-            | { code: string; name: string }[];
+            { code: string; name: string } | { code: string; name: string }[];
         }
 
         // Render the list

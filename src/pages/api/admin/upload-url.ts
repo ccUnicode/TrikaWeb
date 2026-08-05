@@ -41,6 +41,11 @@ const RESOURCE_KINDS: ResourceKind[] = ["PLANCHA", "SOLUCIONARIO", "AMBOS"];
 const isPositiveInteger = (value: number): boolean =>
   Number.isSafeInteger(value) && value > 0;
 
+/**
+ * Genera una URL firmada para que el navegador suba PDFs directamente
+ * a Supabase Storage, evitando el límite de 4.5 MB del body en Vercel.
+ * La ruta de almacenamiento se construye como: {courseCode}/{examType}/{cycle}.pdf
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const isAdmin = await validateAdminSession(cookies);
 
@@ -182,7 +187,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
      */
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
-      .select("id, code")
+      .select("id, code, status")
       .eq("id", courseId)
       .maybeSingle();
 
@@ -208,6 +213,22 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         },
         {
           status: 404,
+        },
+      );
+    }
+
+    const courseStatus = String(course.status ?? "")
+      .trim()
+      .toUpperCase();
+
+    if (courseStatus !== "COMPLETO") {
+      return Response.json(
+        {
+          ok: false,
+          error: "Solo se puede subir material a cursos con estado COMPLETO",
+        },
+        {
+          status: 409,
         },
       );
     }

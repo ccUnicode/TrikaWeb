@@ -6,7 +6,8 @@ import { validateAdminSession } from '../../../lib/adminAuth';
 
 /**
  * POST /api/admin/toggle-teacher
- * Cambia la visibilidad (is_hidden) de un profesor.
+ * Cambia la visibilidad de un profesor (mostrar/ocultar en páginas públicas).
+ * Útil para ocultar profesores inactivos o duplicados sin eliminar sus datos.
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {

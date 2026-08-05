@@ -1,4 +1,5 @@
--- Migración: agregar evaluaciones configurables por curso
+-- Migración 18
+-- Agregar evaluaciones configurables por curso
 -- Relaciona cursos con evaluaciones y crea los RPC administrativos de alta y edición.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 

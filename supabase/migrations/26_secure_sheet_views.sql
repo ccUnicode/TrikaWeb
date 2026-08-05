@@ -1,4 +1,5 @@
--- Migración: asegurar visualizaciones y descargas de planchas
+-- Migración 26
+-- Asegurar visualizaciones y descargas de planchas
 -- Retira acceso directo y mantiene view_count mediante trigger backend.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 

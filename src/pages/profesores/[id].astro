@@ -13,6 +13,10 @@ import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
 import TeacherAvatar from "../../components/TeacherAvatar.astro";
 import { getTeacherDetail } from "../../lib/data";
+import { getUserSession } from "../../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
 
 const teacherId = Number(Astro.params.id);
 const page = Number(Astro.url.searchParams.get("page") ?? 1);
@@ -69,6 +73,10 @@ const formatDate = (iso: string) => {
   });
 };
 
+/**
+ * Define el color de la barra de estadística según el puntaje:
+ * 0-2: Rojo (Malo), 2-3: Naranja (Regular), 3-4: Amarillo (Bueno), 4-5: Verde (Excelente)
+ */
 const getBarColor = (value: number | null): string => {
   if (value === null || value === undefined) return "#6B7280";
   if (value <= 2.0) return "#EF4444";
@@ -82,6 +90,7 @@ const safeBio =
     ? detail.teacher.bio
     : "Sin descripción disponible.";
 
+/** Construye la URL pública del avatar desde Supabase Storage o usa el fallback */
 const toAvatarUrl = (src?: string | null) => {
   const fallback = "/img/fallback_teacher.jpeg";
   const cleanSrc = (src || "").trim();
@@ -93,6 +102,16 @@ const toAvatarUrl = (src?: string | null) => {
   return `${base}/storage/v1/object/public/avatars/${clean}`;
 };
 const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
+
+const toStudentAvatarUrl = (src?: string | null) => {
+  const cleanSrc = (src || "").trim();
+  if (!cleanSrc) return null;
+  if (cleanSrc.startsWith("http")) return cleanSrc;
+  const base = import.meta.env.PUBLIC_SUPABASE_URL;
+  if (!base) return null;
+  const clean = cleanSrc.replace(/^\/+/, "");
+  return `${base}/storage/v1/object/public/avatars/${clean}`;
+};
 ---
 
 <Layout title={`Profesor ${detail.teacher.full_name}`}>
@@ -139,6 +158,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
           <button
             id="open-rating-modal"
             type="button"
+            data-is-logged-in={isLoggedIn ? "true" : "false"}
             class="rounded-2xl bg-global-primary text-black font-semibold text-center py-3 hover:bg-global-primary-hover transition cursor-pointer"
           >
             Califica al profesor
@@ -264,13 +284,33 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
                       class="rounded-xl border border-global-border-subtle px-4 py-3 space-y-2"
                       style="background-color: #2A3240;"
                     >
-                      {" "}
                       <header class="flex items-center justify-between text-sm">
-                        <div class="leading-tight">
-                          <span class="font-semibold block">Anonimo</span>
-                          <time class="text-[11px] text-global-text-muted/80">
-                            {formatDate(review.created_at)}
-                          </time>
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 flex-shrink-0 rounded-full border border-global-border bg-global-background overflow-hidden flex items-center justify-center">
+                            {(!review.is_anonymous && toStudentAvatarUrl(review.avatar_url)) ? (
+                              <img src={toStudentAvatarUrl(review.avatar_url)} class="w-full h-full object-cover" />
+                            ) : (
+                              <svg class="w-4 h-4 text-global-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            )}
+                          </div>
+                          <div class="leading-tight">
+                            <span class="font-semibold block">
+                              {review.is_anonymous === false ? (
+                                review.user_id ? (
+                                  <a href={`/profile/${review.user_id}`} class="hover:text-global-primary transition-colors">
+                                    {review.user_name || "Estudiante"}
+                                  </a>
+                                ) : (
+                                  review.user_name || "Estudiante"
+                                )
+                              ) : (
+                                "Anónimo"
+                              )}
+                            </span>
+                            <time class="text-[11px] text-global-text-muted/80">
+                              {formatDate(review.created_at)}
+                            </time>
+                          </div>
                         </div>
                         <span class="text-global-text-muted font-semibold">
                           {formatScore(review.overall)}
@@ -378,7 +418,14 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
   const modal = document.getElementById("rating-modal");
   const closeBtn = document.getElementById("close-rating-modal");
 
-  const openModal = () => modal?.classList.remove("hidden");
+  const openModal = () => {
+    const logged = openBtn?.dataset.isLoggedIn === "true";
+    if (!logged) {
+      window.location.href = "/login?redirect=" + encodeURIComponent(window.location.pathname);
+      return;
+    }
+    modal?.classList.remove("hidden");
+  };
   const closeModal = () => modal?.classList.add("hidden");
 
   openBtn?.addEventListener("click", openModal);
@@ -392,9 +439,12 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
 </script>
 
 <script>
-  import { ensureDeviceId } from "../../lib/client/device";
-
-  /* Verifica si el usuario ya calificó y muestra el botón de eliminar */
+  /**
+   * Gestiona el flujo de eliminación de calificación:
+   * 1. Consulta si el usuario ya votó (GET /api/profesores/:id/rate?device_id=...)
+   * 2. Si ya votó, muestra el botón "Eliminar mi calificación"
+   * 3. Al hacer clic, envía DELETE y recarga la página con stats actualizadas
+   */
   const initDeleteRating = async () => {
     const deleteBtn = document.getElementById(
       "delete-rating-btn",
@@ -406,11 +456,13 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
     const teacherId = deleteBtn.dataset.teacherId;
     if (!teacherId) return;
 
-    const deviceId = ensureDeviceId();
+    const logged = document.getElementById("open-rating-modal")?.dataset.isLoggedIn === "true";
+    if (!logged) return;
 
+    // Consulta si el usuario ya votó para mostrar/ocultar el botón de eliminar
     try {
       const response = await fetch(
-        `/api/profesores/${teacherId}/rate?device_id=${deviceId}`,
+        `/api/profesores/${teacherId}/rate`
       );
       if (response.ok) {
         const data = await response.json();
@@ -438,8 +490,7 @@ const avatarUrl = toAvatarUrl(detail.teacher.avatar_url);
       try {
         const response = await fetch(`/api/profesores/${teacherId}/rate`, {
           method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_id: deviceId }),
+          headers: { "Content-Type": "application/json" }
         });
 
         if (!response.ok) {

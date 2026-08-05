@@ -1,12 +1,4 @@
-﻿---
-/*
-Página principal del sitio.
-Carga 3 secciones asíncronas:
-  - Planchas más visitadas (getTopSheetsByViews)
-  - Planchas más difíciles (getTopSheetsByDifficulty)
-  - Profesores mejor calificados (getTopTeachers)
-Cada sección usa un carrusel con soporte táctil e indicadores de puntos.
-*/
+---
 export const prerender = false;
 import "../styles/global.css";
 import Layout from "../layouts/Layout.astro";
@@ -18,7 +10,19 @@ import {
   getTopSheetsByViews,
   getTopTeachers,
 } from "../lib/data";
+import { getUserSession } from "../lib/auth";
 
+const { user } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
+
+/**
+ * Página principal del sitio
+ * Carga en paralelo los datos para las tres secciones del home:
+ * - Planchas populares (más vistas)
+ * - Planchas más difíciles (según votos)
+ * - Profesores mejor calificados
+ * La página depende completamente de estos conjuntos.
+ */
 const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
   getTopSheetsByViews(6),
   getTopSheetsByDifficulty(6, 1),
@@ -166,7 +170,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                             {courseCode}
                           </a>
                         )}
-                        <CardExam sheet={sheet} />
+                        <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                       </article>
                     );
                   })
@@ -275,7 +279,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
                             {courseCode}
                           </a>
                         )}
-                        <CardExam sheet={sheet} />
+                        <CardExam sheet={sheet} isLoggedIn={isLoggedIn} />
                       </article>
                     );
                   })
@@ -456,7 +460,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
     if (items.length === 0) return;
 
-    // Create dot indicators
+    /** Crea indicadores (dots) visibles solo en móvil para navegación directa */
     let dotsContainer: HTMLElement | null = null;
     if (carousel) {
       dotsContainer = document.createElement('div');
@@ -475,11 +479,11 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       carousel.parentElement?.appendChild(dotsContainer);
     }
 
+    /** Actualiza la vista: muestra solo los items de la página actual y sincroniza dots/botones */
     function updateCarousel() {
       const itemsPerPage = getItemsPerPage();
       const maxIndex = getMaxIndex();
       
-      // Clamp currentIndex
       if (currentIndex > maxIndex) currentIndex = maxIndex;
       if (currentIndex < 0) currentIndex = 0;
 
@@ -492,7 +496,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         }
       });
 
-      // Update dots - all visible, active one is green
+      /** Sincroniza los dots indicadores con la posición actual */
       if (dotsContainer) {
         const dots = dotsContainer.querySelectorAll('button');
         dots.forEach((dot, index) => {
@@ -515,7 +519,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
         });
       }
 
-      // Disable buttons at boundaries (desktop)
+      /** Deshabilita visualmente los botones en los extremos del carrusel */
       if (prevBtn) {
         prevBtn.classList.toggle("opacity-50", currentIndex === 0);
         prevBtn.classList.toggle("cursor-not-allowed", currentIndex === 0);
@@ -529,7 +533,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       }
     }
 
-    // Arrow button handlers
+    /** Navegación con flechas */
     prevBtn?.addEventListener("click", () => {
       if (currentIndex > 0) {
         currentIndex--;
@@ -544,7 +548,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       }
     });
 
-    // Touch/swipe support
+    /** Soporte para deslizar con el dedo en móviles */
     if (carousel) {
       let touchStartX = 0;
       let touchEndX = 0;
@@ -560,11 +564,11 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
 
         if (Math.abs(swipeDistance) > minSwipeDistance) {
           if (swipeDistance < 0 && currentIndex < getMaxIndex()) {
-            // Swipe left - next
+            // Deslizó a la izquierda → siguiente
             currentIndex++;
             updateCarousel();
           } else if (swipeDistance > 0 && currentIndex > 0) {
-            // Swipe right - prev
+            // Deslizó a la derecha → anterior
             currentIndex--;
             updateCarousel();
           }
@@ -572,7 +576,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
       }, { passive: true });
     }
 
-    // Handle resize
+    /** Recalcula al redimensionar la ventana (cambia items por página) */
     window.addEventListener('resize', () => {
       updateCarousel();
     });
@@ -580,7 +584,7 @@ const [planchasPopulares, planchasDificiles, topTeachers] = await Promise.all([
     updateCarousel();
   }
 
-  // Initialize carousels on page load
+  /** Inicializa los tres carruseles al cargar la página */
   document.addEventListener("DOMContentLoaded", () => {
     const popularItems = document.querySelectorAll(".carousel-item-popular");
     const difficultItems = document.querySelectorAll(

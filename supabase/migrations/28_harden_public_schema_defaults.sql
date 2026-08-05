@@ -1,4 +1,5 @@
--- Migración: endurecer privilegios predeterminados del esquema public
+-- Migración 28
+-- Endurecer privilegios predeterminados del esquema public
 -- Evita que objetos nuevos queden accesibles por defecto desde roles cliente.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 

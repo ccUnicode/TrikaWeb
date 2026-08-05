@@ -163,7 +163,25 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   let body: Record<string, unknown>;
 
   try {
-    body = (await request.json()) as Record<string, unknown>;
+    const parsedBody: unknown = await request.json();
+
+    if (
+      typeof parsedBody !== "object" ||
+      parsedBody === null ||
+      Array.isArray(parsedBody)
+    ) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Body JSON inválido",
+        },
+        {
+          status: 400,
+        },
+      );
+    }
+
+    body = parsedBody as Record<string, unknown>;
   } catch {
     return Response.json(
       {
@@ -291,7 +309,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
      */
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
-      .select("id, code")
+      .select("id, code, status")
       .eq("id", courseId)
       .maybeSingle();
 
@@ -317,6 +335,23 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         },
         {
           status: 404,
+        },
+      );
+    }
+
+    const courseStatus = String(course.status ?? "")
+      .trim()
+      .toUpperCase();
+
+    if (courseStatus !== "COMPLETO") {
+      return Response.json(
+        {
+          ok: false,
+          error:
+            "Solo se puede registrar material para cursos con estado COMPLETO",
+        },
+        {
+          status: 409,
         },
       );
     }

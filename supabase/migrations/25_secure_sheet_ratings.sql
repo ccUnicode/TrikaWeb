@@ -1,4 +1,5 @@
--- Migración: asegurar calificaciones de dificultad de planchas
+-- Migración 25
+-- Asegurar calificaciones de dificultad de planchas
 -- Retira acceso directo, mantiene métricas por trigger y evita exponer IP o dispositivo.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 

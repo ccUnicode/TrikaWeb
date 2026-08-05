@@ -6,8 +6,9 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 
 /**
  * POST /api/admin/pending-comments
- * Retorna todos los comentarios ocultos (is_hidden=true) en teacher_ratings
- * que requieren aprobación del moderador.
+ * Obtiene los comentarios pendientes de moderación (is_hidden = true).
+ * Incluye datos del profesor asociado para facilitar la revisión.
+ * Ordenados del más reciente al más antiguo.
  */
 export const POST: APIRoute = async ({ cookies }) => {
     const isValid = await validateAdminSession(cookies);
@@ -18,6 +19,7 @@ export const POST: APIRoute = async ({ cookies }) => {
         );
     }
 
+    // Obtiene comentarios ocultos con info del profesor
     const { data, error } = await supabaseAdmin
         .from("teacher_ratings")
         .select(`
@@ -26,6 +28,9 @@ export const POST: APIRoute = async ({ cookies }) => {
       comment,
       created_at,
       teacher_id,
+      is_anonymous,
+      user_name,
+      user_email,
       teachers (
         id,
         full_name

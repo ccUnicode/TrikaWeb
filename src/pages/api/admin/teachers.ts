@@ -6,8 +6,8 @@ import { validateAdminSession } from '../../../lib/adminAuth';
 
 /**
  * POST /api/admin/teachers
- * Lista paginada de profesores (incluye ocultos) para el panel admin.
- * Soporta búsqueda por nombre o bio.
+ * Obtiene profesores para el panel de administración con paginación y búsqueda.
+ * A diferencia de la query pública, incluye profesores ocultos (is_hidden).
  */
 export const POST: APIRoute = async ({ request, cookies }) => {
     try {

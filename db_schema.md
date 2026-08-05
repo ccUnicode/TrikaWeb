@@ -1,7 +1,5 @@
 # Esquema BD TrikaWeb
 
-Schema extraído de Supabase (public).
-
 ## Tablas del Negocio
 
 ### courses
@@ -14,7 +12,8 @@ Schema extraído de Supabase (public).
 | is_hidden | boolean | SI | |
 | system_id | integer | NO | |
 | subsystem_id | integer | SI | |
-| sumilla | text | SI | |
+| status | text | NO | `INCOMPLETO` |
+| summary | text | SI | |
 | is_elective | boolean | SI | |
 | avg_difficulty | numeric | SI | |
 
@@ -234,15 +233,6 @@ Schema extraído de Supabase (public).
 | admin_notes | text | SI |
 | created_at | timestamptz | NO |
 | updated_at | timestamptz | NO |
-
-### sheet_interests
-| Columna | Tipo | Nulo |
-|---------|------|------|
-| id | bigint PK | NO |
-| sheet_id | bigint FK | NO |
-| device_id | uuid | NO |
-| ip_hash | text | NO |
-| created_at | timestamptz | NO |
 
 ## Tablas Auxiliares
 

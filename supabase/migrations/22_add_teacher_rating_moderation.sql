@@ -1,4 +1,5 @@
--- Migración: agregar moderación y anonimato a valoraciones de docentes
+-- Migración 22
+-- Agregar moderación y anonimato a valoraciones de docentes
 -- Amplía las valoraciones, recalcula estadísticas aprobadas y protege datos personales.
 -- Diseñada para ejecutarse sobre el schema original entregado al equipo.
 
@@ -128,6 +129,51 @@ set
       and tr.is_hidden = false
       and coalesce(tr.needs_review, true) = false
   );
+
+
+-- La vista pública creada en la migración 14 debe excluir también
+-- las reseñas que todavía requieren moderación.
+drop view if exists public.public_teacher_ratings;
+
+create view public.public_teacher_ratings as
+select
+  rating.id,
+  rating.teacher_id,
+  rating.overall,
+  rating.difficulty,
+  rating.didactic,
+  rating.resources,
+  rating.responsability,
+  rating.grading,
+  rating.comment,
+  rating.created_at,
+  rating.is_hidden,
+  rating.is_anonymous,
+  case
+    when rating.is_anonymous then null
+    else rating.user_id
+  end as user_id,
+  case
+    when rating.is_anonymous then 'Anónimo'
+    else rating.user_name
+  end as user_name,
+  case
+    when rating.is_anonymous then null
+    else student.avatar_url
+  end as avatar_url
+from public.teacher_ratings as rating
+left join public.student_details as student
+  on student.user_id = rating.user_id
+where rating.is_hidden = false
+  and coalesce(rating.needs_review, true) = false;
+
+revoke all privileges
+on table public.public_teacher_ratings
+from public, anon, authenticated;
+
+grant select
+on table public.public_teacher_ratings
+to anon, authenticated;
 
 alter table public.teacher_ratings enable row level security;
 
