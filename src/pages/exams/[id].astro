@@ -13,6 +13,7 @@ export const prerender = false;
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 import SheetRating from "../../components/SheetRating.astro";
+import SheetFeedback from "../../components/SheetFeedback.astro";
 import { supabaseAdmin } from "../../lib/supabaseAdmin";
 import { getUserSession } from "../../lib/auth";
 import { getVisibleSheetById } from "../../lib/server/getVisibleSheet";
@@ -380,7 +381,8 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
       </div>
 
       <div
-        class="mx-auto max-w-4xl rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6"
+        id="rating-widget-container"
+        class="mx-auto max-w-4xl rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 transition-all duration-300"
       >
         <div class="space-y-4">
           <div class="flex items-center justify-between">
@@ -420,6 +422,16 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
           </div>
         </div>
       </div>
+
+      <!-- Sección de comentarios (Solo para solucionarios) -->
+      {
+        (solutionUrl ||
+          (sheet.solution_kind === "video" && sheet.solution_video_url)) && (
+          <div id="feedback-section" class="hidden transition-all duration-300">
+            <SheetFeedback sheetId={sheet.id} />
+          </div>
+        )
+      }
     </section>
   </main>
 </Layout>
@@ -460,6 +472,8 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
     ) as HTMLAnchorElement | null;
 
     const downloadText = document.getElementById("action-download-text");
+    const feedbackSection = document.getElementById("feedback-section");
+    const ratingWidget = document.getElementById("rating-widget-container");
 
     if (!iframe || !container || !imageViewer) {
       return;
@@ -559,6 +573,14 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
           examButton.classList.remove("hidden");
           examButton.classList.add("inline-flex");
         }
+
+        // Show feedback section and hide rating widget
+        if (feedbackSection) {
+          feedbackSection.classList.remove("hidden");
+        }
+        if (ratingWidget) {
+          ratingWidget.classList.add("hidden");
+        }
       });
     }
 
@@ -608,6 +630,14 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
         if (solutionButton) {
           solutionButton.classList.remove("hidden");
           solutionButton.classList.add("inline-flex");
+        }
+
+        // Hide feedback section and show rating widget
+        if (feedbackSection) {
+          feedbackSection.classList.add("hidden");
+        }
+        if (ratingWidget) {
+          ratingWidget.classList.remove("hidden");
         }
       });
     }
@@ -771,8 +801,8 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
   document.addEventListener("DOMContentLoaded", initFavoriteButton);
 </script>
 
-<script define:vars={{ sheetId }}>
-  /**
+<script is:inline define:vars={{ sheetId }}>
+  **
    * Registra automáticamente una vista al cargar la página
    * usando sendBeacon (o fetch con keepalive como fallback),
    * para que el contador se actualice incluso si el usuario navega inmediatamente.
