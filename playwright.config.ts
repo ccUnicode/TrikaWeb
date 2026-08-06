@@ -11,11 +11,13 @@ export default defineConfig({
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
   },
-  // Solo levantamos el servidor si tenemos credenciales de Supabase
-  webServer: process.env.SUPABASE_URL ? {
-    command: 'npm run dev',
+  // Levantamos el servidor siempre para pruebas E2E UI. Si no hay credenciales, inyectamos unas falsas.
+  webServer: {
+    command: process.env.SUPABASE_URL 
+      ? 'npm run dev' 
+      : 'npx cross-env SUPABASE_URL=http://localhost:54321 SUPABASE_ANON_KEY=dummy SUPABASE_SERVICE_KEY=dummy npm run dev',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
-  } : undefined,
+  },
 });

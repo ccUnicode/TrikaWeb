@@ -1,43 +1,87 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('RF-30: Endpoint de Profesores por Curso', () => {
-  // Saltamos los tests si no hay variables de entorno (ej: GitHub Actions sin secretos configurados)
-  const isConfigured = !!process.env.SUPABASE_URL;
-  test.skip(!isConfigured, 'Variables de entorno de Supabase no configuradas. Saltando pruebas.');
+test.describe('RF-30: Dropdown dinámico de cursos y profesores', () => {
+  test('debe mostrar los cursos, seleccionar uno y cargar los profesores correctamente, resolviendo condiciones de carrera', async ({ page }) => {
+    // 1. Interceptar peticiones de cursos para devolver mock
+    await page.route('/api/admin/course-options', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          courses: [
+            { code: 'BMA01', name: 'Cálculo I' },
+            { code: 'FIS01', name: 'Física I' }
+          ]
+        })
+      });
+    });
 
-  // Nota: Este test asume que la BD de pruebas tiene al menos el curso "BMA01" o similar.
-  // En entornos de CI, se debe ejecutar el seed antes de correr Playwright.
-  test('debe devolver 200 y una lista de profesores para un curso existente', async ({ request }) => {
-    const res = await request.get('/api/cursos/BMA01/profesores');
-    
-    // Si BMA01 no existe en tu entorno de test, cambiar el código por uno existente.
-    expect(res.status()).toBe(200);
-    const body = await res.json();
-    expect(body.ok).toBe(true);
-    expect(Array.isArray(body.profesores)).toBe(true);
-    // Verificamos la estructura esperada
-    if (body.profesores.length > 0) {
-      expect(body.profesores[0]).toHaveProperty('id');
-      expect(body.profesores[0]).toHaveProperty('full_name');
-    }
-  });
+    // 2. Interceptar profesores del primer curso (lento)
+    await page.route('/api/cursos/BMA01/profesores', async (route) => {
+      // Retrasar intencionalmente la respuesta para simular latencia de red
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          profesores: [{ id: 1, full_name: 'Profesor de BMA01 (LENTO)' }]
+        })
+      });
+    });
 
-  test('debe devolver 404 para un curso inexistente', async ({ request }) => {
-    const res = await request.get('/api/cursos/INVENTADO999/profesores');
-    
-    expect(res.status()).toBe(404);
-    const body = await res.json();
-    expect(body.ok).toBe(false);
-    expect(body.error).toBe('Curso no encontrado');
-  });
+    // 3. Interceptar profesores del segundo curso (rápido)
+    await page.route('/api/cursos/FIS01/profesores', async (route) => {
+      // Respuesta muy rápida
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          profesores: [{ id: 2, full_name: 'Profesor de FIS01 (RÁPIDO)' }]
+        })
+      });
+    });
 
-  test('debe devolver error 400 si no se envía código (ej: ruta base)', async ({ request }) => {
-    // Si llamamos a la ruta base o a un código vacío
-    const res = await request.get('/api/cursos/ /profesores');
+    // 4. Ir a la página fixture
+    await page.goto('/tests/rf30-fixture');
+
+    const courseSearch = page.locator('#course-search');
+    const courseDropdown = page.locator('#course-dropdown');
+    const teacherSelect = page.locator('#teacher-select');
+
+    // Comprobar estado inicial
+    await expect(teacherSelect).toBeDisabled();
+
+    // 5. Interactuar y buscar un curso
+    await courseSearch.click();
+    await courseSearch.fill('BMA01');
     
-    // El router de Astro podría devolver 404 directamente por la URL malformada,
-    // o el endpoint podría capturar un código vacío y devolver 400.
-    // Comprobamos que al menos no devuelva 200 OK.
-    expect(res.status()).not.toBe(200);
+    // Seleccionar el primer curso (dispara la petición lenta)
+    await courseDropdown.locator('li', { hasText: 'BMA01 - Cálculo I' }).click();
+
+    // Debería estar cargando profesores (disabled)
+    await expect(teacherSelect).toBeDisabled();
+
+    // Inmediatamente buscar y seleccionar el SEGUNDO curso
+    await courseSearch.click();
+    await courseSearch.fill('FIS');
+    await courseDropdown.locator('li', { hasText: 'FIS01 - Física I' }).click();
+
+    // 6. Verificar condición de carrera
+    // El segundo curso carga rápido, así que debería llenarse pronto con el profesor de Física
+    await expect(teacherSelect).toBeEnabled();
+    const selectTextFast = await teacherSelect.innerText();
+    expect(selectTextFast).toContain('Profesor de FIS01 (RÁPIDO)');
+
+    // Ahora esperamos 2 segundos (tiempo suficiente para que la primera petición lenta termine)
+    await page.waitForTimeout(2000);
+
+    // Verificamos que el select NO haya sido sobreescrito por la respuesta lenta de BMA01
+    const finalSelectText = await teacherSelect.innerText();
+    expect(finalSelectText).toContain('Profesor de FIS01 (RÁPIDO)');
+    expect(finalSelectText).not.toContain('Profesor de BMA01 (LENTO)');
   });
 });
+

@@ -16,11 +16,11 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const { data: sheet } = await supa
     .from("sheets")
-    .select("exam_storage_path, solution_storage_path, exam_type, cycle, courses:course_id(code)")
+    .select("exam_storage_path, solution_storage_path, exam_type, cycle, is_hidden, courses:course_id(code)")
     .eq("id", id)
     .single();
 
-  if (!sheet) return new Response("Not found", { status: 404 });
+  if (!sheet || sheet.is_hidden) return new Response("Not found", { status: 404 });
 
   const storagePath = type === "solution" ? sheet?.solution_storage_path : sheet?.exam_storage_path;
   const bucket = type === "solution" ? "solutions" : "exams";
