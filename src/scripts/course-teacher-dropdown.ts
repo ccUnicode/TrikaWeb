@@ -129,10 +129,17 @@ export function initCourseTeacherDropdown() {
 
   // ── RF-30: Teacher dropdown functions ──
   function resetTeacherDropdown() {
+    // Cancelar cualquier petición de profesores en vuelo para evitar que
+    // una respuesta tardía sobreescriba el estado limpio del selector.
+    if (teacherFetchAbortCtrl) {
+      teacherFetchAbortCtrl.abort();
+      teacherFetchAbortCtrl = null;
+    }
     if (teacherSelect) {
       teacherSelect.innerHTML = '<option value="">-- Ingresa un curso primero --</option>';
       teacherSelect.disabled = true;
     }
+    teacherLoading?.classList.add("hidden");
     lastFetchedTeacherCode = "";
   }
 

@@ -83,5 +83,63 @@ test.describe('RF-30: Dropdown dinámico de cursos y profesores', () => {
     expect(finalSelectText).toContain('Profesor de FIS01 (RÁPIDO)');
     expect(finalSelectText).not.toContain('Profesor de BMA01 (LENTO)');
   });
-});
 
+  test('editar el texto sin seleccionar otro curso debe cancelar la petición pendiente', async ({ page }) => {
+    // 1. Mock de cursos
+    await page.route('/api/admin/course-options', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          courses: [
+            { code: 'BMA01', name: 'Cálculo I' },
+            { code: 'FIS01', name: 'Física I' }
+          ]
+        })
+      });
+    });
+
+    // 2. Mock de profesores con retraso largo
+    await page.route('/api/cursos/BMA01/profesores', async (route) => {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          profesores: [{ id: 1, full_name: 'Profesor Fantasma' }]
+        })
+      });
+    });
+
+    await page.goto('/tests/rf30-fixture');
+
+    const courseSearch = page.locator('#course-search');
+    const courseDropdown = page.locator('#course-dropdown');
+    const teacherSelect = page.locator('#teacher-select');
+
+    // Seleccionar un curso (dispara la petición lenta)
+    await courseSearch.click();
+    await courseSearch.fill('BMA01');
+    await courseDropdown.locator('li', { hasText: 'BMA01 - Cálculo I' }).click();
+    await expect(teacherSelect).toBeDisabled();
+
+    // El usuario edita el texto SIN seleccionar otro curso → resetTeacherDropdown() se dispara
+    await courseSearch.click();
+    await courseSearch.fill('xyz');
+
+    // El selector debe estar limpio y deshabilitado
+    await expect(teacherSelect).toBeDisabled();
+    const text = await teacherSelect.innerText();
+    expect(text).toContain('-- Ingresa un curso primero --');
+
+    // Esperamos a que la petición lenta hubiera terminado
+    await page.waitForTimeout(2500);
+
+    // Verificamos que el selector NO fue sobreescrito por la respuesta tardía
+    const finalText = await teacherSelect.innerText();
+    expect(finalText).toContain('-- Ingresa un curso primero --');
+    expect(finalText).not.toContain('Profesor Fantasma');
+  });
+});
