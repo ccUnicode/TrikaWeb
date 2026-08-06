@@ -12,7 +12,9 @@ A medida que el proyecto TrikaWeb crece en funcionalidades (rutas de API, consul
 * **TypeScript**: Un superconjunto tipado de JavaScript que compila a JavaScript puro. Integración nativa con Astro y el ecosistema moderno.
 
 ## Decisión
-Se eligió **TypeScript** como lenguaje principal de programación para toda la lógica del cliente y el servidor (endpoints de la API) en TrikaWeb.
+Se eligió **TypeScript** como el lenguaje principal y estándar de programación para toda la lógica nueva del cliente y el servidor (endpoints de la API) en TrikaWeb.
+
+> **Nota**: Existen algunas excepciones heredadas en JavaScript puro, como `firebase/firebaseConfig.js` (configuración de Firebase) y `public/sw.js` (Service Worker). Estos archivos se mantienen en JS por compatibilidad, pero todo el código nuevo debe escribirse en TypeScript.
 
 ## Consecuencias
 * **Positivas**: 
