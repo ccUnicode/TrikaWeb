@@ -1,29 +1,18 @@
 // src/pages/api/cursos/index.ts
-// Devuelve cursos filtrados por query para el autocomplete.
-// Acepta ?q= para filtrar por código o nombre usando ilike en BD.
-// Sin query, devuelve los primeros 30 cursos ordenados por código.
+// Devuelve la lista de todos los cursos (código + nombre) para el autocomplete.
 
 export const prerender = false;
 
 import type { APIRoute } from "astro";
 import { supabaseClient } from "../../../lib/supabase.client";
 
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async () => {
   try {
-    const q = (url.searchParams.get("q") ?? "").trim();
-
-    let query = supabaseClient
+    const { data, error } = await supabaseClient
       .from("courses")
       .select("id, code, name")
       .order("code", { ascending: true })
-      .limit(30);
-
-    if (q) {
-      // Filtrar por código o nombre en la BD (accent-insensitive gracias a ilike)
-      query = query.or(`code.ilike.%${q}%,name.ilike.%${q}%`);
-    }
-
-    const { data, error } = await query;
+      .limit(500);
 
     if (error) {
       console.error("Error obteniendo cursos:", error);
@@ -33,14 +22,9 @@ export const GET: APIRoute = async ({ url }) => {
       );
     }
 
-    const headers = {
-      "Content-Type": "application/json",
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=3600",
-    };
-
     return new Response(
       JSON.stringify({ ok: true, cursos: data || [] }),
-      { status: 200, headers }
+      { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Error inesperado en /api/cursos:", err);

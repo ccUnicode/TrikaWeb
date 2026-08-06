@@ -9,32 +9,72 @@ if (!isAdmin) {
 }
 ---
 
-<Layout title="Moderar Comentarios | TrikaWeb Admin">
+<Layout title="Moderación | TrikaWeb Admin">
     <div class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-3xl px-4">
+        <div class="mx-auto w-full max-w-4xl px-4">
             <!-- Header Section -->
             <AdminHeader 
-                title="Moderar Comentarios" 
-                description="Aprueba o rechaza comentarios de profesores" 
+                title="Moderación" 
+                description="Revisa, aprueba u oculta comentarios y calificaciones" 
             />
 
-            <!-- Comments Section -->
-            <section id="comments-section">
-                <!-- Stats -->
-                <div class="mb-4 flex items-center justify-between">
-                    <p class="text-sm text-global-text-muted">
-                        <span
-                            id="pending-count"
-                            class="font-semibold text-global-text">0</span
-                        > comentarios pendientes
-                    </p>
+            <!-- Filters Section -->
+            <div class="mb-6 space-y-3">
+                <!-- Category Tabs -->
+                <div class="flex gap-1 rounded-xl bg-global-bg p-1 border border-global-border">
                     <button
-                        id="refresh-btn"
+                        id="tab-teachers"
                         type="button"
-                        class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+                        class="mod-tab flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer"
+                        data-category="teachers"
                     >
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            Profesores
+                            <span id="badge-teachers" class="hidden ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">0</span>
+                        </span>
+                    </button>
+                    <button
+                        id="tab-sheets"
+                        type="button"
+                        class="mod-tab flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer"
+                        data-category="sheets"
+                    >
+                        <span class="flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Planchas
+                            <span id="badge-sheets" class="hidden ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full min-w-[18px] text-center">0</span>
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Status Tabs + Search -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex gap-1 rounded-lg bg-global-bg p-1 border border-global-border sm:w-auto">
+                        <button
+                            id="status-pending"
+                            type="button"
+                            class="status-tab rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
+                            data-status="pending"
+                        >
+                            Pendientes
+                        </button>
+                        <button
+                            id="status-all"
+                            type="button"
+                            class="status-tab rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
+                            data-status="all"
+                        >
+                            Historial
+                        </button>
+                    </div>
+                    <div class="relative flex-1">
                         <svg
-                            class="w-4 h-4"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-global-text-muted"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -43,180 +83,690 @@ if (!isAdmin) {
                                 stroke-linecap="round"
                                 stroke-linejoin="round"
                                 stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            ></path>
+                        </svg>
+                        <input
+                            id="search-input"
+                            type="text"
+                            placeholder="Buscar..."
+                            class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+                        />
+                    </div>
+                    <button
+                        id="refresh-btn"
+                        type="button"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-global-border bg-global-card px-3 py-2 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+                        title="Actualizar"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
                                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                             ></path>
                         </svg>
-                        Actualizar
                     </button>
                 </div>
+            </div>
 
-                <!-- Comments List -->
-                <div id="comments-list" class="space-y-4">
-                    <!-- Comments will be inserted here -->
-                </div>
+            <!-- Results Info -->
+            <div class="mb-4 flex items-center justify-between">
+                <p class="text-sm text-global-text-muted">
+                    <span id="total-count" class="font-semibold text-global-text">0</span>
+                    <span id="count-label"> registros</span>
+                </p>
+            </div>
 
-                <!-- Empty State -->
-                <div
-                    id="empty-state"
-                    class="hidden rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+            <!-- Items List -->
+            <div id="items-list" class="space-y-4">
+                <!-- Items will be inserted here -->
+            </div>
+
+            <!-- Pagination -->
+            <div
+                id="pagination"
+                class="hidden flex items-center justify-center gap-4 py-6"
+            >
+                <button
+                    id="prev-btn"
+                    type="button"
+                    class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                    <svg
-                        class="mx-auto w-12 h-12 text-global-text-muted mb-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="1.5"
-                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                    </svg>
-                    <p class="text-global-text font-medium">¡Todo limpio!</p>
-                    <p class="text-sm text-global-text-muted mt-1">
-                        No hay comentarios pendientes de moderación
-                    </p>
-                </div>
-
-                <!-- Loading State -->
-                <div
-                    id="loading-state"
-                    class="rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+                    ← Anterior
+                </button>
+                <span id="page-info" class="text-sm text-global-text-muted">
+                    Página 1 de 1
+                </span>
+                <button
+                    id="next-btn"
+                    type="button"
+                    class="rounded-lg border border-global-border bg-global-card px-4 py-2 text-sm text-global-text transition hover:bg-global-border disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
-                    <div
-                        class="animate-spin h-8 w-8 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-3"
-                    >
-                    </div>
-                    <p class="text-sm text-global-text-muted">
-                        Cargando comentarios...
-                    </p>
+                    Siguiente →
+                </button>
+            </div>
+
+            <!-- Empty State -->
+            <div
+                id="empty-state"
+                class="hidden rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+            >
+                <svg
+                    class="mx-auto w-12 h-12 text-global-text-muted mb-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.5"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                </svg>
+                <p id="empty-title" class="text-global-text font-medium">¡Todo limpio!</p>
+                <p id="empty-subtitle" class="text-sm text-global-text-muted mt-1">
+                    No hay elementos pendientes de moderación
+                </p>
+            </div>
+
+            <!-- Loading State -->
+            <div
+                id="loading-state"
+                class="rounded-2xl bg-global-surface border border-global-border p-8 text-center"
+            >
+                <div
+                    class="animate-spin h-8 w-8 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-3"
+                >
                 </div>
-            </section>
+                <p class="text-sm text-global-text-muted">
+                    Cargando...
+                </p>
+            </div>
+            <!-- Generic Confirmation Modal -->
+            <div
+              id="admin-confirm-modal"
+              class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+            >
+              <div class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300" id="admin-confirm-modal-box">
+                <h3 id="admin-modal-title" class="text-lg font-bold text-global-text mb-2">Confirmar</h3>
+                <p id="admin-modal-body" class="text-global-text-muted text-sm mb-6">¿Desea continuar?</p>
+                <div class="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    id="admin-modal-cancel"
+                    class="rounded-xl border border-global-border bg-global-card px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    id="admin-modal-confirm"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold transition cursor-pointer text-white"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const commentsList = document.getElementById("comments-list");
+        // ── State ──
+        let currentCategory: "teachers" | "sheets" = "teachers";
+        let currentStatus: "pending" | "all" = "pending";
+        let currentPage = 1;
+        let currentSearch = "";
+        const pageSize = 15;
+
+        // ── DOM ──
+        const itemsList = document.getElementById("items-list");
         const emptyState = document.getElementById("empty-state");
+        const emptyTitle = document.getElementById("empty-title");
+        const emptySubtitle = document.getElementById("empty-subtitle");
         const loadingState = document.getElementById("loading-state");
-        const pendingCount = document.getElementById("pending-count");
+        const totalCount = document.getElementById("total-count");
+        const countLabel = document.getElementById("count-label");
+        const pagination = document.getElementById("pagination");
+        const prevBtn = document.getElementById("prev-btn") as HTMLButtonElement;
+        const nextBtn = document.getElementById("next-btn") as HTMLButtonElement;
+        const pageInfo = document.getElementById("page-info");
+        const searchInput = document.getElementById("search-input") as HTMLInputElement;
         const refreshBtn = document.getElementById("refresh-btn");
 
-        interface PendingComment {
-            id: number;
-            grading: number;
-            comment: string;
-            created_at: string;
-            teacher_id: string;
-            teachers: {
-                id: string;
-                full_name: string;
-            } | null;
+        // Modal
+        const adminModal = document.getElementById("admin-confirm-modal");
+        const adminModalBox = document.getElementById("admin-confirm-modal-box");
+        const adminModalTitle = document.getElementById("admin-modal-title");
+        const adminModalBody = document.getElementById("admin-modal-body");
+        const adminModalCancel = document.getElementById("admin-modal-cancel");
+        const adminModalConfirm = document.getElementById("admin-modal-confirm") as HTMLButtonElement;
+
+        let confirmActionCb: (() => void) | null = null;
+
+        function showAdminModal(title: string, body: string, btnText: string, btnClass: string, actionCb: () => void) {
+            if (adminModalTitle) adminModalTitle.textContent = title;
+            if (adminModalBody) adminModalBody.textContent = body;
+            if (adminModalConfirm) {
+                adminModalConfirm.textContent = btnText;
+                adminModalConfirm.className = `rounded-xl px-4 py-2 text-sm font-semibold transition cursor-pointer ${btnClass}`;
+            }
+            confirmActionCb = actionCb;
+            
+            adminModal?.classList.remove("opacity-0", "pointer-events-none");
+            adminModalBox?.classList.remove("scale-95");
+            adminModalBox?.classList.add("scale-100");
         }
 
-        async function loadComments() {
+        function hideAdminModal() {
+            adminModal?.classList.add("opacity-0", "pointer-events-none");
+            adminModalBox?.classList.remove("scale-100");
+            adminModalBox?.classList.add("scale-95");
+            confirmActionCb = null;
+        }
+
+        adminModalCancel?.addEventListener("click", hideAdminModal);
+        adminModalConfirm?.addEventListener("click", () => {
+            if (confirmActionCb) {
+                confirmActionCb();
+                hideAdminModal();
+            }
+        });
+
+        // Tabs
+        const tabTeachers = document.getElementById("tab-teachers");
+        const tabSheets = document.getElementById("tab-sheets");
+        const statusPending = document.getElementById("status-pending");
+        const statusAll = document.getElementById("status-all");
+
+        // Badges
+        const badgeTeachers = document.getElementById("badge-teachers");
+        const badgeSheets = document.getElementById("badge-sheets");
+
+        // ── Tab styling ──
+        function updateCategoryTabs() {
+            [tabTeachers, tabSheets].forEach((tab) => {
+                const cat = tab?.getAttribute("data-category");
+                if (cat === currentCategory) {
+                    tab?.classList.add("bg-global-surface", "text-global-text", "shadow-sm");
+                    tab?.classList.remove("text-global-text-muted", "hover:text-global-text");
+                } else {
+                    tab?.classList.remove("bg-global-surface", "text-global-text", "shadow-sm");
+                    tab?.classList.add("text-global-text-muted", "hover:text-global-text");
+                }
+            });
+        }
+
+        function updateStatusTabs() {
+            [statusPending, statusAll].forEach((tab) => {
+                const st = tab?.getAttribute("data-status");
+                if (st === currentStatus) {
+                    tab?.classList.add("bg-global-surface", "text-global-text", "shadow-sm");
+                    tab?.classList.remove("text-global-text-muted");
+                } else {
+                    tab?.classList.remove("bg-global-surface", "text-global-text", "shadow-sm");
+                    tab?.classList.add("text-global-text-muted");
+                }
+            });
+        }
+
+        // ── Load data ──
+        let activeAbortController: AbortController | null = null;
+
+        async function loadItems(page: number = 1) {
+            // Cancel any in-flight request before starting a new one
+            if (activeAbortController) {
+                activeAbortController.abort();
+            }
+            const controller = new AbortController();
+            activeAbortController = controller;
+
+            currentPage = page;
+
+            // Snapshot the filters at call time so we can verify on response
+            const snapshotCategory = currentCategory;
+            const snapshotStatus = currentStatus;
+
             loadingState?.classList.remove("hidden");
             emptyState?.classList.add("hidden");
-            if (commentsList) commentsList.innerHTML = "";
+            pagination?.classList.add("hidden");
+            if (itemsList) itemsList.innerHTML = "";
 
             try {
                 const res = await fetch("/api/admin/pending-comments", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
-                    body: JSON.stringify({}),
+                    signal: controller.signal,
+                    body: JSON.stringify({
+                        category: snapshotCategory,
+                        status: snapshotStatus,
+                        page,
+                        pageSize,
+                        search: currentSearch,
+                    }),
                 });
 
-                const data = await res.json();
+                // If filters changed while we were waiting, discard this response
+                if (controller.signal.aborted) return;
 
-                if (!data.ok) {
-                    throw new Error(data.error || "Error desconocido");
+                const data = await res.json();
+                if (!data.ok) throw new Error(data.error || "Error desconocido");
+
+                // Double-check: if user switched tabs during json parsing, bail out
+                if (snapshotCategory !== currentCategory || snapshotStatus !== currentStatus) return;
+
+                const items = data.items ?? [];
+                const pag = data.pagination;
+
+                if (totalCount) totalCount.textContent = String(pag.total);
+                if (countLabel) {
+                    const label = snapshotStatus === "pending" ? " pendientes" : " registros";
+                    countLabel.textContent = label;
                 }
 
-                const comments: PendingComment[] = data.comments ?? [];
-
-                if (pendingCount)
-                    pendingCount.textContent = String(comments.length);
-
-                if (comments.length === 0) {
+                if (items.length === 0) {
+                    if (emptyTitle) {
+                        emptyTitle.textContent = snapshotStatus === "pending"
+                            ? "¡Todo limpio!"
+                            : "Sin resultados";
+                    }
+                    if (emptySubtitle) {
+                        emptySubtitle.textContent = snapshotStatus === "pending"
+                            ? "No hay elementos pendientes de moderación"
+                            : "No se encontraron registros";
+                    }
                     emptyState?.classList.remove("hidden");
                 } else {
-                    renderComments(comments);
+                    if (snapshotCategory === "teachers") {
+                        renderTeacherItems(items);
+                    } else {
+                        renderSheetItems(items);
+                    }
+
+                    if (pag.totalPages > 1) {
+                        pagination?.classList.remove("hidden");
+                        if (pageInfo) pageInfo.textContent = `Página ${pag.page} de ${pag.totalPages}`;
+                        if (prevBtn) prevBtn.disabled = pag.page <= 1;
+                        if (nextBtn) nextBtn.disabled = pag.page >= pag.totalPages;
+                    }
                 }
             } catch (err: any) {
-                console.error("Error loading comments:", err);
-                if (commentsList) {
-                    commentsList.innerHTML = `<div class="text-center text-red-400 p-4">${err.message}</div>`;
+                // Silently ignore aborted requests — they are intentional
+                if (err.name === "AbortError") return;
+                console.error("Error loading items:", err);
+                if (itemsList) {
+                    itemsList.innerHTML = `<div class="text-center text-red-400 p-4">${err.message}</div>`;
                 }
             } finally {
-                loadingState?.classList.add("hidden");
+                // Only hide loading if this is still the active request
+                if (activeAbortController === controller) {
+                    loadingState?.classList.add("hidden");
+                }
             }
         }
 
-        function renderComments(comments: PendingComment[]) {
-            if (!commentsList) return;
+        // ── Render teacher items ──
+        function renderTeacherItems(items: any[]) {
+            if (!itemsList) return;
+            itemsList.innerHTML = items.map((item) => {
+                const date = new Date(item.created_at).toLocaleDateString("es-PE", {
+                    day: "numeric", month: "short", year: "numeric",
+                    hour: "2-digit", minute: "2-digit",
+                });
+                const stars = "★".repeat(Math.round(item.overall)) + "☆".repeat(5 - Math.round(item.overall));
+                const reviewBadge = item.needs_review
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">Pendiente</span>'
+                    : '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Revisado</span>';
+                const hiddenBadge = item.is_hidden
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
+                    : '';
+                const table = "teacher_ratings";
 
-            commentsList.innerHTML = comments
-                .map((c) => {
-                    const teacherName =
-                        c.teachers?.full_name ?? "Profesor desconocido";
-                    const date = new Date(c.created_at).toLocaleDateString(
-                        "es-PE",
-                        {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        },
-                    );
-                    const stars =
-                        "★".repeat(c.grading) + "☆".repeat(5 - c.grading);
+                return `
+                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? 'ring-1 ring-amber-500/20' : ''}" data-item-id="${item.id}">
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <a href="/profesores/${item.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">${escapeHtml(item.teacher_name)}</a>
+                                    ${reviewBadge}
+                                    ${hiddenBadge}
+                                </div>
+                                <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-yellow-400 text-sm">${stars}</span>
+                                <span class="text-xs text-global-text-muted">(${item.overall.toFixed(1)})</span>
+                            </div>
+                        </div>
 
-                    return `
-          <div class="rounded-2xl bg-global-surface border border-global-border p-5" data-comment-id="${c.id}">
-            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-              <div>
-                <a href="/profesores/${c.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">
-                  ${teacherName}
-                </a>
-                <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-yellow-400 text-sm">${stars}</span>
-                <span class="text-xs text-global-text-muted">(${c.grading}/5)</span>
-              </div>
-            </div>
-            <p class="text-sm text-global-text bg-global-bg rounded-lg p-3 border border-global-border mb-4">
-              ${c.comment ? escapeHtml(c.comment) : '<span class="text-global-text-muted italic">Sin comentario</span>'}
-            </p>
-            <div class="flex gap-2 justify-end">
-              <button
-                type="button"
-                onclick="rejectComment(${c.id})"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-                Rechazar
-              </button>
-              <button
-                type="button"
-                onclick="approveComment(${c.id})"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-                Aprobar
-              </button>
-            </div>
-          </div>
-        `;
-                })
-                .join("");
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-5 gap-2 text-xs text-center mb-3">
+                            <div class="bg-global-bg rounded-lg p-2">
+                                <p class="text-global-text-muted">Dific.</p>
+                                <p class="font-semibold text-global-text">${item.difficulty}</p>
+                            </div>
+                            <div class="bg-global-bg rounded-lg p-2">
+                                <p class="text-global-text-muted">Didác.</p>
+                                <p class="font-semibold text-global-text">${item.didactic}</p>
+                            </div>
+                            <div class="bg-global-bg rounded-lg p-2">
+                                <p class="text-global-text-muted">Recurs.</p>
+                                <p class="font-semibold text-global-text">${item.resources}</p>
+                            </div>
+                            <div class="bg-global-bg rounded-lg p-2">
+                                <p class="text-global-text-muted">Resp.</p>
+                                <p class="font-semibold text-global-text">${item.responsability}</p>
+                            </div>
+                            <div class="bg-global-bg rounded-lg p-2">
+                                <p class="text-global-text-muted">Calif.</p>
+                                <p class="font-semibold text-global-text">${item.grading}</p>
+                            </div>
+                        </div>
+
+                        ${item.comment
+                            ? `<p class="text-sm text-global-text bg-global-bg rounded-lg p-3 border border-global-border mb-4">${escapeHtml(item.comment)}</p>`
+                            : '<p class="text-sm text-global-text-muted italic mb-4">Sin comentario</p>'}
+
+                        <div class="flex gap-2 justify-end flex-wrap">
+                            ${item.needs_review ? `
+                                <button type="button" onclick="approveItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Revisado
+                                </button>
+                            ` : ''}
+                            ${!item.is_hidden ? `
+                                <button type="button" onclick="hideItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-orange-600/20 border border-orange-600/30 px-4 py-2 text-sm font-medium text-orange-400 transition hover:bg-orange-600/30 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                                    </svg>
+                                    Ocultar
+                                </button>
+                            ` : `
+                                <button type="button" onclick="unhideItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-600/30 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Mostrar
+                                </button>
+                            `}
+                            <button type="button" onclick="deleteItem(${item.id}, '${table}')"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ── Render sheet items ──
+        function renderSheetItems(items: any[]) {
+            if (!itemsList) return;
+            itemsList.innerHTML = items.map((item) => {
+                const date = new Date(item.created_at).toLocaleDateString("es-PE", {
+                    day: "numeric", month: "short", year: "numeric",
+                    hour: "2-digit", minute: "2-digit",
+                });
+                const stars = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
+                const reviewBadge = item.needs_review
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">Pendiente</span>'
+                    : '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Revisado</span>';
+                const hiddenBadge = item.is_hidden
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
+                    : '';
+                const table = "sheet_feedback";
+
+                return `
+                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? 'ring-1 ring-amber-500/20' : ''}" data-item-id="${item.id}">
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                            <div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <a href="/exams/${item.sheet_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">${escapeHtml(item.sheet_label)}</a>
+                                    ${reviewBadge}
+                                    ${hiddenBadge}
+                                </div>
+                                <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="text-yellow-400 text-sm">${stars}</span>
+                                <span class="text-xs text-global-text-muted">(${item.stars}/5)</span>
+                            </div>
+                        </div>
+
+                        ${item.content
+                            ? `<p class="text-sm text-global-text bg-global-bg rounded-lg p-3 border border-global-border mb-4">${escapeHtml(item.content)}</p>`
+                            : '<p class="text-sm text-global-text-muted italic mb-4">Sin comentario</p>'}
+
+                        <div class="flex gap-2 justify-end flex-wrap">
+                            ${item.needs_review ? `
+                                <button type="button" onclick="approveItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Revisado
+                                </button>
+                            ` : ''}
+                            ${!item.is_hidden ? `
+                                <button type="button" onclick="hideItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-orange-600/20 border border-orange-600/30 px-4 py-2 text-sm font-medium text-orange-400 transition hover:bg-orange-600/30 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                                    </svg>
+                                    Ocultar
+                                </button>
+                            ` : `
+                                <button type="button" onclick="unhideItem(${item.id}, '${table}')"
+                                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-600/30 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Mostrar
+                                </button>
+                            `}
+                            <button type="button" onclick="deleteItem(${item.id}, '${table}')"
+                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        // ── Actions ──
+        (window as any).approveItem = async function (id: number, table: string) {
+            const card = document.querySelector(`[data-item-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/approve-comment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ rating_id: id, table }),
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    if (currentStatus === "pending") {
+                        card?.remove();
+                        updateCount(-1);
+                    } else {
+                        loadItems(currentPage);
+                    }
+                    loadCounts();
+                } else {
+                    alert("Error: " + (data.error ?? "No se pudo aprobar"));
+                    if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                }
+            } catch {
+                alert("Error de red");
+                if (card) card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        (window as any).hideItem = async function (id: number, table: string) {
+            const card = document.querySelector(`[data-item-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/hide-comment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ rating_id: id, table }),
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    if (currentStatus === "pending") {
+                        card?.remove();
+                        updateCount(-1);
+                    } else {
+                        loadItems(currentPage);
+                    }
+                    loadCounts();
+                } else {
+                    alert("Error: " + (data.error ?? "No se pudo ocultar"));
+                    if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                }
+            } catch {
+                alert("Error de red");
+                if (card) card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        (window as any).deleteItem = function (id: number, table: string) {
+            showAdminModal("¿Eliminar permanentemente?", "Esta acción no se puede deshacer.", "Eliminar", "bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20", async () => {
+                const card = document.querySelector(`[data-item-id="${id}"]`);
+                if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+                try {
+                    const res = await fetch("/api/admin/delete-rating", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        credentials: "include",
+                        body: JSON.stringify({ rating_id: id, table }),
+                    });
+                    const data = await res.json();
+
+                    if (data.ok) {
+                        card?.remove();
+                        updateCount(-1);
+                        loadCounts();
+                    } else {
+                        alert("Error: " + (data.error ?? "No se pudo eliminar"));
+                        if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                    }
+                } catch {
+                    alert("Error de red");
+                    if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                }
+            });
+        };
+
+        (window as any).unhideItem = async function (id: number, table: string) {
+            const card = document.querySelector(`[data-item-id="${id}"]`);
+            if (card) card.classList.add("opacity-50", "pointer-events-none");
+
+            try {
+                const res = await fetch("/api/admin/unhide-comment", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ recordId: id, table }),
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    loadItems(currentPage);
+                    loadCounts();
+                } else {
+                    alert("Error: " + (data.error ?? "No se pudo mostrar"));
+                    if (card) card.classList.remove("opacity-50", "pointer-events-none");
+                }
+            } catch {
+                alert("Error de red");
+                if (card) card.classList.remove("opacity-50", "pointer-events-none");
+            }
+        };
+
+        // ── Counts & Badges ──
+        async function loadCounts() {
+            try {
+                const res = await fetch("/api/admin/moderation-counts", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({}),
+                });
+                const data = await res.json();
+
+                if (data.ok) {
+                    if (badgeTeachers) {
+                        badgeTeachers.textContent = String(data.teachers);
+                        if (data.teachers > 0) {
+                            badgeTeachers.classList.remove("hidden");
+                        } else {
+                            badgeTeachers.classList.add("hidden");
+                        }
+                    }
+                    if (badgeSheets) {
+                        badgeSheets.textContent = String(data.sheets);
+                        if (data.sheets > 0) {
+                            badgeSheets.classList.remove("hidden");
+                        } else {
+                            badgeSheets.classList.add("hidden");
+                        }
+                    }
+                }
+            } catch {
+                // Silently ignore badge errors
+            }
+        }
+
+        // ── Helpers ──
+        function updateCount(delta: number) {
+            if (!totalCount) return;
+            const current = parseInt(totalCount.textContent ?? "0", 10);
+            const newCount = Math.max(0, current + delta);
+            totalCount.textContent = String(newCount);
+
+            // Actualizar la paginación dinámicamente
+            const totalPages = Math.ceil(newCount / pageSize) || 1;
+            if (pageInfo) pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
+            if (prevBtn) prevBtn.disabled = currentPage <= 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+
+            if (newCount === 0) {
+                emptyState?.classList.remove("hidden");
+                pagination?.classList.add("hidden");
+            } else if (itemsList && itemsList.children.length === 0 && currentPage > 1) {
+                // Si borramos el último elemento de esta página, retrocedemos a la anterior
+                loadItems(currentPage - 1);
+            }
         }
 
         function escapeHtml(text: string): string {
@@ -225,90 +775,53 @@ if (!isAdmin) {
             return div.innerHTML;
         }
 
-        (window as any).approveComment = async function (id: number) {
-            const card = document.querySelector(`[data-comment-id="${id}"]`);
-            if (card) card.classList.add("opacity-50", "pointer-events-none");
+        // ── Event Listeners ──
+        tabTeachers?.addEventListener("click", () => {
+            currentCategory = "teachers";
+            currentPage = 1;
+            updateCategoryTabs();
+            loadItems(1);
+        });
 
-            try {
-                const res = await fetch("/api/admin/approve-comment", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({
-                        rating_id: id,
-                    }),
-                });
+        tabSheets?.addEventListener("click", () => {
+            currentCategory = "sheets";
+            currentPage = 1;
+            updateCategoryTabs();
+            loadItems(1);
+        });
 
-                const data = await res.json();
+        statusPending?.addEventListener("click", () => {
+            currentStatus = "pending";
+            currentPage = 1;
+            updateStatusTabs();
+            loadItems(1);
+        });
 
-                if (data.ok) {
-                    card?.remove();
-                    updateCount(-1);
-                } else {
-                    alert("Error: " + (data.error ?? "No se pudo aprobar"));
-                    if (card)
-                        card.classList.remove(
-                            "opacity-50",
-                            "pointer-events-none",
-                        );
-                }
-            } catch {
-                alert("Error de red");
-                if (card)
-                    card.classList.remove("opacity-50", "pointer-events-none");
-            }
-        };
+        statusAll?.addEventListener("click", () => {
+            currentStatus = "all";
+            currentPage = 1;
+            updateStatusTabs();
+            loadItems(1);
+        });
 
-        (window as any).rejectComment = async function (id: number) {
-            if (!confirm("¿Eliminar este comentario permanentemente?")) return;
+        refreshBtn?.addEventListener("click", () => loadItems(currentPage));
+        prevBtn?.addEventListener("click", () => loadItems(currentPage - 1));
+        nextBtn?.addEventListener("click", () => loadItems(currentPage + 1));
 
-            const card = document.querySelector(`[data-comment-id="${id}"]`);
-            if (card) card.classList.add("opacity-50", "pointer-events-none");
+        // Search
+        let searchTimeout: ReturnType<typeof setTimeout>;
+        searchInput?.addEventListener("input", () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearch = searchInput.value.trim();
+                loadItems(1);
+            }, 400);
+        });
 
-            try {
-                const res = await fetch("/api/admin/hide-comment", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    credentials: "include",
-                    body: JSON.stringify({
-                        rating_id: id,
-                    }),
-                });
-
-                const data = await res.json();
-
-                if (data.ok) {
-                    card?.remove();
-                    updateCount(-1);
-                } else {
-                    alert("Error: " + (data.error ?? "No se pudo rechazar"));
-                    if (card)
-                        card.classList.remove(
-                            "opacity-50",
-                            "pointer-events-none",
-                        );
-                }
-            } catch {
-                alert("Error de red");
-                if (card)
-                    card.classList.remove("opacity-50", "pointer-events-none");
-            }
-        };
-
-        function updateCount(delta: number) {
-            if (!pendingCount) return;
-            const current = parseInt(pendingCount.textContent ?? "0", 10);
-            const newCount = Math.max(0, current + delta);
-            pendingCount.textContent = String(newCount);
-
-            if (newCount === 0) {
-                emptyState?.classList.remove("hidden");
-            }
-        }
-
-        refreshBtn?.addEventListener("click", () => loadComments());
-
-        // Load comments on page load
-        loadComments();
+        // ── Init ──
+        updateCategoryTabs();
+        updateStatusTabs();
+        loadCounts();
+        loadItems(1);
     </script>
 </Layout>

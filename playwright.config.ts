@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
@@ -11,6 +11,12 @@ export default defineConfig({
     baseURL: 'http://localhost:4321',
     trace: 'on-first-retry',
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
   // Levantamos el servidor siempre para pruebas E2E UI.
   // Si no hay credenciales reales, inyectamos valores dummy para que Astro arranque.
   webServer: {
@@ -24,6 +30,7 @@ export default defineConfig({
       SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY || 'dummy-service-key',
       PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL || 'http://localhost:54321',
       PUBLIC_SUPABASE_ANON_KEY: process.env.PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key',
+      ASTRO_DEV_BACKGROUND: '0',
     },
   },
 });

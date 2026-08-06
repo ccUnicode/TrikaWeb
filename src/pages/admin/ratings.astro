@@ -199,6 +199,9 @@ if (!isAdmin) {
             comment: string | null;
             created_at: string;
             teacher_id: number;
+            is_anonymous?: boolean;
+            user_name?: string | null;
+            user_email?: string | null;
             teachers: {
                 id: number;
                 full_name: string;
@@ -318,6 +321,12 @@ if (!isAdmin) {
                   ${newBadge}
                 </div>
                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
+                <p class="text-[11px] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 font-semibold rounded-full ${r.is_anonymous ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}">
+                    ${r.is_anonymous ? 'Anónimo' : 'Público'}
+                  </span>
+                  <span class="text-global-text-muted">Por: <strong>${escapeHtml(r.user_name || 'Estudiante')}</strong> (${escapeHtml(r.user_email || 'Sin correo')})</span>
+                </p>
               </div>
               <div class="flex items-center gap-3">
                 <span class="text-yellow-400 text-sm">${overallStars}</span>

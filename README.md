@@ -7,7 +7,9 @@ calificaciones de profesores universitarios.
 
 - Frontend: Astro + Tailwind CSS
 - Backend: Astro API Routes (output server)
-- Base de datos y auth: Supabase (PostgreSQL)
+- Base de datos y storage: Supabase (PostgreSQL)
+- Auth de estudiantes: Firebase
+- Auth de administrador: Supabase Auth
 - Deploy: Vercel
 
 ## Inicio rapido

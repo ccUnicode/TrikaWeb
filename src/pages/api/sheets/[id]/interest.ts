@@ -1,146 +1,490 @@
 export const prerender = false;
-import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 
-// UUID v4 regex for device_id validation
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import type { APIRoute } from "astro";
+import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
+import {
+  sha256Hash,
+  getDeviceId,
+  getClientIP,
+  enforceIpRateLimit,
+} from "../../../../lib/utils";
 
-/**
- * Shared validation for GET and POST:
- * - Validates sheet exists, is not hidden, and its course exists
- * - Checks that the sheet has no solution (solution_kind, solution_storage_path, solution_video_url)
- * - Validates device_id is a valid UUID
- * Returns the validated deviceId on success, or a Response on failure.
- */
-async function validateRequest(
-  sheetId: number,
-  rawDeviceId: string | null,
-): Promise<{ deviceId: string } | Response> {
-  // Validate device_id format
-  if (!rawDeviceId || !UUID_RE.test(rawDeviceId)) {
-    return Response.json(
-      { error: 'device_id inválido: se requiere un UUID v4' },
-      { status: 400 },
-    );
-  }
-
-  // Validate sheet: exists, visible, course exists, no solution
-  const { data: sheetData, error: sheetError } = await supabaseAdmin
-    .from('sheets')
-    .select('id, is_hidden, solution_kind, solution_storage_path, solution_video_url, courses:course_id (code, is_hidden)')
-    .eq('id', sheetId)
-    .single();
-
-  if (sheetError || !sheetData) {
-    return Response.json({ error: 'Plancha no encontrada' }, { status: 404 });
-  }
-
-  // Sheet must be visible
-  if ((sheetData as any).is_hidden) {
-    return Response.json({ error: 'Plancha no disponible' }, { status: 404 });
-  }
-
-  // Course must exist and be visible
-  const course = (sheetData as any).courses;
-  if (!course || course.is_hidden) {
-    return Response.json({ error: 'Curso no encontrado' }, { status: 404 });
-  }
-
-  // Must NOT already have a solution (check all solution fields)
-  const hasSolution =
-    sheetData.solution_kind ||
-    sheetData.solution_storage_path ||
-    sheetData.solution_video_url;
-
-  if (hasSolution) {
-    return Response.json(
-      { error: 'Esta plancha ya tiene solucionario' },
-      { status: 400 },
-    );
-  }
-
-  return { deviceId: rawDeviceId };
+interface SheetAvailability {
+  id: number;
+  solution_kind: string | null;
+  solution_storage_path: string | null;
+  solution_video_url: string | null;
 }
 
-// GET: Check if a device has expressed interest in a sheet
-export const GET: APIRoute = async ({ params, url }) => {
-  const sheetId = Number(params.id);
-  if (!sheetId) {
-    return Response.json({ error: 'ID inválido' }, { status: 400 });
-  }
+type ToggleInterestStatus =
+  | "INVALID_REQUEST"
+  | "NOT_FOUND"
+  | "HIDDEN"
+  | "SOLUTION_AVAILABLE"
+  | "REGISTERED"
+  | "REMOVED";
 
-  const rawDeviceId = url.searchParams.get('device_id');
-  const validation = await validateRequest(sheetId, rawDeviceId);
-  if (validation instanceof Response) return validation;
-  const { deviceId } = validation;
+interface ToggleInterestResult {
+  status: ToggleInterestStatus;
+  interested: boolean | null;
+  interest_count: number | string | null;
+  is_hidden: boolean | null;
+  has_solution: boolean | null;
+}
 
-  const { data: existing, error } = await supabaseAdmin
-    .from('sheet_interests')
-    .select('id')
-    .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
-    .maybeSingle();
+/**
+ * Formato UUID canónico aceptado por la columna uuid de PostgreSQL.
+ *
+ * No se restringe a una versión específica porque PostgreSQL admite
+ * UUID de diferentes versiones.
+ */
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-  if (error) {
-    console.error('Error checking interest:', error);
-    return Response.json({ error: 'Error interno' }, { status: 500 });
-  }
+const TOGGLE_INTEREST_STATUSES: readonly ToggleInterestStatus[] = [
+  "INVALID_REQUEST",
+  "NOT_FOUND",
+  "HIDDEN",
+  "SOLUTION_AVAILABLE",
+  "REGISTERED",
+  "REMOVED",
+];
 
-  return Response.json({ interested: !!existing }, { status: 200 });
+const jsonResponse = (body: Record<string, unknown>, status = 200): Response =>
+  Response.json(body, {
+    status,
+  });
+
+const parseSheetId = (value: string | undefined): number | null => {
+  const sheetId = Number(value);
+
+  return Number.isSafeInteger(sheetId) && sheetId > 0 ? sheetId : null;
 };
 
-export const POST: APIRoute = async ({ params, request }) => {
-  const sheetId = Number(params.id);
-  if (!sheetId) {
-    return Response.json({ error: 'ID inválido' }, { status: 400 });
+/**
+ * Valida y normaliza un UUID.
+ */
+const normalizeUuid = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
   }
 
-  let body;
+  const normalizedValue = value.trim().toLowerCase();
+
+  return UUID_PATTERN.test(normalizedValue) ? normalizedValue : null;
+};
+
+const isToggleInterestStatus = (
+  value: unknown,
+): value is ToggleInterestStatus =>
+  typeof value === "string" &&
+  TOGGLE_INTEREST_STATUSES.includes(value as ToggleInterestStatus);
+
+/**
+ * Valida la estructura JSON devuelta por toggle_sheet_interest.
+ */
+const parseToggleInterestResult = (
+  value: unknown,
+): ToggleInterestResult | null => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+
+  const result = value as Record<string, unknown>;
+
+  if (!isToggleInterestStatus(result.status)) {
+    return null;
+  }
+
+  const interestCount =
+    typeof result.interest_count === "number" ||
+    typeof result.interest_count === "string"
+      ? result.interest_count
+      : null;
+
+  return {
+    status: result.status,
+    interested:
+      typeof result.interested === "boolean" ? result.interested : null,
+    interest_count: interestCount,
+    is_hidden: typeof result.is_hidden === "boolean" ? result.is_hidden : null,
+    has_solution:
+      typeof result.has_solution === "boolean" ? result.has_solution : null,
+  };
+};
+
+/**
+ * Obtiene una plancha visible cuyo curso también está visible.
+ *
+ * Esta consulta se utiliza únicamente en GET. El POST delega las
+ * validaciones y la modificación a una función SQL transaccional.
+ */
+const getSheet = async (sheetId: number) => {
+  return supabaseAdmin
+    .from("sheets")
+    .select(
+      `
+        id,
+        solution_kind,
+        solution_storage_path,
+        solution_video_url,
+        courses:course_id!inner(id)
+      `,
+    )
+    .eq("id", sheetId)
+    .eq("is_hidden", false)
+    .eq("courses.is_hidden", false)
+    .maybeSingle();
+};
+
+/**
+ * Determina si una plancha cuenta con un solucionario válido.
+ *
+ * La validación debe coincidir con la utilizada dentro de la función
+ * SQL toggle_sheet_interest.
+ */
+const hasSolution = (sheet: SheetAvailability): boolean => {
+  const solutionKind = sheet.solution_kind?.trim().toLowerCase();
+
+  const hasPdf =
+    solutionKind === "pdf" && Boolean(sheet.solution_storage_path?.trim());
+
+  const hasVideo =
+    solutionKind === "video" && Boolean(sheet.solution_video_url?.trim());
+
+  return hasPdf || hasVideo;
+};
+
+/**
+ * GET /api/sheets/:id/interest?device_id=<uuid>
+ *
+ * Verifica si el dispositivo ya registró interés en el solucionario.
+ */
+export const GET: APIRoute = async ({ params, url }) => {
   try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: 'JSON inválido' }, { status: 400 });
-  }
+    const sheetId = parseSheetId(params.id);
 
-  const rawDeviceId = getDeviceId(body);
-  const validation = await validateRequest(sheetId, rawDeviceId);
-  if (validation instanceof Response) return validation;
-  const { deviceId } = validation;
-
-  const clientIP = getClientIP(request);
-  const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
-
-  const supa = supabaseAdmin;
-
-  // Rate limiting
-  const rate = await enforceIpRateLimit(supa, ipHash, 300);
-  if (!rate.allowed) {
-    if (rate.reason === 'rate_limit') {
-      return Response.json({ error: 'Demasiadas operaciones desde esta IP' }, { status: 429 });
+    if (!sheetId) {
+      return jsonResponse(
+        {
+          error: "ID inválido",
+        },
+        400,
+      );
     }
-    return Response.json({ error: 'Rate limit interno' }, { status: 500 });
-  }
 
-  // Atomic toggle via RPC (single round-trip, handles insert/delete + count update via trigger)
-  const { data: result, error: rpcError } = await supa
-    .rpc('toggle_sheet_interest', {
-      p_sheet_id: sheetId,
-      p_device_id: deviceId,
-      p_ip_hash: ipHash,
+    const rawDeviceId = url.searchParams.get("device_id");
+
+    if (!rawDeviceId?.trim()) {
+      return jsonResponse(
+        {
+          error: "Falta device_id",
+        },
+        400,
+      );
+    }
+
+    const deviceId = normalizeUuid(rawDeviceId);
+
+    if (!deviceId) {
+      return jsonResponse(
+        {
+          error: "device_id debe tener formato UUID",
+        },
+        400,
+      );
+    }
+
+    const { data: sheet, error: sheetError } = await getSheet(sheetId);
+
+    if (sheetError) {
+      console.error(
+        "Error al validar la disponibilidad de la plancha:",
+        sheetError,
+      );
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    if (!sheet) {
+      return jsonResponse(
+        {
+          error: "Plancha no disponible",
+        },
+        404,
+      );
+    }
+
+    if (hasSolution(sheet as SheetAvailability)) {
+      return jsonResponse(
+        {
+          error: "La plancha ya cuenta con solucionario",
+        },
+        409,
+      );
+    }
+
+    const { data: existingInterest, error: existingInterestError } =
+      await supabaseAdmin
+        .from("sheet_interests")
+        .select("id")
+        .eq("sheet_id", sheetId)
+        .eq("device_id", deviceId)
+        .maybeSingle();
+
+    if (existingInterestError) {
+      console.error(
+        "Error al consultar el interés de la plancha:",
+        existingInterestError,
+      );
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    return jsonResponse({
+      interested: Boolean(existingInterest),
     });
+  } catch (error) {
+    console.error("Error inesperado en GET /api/sheets/:id/interest:", error);
 
-  if (rpcError) {
-    console.error('Error in toggle_sheet_interest RPC:', rpcError);
-    return Response.json(
-      { error: 'Error al procesar interés' },
-      { status: 500 },
+    return jsonResponse(
+      {
+        error: "Error interno del servidor",
+      },
+      500,
     );
   }
+};
 
-  return Response.json({
-    success: true,
-    interested: result.interested,
-    interest_count: result.interest_count,
-  }, { status: 200 });
+/**
+ * POST /api/sheets/:id/interest
+ *
+ * Alterna el interés de un dispositivo mediante una función RPC.
+ *
+ * La función SQL:
+ * - Valida la existencia y disponibilidad de la plancha.
+ * - Bloquea la fila correspondiente en sheets.
+ * - Inserta o elimina el interés del dispositivo.
+ * - Actualiza interest_count mediante un trigger.
+ * - Ejecuta todos los cambios dentro de una transacción PostgreSQL.
+ */
+export const POST: APIRoute = async ({ params, request }) => {
+  try {
+    const sheetId = parseSheetId(params.id);
+
+    if (!sheetId) {
+      return jsonResponse(
+        {
+          error: "ID inválido",
+        },
+        400,
+      );
+    }
+
+    let body: Record<string, unknown>;
+
+    try {
+      body = (await request.json()) as Record<string, unknown>;
+    } catch {
+      return jsonResponse(
+        {
+          error: "JSON inválido",
+        },
+        400,
+      );
+    }
+
+    const rawDeviceId = getDeviceId(body);
+
+    if (!rawDeviceId) {
+      return jsonResponse(
+        {
+          error: "Falta device_id",
+        },
+        400,
+      );
+    }
+
+    const deviceId = normalizeUuid(rawDeviceId);
+
+    if (!deviceId) {
+      return jsonResponse(
+        {
+          error: "device_id debe tener formato UUID",
+        },
+        400,
+      );
+    }
+
+    const ipSalt = import.meta.env.IP_SALT;
+
+    if (!ipSalt) {
+      console.error("La variable de entorno IP_SALT no está configurada.");
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    const clientIP = getClientIP(request);
+    const ipHash = await sha256Hash(clientIP + ipSalt);
+
+    const rateLimitResult = await enforceIpRateLimit(
+      supabaseAdmin,
+      ipHash,
+      300,
+    );
+
+    if (!rateLimitResult.allowed) {
+      if (rateLimitResult.reason === "rate_limit") {
+        return jsonResponse(
+          {
+            error: "Demasiadas operaciones desde esta IP",
+          },
+          429,
+        );
+      }
+
+      console.error("Error interno al aplicar el límite de solicitudes.");
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    /*
+     * La RPC devuelve directamente un objeto JSON. No se utiliza
+     * .single(), ya que no retorna una consulta tabular.
+     */
+    const { data, error: toggleError } = await supabaseAdmin.rpc(
+      "toggle_sheet_interest",
+      {
+        p_sheet_id: sheetId,
+        p_device_id: deviceId,
+        p_ip_hash: ipHash,
+      },
+    );
+
+    if (toggleError) {
+      console.error("Error al alternar el interés de la plancha:", toggleError);
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    const result = parseToggleInterestResult(data);
+
+    if (!result) {
+      console.error("Respuesta inválida de toggle_sheet_interest:", data);
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    switch (result.status) {
+      case "INVALID_REQUEST":
+        return jsonResponse(
+          {
+            error: "Solicitud inválida",
+          },
+          400,
+        );
+
+      case "NOT_FOUND":
+      case "HIDDEN":
+        return jsonResponse(
+          {
+            error: "Plancha no disponible",
+          },
+          404,
+        );
+
+      case "SOLUTION_AVAILABLE":
+        return jsonResponse(
+          {
+            error: "La plancha ya cuenta con solucionario",
+          },
+          409,
+        );
+
+      case "REGISTERED":
+      case "REMOVED":
+        break;
+
+      default: {
+        const exhaustiveStatus: never = result.status;
+
+        console.error(
+          "Estado inesperado al alternar el interés:",
+          exhaustiveStatus,
+        );
+
+        return jsonResponse(
+          {
+            error: "No se pudo procesar la solicitud",
+          },
+          500,
+        );
+      }
+    }
+
+    const interestCount =
+      result.interest_count === null
+        ? Number.NaN
+        : Number(result.interest_count);
+
+    if (
+      typeof result.interested !== "boolean" ||
+      !Number.isSafeInteger(interestCount) ||
+      interestCount < 0
+    ) {
+      console.error("Respuesta incompleta de toggle_sheet_interest:", result);
+
+      return jsonResponse(
+        {
+          error: "No se pudo procesar la solicitud",
+        },
+        500,
+      );
+    }
+
+    return jsonResponse({
+      success: true,
+      interested: result.interested,
+      interest_count: interestCount,
+    });
+  } catch (error) {
+    console.error("Error inesperado en POST /api/sheets/:id/interest:", error);
+
+    return jsonResponse(
+      {
+        error: "Error interno del servidor",
+      },
+      500,
+    );
+  }
 };

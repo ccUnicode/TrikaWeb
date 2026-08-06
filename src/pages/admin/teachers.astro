@@ -1,7 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { getCourses } from "../../lib/data";
 import AdminHeader from "../../components/AdminHeader.astro";
+import { getCourses } from "../../lib/data";
 import { validateAdminSession } from "../../lib/adminAuth";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
@@ -16,9 +16,9 @@ const courses = await getCourses();
     <div class="min-h-screen py-8">
         <div class="mx-auto w-full max-w-5xl px-4">
             <!-- Header Section -->
-            <AdminHeader 
-                title="Gestionar Profesores" 
-                description="Agrega y administra la visibilidad de profesores" 
+            <AdminHeader
+                title="Gestionar Profesores"
+                description="Agrega y administra la visibilidad de profesores"
             />
 
             <!-- Teachers Section -->
@@ -361,7 +361,10 @@ const courses = await getCourses();
             teacherIdPendingDelete = null;
         }
 
-        cancelDeleteTeacherBtn?.addEventListener("click", hideDeleteTeacherModal);
+        cancelDeleteTeacherBtn?.addEventListener(
+            "click",
+            hideDeleteTeacherModal,
+        );
 
         confirmDeleteTeacherBtn?.addEventListener("click", async () => {
             if (teacherIdPendingDelete == null) return;

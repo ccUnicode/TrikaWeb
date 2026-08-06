@@ -1,0 +1,268 @@
+import { useState, useMemo, useEffect } from 'react';
+import { Flame, Users, User, FileText, BookOpen, ChevronDown, Calculator } from 'lucide-react';
+import type { CurriculumCourse, CoursePrerequisite } from '../../lib/curriculumTypes';
+
+export interface CourseDetailPanelProps {
+  course: CurriculumCourse;
+  prerequisites: CoursePrerequisite[];
+  allCourses: CurriculumCourse[];
+  onPrerequisiteClick: (prerequisiteId: string) => void;
+}
+
+export default function CourseDetailPanel({ course, prerequisites, allCourses, onPrerequisiteClick }: CourseDetailPanelProps) {
+  const [isSumillaOpen, setIsSumillaOpen] = useState(false);
+
+  // Reset estado colapsable al cambiar de curso
+  useEffect(() => {
+    setIsSumillaOpen(false);
+  }, [course.course_id]);
+
+  // Filtrar los prerrequisitos de este curso
+  const coursePrereqs = useMemo(() => {
+    const prereqIds = prerequisites
+      .filter(pr => pr.course_id === course.course_id)
+      .map(pr => pr.prerequisite_id);
+
+    return allCourses.filter(c => prereqIds.includes(c.course_id));
+  }, [course.course_id, prerequisites, allCourses]);
+
+  // Encontrar cursos que tienen a este como prerrequisito (es prerrequisito de...)
+  const dependentCourses = useMemo(() => {
+    const depIds = prerequisites
+      .filter(pr => pr.prerequisite_id === course.course_id)
+      .map(pr => pr.course_id);
+
+    return allCourses.filter(c => depIds.includes(c.course_id));
+  }, [course.course_id, prerequisites, allCourses]);
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Contenido Scrollable */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar p-6 flex flex-col gap-4">
+        {/* Header: Código + Tipo (Obligatorio/Electivo) + Nombre */}
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <span className="text-[#22c55e] font-mono text-sm font-bold tracking-wider uppercase">
+              {course.code}
+            </span>
+
+            {course.is_elective ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Electivo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-800 text-gray-400 border border-gray-700/80">
+                Obligatorio
+              </span>
+            )}
+          </div>
+
+          <h2 className="text-white text-xl font-bold leading-snug">
+            {course.name}
+          </h2>
+        </div>
+
+      {/* Badges en 1 sola fila: Créditos + Sistema + Dificultad */}
+      <div className="flex flex-wrap items-center gap-2">
+        {course.credits !== undefined && (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            {course.credits} {course.credits === 1 ? 'Crédito' : 'Créditos'}
+          </span>
+        )}
+
+        {course.evaluation_system && course.evaluation_system !== 'N/A' && (
+          <div className="relative group/eval inline-block">
+            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold bg-emerald-500/8 text-emerald-400/80 border border-emerald-500/15 cursor-pointer transition-all hover:bg-emerald-500/15 hover:border-emerald-500/30 shadow-sm">
+              <Calculator className="w-3.5 h-3.5" />
+              Sistema {course.evaluation_system}
+            </span>
+
+            {/* Tooltip: fórmula del sistema de evaluación */}
+            {course.evaluation_formula && (
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden group-hover/eval:block z-50 pointer-events-none">
+                <div className="flex items-center justify-center px-3 py-1.5 rounded-lg bg-[#161b22] border border-gray-700/80 shadow-xl shadow-black/40 whitespace-nowrap text-center">
+                  <span className="font-mono text-[12px] font-bold text-white">
+                    {course.evaluation_formula}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {course.avg_difficulty && course.avg_difficulty > 0 ? (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold bg-orange-500/10 text-orange-400 border border-orange-500/20" title="Dificultad Percibida">
+            <Flame className="w-3.5 h-3.5" />
+            {Number(course.avg_difficulty).toFixed(1)} / 5
+          </span>
+        ) : null}
+      </div>
+
+      {/* Separador */}
+      <hr className="border-gray-800" />
+
+      {/* Sumilla */}
+      <div>
+        {course.summary ? (
+          <div className="rounded-xl border border-gray-800 bg-[#161b22]/70 overflow-hidden transition-all duration-200 hover:border-gray-700 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setIsSumillaOpen(!isSumillaOpen)}
+              className="w-full flex items-center justify-between p-3 text-left cursor-pointer group select-none active:bg-gray-800/40 transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:border-blue-500/30 transition-all">
+                  <BookOpen className="w-3.5 h-3.5" />
+                </div>
+                <span className="text-white text-sm font-semibold group-hover:text-blue-400 transition-colors">
+                  Sumilla del curso
+                </span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
+                  {isSumillaOpen ? 'Ocultar' : 'Ver detalle'}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${isSumillaOpen ? 'rotate-180 text-blue-400' : ''}`} />
+              </div>
+            </button>
+
+            {/* Transición fluida de altura usando CSS Grid */}
+            <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isSumillaOpen ? 'grid-rows-[1fr] border-t border-gray-800/80' : 'grid-rows-[0fr]'}`}>
+              <div className="overflow-hidden">
+                <div className="p-3.5 text-gray-300 text-xs leading-relaxed bg-[#0d1117]/50 text-justify">
+                  {course.summary}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <h3 className="text-white text-sm font-semibold mb-1 flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-gray-400" />
+              Sumilla
+            </h3>
+            <p className="text-gray-500 text-sm italic">
+              Sumilla pendiente de registro.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Pre-requisitos */}
+      {coursePrereqs.length > 0 && (
+        <div>
+          <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            Pre-requisitos
+          </h3>
+          <div className="flex flex-col gap-1.5">
+            {coursePrereqs.map(pr => (
+              <button
+                key={pr.course_id}
+                onClick={() => onPrerequisiteClick(String(pr.course_id))}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#161b22] border border-gray-800 hover:border-[#22c55e]/40 hover:bg-[#1a2332] transition-all text-left cursor-pointer group active:scale-[0.98]"
+              >
+                <span className="text-[#22c55e] font-mono text-xs font-bold group-hover:text-[#4ade80] transition-colors">
+                  {pr.code}
+                </span>
+                <span className="text-gray-300 text-xs truncate group-hover:text-white transition-colors">
+                  {pr.name}
+                </span>
+                <svg className="w-3 h-3 text-gray-600 ml-auto flex-shrink-0 group-hover:text-[#22c55e] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Es prerrequisito de... */}
+      {dependentCourses.length > 0 && (
+        <div>
+          <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+            </svg>
+            Es pre-requisito de
+          </h3>
+          <div className="flex flex-col gap-1.5">
+            {dependentCourses.map(dep => (
+              <button
+                key={dep.course_id}
+                onClick={() => onPrerequisiteClick(String(dep.course_id))}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#161b22] border border-gray-800 hover:border-blue-500/40 hover:bg-[#1a2332] transition-all text-left cursor-pointer group active:scale-[0.98]"
+              >
+                <span className="text-blue-400 font-mono text-xs font-bold group-hover:text-blue-300 transition-colors">
+                  {dep.code}
+                </span>
+                <span className="text-gray-300 text-xs truncate group-hover:text-white transition-colors">
+                  {dep.name}
+                </span>
+                <svg className="w-3 h-3 text-gray-600 ml-auto flex-shrink-0 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Docentes */}
+      <div>
+        <h3 className="text-white text-sm font-semibold mb-2 flex items-center gap-1.5">
+          <Users className="w-4 h-4 text-gray-400" />
+          Docentes
+        </h3>
+        {course.teachers && course.teachers.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {course.teachers.map(teacher => (
+              <a
+                key={teacher.id}
+                href={`/profesores/${teacher.id}`}
+                className="inline-flex items-center gap-1.5 pr-3 py-1 rounded-full bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors group text-left cursor-pointer"
+              >
+                {teacher.avatar_url ? (
+                  <img src={teacher.avatar_url} alt={teacher.full_name} className="w-5 h-5 rounded-full object-cover bg-gray-900 ml-1" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 ml-1">
+                    <User className="w-3 h-3" />
+                  </div>
+                )}
+                <span className="text-xs text-gray-300 font-medium group-hover:text-white truncate max-w-[150px]">
+                  {teacher.full_name}
+                </span>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-sm italic">
+            Docentes por confirmar.
+          </p>
+        )}
+      </div>
+
+      </div>
+
+      {/* Footer Fijo con Link a la página del curso */}
+      <div className="p-4 border-t border-gray-800 bg-[#1e2430] mt-auto">
+        <a
+          href={`/curso/${course.code}`}
+          className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-global-primary hover:bg-global-primary-hover text-black transition-all text-sm font-bold shadow-lg shadow-global-primary/20 active:scale-95"
+        >
+          <FileText className="w-4 h-4" />
+          Ver planchas
+        </a>
+      </div>
+    </div>
+  );
+}

@@ -14,20 +14,29 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     // Check admin session via cookie
     const isAdmin = await validateAdminSession(cookies);
     if (!isAdmin) {
-        return new Response(
-            JSON.stringify({ ok: false, error: "No autorizado. Inicia sesión como admin." }),
-            { status: 401, headers: { "Content-Type": "application/json" } }
+        return Response.json(
+            { ok: false, error: "No autorizado. Inicia sesión como admin." },
+            { status: 401 }
+        );
+    }
+
+    let body;
+    try {
+        body = await request.json();
+    } catch (err) {
+        return Response.json(
+            { ok: false, error: "Cuerpo de petición inválido o vacío" },
+            { status: 400 }
         );
     }
 
     try {
-        const body = await request.json();
-        const syncType = body.type || "all";
+        const syncType = body?.type || "all";
 
         if (!["exams", "solutions", "all"].includes(syncType)) {
-            return new Response(
-                JSON.stringify({ ok: false, error: "Tipo inválido. Usa: exams, solutions, o all" }),
-                { status: 400, headers: { "Content-Type": "application/json" } }
+            return Response.json(
+                { ok: false, error: "Tipo inválido. Usa: exams, solutions, o all" },
+                { status: 400 }
             );
         }
 
@@ -46,13 +55,13 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         }
 
         if (missingVars.length > 0) {
-            return new Response(
-                JSON.stringify({
+            return Response.json(
+                {
                     ok: false,
                     error: `Variables de entorno faltantes: ${missingVars.join(", ")}`,
                     hint: "Ejecuta el sync desde terminal: npm run drive:sync-solutions",
-                }),
-                { status: 500, headers: { "Content-Type": "application/json" } }
+                },
+                { status: 500 }
             );
         }
 
@@ -60,8 +69,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         // because it can timeout. The sync script is designed to run as a CLI tool.
         // For now, we return instructions to run manually.
 
-        return new Response(
-            JSON.stringify({
+        return Response.json(
+            {
                 ok: false,
                 error: "La sincronización desde el navegador aún no está implementada",
                 hint: `Ejecuta desde terminal: npm run drive:sync${syncType === "all" ? "" : `-${syncType}`}`,
@@ -70,15 +79,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                     solutions: "npm run drive:sync-solutions",
                     all: "npm run drive:sync",
                 },
-            }),
-            { status: 501, headers: { "Content-Type": "application/json" } }
+            },
+            { status: 501 }
         );
 
     } catch (err) {
         console.error("Error in drive-sync API:", err);
-        return new Response(
-            JSON.stringify({ ok: false, error: "Error interno del servidor" }),
-            { status: 500, headers: { "Content-Type": "application/json" } }
+        return Response.json(
+            { ok: false, error: "Error interno del servidor" },
+            { status: 500 }
         );
     }
 };

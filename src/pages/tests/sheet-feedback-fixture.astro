@@ -1,0 +1,29 @@
+---
+import "../../../src/styles/global.css";
+import SheetFeedback from "../../components/SheetFeedback.astro";
+---
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Fixture</title>
+</head>
+<body class="bg-global-bg p-8">
+  <button id="view-solution-btn" data-solution-type="pdf" data-solution-url="test.pdf">Ver solucionario</button>
+  <div id="feedback-section" class="hidden">
+    <SheetFeedback sheetId={1} avgRating={4.5} />
+  </div>
+
+  <script>
+    const solutionBtn = document.getElementById("view-solution-btn");
+    const feedbackSection = document.getElementById("feedback-section");
+    if (solutionBtn) {
+      solutionBtn.addEventListener("click", () => {
+        if (feedbackSection) {
+          feedbackSection.classList.remove("hidden");
+        }
+      });
+    }
+  </script>
+</body>
+</html>

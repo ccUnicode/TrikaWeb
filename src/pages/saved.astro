@@ -1,6 +1,17 @@
 ---
+/*
+Página de planchas guardadas (favoritos).
+Lee los IDs de localStorage, los envía en lote a /api/sheets/batch
+y renderiza las cards con toggle inline para quitar favoritos.
+*/
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
+import { getUserSession } from "../lib/auth";
+
+const { user } = await getUserSession(Astro.cookies);
+if (!user) {
+  return Astro.redirect("/login?redirect=" + encodeURIComponent(Astro.url.pathname));
+}
 ---
 
 <Layout
@@ -49,7 +60,7 @@ import Layout from "../layouts/Layout.astro";
 <script
   define:vars={{ PUBLIC_SUPABASE_URL: import.meta.env.PUBLIC_SUPABASE_URL }}
 >
-  // Inline logic to avoid module import issues
+  /** Obtiene la lista de IDs favoritos desde localStorage */
   function getFavorites() {
     try {
       const stored = localStorage.getItem("trikaweb:favorites");
@@ -59,6 +70,7 @@ import Layout from "../layouts/Layout.astro";
     }
   }
 
+  /** Agrega o quita un ID de favoritos y notifica via custom event */
   function toggleFavorite(id) {
     const favs = getFavorites();
     const index = favs.indexOf(id);
@@ -79,6 +91,7 @@ import Layout from "../layouts/Layout.astro";
   const emptyState = document.getElementById("empty-state");
   const grid = document.getElementById("grid");
 
+  /** Carga las planchas guardadas desde la API /api/sheets/batch usando los IDs locales */
   async function loadSaved() {
     try {
       if (loading) loading.textContent = "Leyendo favoritos...";
@@ -126,19 +139,19 @@ import Layout from "../layouts/Layout.astro";
     }
   }
 
+  /** Construye la URL pública de la miniatura desde Supabase Storage */
   function getThumbUrl(path) {
     if (!path) return null;
-    if (!PUBLIC_SUPABASE_URL) return null; // Safety check
+    if (!PUBLIC_SUPABASE_URL) return null;
 
-    // Remove "thumbnails/" prefix if present
     const cleanPath = path.startsWith("thumbnails/")
       ? path.replace("thumbnails/", "")
       : path;
 
-    // Construct public URL manually to avoid dependency
     return `${PUBLIC_SUPABASE_URL}/storage/v1/object/public/thumbnails/${cleanPath}`;
   }
 
+  /** Renderiza las cards de planchas guardadas en el grid */
   function renderGrid(sheets) {
     if (!grid) return;
     grid.innerHTML = "";
@@ -177,6 +190,7 @@ import Layout from "../layouts/Layout.astro";
       grid.appendChild(card);
     });
 
+    /** Botón para quitar de guardados desde la misma card sin recargar */
     grid.querySelectorAll("[data-remove-id]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
@@ -190,23 +204,20 @@ import Layout from "../layouts/Layout.astro";
 
         toggleFavorite(id);
 
-        // Visual toggle instead of removal
+        // Cambia el color del icono según estado (rojo = guardado, gris = no guardado)
         const svg = target.querySelector("svg");
         const isCurrentlyRed = target.classList.contains("text-red-500");
 
         if (isCurrentlyRed) {
-          // Unliking: turn gray/white
           target.classList.remove("text-red-500");
           target.classList.add("text-white/50", "hover:text-white");
           if (svg) {
             svg.setAttribute("fill", "none");
             svg.setAttribute("stroke", "currentColor");
           }
-          // Show reload message if not already shown
           const msg = document.getElementById("reload-msg");
           if (msg) msg.classList.remove("hidden");
         } else {
-          // Re-liking: turn red
           target.classList.remove("text-white/50", "hover:text-white");
           target.classList.add("text-red-500");
           if (svg) {
@@ -219,7 +230,4 @@ import Layout from "../layouts/Layout.astro";
   }
 
   loadSaved();
-  // Only reload if the tab is focused and user returns, or similar external triggers.
-  // We do NOT want to auto-reload on 'favorites:updated' because that would clear the un-liked items immediately.
-  // window.addEventListener("favorites:updated", loadSaved);
 </script>

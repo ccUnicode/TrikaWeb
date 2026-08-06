@@ -1,3 +1,4 @@
+-- Migración 1
 -- Migración para agregar gestión de visibilidad a profesores
 -- Ejecutar en Supabase SQL Editor
 
