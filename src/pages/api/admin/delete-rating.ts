@@ -4,6 +4,10 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * Elimina permanentemente una calificación (no solo la oculta).
+ * Es una operación irreversible a diferencia de hide-comment.
+ */
 const ALLOWED_TABLES = ["teacher_ratings", "sheet_feedback"] as const;
 type AllowedTable = typeof ALLOWED_TABLES[number];
 

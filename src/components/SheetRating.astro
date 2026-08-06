@@ -1,10 +1,16 @@
 ---
+/*
+Widget de votación de dificultad para planchas.
+Muestra 5 estrellas interactivas con hover preview.
+El comportamiento JS está en la página exams/[id].astro.
+*/
 export interface Props {
   sheetId: number;
   avg: number | null;
   count: number | null;
+  isLoggedIn?: boolean;
 }
-const { sheetId, avg, count } = Astro.props as Props;
+const { sheetId, avg, count, isLoggedIn = false } = Astro.props as Props;
 const displayAvg = typeof avg === "number" ? avg.toFixed(2) : "-";
 const displayCount = count ?? 0;
 ---
@@ -13,6 +19,7 @@ const displayCount = count ?? 0;
   class="sheet-rating space-y-2"
   data-rating-widget
   data-sheet-id={sheetId}
+  data-is-logged-in={isLoggedIn ? "true" : "false"}
   data-current-rating={typeof avg === "number" ? avg : ""}
 >
   <div class="flex items-center justify-between">

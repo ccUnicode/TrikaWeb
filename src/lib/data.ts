@@ -17,6 +17,7 @@ export interface SheetSummary {
   teacher_hint: string | null;
   solution_kind?: string | null;
   thumb_storage_path?: string | null;
+  exam_storage_path?: string | null;
   course_code?: string;
   course_name?: string;
 }
@@ -46,6 +47,10 @@ export interface TeacherReview {
   grading: number;
   comment: string | null;
   created_at: string;
+  is_anonymous?: boolean;
+  user_name?: string | null;
+  user_id?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface TeacherStats {
@@ -87,13 +92,19 @@ const sheetSelect = `
   teacher_hint,
   solution_kind,
   thumb_storage_path,
-  courses:course_id (code,name)
+  exam_storage_path,
+  courses:course_id!inner (code,name)
 `;
 
+/**
+ * Obtiene todos los cursos visibles (is_hidden = false) con su conteo de planchas.
+ * Usado en la página /cursos y en el componente de búsqueda.
+ */
 export async function getCourses(): Promise<CourseSummary[]> {
   const { data, error } = await supabaseClient
     .from('courses')
     .select('id, code, name, sheets(count)')
+    .eq('is_hidden', false)
     .order('name', { ascending: true });
 
   if (error || !data) return [];
@@ -106,12 +117,17 @@ export async function getCourses(): Promise<CourseSummary[]> {
   }));
 }
 
+/**
+ * Obtiene detalle completo de un curso por su código (incluyendo planchas).
+ * Normaliza a mayúsculas y redirige si no existe.
+ */
 export async function getCourseByCode(code: string): Promise<CourseDetail | null> {
   const normalized = code.toUpperCase();
   const { data: course, error } = await supabaseClient
     .from('courses')
-    .select('id, code, name, sheets:sheets (*)')
+    .select('id, code, name')
     .eq('code', normalized)
+    .eq('is_hidden', false)
     .single();
 
   if (error || !course) return null;
@@ -120,6 +136,8 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
     .from('sheets')
     .select(sheetSelect)
     .eq('course_id', course.id)
+    .eq('is_hidden', false)
+    .eq('courses.is_hidden', false)
     .order('cycle', { ascending: false })
     .order('exam_type', { ascending: true });
 
@@ -136,32 +154,66 @@ export async function getCourseByCode(code: string): Promise<CourseDetail | null
   } as CourseDetail;
 }
 
-export async function getTopSheetsByDifficulty(limit = 6, minRatings = 3) {
-  const { data } = await supabaseClient
+/**
+ * Obtiene las planchas con mayor dificultad promedio.
+ * Usado en la página principal para la sección "Más difíciles".
+ * Solo incluye planchas visibles pertenecientes a cursos visibles.
+ * Se filtra por un mínimo de votos para evitar distorsiones.
+ */
+export async function getTopSheetsByDifficulty(
+  limit = 6,
+  minRatings = 3
+): Promise<SheetSummary[]> {
+  const { data, error } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
+    .eq('is_hidden', false)
+    .eq('courses.is_hidden', false)
     .gte('rating_count', minRatings)
     .order('avg_difficulty', { ascending: false })
     .limit(limit);
+
+  if (error) {
+    console.error('getTopSheetsByDifficulty error', error);
+    return [];
+  }
+
   return (data || []).map((sheet: any) => ({
     ...sheet,
     course_code: sheet.courses?.code,
     course_name: sheet.courses?.name,
-  }));
+  })) as SheetSummary[];
 }
 
-export async function getTopSheetsByViews(limit = 6, minViews = 5) {
-  const { data } = await supabaseClient
+/**
+ * Obtiene las planchas más vistas.
+ * Usado en la página principal para la sección "Planchas Populares".
+ * Solo incluye planchas visibles pertenecientes a cursos visibles.
+ * Se filtra por un mínimo de vistas para evitar datos irrelevantes.
+ */
+export async function getTopSheetsByViews(
+  limit = 6,
+  minViews = 5
+): Promise<SheetSummary[]> {
+  const { data, error } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
+    .eq('is_hidden', false)
+    .eq('courses.is_hidden', false)
     .gte('view_count', minViews)
     .order('view_count', { ascending: false })
     .limit(limit);
+
+  if (error) {
+    console.error('getTopSheetsByViews error', error);
+    return [];
+  }
+
   return (data || []).map((sheet: any) => ({
     ...sheet,
     course_code: sheet.courses?.code,
     course_name: sheet.courses?.name,
-  }));
+  })) as SheetSummary[];
 }
 
 export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
@@ -177,7 +229,9 @@ export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
   const { data, error } = await supabaseClient
     .from('sheets')
     .select(sheetSelect)
-    .in('id', uniqueIds);
+    .in('id', uniqueIds)
+    .eq('is_hidden', false)
+    .eq('courses.is_hidden', false);
 
   if (error || !data) {
     console.error('getSheetsByIds error', error);
@@ -194,7 +248,7 @@ export async function getSheetsByIds(ids: number[]): Promise<SheetSummary[]> {
 export async function getTopTeachers(limit = 6, minRatings = 3): Promise<TeacherSummary[]> {
   const { data } = await supabaseClient
     .from('teachers')
-    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name) )')
+    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name,is_hidden) )')
     .eq('is_hidden', false)
     .gte('rating_count', minRatings)
     .order('avg_overall', { ascending: false })
@@ -205,17 +259,23 @@ export async function getTopTeachers(limit = 6, minRatings = 3): Promise<Teacher
 export async function getTeachers(): Promise<TeacherSummary[]> {
   const { data } = await supabaseClient
     .from('teachers')
-    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name) )')
+    .select('id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( modality, courses:course_id (code,name,is_hidden) )')
     .eq('is_hidden', false)
     .order('full_name');
   return formatTeacherSummary(data);
 }
 
+/**
+ * Obtiene los profesores asociados a un curso (por código).
+ * Cada profesor puede tener múltiples modalidades (T, P, L) y se expande
+ * en varias entradas (una por modalidad) para facilitar el agrupado.
+ */
 export async function getTeachersByCourseCode(code: string): Promise<{ teacher: TeacherSummary, modality: string }[]> {
   const { data: course } = await supabaseClient
     .from('courses')
     .select('id')
     .eq('code', code.toUpperCase())
+    .eq('is_hidden', false)
     .single();
 
   if (!course) return [];
@@ -258,12 +318,19 @@ function formatTeacherSummary(rows: any[] | null): TeacherSummary[] {
     rating_count: row.rating_count ?? 0,
     avatar_url: row.avatar_url ?? null,
     courses: (row.courses_teachers || [])
-      .map((ct: any) => ct.courses ? { ...(ct.courses), modality: ct.modality } : null)
-      .filter(Boolean)
-      .map((course: any) => ({ code: course.code, name: course.name, modality: course.modality })),
+      .map((ct: any) => (ct.courses ? { ...ct.courses, modality: ct.modality } : null))
+      .filter((course: any) => course?.is_hidden === false)
+      .map((course: any) => ({
+        code: course.code,
+        name: course.name,
+        modality: course.modality,
+      })),
   }));
 }
 
+/**
+ * Normaliza texto eliminando tildes para comparaciones insensibles a acentos.
+ */
 const normalizeText = (value: string) =>
   String(value)
     .toLowerCase()
@@ -271,6 +338,11 @@ const normalizeText = (value: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .trim();
 
+/**
+ * Calcula un puntaje de relevancia entre la consulta normalizada y un conjunto de campos.
+ * Premia: coincidencias al inicio (positionBoost), campos tempranos (weight),
+ * y longitud relativa de la consulta (lengthFactor).
+ */
 const scoreAgainstQuery = (normalizedQuery: string, fields: (string | null | undefined)[]) => {
   if (!normalizedQuery) return 0;
   return fields.reduce((acc, current, index) => {
@@ -336,6 +408,15 @@ const aggregateFromReviews = (reviews: TeacherReview[]) => {
   } as TeacherStats;
 };
 
+/**
+ * Obtiene el detalle completo de un profesor: datos base, estadísticas por dimensión,
+ * cursos asociados y reseñas paginadas.
+ *
+ * Las estadísticas se obtienen de dos fuentes con fallback:
+ * 1. Cálculo agregado desde la BD (teacher_ratings)
+ * 2. Cálculo local desde las reseñas de la página actual
+ * Esto asegura que siempre haya datos incluso si la consulta agregada falla.
+ */
 export async function getTeacherDetail(
   teacherId: number,
   page = 1,
@@ -350,9 +431,10 @@ export async function getTeacherDetail(
   const { data: teacherData, error: teacherError } = await supabaseClient
     .from('teachers')
     .select(
-      'id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (id, code, name) )'
+      'id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (id, code, name, is_hidden) )'
     )
     .eq('id', teacherId)
+    .eq('is_hidden', false)
     .maybeSingle();
 
   if (teacherError || !teacherData) {
@@ -363,7 +445,7 @@ export async function getTeacherDetail(
   const courses =
     (teacherData.courses_teachers || [])
       .map((ct: any) => ct.courses)
-      .filter(Boolean)
+      .filter((course: any) => course?.is_hidden === false)
       .map((course: any) => ({
         id: course.id,
         code: course.code,
@@ -372,7 +454,7 @@ export async function getTeacherDetail(
 
   // Stats por dimensión
   const { data: statsRow, error: statsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
       'avg_overall:avg(overall),avg_difficulty:avg(difficulty),avg_didactic:avg(didactic),avg_resources:avg(resources),avg_responsability:avg(responsability),avg_grading:avg(grading)'
     )
@@ -386,9 +468,9 @@ export async function getTeacherDetail(
 
   // Reseñas con paginación y count
   const { data: reviews, count, error: reviewsError } = await supabaseClient
-    .from('teacher_ratings')
+    .from('public_teacher_ratings')
     .select(
-      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at',
+      'id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_anonymous, user_name, user_id, avatar_url',
       { count: 'exact', head: false }
     )
     .eq('teacher_id', teacherId)
@@ -448,6 +530,12 @@ export async function getTeacherDetail(
   };
 }
 
+/**
+ * Búsqueda global que consulta cursos, profesores y planchas.
+ * Usa un algoritmo de scoring para ordenar resultados por relevancia
+ * en lugar de solo filtrar. Cada entidad se puntúa según coincidencia
+ * en múltiples campos y se limita a un máximo por tipo.
+ */
 export async function searchEntities(query: string, limit = 6): Promise<SearchResults> {
   const trimmed = (query ?? '').trim();
   if (!trimmed) {
@@ -462,12 +550,13 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
     supabaseClient
       .from('courses')
       .select('id, code, name, sheets(count)')
+      .eq('is_hidden', false)
       .or(`code.ilike.${pattern},name.ilike.${pattern}`)
       .limit(safeLimit * 2),
     supabaseClient
       .from('teachers')
       .select(
-        'id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (code,name) )'
+        'id, full_name, bio, avg_overall, rating_count, avatar_url, courses_teachers:courses_teachers ( courses:course_id (code,name,is_hidden) )'
       )
       .eq('is_hidden', false)
       .or(`full_name.ilike.${pattern},bio.ilike.${pattern}`)
@@ -521,8 +610,10 @@ export async function searchEntities(query: string, limit = 6): Promise<SearchRe
   const { data: sheetRows, error: sheetError } = await supabaseClient
     .from('sheets')
     .select(
-      'id, exam_type, cycle, avg_difficulty, rating_count, view_count, teacher_hint, solution_kind, courses:course_id (id, code, name)'
+      'id, exam_type, cycle, avg_difficulty, rating_count, view_count, teacher_hint, solution_kind, courses:course_id!inner (id, code, name)'
     )
+    .eq('is_hidden', false)
+    .eq('courses.is_hidden', false)
     .or(sheetFilters.join(','))
     .limit(safeLimit * 2);
 

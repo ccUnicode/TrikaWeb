@@ -4,6 +4,12 @@ import type { APIRoute } from "astro";
 import { supabaseAdmin } from "../../../lib/supabaseAdmin";
 import { validateAdminSession } from "../../../lib/adminAuth";
 
+/**
+ * POST /api/admin/pending-comments
+ * Obtiene los comentarios pendientes de moderación (is_hidden = true).
+ * Incluye datos del profesor o plancha asociada para facilitar la revisión.
+ * Ordenados del más reciente al más antiguo.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
     const isValid = await validateAdminSession(cookies);
     if (!isValid) {

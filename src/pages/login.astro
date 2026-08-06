@@ -1,0 +1,218 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getUserSession } from "../lib/auth";
+import { getSafeRedirect } from "../lib/urlUtils";
+
+// Si ya está logueado
+const { user } = await getUserSession(Astro.cookies);
+const redirectUrl = Astro.url.searchParams.get("redirect") || "/profile";
+const safeRedirect = getSafeRedirect(redirectUrl);
+
+if (user) {
+  return Astro.redirect(safeRedirect);
+}
+---
+
+<Layout title="Acceder - TrikaWeb">
+  <div
+    class="flex min-h-[calc(100vh-100px)] w-full items-center justify-center px-4 py-12"
+  >
+    <div
+      class="w-full max-w-md overflow-hidden rounded-2xl border-2 border-global-border bg-global-surface shadow-2xl"
+    >
+      <div class="p-8">
+        <div class="text-center mb-8">
+          <img
+            src="/img/mascota.png"
+            alt="Trika Logo"
+            class="mx-auto h-20 w-20 object-contain drop-shadow-md mb-4"
+          />
+
+          <h1 class="text-2xl font-bold text-global-text">Iniciar Sesión</h1>
+
+          <p class="text-sm text-global-text-muted mt-2">
+            Accede con tu cuenta institucional @uni.pe
+          </p>
+        </div>
+
+        <div
+          id="error-message"
+          role="alert"
+          aria-live="polite"
+          class="hidden mb-4 rounded-lg bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20"
+        >
+        </div>
+
+        <button
+          id="google-login-btn"
+          type="button"
+          class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+        >
+          Continuar con Google
+        </button>
+
+        <p class="mt-4 text-center text-xs text-global-text-muted">
+          Solo se permiten correos institucionales de la UNI.
+        </p>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import {
+    auth,
+    provider,
+    signInWithPopup,
+    signOut as firebaseSignOut,
+  } from "../../firebase/firebaseConfig.js";
+  import { FirebaseError } from "firebase/app";
+  import { getSafeRedirect } from "../lib/urlUtils";
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const googleBtnElement = document.getElementById("google-login-btn");
+    const errorBoxElement = document.getElementById("error-message");
+
+    if (
+      !(googleBtnElement instanceof HTMLButtonElement) ||
+      !(errorBoxElement instanceof HTMLDivElement)
+    ) {
+      console.error(
+        "No se encontraron correctamente los elementos del formulario de acceso.",
+      );
+      return;
+    }
+
+    const googleBtn = googleBtnElement;
+    const errorBox = errorBoxElement;
+
+    function showError(message: string) {
+      errorBox.textContent = message;
+      errorBox.classList.remove("hidden");
+    }
+
+    function clearError() {
+      errorBox.textContent = "";
+      errorBox.classList.add("hidden");
+    }
+
+    function handleFirebaseError(error: FirebaseError) {
+      switch (error.code) {
+        case "auth/popup-closed-by-user":
+        case "auth/cancelled-popup-request":
+          showError(
+            "No se pudo completar el inicio de sesión. Vuelve a intentarlo.",
+          );
+          return;
+
+        case "auth/popup-blocked":
+          showError(
+            "El navegador bloqueó la ventana de Google. Permite las ventanas emergentes e inténtalo nuevamente.",
+          );
+          return;
+
+        case "auth/network-request-failed":
+          showError(
+            "No se pudo conectar con Google. Revisa tu conexión a internet e inténtalo nuevamente.",
+          );
+          return;
+
+        case "auth/unauthorized-domain":
+          showError(
+            "Este dominio no está autorizado para iniciar sesión. Comunícate con el administrador.",
+          );
+          return;
+
+        case "auth/too-many-requests":
+          showError(
+            "Se realizaron demasiados intentos. Espera unos minutos e inténtalo nuevamente.",
+          );
+          return;
+
+        default:
+          console.error("Error de Firebase Authentication:", error.code, error);
+
+          showError(
+            "No pudimos iniciar sesión en este momento. Inténtalo nuevamente.",
+          );
+      }
+    }
+
+    googleBtn.addEventListener("click", async () => {
+      const originalButtonText =
+        googleBtn.textContent || "Continuar con Google";
+
+      let pendingMessageTimer: number | undefined;
+
+      try {
+        clearError();
+
+        googleBtn.disabled = true;
+        googleBtn.textContent = "Abriendo Google...";
+
+        // Si el proceso demora, informa al usuario.
+        pendingMessageTimer = window.setTimeout(() => {
+          showError(
+            "El inicio de sesión sigue pendiente. Completa o cierra la ventana de Google.",
+          );
+
+          googleBtn.textContent = "Esperando confirmación...";
+        }, 10000);
+
+        const result = await signInWithPopup(auth, provider);
+        const idToken = await result.user.getIdToken(true);
+
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+        });
+
+        const data = await response.json().catch(() => ({
+          error: "No se recibió una respuesta válida del servidor.",
+        }));
+
+        if (!response.ok) {
+          await firebaseSignOut(auth);
+
+          throw new Error(
+            data.error || "No se pudo completar el inicio de sesión.",
+          );
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get("redirect") || "/profile";
+        const safeRedirect = getSafeRedirect(redirect);
+
+        window.location.href = safeRedirect;
+      } catch (error: unknown) {
+        if (error instanceof FirebaseError) {
+          handleFirebaseError(error);
+          return;
+        }
+
+        console.error("Error durante el inicio de sesión:", error);
+
+        if (error instanceof Error) {
+          showError(
+            error.message || "No se pudo completar el inicio de sesión.",
+          );
+          return;
+        }
+
+        showError(
+          "No se pudo completar el inicio de sesión. Vuelve a intentarlo.",
+        );
+      } finally {
+        if (pendingMessageTimer !== undefined) {
+          window.clearTimeout(pendingMessageTimer);
+        }
+
+        googleBtn.disabled = false;
+        googleBtn.textContent = originalButtonText;
+      }
+    });
+  });
+</script>

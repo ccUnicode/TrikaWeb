@@ -13,7 +13,6 @@ const { title, description } = Astro.props;
         <p class="mt-1 text-sm text-global-text-muted">{description}</p>
     </div>
     <div class="flex gap-2 flex-wrap">
-        <!--
         <a
             href="/admin/courses"
             class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
@@ -26,7 +25,6 @@ const { title, description } = Astro.props;
         >
             Planchas
         </a>
-        -->
         <a
             href="/admin/teachers"
             class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
@@ -38,6 +36,24 @@ const { title, description } = Astro.props;
             class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
         >
             Panel de subida
+        </a>
+        <a
+            href="/admin/ratings"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+        >
+            Calificaciones
+        </a>
+        <a
+            href="/admin/contributions"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+        >
+            Aportes
+        </a>
+        <a
+            href="/admin/mallas"
+            class="rounded-lg bg-global-card border border-global-border px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border"
+        >
+            Mallas
         </a>
         <a
             href="/admin/moderation"

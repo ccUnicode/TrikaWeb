@@ -7,6 +7,11 @@ import { validateAdminSession } from "../../../lib/adminAuth";
 const ALLOWED_TABLES = ["teacher_ratings", "sheet_feedback"] as const;
 type AllowedTable = typeof ALLOWED_TABLES[number];
 
+/**
+ * Oculta un comentario (is_hidden = true).
+ * Retorna las palabras prohibidas que coincidieron (si aplica)
+ * para informar al moderador el motivo del ocultamiento.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
   const isValid = await validateAdminSession(cookies);
   if (!isValid) {

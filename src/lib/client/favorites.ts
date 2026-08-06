@@ -1,4 +1,8 @@
-// src/lib/client/favorites.ts
+/**
+ * Cliente de localStorage para manejar favoritos (planchas guardadas).
+ * Almacena un array de IDs numéricos bajo la clave 'trikaweb:favorites'
+ * y emite un CustomEvent 'favorites:changed' al modificar.
+ */
 const KEY = 'trikaweb:favorites';
 const hasWindow = () => typeof window !== 'undefined' && typeof localStorage !== 'undefined';
 
