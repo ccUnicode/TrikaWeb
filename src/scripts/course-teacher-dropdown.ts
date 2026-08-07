@@ -146,6 +146,38 @@ export function initTeacherDropdown(
     });
   }
 
+  if (teacherSearchInput) {
+    teacherSearchInput.addEventListener("input", (event) => {
+      const query = (event.target as HTMLInputElement).value
+        .trim()
+        .toLowerCase();
+
+      if (teacherIdInput) teacherIdInput.value = "";
+
+      const filtered = allTeachers.filter((teacher) =>
+        teacher.full_name.toLowerCase().includes(query),
+      );
+
+      renderTeacherDropdown(filtered);
+      teacherDropdown?.classList.remove("hidden");
+    });
+
+    teacherSearchInput.addEventListener("focus", () => {
+      if (allTeachers.length > 0) {
+        renderTeacherDropdown(allTeachers);
+        teacherDropdown?.classList.remove("hidden");
+      }
+    });
+
+    teacherSearchInput.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (teacherIdInput && !teacherIdInput.value) {
+          teacherSearchInput.value = "";
+        }
+      }, 150);
+    });
+  }
+
   if (courseCodeInput) {
     courseCodeInput.addEventListener("blur", () => {
       loadTeachersByCourse(courseCodeInput.value);

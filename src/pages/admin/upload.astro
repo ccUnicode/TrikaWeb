@@ -669,6 +669,12 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     import { initTeacherDropdown } from "../../scripts/course-teacher-dropdown";
     pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
+    let activeCourseId: number | null = null;
+    let evaluationsAbortController: AbortController | null = null;
+
+    const teacherSearchInput = document.getElementById("teacher-search") as HTMLInputElement;
+    const teacherIdInput = document.getElementById("teacher-id") as HTMLInputElement;
+
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
     const syncAllBtn = document.getElementById("sync-all-btn");
@@ -759,7 +765,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     });
 
     // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const { loadTeachersByCourse } = initTeacherDropdown(() => activeCourseId);
+    const { loadTeachersByCourse, resetTeacherSelection } = initTeacherDropdown(() => activeCourseId);
 
     // ── Teacher-specific toggle behavior ──────────────
     const teacherSpecificCheckbox = document.getElementById(
@@ -1110,7 +1116,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
     function selectCourse(course: CourseOption) {
       activeCourseId = course.id;
-      lastFetchedCode = "";
 
       courseSearchInput.value = `${course.code} – ${course.name}`;
       courseIdHidden.value = String(course.id);
@@ -1206,9 +1211,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       activeCourseId = null;
       courseIdHidden.value = "";
       courseCodeHidden.value = "";
-      lastFetchedCode = "";
 
-      teachersAbortController?.abort();
+      resetTeacherSelection("Ingresa un curso primero");
       evaluationsAbortController?.abort();
 
       const filtered = filterCourses(courseSearchInput.value);
@@ -1224,12 +1228,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       if (courseCodeHidden) courseCodeHidden.value = "";
       courseSearchInput.value = "";
 
-      teachersAbortController?.abort();
       evaluationsAbortController?.abort();
 
       resetEvaluationSelection("Selecciona primero un curso");
       resetTeacherSelection("Ingresa un curso primero");
-      lastFetchedCode = "";
 
       if (allCourses.length === 0) {
         await loadCourseOptions();
@@ -1253,37 +1255,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       renderEvaluationDropdown(filtered);
       evaluationDropdown?.classList.remove("hidden");
     });
-
-    teacherSearchInput?.addEventListener("input", (event) => {
-      const query = (event.target as HTMLInputElement).value
-        .trim()
-        .toLowerCase();
-
-      teacherIdInput.value = "";
-
-      const filtered = allTeachers.filter((teacher) =>
-        teacher.full_name.toLowerCase().includes(query),
-      );
-
-      renderTeacherDropdown(filtered);
-      teacherDropdown?.classList.remove("hidden");
-    });
-
-    teacherSearchInput?.addEventListener("focus", () => {
-      if (allTeachers.length > 0) {
-        renderTeacherDropdown(allTeachers);
-        teacherDropdown?.classList.remove("hidden");
-      }
-    });
-
-    teacherSearchInput?.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (!teacherIdInput.value) {
-          teacherSearchInput.value = "";
-        }
-      }, 150);
-    });
-
     evaluationSearchInput?.addEventListener("focus", () => {
       if (allEvaluations.length > 0) {
         renderEvaluationDropdown(allEvaluations);
@@ -1302,9 +1273,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         evaluationDropdown?.classList.add("hidden");
       }
 
-      if (!teacherComboboxContainer?.contains(target)) {
-        teacherDropdown?.classList.add("hidden");
-      }
 
       if (!yearComboboxContainer?.contains(target)) {
         yearDropdown?.classList.add("hidden");
@@ -1716,7 +1684,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
         // Reset fields
         resetTeacherSelection("Ingresa un curso primero");
-        lastFetchedCode = "";
         activeCourseId = null;
         resetEvaluationSelection("Selecciona primero un curso");
         if (courseSearchInput) courseSearchInput.value = "";
