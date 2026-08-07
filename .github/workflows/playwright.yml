@@ -18,12 +18,7 @@ jobs:
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
-      run: |
-        if [ -f playwright.config.ts ] && [ -d tests ]; then
-          npx playwright test
-        else
-          echo "No Playwright config or tests directory found. Skipping."
-        fi
+      run: npx playwright test
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
