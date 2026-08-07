@@ -1,66 +1,115 @@
 ---
-// Este archivo sirve únicamente para probar la UI del Dropdown (RF-30) con Playwright
-// en un entorno controlado (sin autenticación, mocking de API)
 import Layout from "../../layouts/Layout.astro";
 ---
 
-<Layout title="Test Fixture RF-30">
-  <div class="min-h-screen py-8">
-    <div class="mx-auto w-full max-w-3xl px-4">
-      <section class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6">
-        <h2 class="text-lg font-semibold text-global-text mb-4">
-          Test Fixture RF-30
-        </h2>
-        
-        <form id="upload-form" class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="relative" id="course-combobox-container">
-              <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="course-search">
-                Curso
-              </label>
-              <div class="relative">
-                <input type="hidden" id="course-code" name="course_code" />
-                <input
-                  type="text"
-                  id="course-search"
-                  autocomplete="off"
-                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-                  placeholder="Cargando cursos..."
-                />
-              </div>
-              <ul
-                id="course-dropdown"
-                class="absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              >
-              </ul>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-global-text-muted mb-1.5" for="teacher-select">
-                Docente
-              </label>
-              <select
-                id="teacher-select"
-                name="teacher_hint"
-                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                disabled
-              >
-                <option value="">-- Ingresa un curso primero --</option>
-              </select>
-              <p id="teacher-loading" class="hidden mt-1 text-xs text-global-text-muted">
-                Cargando profesores...
-              </p>
-            </div>
-          </div>
-        </form>
-      </section>
+<Layout title="Fixture RF-30">
+  <div class="p-8 max-w-xl mx-auto bg-white rounded-xl shadow mt-10">
+    <h1 class="text-2xl font-bold mb-6">Fixture E2E: Dropdown Cursos/Profesores</h1>
+    
+    <div class="space-y-6">
+      <!-- Curso Combobox -->
+      <div class="relative" id="course-combobox-container">
+        <label class="block text-sm font-medium text-gray-700 mb-1.5" for="course-search">
+          Curso
+        </label>
+        <div class="relative">
+          <input type="hidden" id="course-id" name="course_id" />
+          <input type="hidden" id="course-code" name="course_code" />
+          <input
+            type="text"
+            id="course-search"
+            autocomplete="off"
+            class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+            placeholder="Cargando cursos..."
+            disabled
+          />
+        </div>
+        <ul
+          id="course-dropdown"
+          class="absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-gray-300 bg-white shadow-lg hidden"
+        >
+        </ul>
+      </div>
+
+      <!-- Profesor Combobox (Igual al de admin/upload) -->
+      <div class="relative" id="teacher-combobox-container">
+        <label class="block text-sm font-medium text-gray-700 mb-1.5" for="teacher-search">
+          Docente
+        </label>
+        <div class="relative">
+          <input type="hidden" id="teacher-id" name="teacher_id" />
+          <input
+            type="text"
+            id="teacher-search"
+            autocomplete="off"
+            disabled
+            class="w-full rounded-xl border border-gray-300 px-3 py-2.5 text-sm"
+            placeholder="Ingresa un curso primero"
+          />
+        </div>
+        <ul
+          id="teacher-dropdown"
+          class="absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-gray-300 bg-white shadow-lg hidden"
+        >
+        </ul>
+        <p id="teacher-loading" class="hidden mt-1 text-xs text-gray-500">Cargando profesores...</p>
+      </div>
     </div>
   </div>
 
   <script>
-    import { initCourseTeacherDropdown } from "../../scripts/course-teacher-dropdown";
-    document.addEventListener("DOMContentLoaded", () => {
-      initCourseTeacherDropdown();
-    });
+    import { initTeacherDropdown } from "../../scripts/course-teacher-dropdown";
+
+    // Simular la carga de cursos para el test
+    const courseSearchInput = document.getElementById("course-search") as HTMLInputElement;
+    const courseCodeHidden = document.getElementById("course-code") as HTMLInputElement;
+    const courseDropdown = document.getElementById("course-dropdown") as HTMLUListElement;
+
+    // Inicializar dropdown de profesores
+    const { resetTeacherSelection } = initTeacherDropdown();
+
+    async function loadCourseOptions() {
+      try {
+        const res = await fetch("/api/admin/course-options");
+        const data = await res.json();
+        
+        courseSearchInput.removeAttribute("disabled");
+        courseSearchInput.placeholder = "Buscar curso...";
+
+        const allCourses = data.courses || [];
+        
+        courseSearchInput.addEventListener("input", (e) => {
+          const val = (e.target as HTMLInputElement).value.toLowerCase();
+          
+          if (courseCodeHidden) {
+            courseCodeHidden.value = "";
+            courseCodeHidden.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          resetTeacherSelection("Ingresa un curso primero");
+          
+          courseDropdown.innerHTML = "";
+          const filtered = allCourses.filter((c: any) => c.code.toLowerCase().includes(val) || c.name.toLowerCase().includes(val));
+          
+          filtered.forEach((c: any) => {
+            const li = document.createElement("li");
+            li.className = "px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm";
+            li.textContent = `${c.code} - ${c.name}`;
+            li.addEventListener("mousedown", () => {
+              courseCodeHidden.value = c.code;
+              courseSearchInput.value = `${c.code} - ${c.name}`;
+              courseDropdown.classList.add("hidden");
+              
+              // Trigger input event to simulate user typing and trigger teacher fetch
+              courseCodeHidden.dispatchEvent(new Event("input"));
+            });
+            courseDropdown.appendChild(li);
+          });
+          courseDropdown.classList.remove("hidden");
+        });
+
+      } catch(e) {}
+    }
+
+    loadCourseOptions();
   </script>
 </Layout>
