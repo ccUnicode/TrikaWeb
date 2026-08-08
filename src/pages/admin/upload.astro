@@ -666,7 +666,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     */
     import * as pdfjsLib from "pdfjs-dist";
     import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+    import { initTeacherDropdown } from "../../scripts/course-teacher-dropdown";
     pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+    let activeCourseId: number | null = null;
+    let evaluationsAbortController: AbortController | null = null;
+
+    const teacherSearchInput = document.getElementById("teacher-search") as HTMLInputElement;
+    const teacherIdInput = document.getElementById("teacher-id") as HTMLInputElement;
 
     const syncExamsBtn = document.getElementById("sync-exams-btn");
     const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
@@ -758,209 +765,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     });
 
     // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const courseCodeInput = document.getElementById(
-      "course-code",
-    ) as HTMLInputElement;
-    const teacherSearchInput = document.getElementById(
-      "teacher-search",
-    ) as HTMLInputElement;
-    const teacherIdInput = document.getElementById(
-      "teacher-id",
-    ) as HTMLInputElement;
-    const teacherDropdown = document.getElementById(
-      "teacher-dropdown",
-    ) as HTMLUListElement;
-    const teacherLoading = document.getElementById("teacher-loading");
-    const teacherComboboxContainer = document.getElementById(
-      "teacher-combobox-container",
-    );
-
-    type TeacherOption = {
-      id: number;
-      full_name: string;
-    };
-
-    let allTeachers: TeacherOption[] = [];
-    let lastFetchedCode = "";
-    let teachersAbortController: AbortController | null = null;
-    let evaluationsAbortController: AbortController | null = null;
-    let activeCourseId: number | null = null;
-
-    async function loadTeachersByCourse(
-      code: string,
-      expectedCourseId?: number,
-    ) {
-      const trimmed = code.trim().toUpperCase();
-
-      if (!/^[A-Z]{2,4}[0-9]{2,3}$/.test(trimmed)) {
-        resetTeacherSelection("Ingresa un curso primero");
-        return;
-      }
-
-      if (trimmed === lastFetchedCode) return;
-      lastFetchedCode = trimmed;
-
-      teachersAbortController?.abort();
-      teachersAbortController = new AbortController();
-      const { signal } = teachersAbortController;
-
-      resetTeacherSelection("Cargando profesores...");
-      teacherLoading?.classList.remove("hidden");
-
-      try {
-        const res = await fetch(
-          `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
-          { signal },
-        );
-
-        if (signal.aborted) {
-          return;
-        }
-
-        if (
-          expectedCourseId !== undefined &&
-          activeCourseId !== expectedCourseId
-        ) {
-          return;
-        }
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (
-          expectedCourseId !== undefined &&
-          activeCourseId !== expectedCourseId
-        ) {
-          return;
-        }
-
-        if (
-          data.ok &&
-          Array.isArray(data.profesores) &&
-          data.profesores.length > 0
-        ) {
-          const rawTeachers = data.profesores as unknown[];
-
-          allTeachers = rawTeachers
-            .map((prof: unknown): TeacherOption | null => {
-              if (
-                typeof prof !== "object" ||
-                prof === null ||
-                !("id" in prof) ||
-                !("full_name" in prof)
-              ) {
-                return null;
-              }
-
-              const id = Number(prof.id);
-              const fullName = String(prof.full_name ?? "").trim();
-
-              if (!Number.isSafeInteger(id) || id <= 0 || !fullName) {
-                return null;
-              }
-
-              return {
-                id,
-                full_name: fullName,
-              };
-            })
-            .filter(
-              (prof: TeacherOption | null): prof is TeacherOption =>
-                prof !== null,
-            );
-
-          if (allTeachers.length === 0) {
-            resetTeacherSelection("Sin profesores asociados");
-            return;
-          }
-
-          teacherSearchInput.removeAttribute("disabled");
-          teacherSearchInput.placeholder = "Buscar docente...";
-
-          renderTeacherDropdown(allTeachers);
-        } else {
-          resetTeacherSelection("Sin profesores asociados");
-        }
-      } catch (err) {
-        if (signal.aborted) {
-          return;
-        }
-
-        console.error("Error cargando profesores:", err);
-        resetTeacherSelection("Error al cargar profesores");
-      } finally {
-        if (!signal.aborted) {
-          teacherLoading?.classList.add("hidden");
-        }
-      }
-    }
-
-    courseCodeInput?.addEventListener("blur", () => {
-      loadTeachersByCourse(courseCodeInput.value);
-    });
-
-    courseCodeInput?.addEventListener("input", () => {
-      const val = courseCodeInput.value.trim().toUpperCase();
-      if (/^[A-Z]{2,4}[0-9]{2,3}$/.test(val)) {
-        loadTeachersByCourse(val);
-      }
-    });
-
-    function resetTeacherSelection(placeholder = "Ingresa un curso primero") {
-      if (teacherSearchInput) {
-        teacherSearchInput.value = "";
-        teacherSearchInput.placeholder = placeholder;
-        teacherSearchInput.setAttribute("disabled", "true");
-      }
-
-      if (teacherIdInput) {
-        teacherIdInput.value = "";
-      }
-
-      if (teacherDropdown) {
-        teacherDropdown.innerHTML = "";
-        teacherDropdown.classList.add("hidden");
-      }
-
-      allTeachers = [];
-    }
-
-    function renderTeacherDropdown(teachersToRender: TeacherOption[]) {
-      if (!teacherDropdown) return;
-
-      teacherDropdown.innerHTML = "";
-
-      if (teachersToRender.length === 0) {
-        const emptyItem = document.createElement("li");
-
-        emptyItem.className =
-          "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
-
-        emptyItem.textContent = "No se encontraron docentes.";
-        teacherDropdown.appendChild(emptyItem);
-
-        return;
-      }
-
-      teachersToRender.forEach((teacher) => {
-        const item = document.createElement("li");
-
-        item.className =
-          "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
-
-        item.textContent = teacher.full_name;
-
-        item.addEventListener("mousedown", (event) => {
-          event.preventDefault();
-
-          teacherIdInput.value = String(teacher.id);
-          teacherSearchInput.value = teacher.full_name;
-          teacherDropdown.classList.add("hidden");
-        });
-
-        teacherDropdown.appendChild(item);
-      });
-    }
+    const { loadTeachersByCourse, resetTeacherSelection } = initTeacherDropdown(() => activeCourseId);
 
     // ── Teacher-specific toggle behavior ──────────────
     const teacherSpecificCheckbox = document.getElementById(
@@ -1311,7 +1116,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
     function selectCourse(course: CourseOption) {
       activeCourseId = course.id;
-      lastFetchedCode = "";
 
       courseSearchInput.value = `${course.code} – ${course.name}`;
       courseIdHidden.value = String(course.id);
@@ -1407,9 +1211,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       activeCourseId = null;
       courseIdHidden.value = "";
       courseCodeHidden.value = "";
-      lastFetchedCode = "";
 
-      teachersAbortController?.abort();
+      resetTeacherSelection("Ingresa un curso primero");
       evaluationsAbortController?.abort();
 
       const filtered = filterCourses(courseSearchInput.value);
@@ -1425,12 +1228,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       if (courseCodeHidden) courseCodeHidden.value = "";
       courseSearchInput.value = "";
 
-      teachersAbortController?.abort();
       evaluationsAbortController?.abort();
 
       resetEvaluationSelection("Selecciona primero un curso");
       resetTeacherSelection("Ingresa un curso primero");
-      lastFetchedCode = "";
 
       if (allCourses.length === 0) {
         await loadCourseOptions();
@@ -1454,37 +1255,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       renderEvaluationDropdown(filtered);
       evaluationDropdown?.classList.remove("hidden");
     });
-
-    teacherSearchInput?.addEventListener("input", (event) => {
-      const query = (event.target as HTMLInputElement).value
-        .trim()
-        .toLowerCase();
-
-      teacherIdInput.value = "";
-
-      const filtered = allTeachers.filter((teacher) =>
-        teacher.full_name.toLowerCase().includes(query),
-      );
-
-      renderTeacherDropdown(filtered);
-      teacherDropdown?.classList.remove("hidden");
-    });
-
-    teacherSearchInput?.addEventListener("focus", () => {
-      if (allTeachers.length > 0) {
-        renderTeacherDropdown(allTeachers);
-        teacherDropdown?.classList.remove("hidden");
-      }
-    });
-
-    teacherSearchInput?.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (!teacherIdInput.value) {
-          teacherSearchInput.value = "";
-        }
-      }, 150);
-    });
-
     evaluationSearchInput?.addEventListener("focus", () => {
       if (allEvaluations.length > 0) {
         renderEvaluationDropdown(allEvaluations);
@@ -1503,9 +1273,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         evaluationDropdown?.classList.add("hidden");
       }
 
-      if (!teacherComboboxContainer?.contains(target)) {
-        teacherDropdown?.classList.add("hidden");
-      }
 
       if (!yearComboboxContainer?.contains(target)) {
         yearDropdown?.classList.add("hidden");
@@ -1917,7 +1684,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
         // Reset fields
         resetTeacherSelection("Ingresa un curso primero");
-        lastFetchedCode = "";
         activeCourseId = null;
         resetEvaluationSelection("Selecciona primero un curso");
         if (courseSearchInput) courseSearchInput.value = "";
