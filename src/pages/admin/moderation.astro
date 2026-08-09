@@ -464,60 +464,41 @@ if (!isAdmin) {
           renderSheetItems(items);
         }
 
-        if (pag.totalPages > 1) {
-          pagination?.classList.remove("hidden");
-          if (pageInfo)
-            pageInfo.textContent = `Página ${pag.page} de ${pag.totalPages}`;
-          if (prevBtn) prevBtn.disabled = pag.page <= 1;
-          if (nextBtn) nextBtn.disabled = pag.page >= pag.totalPages;
-        }
-      }
-    } catch (err: any) {
-      // Silently ignore aborted requests — they are intentional
-      if (err.name === "AbortError") return;
-      console.error("Error loading items:", err);
-      if (itemsList) {
-        itemsList.innerHTML = `<div class="text-center text-red-400 p-4">${err.message}</div>`;
-      }
-    } finally {
-      // Only hide loading if this is still the active request
-      if (activeAbortController === controller) {
-        loadingState?.classList.add("hidden");
-      }
-    }
-  }
+        // ── Render teacher items ──
+        function renderTeacherItems(items: any[]) {
+            if (!itemsList) return;
+            itemsList.innerHTML = items.map((item) => {
+                const date = new Date(item.created_at).toLocaleDateString("es-PE", {
+                    day: "numeric", month: "short", year: "numeric",
+                    hour: "2-digit", minute: "2-digit",
+                });
+                const stars = "★".repeat(Math.round(item.overall)) + "☆".repeat(5 - Math.round(item.overall));
+                const reviewBadge = item.needs_review
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">Pendiente</span>'
+                    : '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Revisado</span>';
+                const hiddenBadge = item.is_hidden
+                    ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
+                    : '';
+                
+                const authorText = item.user_name ? escapeHtml(item.user_name) : 'Anónimo';
+                const authorBadge = item.is_anonymous 
+                    ? '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-global-border text-global-text-muted rounded flex items-center gap-1" title="El estudiante publicó de forma anónima, pero tú (admin) puedes ver su nombre">Anónimo</span>' 
+                    : '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-400 rounded flex items-center gap-1" title="El estudiante publicó de forma pública">Público</span>';
+                    
+                const table = "teacher_ratings";
 
-  // ── Render teacher items ──
-  function renderTeacherItems(items: any[]) {
-    if (!itemsList) return;
-    itemsList.innerHTML = items
-      .map((item) => {
-        const date = new Date(item.created_at).toLocaleDateString("es-PE", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const stars =
-          "★".repeat(Math.round(item.overall)) +
-          "☆".repeat(5 - Math.round(item.overall));
-        const reviewBadge = item.needs_review
-          ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">Pendiente</span>'
-          : '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Revisado</span>';
-        const hiddenBadge = item.is_hidden
-          ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
-          : "";
-        const table = "teacher_ratings";
-
-        return `
-                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? "ring-1 ring-amber-500/20" : ""}" data-item-id="${item.id}">
+                return `
+                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? 'ring-1 ring-amber-500/20' : ''}" data-item-id="${item.id}">
                         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                             <div>
-                                <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-2 flex-wrap mb-1">
                                     <a href="/profesores/${item.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">${escapeHtml(item.teacher_name)}</a>
                                     ${reviewBadge}
                                     ${hiddenBadge}
+                                </div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="text-xs text-global-text">Autor: <span class="font-medium">${authorText}</span></p>
+                                    ${authorBadge}
                                 </div>
                                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
                             </div>

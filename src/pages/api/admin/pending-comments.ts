@@ -165,6 +165,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
                 created_at,
                 is_hidden,
                 needs_review,
+                is_anonymous,
+                user_name,
                 teacher_id,
                 teachers:teacher_id (
                     id,
@@ -225,6 +227,8 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             created_at: item.created_at,
             is_hidden: item.is_hidden,
             needs_review: item.needs_review,
+            is_anonymous: item.is_anonymous,
+            user_name: item.user_name,
             teacher_id: item.teacher_id,
             teacher_name: item.teachers?.full_name ?? "Profesor desconocido",
         }));

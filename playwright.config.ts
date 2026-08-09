@@ -17,16 +17,20 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
+  // Levantamos el servidor siempre para pruebas E2E UI.
+  // Si no hay credenciales reales, inyectamos valores dummy para que Astro arranque.
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:4321',
     reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000,
     env: {
-      SUPABASE_URL: 'https://dummy.supabase.co',
-      SUPABASE_SERVICE_KEY: 'dummy',
-      PUBLIC_SUPABASE_URL: 'https://dummy.supabase.co',
-      PUBLIC_SUPABASE_ANON_KEY: 'dummy',
+      ...process.env,
+      SUPABASE_URL: process.env.SUPABASE_URL || 'http://localhost:54321',
+      SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY || 'dummy-service-key',
+      PUBLIC_SUPABASE_URL: process.env.PUBLIC_SUPABASE_URL || 'http://localhost:54321',
+      PUBLIC_SUPABASE_ANON_KEY: process.env.PUBLIC_SUPABASE_ANON_KEY || 'dummy-anon-key',
       ASTRO_DEV_BACKGROUND: '0',
-    }
+    },
   },
 });

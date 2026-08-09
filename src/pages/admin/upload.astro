@@ -663,23 +663,49 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       - PDF.js para generar miniatura de la 1ª página
       - Subida secuencial: upload-url → miniatura → Storage → metadatos DB
     */
-  import * as pdfjsLib from "pdfjs-dist";
-  import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+    import * as pdfjsLib from "pdfjs-dist";
+    import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+    import { initTeacherDropdown } from "../../scripts/course-teacher-dropdown";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-  const syncExamsBtn = document.getElementById("sync-exams-btn");
-  const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
-  const syncAllBtn = document.getElementById("sync-all-btn");
-  const syncStatus = document.getElementById("sync-status");
-  const syncMessage = document.getElementById("sync-message");
-  const syncResults = document.getElementById("sync-results");
-  const syncResultsPre = syncResults?.querySelector("pre");
+    let activeCourseId: number | null = null;
+    let evaluationsAbortController: AbortController | null = null;
 
-  async function runSync(type: string) {
-    // Disable all buttons
-    [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
-      btn?.setAttribute("disabled", "true");
-    });
+    const teacherSearchInput = document.getElementById("teacher-search") as HTMLInputElement;
+    const teacherIdInput = document.getElementById("teacher-id") as HTMLInputElement;
+
+    const syncExamsBtn = document.getElementById("sync-exams-btn");
+    const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
+    const syncAllBtn = document.getElementById("sync-all-btn");
+    const syncStatus = document.getElementById("sync-status");
+    const syncMessage = document.getElementById("sync-message");
+    const syncResults = document.getElementById("sync-results");
+    const syncResultsPre = syncResults?.querySelector("pre");
+
+    async function runSync(type: string) {
+      // Disable all buttons
+      [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
+        btn?.setAttribute("disabled", "true");
+      });
+
+      // Show status
+      syncStatus?.classList.remove("hidden");
+      syncResults?.classList.add("hidden");
+      document.getElementById("sync-spinner")?.classList.remove("hidden");
+      if (syncMessage) syncMessage.textContent = `Sincronizando ${type}...`;
+
+      try {
+        const res = await fetch("/api/admin/drive-sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type }),
+        });
+
+        if (!res.ok) {
+          if (syncMessage)
+            syncMessage.textContent = `❌ Error del servidor (${res.status})`;
+          return;
+        }
 
     // Show status
     syncStatus?.classList.remove("hidden");
@@ -792,114 +818,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       return;
     }
 
-    if (trimmed === lastFetchedCode) return;
-    lastFetchedCode = trimmed;
-
-    teachersAbortController?.abort();
-    teachersAbortController = new AbortController();
-    const { signal } = teachersAbortController;
-
-    resetTeacherSelection("Cargando profesores...");
-    teacherLoading?.classList.remove("hidden");
-
-    try {
-      const res = await fetch(
-        `/api/cursos/${encodeURIComponent(trimmed)}/profesores`,
-        { signal },
-      );
-
-      if (signal.aborted) {
-        return;
-      }
-
-      if (
-        expectedCourseId !== undefined &&
-        activeCourseId !== expectedCourseId
-      ) {
-        return;
-      }
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      if (
-        expectedCourseId !== undefined &&
-        activeCourseId !== expectedCourseId
-      ) {
-        return;
-      }
-
-      if (
-        data.ok &&
-        Array.isArray(data.profesores) &&
-        data.profesores.length > 0
-      ) {
-        const rawTeachers = data.profesores as unknown[];
-
-        allTeachers = rawTeachers
-          .map((prof: unknown): TeacherOption | null => {
-            if (
-              typeof prof !== "object" ||
-              prof === null ||
-              !("id" in prof) ||
-              !("full_name" in prof)
-            ) {
-              return null;
-            }
-
-            const id = Number(prof.id);
-            const fullName = String(prof.full_name ?? "").trim();
-
-            if (!Number.isSafeInteger(id) || id <= 0 || !fullName) {
-              return null;
-            }
-
-            return {
-              id,
-              full_name: fullName,
-            };
-          })
-          .filter(
-            (prof: TeacherOption | null): prof is TeacherOption =>
-              prof !== null,
-          );
-
-        if (allTeachers.length === 0) {
-          resetTeacherSelection("Sin profesores asociados");
-          return;
-        }
-
-        teacherSearchInput.removeAttribute("disabled");
-        teacherSearchInput.placeholder = "Buscar docente...";
-
-        renderTeacherDropdown(allTeachers);
-      } else {
-        resetTeacherSelection("Sin profesores asociados");
-      }
-    } catch (err) {
-      if (signal.aborted) {
-        return;
-      }
-
-      console.error("Error cargando profesores:", err);
-      resetTeacherSelection("Error al cargar profesores");
-    } finally {
-      if (!signal.aborted) {
-        teacherLoading?.classList.add("hidden");
-      }
-    }
-  }
-
-  courseCodeInput?.addEventListener("blur", () => {
-    loadTeachersByCourse(courseCodeInput.value);
-  });
-
-  courseCodeInput?.addEventListener("input", () => {
-    const val = courseCodeInput.value.trim().toUpperCase();
-    if (/^[A-Z]{2,4}[0-9]{2,3}$/.test(val)) {
-      loadTeachersByCourse(val);
-    }
-  });
+    // ── RF-30: Cargar profesores del curso seleccionado ───────────
+    const { loadTeachersByCourse, resetTeacherSelection } = initTeacherDropdown(() => activeCourseId);
 
   function resetTeacherSelection(placeholder = "Ingresa un curso primero") {
     if (teacherSearchInput) {
@@ -1188,8 +1108,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     }
   }
 
-  async function loadEvaluationOptions(courseId: number) {
-    if (!evaluationSearchInput) return;
+    function selectCourse(course: CourseOption) {
+      activeCourseId = course.id;
 
     evaluationsAbortController?.abort();
     evaluationsAbortController = new AbortController();
@@ -1288,12 +1208,13 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       });
     }
 
-    courseDropdown.classList.remove("hidden");
-  }
+    courseSearchInput?.addEventListener("input", () => {
+      activeCourseId = null;
+      courseIdHidden.value = "";
+      courseCodeHidden.value = "";
 
-  function selectCourse(course: CourseOption) {
-    activeCourseId = course.id;
-    lastFetchedCode = "";
+      resetTeacherSelection("Ingresa un curso primero");
+      evaluationsAbortController?.abort();
 
     courseSearchInput.value = `${course.code} – ${course.name}`;
     courseIdHidden.value = String(course.id);
@@ -1308,12 +1229,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     loadTeachersByCourse(course.code, course.id);
   }
 
-  function filterCourses(query: string) {
-    const q = norm(query);
+      evaluationsAbortController?.abort();
 
-    if (!q) {
-      return allCourses;
-    }
+      resetEvaluationSelection("Selecciona primero un curso");
+      resetTeacherSelection("Ingresa un curso primero");
 
     return allCourses.filter(
       (course) =>
@@ -1343,45 +1262,14 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   function renderEvaluationDropdown(evaluations: EvaluationOption[]) {
     if (!evaluationDropdown) return;
 
-    evaluationDropdown.innerHTML = "";
-
-    if (evaluations.length === 0) {
-      const li = document.createElement("li");
-      li.className =
-        "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
-      li.textContent = "No se encontraron evaluaciones.";
-      evaluationDropdown.appendChild(li);
-      return;
-    }
-
-    evaluations.forEach((evaluation) => {
-      const li = document.createElement("li");
-      li.className =
-        "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
-
-      const abrSpan = document.createElement("span");
-      abrSpan.className = "font-semibold text-global-primary";
-      abrSpan.textContent = evaluation.evaluation_abr;
-
-      const separator = document.createElement("span");
-      separator.className = "text-global-text-muted";
-      separator.textContent = " – ";
-
-      const nameSpan = document.createElement("span");
-      nameSpan.textContent = evaluation.evaluation_name;
-
-      li.appendChild(abrSpan);
-      li.appendChild(separator);
-      li.appendChild(nameSpan);
-
-      li.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        evaluationIdHidden.value = String(evaluation.evaluation_id);
-        evaluationSearchInput.value = `${evaluation.evaluation_abr} – ${evaluation.evaluation_name}`;
-        evaluationDropdown.classList.add("hidden");
-      });
-
-      evaluationDropdown.appendChild(li);
+      renderEvaluationDropdown(filtered);
+      evaluationDropdown?.classList.remove("hidden");
+    });
+    evaluationSearchInput?.addEventListener("focus", () => {
+      if (allEvaluations.length > 0) {
+        renderEvaluationDropdown(allEvaluations);
+        evaluationDropdown?.classList.remove("hidden");
+      }
     });
   }
 
@@ -1396,9 +1284,6 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
     const filtered = filterCourses(courseSearchInput.value);
 
-    renderCourseDropdown(filtered);
-    courseDropdown?.classList.remove("hidden");
-  });
 
   courseSearchInput?.addEventListener("focus", async () => {
     activeCourseId = null;
@@ -1910,15 +1795,42 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       // Reset toggle UI after form reset
       updateTeacherSpecificUI();
 
-      // Auto-hide success message after 4 seconds
-      setTimeout(() => resetUploadUI(), 4000);
-    } catch (err) {
-      console.error("Upload error:", err);
-      setUploadUI(`Error de red: ${err}`, 0, false);
-      submitBtn?.removeAttribute("disabled");
-    }
-  });
-</script>
+        // Success!
+        setUploadUI(`${regData.message}`, 100, false);
+        uploadForm.reset();
+        if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+        if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
+
+        // Reset fields
+        resetTeacherSelection("Ingresa un curso primero");
+        activeCourseId = null;
+        resetEvaluationSelection("Selecciona primero un curso");
+        if (courseSearchInput) courseSearchInput.value = "";
+        // Reset year/term UI
+        yearHidden.value = "";
+        yearDisplay.value = "";
+        yearCustom.value = "";
+        yearCustom.classList.add("hidden");
+        termHidden.value = "";
+        termDisplay.value = "";
+        cycleCodeHidden.value = "";
+
+        if (courseIdHidden) courseIdHidden.value = "";
+        if (courseCodeHidden) courseCodeHidden.value = "";
+        courseDropdown?.classList.add("hidden");
+
+        // Reset toggle UI after form reset
+        updateTeacherSpecificUI();
+
+        // Auto-hide success message after 4 seconds
+        setTimeout(() => resetUploadUI(), 4000);
+      } catch (err) {
+        console.error("Upload error:", err);
+        setUploadUI(`Error de red: ${err}`, 0, false);
+        submitBtn?.removeAttribute("disabled");
+      }
+    });
+  </script>
 
 <script>
   /*

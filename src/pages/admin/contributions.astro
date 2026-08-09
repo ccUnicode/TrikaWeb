@@ -306,6 +306,7 @@ if (!isAdmin) {
     // Render contributions
     function renderContributions() {
       listContainer.innerHTML = "";
+      emptyStateEl.classList.add("hidden");
 
       const filtered = allContributions.filter((c) => {
         if (currentFilter === "pending") {
