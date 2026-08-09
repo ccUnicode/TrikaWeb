@@ -251,8 +251,8 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                   className={`group relative p-3 rounded-xl border transition-all select-none flex items-start gap-2 ${isOnCanvas
                     ? 'bg-[#161b22]/50 border-gray-800/50 opacity-40 cursor-not-allowed'
                     : isDraggingThis
-                    ? 'bg-indigo-600/30 border-indigo-500 opacity-90 cursor-grabbing shadow-lg'
-                    : 'bg-[#1a202c] hover:bg-[#222938] border-gray-800 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing hover:shadow-md hover:shadow-indigo-500/5'
+                      ? 'bg-indigo-600/30 border-indigo-500 opacity-90 cursor-grabbing shadow-lg'
+                      : 'bg-[#1a202c] hover:bg-[#222938] border-gray-800 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing hover:shadow-md hover:shadow-indigo-500/5'
                     }`}
                 >
                   {!isOnCanvas && (
@@ -306,26 +306,38 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
       </aside>
 
       {/* Canvas - Área de CSS Grid Nativo */}
-      <main className="flex-1 h-full w-full bg-[#11151c] border border-global-border rounded-xl relative overflow-auto custom-scrollbar">
-        <div className="w-[1116px] p-4 flex flex-col">
+      <main className="relative h-full min-w-0 flex-1 overflow-y-auto overflow-x-hidden rounded-xl border border-global-border bg-[#11151c] custom-scrollbar">
+        <div className="flex w-full min-w-0 flex-col p-4">
           {/* Cabeceras de Ciclos */}
-          <div className="grid grid-cols-10 gap-1.5 mb-2">
+          <div className="mb-2 grid w-full min-w-0 grid-cols-10 gap-1.5">
             {Array.from({ length: 10 }).map((_, i) => (
-              <div key={`header-${i + 1}`} className="text-center font-bold text-white bg-[#1e2430] border border-gray-800 rounded-lg p-2 shadow-sm text-xs">
+              <div
+                key={`header-${i + 1}`}
+                className="min-w-0 truncate rounded-lg border border-gray-800 bg-[#1e2430] px-1 py-2 text-center text-xs font-bold text-white shadow-sm"
+              >
                 CICLO {i + 1}
               </div>
             ))}
           </div>
 
-          {/* Cuadrícula Principal (Columnas y Slots) */}
-          <div className="grid grid-cols-10 gap-1.5 flex-1">
+          {/* Cuadrícula Principal */}
+          <div className="grid w-full min-w-0 flex-1 grid-cols-10 gap-1.5">
             {Array.from({ length: 10 }).map((_, colIndex) => {
               const cycle = colIndex + 1;
+
               return (
-                <div key={`col-${cycle}`} className="flex flex-col gap-1.5">
+                <div
+                  key={`col-${cycle}`}
+                  className="flex min-w-0 flex-col gap-1.5"
+                >
                   {Array.from({ length: 15 }).map((_, rowIndex) => {
                     const row_index = rowIndex + 1;
-                    const placedCourse = placedCourses.find(c => c.cycle === cycle && c.row_index === row_index);
+
+                    const placedCourse = placedCourses.find(
+                      (c) =>
+                        c.cycle === cycle &&
+                        c.row_index === row_index,
+                    );
 
                     return (
                       <Slot
@@ -334,9 +346,19 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                         row_index={row_index}
                         placedCourse={placedCourse}
                         onDropCourse={(course) => {
-                          setPlacedCourses(prev => {
-                            const filtered = prev.filter(p => p.id !== course.id);
-                            return [...filtered, { ...course, cycle, row_index }];
+                          setPlacedCourses((prev) => {
+                            const filtered = prev.filter(
+                              (p) => p.id !== course.id,
+                            );
+
+                            return [
+                              ...filtered,
+                              {
+                                ...course,
+                                cycle,
+                                row_index,
+                              },
+                            ];
                           });
                         }}
                         onDragStartCourse={(e) => {
@@ -347,7 +369,9 @@ export default function CurriculumBuilder({ planId, plan, initialCourses, initia
                         onDragEndCourse={onDragEnd}
                         draggedCourseId={draggedCourseId}
                         onRemoveCourse={handleRemoveCourse}
-                        onClickCourse={(course) => setSelectedCourseForPrereqs(course)}
+                        onClickCourse={(course) =>
+                          setSelectedCourseForPrereqs(course)
+                        }
                       />
                     );
                   })}

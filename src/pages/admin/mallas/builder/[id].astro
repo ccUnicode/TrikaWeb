@@ -112,70 +112,69 @@ const initialPlacedCourses = planCourses
   title={`Constructor de Malla (${specialtyName} - ${plan.year}) | TrikaWeb Admin`}
   variant="admin"
 >
-  <AdminLayout
-    title="Constructor de Malla"
-    description=""
-  >
-    <!-- Header Section -->
-    <div
-      class="mb-6 flex flex-row items-center justify-between gap-4 flex-wrap bg-[#1e2430] p-4 rounded-2xl border border-gray-800 shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
-    >
-      <div class="flex items-center gap-5">
-        <!-- Modern Back Button -->
-        <a
-          href="/admin/mallas"
-          class="group flex items-center justify-center w-11 h-11 rounded-xl bg-[#2a3240] border border-gray-700 hover:border-[#22c55e]/50 hover:bg-[#22c55e]/10 transition-all duration-300 shadow-sm"
-          title="Volver a Mallas"
-        >
-          <svg
-            class="w-5 h-5 text-gray-400 group-hover:text-[#22c55e] transition-colors"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            ><path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2.5"
-              d="M15 19l-7-7 7-7"></path></svg
+  <div class="min-h-screen bg-global-bg p-3 sm:p-4 lg:p-6 xl:p-8">
+    <div class="mx-auto w-full max-w-none">
+      <!-- Header Section -->
+      <div
+        class="mb-6 flex flex-row items-center justify-between gap-4 flex-wrap bg-[#1e2430] p-4 rounded-2xl border border-gray-800 shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+      >
+        <div class="flex items-center gap-5">
+          <!-- Modern Back Button -->
+          <a
+            href="/admin/mallas"
+            class="group flex items-center justify-center w-11 h-11 rounded-xl bg-[#2a3240] border border-gray-700 hover:border-[#22c55e]/50 hover:bg-[#22c55e]/10 transition-all duration-300 shadow-sm"
+            title="Volver a Mallas"
           >
-        </a>
-
-        <div class="h-10 w-px bg-gray-700/50 hidden sm:block"></div>
-
-        <div class="flex flex-col">
-          <div class="flex items-center gap-3 mb-1">
-            <h1 class="text-xl font-extrabold text-white tracking-wide">
-              Constructor Visual
-            </h1>
-            <span
-              class="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-md bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+            <svg
+              class="w-5 h-5 text-gray-400 group-hover:text-[#22c55e] transition-colors"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              ><path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2.5"
+                d="M15 19l-7-7 7-7"></path></svg
             >
-              Edición
-            </span>
-          </div>
-          <div class="flex items-center gap-2 text-sm text-gray-400">
-            <span class="font-medium text-gray-300">{specialtyName}</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-            <span>Plan {plan.year}</span>
+          </a>
+
+          <div class="h-10 w-px bg-gray-700/50 hidden sm:block"></div>
+
+          <div class="flex flex-col">
+            <div class="flex items-center gap-3 mb-1">
+              <h1 class="text-xl font-extrabold text-white tracking-wide">
+                Constructor Visual
+              </h1>
+              <span
+                class="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-md bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+              >
+                Edición
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-400">
+              <span class="font-medium text-gray-300">{specialtyName}</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+              <span>Plan {plan.year}</span>
+            </div>
           </div>
         </div>
+
+        <div id="react-save-button-root" class="flex items-center"></div>
       </div>
 
-      <div id="react-save-button-root" class="flex items-center"></div>
+      <!-- Canvas Container -->
+      <div class="w-full">
+        {
+          /* @ts-ignore - TS a veces no reconoce client:load de Astro en componentes React */
+        }
+        <CurriculumBuilder
+          client:load
+          planId={formattedPlan.id}
+          plan={formattedPlan}
+          initialCourses={courses || []}
+          initialPlacedCourses={initialPlacedCourses}
+        />
+      </div>
     </div>
-
-    <!-- Canvas Container -->
-    <div class="w-full">
-      {
-        /* @ts-ignore - TS a veces no reconoce client:load de Astro en componentes React */
-      }
-      <CurriculumBuilder
-        client:load
-        planId={formattedPlan.id}
-        plan={formattedPlan}
-        initialCourses={courses || []}
-        initialPlacedCourses={initialPlacedCourses}
-      />
-    </div>
-  </AdminLayout>
+  </div>
 </Layout>
