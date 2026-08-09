@@ -1,0 +1,204 @@
+---
+import AdminHeader from "./AdminHeader.astro";
+import AdminSidebar from "./AdminSidebar.astro";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<div id="admin-shell" class="min-h-screen overflow-x-hidden">
+  <AdminSidebar />
+
+  <!-- Fondo oscuro móvil -->
+  <div
+    id="admin-mobile-sidebar-backdrop"
+    class="pointer-events-none fixed inset-0 z-40 bg-black/70 opacity-0 transition-opacity duration-300 lg:hidden"
+    aria-hidden="true"
+  >
+  </div>
+
+  <!-- Botón hamburguesa móvil -->
+  <button
+    id="admin-mobile-sidebar-toggle"
+    type="button"
+    class="fixed left-4 top-4 z-30 grid h-11 w-11 cursor-pointer place-items-center rounded-xl border border-global-border bg-global-card text-global-text shadow-lg transition-colors hover:border-global-primary/50 hover:text-global-primary lg:hidden"
+    aria-label="Abrir menú administrativo"
+    aria-expanded="false"
+    aria-controls="admin-sidebar"
+  >
+    <svg
+      class="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M4 6h16M4 12h16M4 18h16"></path>
+    </svg>
+  </button>
+
+  <!-- Contenido administrativo -->
+  <main
+    id="admin-content"
+    class="min-w-0
+      overflow-x-hidden
+      px-4
+      pb-8
+      pt-20
+      transition-[margin-left]
+      duration-300
+      ease-in-out
+      sm:px-6
+      lg:ml-[280px]
+      lg:px-8
+      lg:py-8"
+  >
+    <div class="mx-auto w-full max-w-[1500px]">
+      <AdminHeader title={title} description={description} />
+
+      <div class="w-full min-w-0">
+        <slot />
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const SIDEBAR_STORAGE_KEY = "admin-sidebar-collapsed";
+
+  const mobileToggle = document.getElementById("admin-mobile-sidebar-toggle");
+
+  const mobileClose = document.getElementById("admin-mobile-sidebar-close");
+
+  const mobileBackdrop = document.getElementById(
+    "admin-mobile-sidebar-backdrop",
+  );
+
+  const adminSidebar = document.getElementById("admin-sidebar");
+
+  let mobileSidebarOpen = false;
+
+  function setMobileSidebarOpen(open: boolean): void {
+    mobileSidebarOpen = open;
+
+    if (!adminSidebar || !mobileBackdrop) {
+      return;
+    }
+
+    if (open) {
+      // Mostrar sidebar.
+      adminSidebar.classList.remove("-translate-x-full");
+      adminSidebar.classList.add("translate-x-0");
+
+      // Mostrar backdrop.
+      mobileBackdrop.classList.remove("pointer-events-none", "opacity-0");
+      mobileBackdrop.classList.add("pointer-events-auto", "opacity-100");
+
+      // Ocultar hamburguesa.
+      mobileToggle?.classList.add("opacity-0", "pointer-events-none");
+
+      document.body.style.overflow = "hidden";
+    } else {
+      // Ocultar sidebar.
+      adminSidebar.classList.remove("translate-x-0");
+      adminSidebar.classList.add("-translate-x-full");
+
+      // Ocultar backdrop.
+      mobileBackdrop.classList.remove("pointer-events-auto", "opacity-100");
+      mobileBackdrop.classList.add("pointer-events-none", "opacity-0");
+
+      // Mostrar hamburguesa.
+      mobileToggle?.classList.remove("opacity-0", "pointer-events-none");
+
+      document.body.style.overflow = "";
+    }
+
+    mobileToggle?.setAttribute("aria-expanded", String(open));
+  }
+
+  // Sidebar escritorio.
+  window.addEventListener("admin-sidebar-toggle", () => {
+    const collapsed =
+      document.documentElement.dataset.adminSidebarCollapsed === "true";
+
+    const newState = !collapsed;
+
+    document.documentElement.dataset.adminSidebarCollapsed = String(newState);
+
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(newState));
+    } catch {
+      // El sidebar continúa funcionando.
+    }
+  });
+
+  // Abrir menú móvil.
+  mobileToggle?.addEventListener("click", () => {
+    setMobileSidebarOpen(true);
+  });
+
+  // Cerrar desde la X.
+  mobileClose?.addEventListener("click", () => {
+    setMobileSidebarOpen(false);
+  });
+
+  // Cerrar tocando el fondo.
+  mobileBackdrop?.addEventListener("click", () => {
+    setMobileSidebarOpen(false);
+  });
+
+  // Cerrar con Escape.
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && mobileSidebarOpen) {
+      setMobileSidebarOpen(false);
+    }
+  });
+
+  // Cerrar después de elegir una opción.
+  adminSidebar
+    ?.querySelectorAll<HTMLAnchorElement>(".sidebar-link")
+    .forEach((link) => {
+      link.addEventListener("click", () => {
+        if (window.matchMedia("(max-width: 1023px)").matches) {
+          setMobileSidebarOpen(false);
+        }
+      });
+    });
+
+  // Si se pasa de móvil a escritorio.
+  const desktopMediaQuery = window.matchMedia("(min-width: 1024px)");
+
+  desktopMediaQuery.addEventListener("change", (event) => {
+    if (event.matches) {
+      document.body.style.overflow = "";
+
+      mobileBackdrop?.classList.remove("pointer-events-auto", "opacity-100");
+
+      mobileBackdrop?.classList.add("pointer-events-none", "opacity-0");
+
+      mobileToggle?.classList.remove("opacity-0", "pointer-events-none");
+
+      mobileSidebarOpen = false;
+    } else {
+      setMobileSidebarOpen(false);
+    }
+  });
+
+  setMobileSidebarOpen(false);
+</script>
+
+<style is:global>
+  @media (min-width: 1024px) {
+    html[data-admin-sidebar-collapsed="true"] #admin-content {
+      margin-left: 88px;
+    }
+  }
+</style>
