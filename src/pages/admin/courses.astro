@@ -1,340 +1,337 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import AdminHeader from "../../components/AdminHeader.astro";
+import AdminLayout from "../../components/AdminLayout.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
 if (!isAdmin) {
-    return Astro.redirect("/admin/login");
+  return Astro.redirect("/admin/login");
 }
 ---
 
-<Layout title="Gestionar Cursos | TrikaWeb Admin">
-  <div class="min-h-screen py-8">
-    <div class="mx-auto w-full max-w-4xl px-4">
-      <AdminHeader 
-        title="Gestionar Cursos" 
-        description="Agrega cursos y revisa el listado existente" 
-      />
-      <!-- Create Course -->
-      <section
-        class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
-      >
-        <h2 class="text-lg font-semibold text-global-text mb-4">
-          Agregar curso
-        </h2>
+<Layout 
+  title="Gestionar Cursos | TrikaWeb Admin"
+  variant="admin"
+>
+  <AdminLayout
+    title="Gestionar Cursos"
+    description="Agrega cursos y revisa el listado existente"
+  >
+    <!-- Create Course -->
+    <section
+      class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
+    >
+      <h2 class="text-lg font-semibold text-global-text mb-4">Agregar curso</h2>
 
-        <form id="add-course-form" class="grid gap-4 sm:grid-cols-3">
-          <div>
+      <form id="add-course-form" class="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label
+            class="block text-sm font-medium text-global-text-muted mb-1.5"
+            for="course-code"
+          >
+            Código
+          </label>
+          <input
+            id="course-code"
+            type="text"
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+            placeholder="MAT01"
+            required
+          />
+        </div>
+        <div class="sm:col-span-2">
+          <label
+            class="block text-sm font-medium text-global-text-muted mb-1.5"
+            for="course-name"
+          >
+            Nombre
+          </label>
+          <input
+            id="course-name"
+            type="text"
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+            placeholder="Cálculo I"
+            required
+          />
+        </div>
+        <div class="sm:col-span-3">
+          <div class="mb-1.5 flex items-center justify-between gap-3">
             <label
-              class="block text-sm font-medium text-global-text-muted mb-1.5"
-              for="course-code"
+              class="block text-sm font-medium text-global-text-muted"
+              for="course-summary"
             >
-              Código
+              Sumilla (opcional)
             </label>
-            <input
-              id="course-code"
-              type="text"
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-              placeholder="MAT01"
-              required
-            />
+            <span
+              id="course-summary-counter"
+              class="text-xs text-global-text-muted"
+              aria-live="polite"
+            >
+              0/1000
+            </span>
           </div>
-          <div class="sm:col-span-2">
-            <label
-              class="block text-sm font-medium text-global-text-muted mb-1.5"
-              for="course-name"
-            >
-              Nombre
-            </label>
-            <input
-              id="course-name"
-              type="text"
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-              placeholder="Cálculo I"
-              required
-            />
-          </div>
-          <div class="sm:col-span-3">
-            <div class="mb-1.5 flex items-center justify-between gap-3">
-              <label
-                class="block text-sm font-medium text-global-text-muted"
-                for="course-summary"
-              >
-                Sumilla (opcional)
-              </label>
-              <span
-                id="course-summary-counter"
-                class="text-xs text-global-text-muted"
-                aria-live="polite"
-              >
-                0/1000
-              </span>
-            </div>
-            <textarea
-              id="course-summary"
-              maxlength="1000"
-              class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition-colors placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary teacher-scroll"
-              placeholder="Describe brevemente el contenido y propósito del curso..."
-            ></textarea>
-          </div>
-          <div>
-            <label
-              class="block text-sm font-medium text-global-text-muted mb-1.5"
-              for="course-credits"
-            >
-              Créditos
-            </label>
-            <input
-              id="course-credits"
-              type="number"
-              min="1"
-              step="1"
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-              placeholder="4"
-              required
-            />
-          </div>
-          <div class="relative">
-            <label
-              class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5"
-            >
-              Sistema de evaluación
+          <textarea
+            id="course-summary"
+            maxlength="1000"
+            class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition-colors placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary teacher-scroll"
+            placeholder="Describe brevemente el contenido y propósito del curso..."
+          ></textarea>
+        </div>
+        <div>
+          <label
+            class="block text-sm font-medium text-global-text-muted mb-1.5"
+            for="course-credits"
+          >
+            Créditos
+          </label>
+          <input
+            id="course-credits"
+            type="number"
+            min="1"
+            step="1"
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+            placeholder="4"
+            required
+          />
+        </div>
+        <div class="relative">
+          <label
+            class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5"
+          >
+            Sistema de evaluación
 
-              <button
-                type="button"
-                id="system-info-btn"
-                class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-global-border text-[10px] text-global-text-muted hover:border-global-primary hover:text-global-primary transition"
-              >
-                i
-              </button>
-            </label>
-
-            <div
-              id="system-info-popover"
-              class="hidden absolute z-20 top-full mt-1 w-72 rounded-xl border border-global-border bg-global-surface p-3 text-xs text-global-text-muted shadow-lg"
-            >
-              Define cómo se calcula la nota final del curso. Puede incluir
-              prácticas, exámenes, trabajos o laboratorios, así como el peso de
-              cada uno de estos puntajes (Ejm: "EF x 2" significa que el examen
-              final tiene peso 2 en ese sistema)
-            </div>
-
-            <input type="hidden" id="course-system" required />
-
-            <div class="relative" id="system-combobox-container">
-              <input
-                id="course-system-search"
-                type="text"
-                autocomplete="off"
-                class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                placeholder="Buscar sistema..."
-                required
-              />
-
-              <div
-                class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
-              >
-                <svg
-                  class="h-4 w-4 text-global-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-
-              <ul
-                id="system-dropdown"
-                class="absolute z-30 top-full left-0 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden teacher-scroll"
-              >
-              </ul>
-            </div>
-          </div>
-
-          <div class="relative">
-            <label
-              class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5"
-            >
-              Subsistema de evaluación
-              <button
-                type="button"
-                id="subsystem-info-btn"
-                class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-global-border text-[10px] text-global-text-muted hover:border-global-primary hover:text-global-primary transition"
-              >
-                i
-              </button>
-            </label>
-
-            <div
-              id="subsystem-info-popover"
-              class="hidden absolute z-20 top-full mt-1 w-72 rounded-xl border border-global-border bg-global-surface p-3 text-xs text-global-text-muted shadow-lg"
-            >
-              En caso el sistema considere prácticas, trabajos (monografías) y/o
-              laboratorios, la suma de estos define el subsistema respectivo
-              (Ejm: 4 prácticas y 1 monografía = Subsistema S5 (4 + 1 = 5)).
-            </div>
-
-            <input type="hidden" id="course-subsystem" />
-
-            <div class="relative" id="subsystem-combobox-container">
-              <input
-                id="course-subsystem-search"
-                type="text"
-                autocomplete="off"
-                class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                placeholder="Selecciona primero un sistema"
-                disabled
-              />
-
-              <div
-                class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
-              >
-                <svg
-                  class="h-4 w-4 text-global-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-
-              <ul
-                id="subsystem-dropdown"
-                class="absolute z-30 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden teacher-scroll"
-              >
-              </ul>
-            </div>
-            <p class="font-medium mt-1 text-xs text-green-400 italic">
-              Puedes registrar el curso sin este dato, pero no podrás subir
-              archivos hasta completar su configuración.
-            </p>
-          </div>
-          <div id="evaluation-config-wrapper" class="sm:col-span-3 hidden">
-            <label
-              class="block text-sm font-medium text-global-text-muted mb-1.5"
-            >
-              Evaluaciones del curso
-            </label>
-            <div
-              id="evaluation-config-help"
-              class="mb-2 text-xs text-global-text-muted"
-            >
-            </div>
-            <div id="evaluation-options" class="grid gap-2 sm:grid-cols-2">
-            </div>
-          </div>
-          <div class="sm:col-span-3 flex items-center gap-3">
             <button
-              type="submit"
-              id="add-course-btn"
-              class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Agregar
-            </button>
-            <span id="add-course-feedback" class="text-sm"></span>
-          </div>
-        </form>
-      </section>
-
-      <!-- Courses List -->
-      <section
-        class="rounded-2xl bg-global-surface border border-global-border p-6"
-      >
-        <div
-          class="flex flex-row items-start justify-between gap-4 flex-wrap mb-4"
-        >
-          <div>
-            <h2 class="text-lg font-semibold text-global-text">Cursos</h2>
-            <p class="text-sm text-global-text-muted">
-              <span id="visible-count" class="font-semibold text-global-text"
-                >0</span
-              > visibles ·
-              <span id="hidden-count" class="font-semibold text-global-text"
-                >0</span
-              > ocultos
-            </p>
-          </div>
-          <div class="flex items-center gap-3 flex-wrap">
-            <input
-              id="courses-search"
-              type="text"
-              class="w-full sm:w-[280px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-              placeholder="Buscar por código o nombre..."
-            />
-            <button
-              id="courses-refresh"
               type="button"
-              class="rounded-xl bg-global-card border border-global-border px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+              id="system-info-btn"
+              class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-global-border text-[10px] text-global-text-muted hover:border-global-primary hover:text-global-primary transition"
             >
-              Recargar
+              i
             </button>
+          </label>
+
+          <div
+            id="system-info-popover"
+            class="hidden absolute z-20 top-full mt-1 w-72 rounded-xl border border-global-border bg-global-surface p-3 text-xs text-global-text-muted shadow-lg"
+          >
+            Define cómo se calcula la nota final del curso. Puede incluir
+            prácticas, exámenes, trabajos o laboratorios, así como el peso de
+            cada uno de estos puntajes (Ejm: "EF x 2" significa que el examen
+            final tiene peso 2 en ese sistema)
+          </div>
+
+          <input type="hidden" id="course-system" required />
+
+          <div class="relative" id="system-combobox-container">
+            <input
+              id="course-system-search"
+              type="text"
+              autocomplete="off"
+              class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+              placeholder="Buscar sistema..."
+              required
+            />
+
+            <div
+              class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+            >
+              <svg
+                class="h-4 w-4 text-global-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+
+            <ul
+              id="system-dropdown"
+              class="absolute z-30 top-full left-0 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden teacher-scroll"
+            >
+            </ul>
           </div>
         </div>
 
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div
-            class="flex flex-wrap items-center gap-2"
-            role="group"
-            aria-label="Filtrar cursos por estado"
+        <div class="relative">
+          <label
+            class="flex items-center gap-2 text-sm font-medium text-global-text-muted mb-1.5"
           >
+            Subsistema de evaluación
             <button
               type="button"
-              class="course-status-filter"
-              data-status=""
-              aria-pressed="true"
+              id="subsystem-info-btn"
+              class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-global-border text-[10px] text-global-text-muted hover:border-global-primary hover:text-global-primary transition"
             >
-              Todos
+              i
             </button>
+          </label>
 
-            <button
-              type="button"
-              class="course-status-filter"
-              data-status="COMPLETO"
-              aria-pressed="false"
-            >
-              Completos
-            </button>
-
-            <button
-              type="button"
-              class="course-status-filter"
-              data-status="INCOMPLETO"
-              aria-pressed="false"
-            >
-              Pendientes
-            </button>
+          <div
+            id="subsystem-info-popover"
+            class="hidden absolute z-20 top-full mt-1 w-72 rounded-xl border border-global-border bg-global-surface p-3 text-xs text-global-text-muted shadow-lg"
+          >
+            En caso el sistema considere prácticas, trabajos (monografías) y/o
+            laboratorios, la suma de estos define el subsistema respectivo (Ejm:
+            4 prácticas y 1 monografía = Subsistema S5 (4 + 1 = 5)).
           </div>
 
-          <button
-            id="clear-course-filters"
-            type="button"
-            class="hidden text-xs font-medium text-global-text-muted transition hover:text-global-text"
+          <input type="hidden" id="course-subsystem" />
+
+          <div class="relative" id="subsystem-combobox-container">
+            <input
+              id="course-subsystem-search"
+              type="text"
+              autocomplete="off"
+              class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
+              placeholder="Selecciona primero un sistema"
+              disabled
+            />
+
+            <div
+              class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+            >
+              <svg
+                class="h-4 w-4 text-global-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+
+            <ul
+              id="subsystem-dropdown"
+              class="absolute z-30 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden teacher-scroll"
+            >
+            </ul>
+          </div>
+          <p class="font-medium mt-1 text-xs text-green-400 italic">
+            Puedes registrar el curso sin este dato, pero no podrás subir
+            archivos hasta completar su configuración.
+          </p>
+        </div>
+        <div id="evaluation-config-wrapper" class="sm:col-span-3 hidden">
+          <label
+            class="block text-sm font-medium text-global-text-muted mb-1.5"
           >
-            Limpiar filtros
+            Evaluaciones del curso
+          </label>
+          <div
+            id="evaluation-config-help"
+            class="mb-2 text-xs text-global-text-muted"
+          >
+          </div>
+          <div id="evaluation-options" class="grid gap-2 sm:grid-cols-2"></div>
+        </div>
+        <div class="sm:col-span-3 flex items-center gap-3">
+          <button
+            type="submit"
+            id="add-course-btn"
+            class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Agregar
+          </button>
+          <span id="add-course-feedback" class="text-sm"></span>
+        </div>
+      </form>
+    </section>
+
+    <!-- Courses List -->
+    <section
+      class="rounded-2xl bg-global-surface border border-global-border p-6"
+    >
+      <div
+        class="flex flex-row items-start justify-between gap-4 flex-wrap mb-4"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-global-text">Cursos</h2>
+          <p class="text-sm text-global-text-muted">
+            <span id="visible-count" class="font-semibold text-global-text"
+              >0</span
+            > visibles ·
+            <span id="hidden-count" class="font-semibold text-global-text"
+              >0</span
+            > ocultos
+          </p>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap">
+          <input
+            id="courses-search"
+            type="text"
+            class="w-full sm:w-[280px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+            placeholder="Buscar por código o nombre..."
+          />
+          <button
+            id="courses-refresh"
+            type="button"
+            class="rounded-xl bg-global-card border border-global-border px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+          >
+            Recargar
+          </button>
+        </div>
+      </div>
+
+      <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div
+          class="flex flex-wrap items-center gap-2"
+          role="group"
+          aria-label="Filtrar cursos por estado"
+        >
+          <button
+            type="button"
+            class="course-status-filter"
+            data-status=""
+            aria-pressed="true"
+          >
+            Todos
+          </button>
+
+          <button
+            type="button"
+            class="course-status-filter"
+            data-status="COMPLETO"
+            aria-pressed="false"
+          >
+            Completos
+          </button>
+
+          <button
+            type="button"
+            class="course-status-filter"
+            data-status="INCOMPLETO"
+            aria-pressed="false"
+          >
+            Pendientes
           </button>
         </div>
 
-        <div id="courses-list" class="space-y-3"></div>
-
-        <div
-          id="courses-pagination"
-          class="mt-6 flex items-center justify-between gap-3"
+        <button
+          id="clear-course-filters"
+          type="button"
+          class="hidden text-xs font-medium text-global-text-muted transition hover:text-global-text"
         >
-        </div>
-      </section>
-    </div>
-  </div>
+          Limpiar filtros
+        </button>
+      </div>
+
+      <div id="courses-list" class="space-y-3"></div>
+
+      <div
+        id="courses-pagination"
+        class="mt-6 flex items-center justify-between gap-3"
+      >
+      </div>
+    </section>
+  </AdminLayout>
 </Layout>
 
 <script>
@@ -477,34 +474,23 @@ if (!isAdmin) {
       "border-global-border bg-global-card text-global-text-muted hover:border-global-primary/30 hover:text-global-text";
 
     for (const button of statusFilterButtons) {
-      const buttonStatus =
-        (button.dataset.status || "") as CourseStatusFilter;
+      const buttonStatus = (button.dataset.status || "") as CourseStatusFilter;
 
-      const isActive =
-        buttonStatus === selectedStatus;
+      const isActive = buttonStatus === selectedStatus;
 
       button.className = `${baseClasses} ${
-        isActive
-          ? activeClasses
-          : inactiveClasses
+        isActive ? activeClasses : inactiveClasses
       }`;
 
-      button.setAttribute(
-        "aria-pressed",
-        String(isActive),
-      );
+      button.setAttribute("aria-pressed", String(isActive));
     }
 
-    clearFiltersBtn.classList.toggle(
-      "hidden",
-      selectedStatus === "",
-    );
+    clearFiltersBtn.classList.toggle("hidden", selectedStatus === "");
   }
 
   for (const button of statusFilterButtons) {
     button.addEventListener("click", () => {
-      const nextStatus =
-        (button.dataset.status || "") as CourseStatusFilter;
+      const nextStatus = (button.dataset.status || "") as CourseStatusFilter;
 
       if (nextStatus === selectedStatus) {
         return;
@@ -526,7 +512,7 @@ if (!isAdmin) {
 
     loadCourses(1);
   });
-    
+
   function updateSummaryCounter() {
     const currentLength = summaryInput.value.length;
 
@@ -793,7 +779,12 @@ if (!isAdmin) {
     const res = await fetch("/api/admin/courses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ page, pageSize, search, status: selectedStatus || null, }),
+      body: JSON.stringify({
+        page,
+        pageSize,
+        search,
+        status: selectedStatus || null,
+      }),
     });
 
     const data = await res.json().catch(() => null);
@@ -804,55 +795,47 @@ if (!isAdmin) {
       return;
     }
 
-    const courses: Course[] = Array.isArray(data.courses)
-  ? data.courses
-  : [];
+    const courses: Course[] = Array.isArray(data.courses) ? data.courses : [];
 
-const rawTotalPages = Number(data?.pagination?.totalPages);
+    const rawTotalPages = Number(data?.pagination?.totalPages);
 
-const totalPages =
-  Number.isSafeInteger(rawTotalPages) && rawTotalPages >= 0
-    ? rawTotalPages
-    : 0;
+    const totalPages =
+      Number.isSafeInteger(rawTotalPages) && rawTotalPages >= 0
+        ? rawTotalPages
+        : 0;
 
-/*
- * Si la página solicitada quedó vacía después de eliminar
- * el último curso, volver a consultar la última página válida.
- *
- * Ejemplos:
- * - página 3 y ahora existen 2 páginas → cargar página 2;
- * - página 2 y ya no existen resultados → cargar página 1.
- */
-if (courses.length === 0 && page > 1) {
-  const targetPage =
-    totalPages > 0
-      ? Math.min(page - 1, totalPages)
-      : 1;
+    /*
+     * Si la página solicitada quedó vacía después de eliminar
+     * el último curso, volver a consultar la última página válida.
+     *
+     * Ejemplos:
+     * - página 3 y ahora existen 2 páginas → cargar página 2;
+     * - página 2 y ya no existen resultados → cargar página 1.
+     */
+    if (courses.length === 0 && page > 1) {
+      const targetPage = totalPages > 0 ? Math.min(page - 1, totalPages) : 1;
 
-  await loadCourses(targetPage);
-  return;
-}
+      await loadCourses(targetPage);
+      return;
+    }
 
-if (visibleCountEl) {
-  visibleCountEl.textContent = String(data.counts.visible);
-}
+    if (visibleCountEl) {
+      visibleCountEl.textContent = String(data.counts.visible);
+    }
 
-if (hiddenCountEl) {
-  hiddenCountEl.textContent = String(data.counts.hidden);
-}
+    if (hiddenCountEl) {
+      hiddenCountEl.textContent = String(data.counts.hidden);
+    }
 
     if (!courses.length) {
-      let emptyMessage =
-        "No hay cursos para mostrar.";
+      let emptyMessage = "No hay cursos para mostrar.";
 
       if (selectedStatus === "COMPLETO") {
-        emptyMessage =
-          "No se encontraron cursos con configuración completa.";
+        emptyMessage = "No se encontraron cursos con configuración completa.";
       }
 
       if (selectedStatus === "INCOMPLETO") {
-        emptyMessage =
-          "No se encontraron cursos pendientes de configuración.";
+        emptyMessage = "No se encontraron cursos pendientes de configuración.";
       }
 
       listEl.innerHTML = `
