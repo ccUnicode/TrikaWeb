@@ -1,6 +1,7 @@
 ---
 export const prerender = false;
 
+import AdminLayout from "../../../../components/AdminLayout.astro";
 import Layout from "../../../../layouts/Layout.astro";
 import CurriculumBuilder from "../../../../components/Malla/CurriculumBuilder";
 import { supabaseAdmin } from "../../../../lib/supabaseAdmin";
@@ -8,21 +9,23 @@ import { validateAdminSession } from "../../../../lib/adminAuth";
 
 const isValid = await validateAdminSession(Astro.cookies);
 if (!isValid) {
-    return Astro.redirect("/admin/login");
+  return Astro.redirect("/admin/login");
 }
 
 const { id } = Astro.params;
 
 // Validar que el parámetro id tenga formato de UUID válido
-const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const uuidRegex =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 if (!id || !uuidRegex.test(id)) {
-    return Astro.redirect("/admin/mallas");
+  return Astro.redirect("/admin/mallas");
 }
 
 // Validar que el ID de la malla existe
 const { data: plan, error: planError } = await supabaseAdmin
-    .from("study_plans")
-    .select(`
+  .from("study_plans")
+  .select(
+    `
         id,
         year,
         is_current,
@@ -31,113 +34,148 @@ const { data: plan, error: planError } = await supabaseAdmin
             id,
             name
         )
-    `)
-    .eq("id", id)
-    .single();
+    `,
+  )
+  .eq("id", id)
+  .single();
 
 if (planError || !plan) {
-    console.error("Error fetching study plan:", planError);
-    return Astro.redirect("/admin/mallas");
+  console.error("Error fetching study plan:", planError);
+  return Astro.redirect("/admin/mallas");
 }
 
 // Extraer el nombre de la especialidad de manera segura (por si viene como objeto o array de objetos)
-const specialtyData = Array.isArray(plan.specialties) ? plan.specialties[0] : plan.specialties;
+const specialtyData = Array.isArray(plan.specialties)
+  ? plan.specialties[0]
+  : plan.specialties;
 const specialtyName = specialtyData?.name || "Especialidad Desconocida";
 
 const formattedPlan = {
-    id: plan.id,
-    year: plan.year,
-    is_current: plan.is_current,
-    specialties: {
-        name: specialtyName
-    }
+  id: plan.id,
+  year: plan.year,
+  is_current: plan.is_current,
+  specialties: {
+    name: specialtyName,
+  },
 };
 
 // Obtener la lista completa de cursos existentes
 const { data: courses, error: coursesError } = await supabaseAdmin
-    .from("courses")
-    .select("id, code, name, credits")
-    .order("name", { ascending: true });
+  .from("courses")
+  .select("id, code, name, credits")
+  .order("name", { ascending: true });
 
 if (coursesError) {
-    console.error("Error fetching courses:", coursesError);
+  console.error("Error fetching courses:", coursesError);
 }
 
 // Obtener los cursos ya asignados a esta malla
 const { data: planCourses, error: planCoursesError } = await supabaseAdmin
-    .from("plan_courses")
-    .select("course_id, cycle, row_index, courses (id, code, name, credits)")
-    .eq("plan_id", id);
+  .from("plan_courses")
+  .select("course_id, cycle, row_index, courses (id, code, name, credits)")
+  .eq("plan_id", id);
 
 if (planCoursesError) {
-    console.error("Error fetching plan courses:", planCoursesError);
+  console.error("Error fetching plan courses:", planCoursesError);
 }
 
 // Obtener los prerrequisitos de esta malla
 const { data: prerequisites, error: prerequisitesError } = await supabaseAdmin
-    .from("course_prerequisites")
-    .select("course_id, prerequisite_id")
-    .eq("plan_id", id);
+  .from("course_prerequisites")
+  .select("course_id, prerequisite_id")
+  .eq("plan_id", id);
 
 if (prerequisitesError) {
-    console.error("Error fetching prerequisites:", prerequisitesError);
+  console.error("Error fetching prerequisites:", prerequisitesError);
 }
 
-const initialPlacedCourses = planCourses ? planCourses.map((pc: any) => ({
-    id: pc.courses?.id,
-    code: pc.courses?.code || "",
-    name: pc.courses?.name || "",
-    credits: pc.courses?.credits,
-    cycle: pc.cycle,
-    row_index: pc.row_index,
-    prerequisites: prerequisites 
-        ? prerequisites.filter((p: any) => p.course_id === pc.courses?.id).map((p: any) => p.prerequisite_id)
-        : []
-})).filter(c => c.id !== undefined) : [];
+const initialPlacedCourses = planCourses
+  ? planCourses
+      .map((pc: any) => ({
+        id: pc.courses?.id,
+        code: pc.courses?.code || "",
+        name: pc.courses?.name || "",
+        credits: pc.courses?.credits,
+        cycle: pc.cycle,
+        row_index: pc.row_index,
+        prerequisites: prerequisites
+          ? prerequisites
+              .filter((p: any) => p.course_id === pc.courses?.id)
+              .map((p: any) => p.prerequisite_id)
+          : [],
+      }))
+      .filter((c) => c.id !== undefined)
+  : [];
 ---
 
-<Layout title={`Constructor de Malla (${specialtyName} - ${plan.year}) | TrikaWeb Admin`}>
-    <div class="min-h-screen py-8">
-        <div class="mx-auto w-full max-w-[1600px] px-4">
-            <!-- Header Section -->
-            <div class="mb-6 flex flex-row items-center justify-between gap-4 flex-wrap bg-[#1e2430] p-4 rounded-2xl border border-gray-800 shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-                <div class="flex items-center gap-5">
-                    <!-- Modern Back Button -->
-                    <a 
-                        href="/admin/mallas" 
-                        class="group flex items-center justify-center w-11 h-11 rounded-xl bg-[#2a3240] border border-gray-700 hover:border-[#22c55e]/50 hover:bg-[#22c55e]/10 transition-all duration-300 shadow-sm"
-                        title="Volver a Mallas"
-                    >
-                        <svg class="w-5 h-5 text-gray-400 group-hover:text-[#22c55e] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                    </a>
-                    
-                    <div class="h-10 w-px bg-gray-700/50 hidden sm:block"></div>
+<Layout
+  title={`Constructor de Malla (${specialtyName} - ${plan.year}) | TrikaWeb Admin`}
+  variant="admin"
+>
+  <AdminLayout
+    title="Constructor de Malla"
+    description=""
+  >
+    <!-- Header Section -->
+    <div
+      class="mb-6 flex flex-row items-center justify-between gap-4 flex-wrap bg-[#1e2430] p-4 rounded-2xl border border-gray-800 shadow-[0_4px_20px_rgba(0,0,0,0.2)]"
+    >
+      <div class="flex items-center gap-5">
+        <!-- Modern Back Button -->
+        <a
+          href="/admin/mallas"
+          class="group flex items-center justify-center w-11 h-11 rounded-xl bg-[#2a3240] border border-gray-700 hover:border-[#22c55e]/50 hover:bg-[#22c55e]/10 transition-all duration-300 shadow-sm"
+          title="Volver a Mallas"
+        >
+          <svg
+            class="w-5 h-5 text-gray-400 group-hover:text-[#22c55e] transition-colors"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            ><path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2.5"
+              d="M15 19l-7-7 7-7"></path></svg
+          >
+        </a>
 
-                    <div class="flex flex-col">
-                        <div class="flex items-center gap-3 mb-1">
-                            <h1 class="text-xl font-extrabold text-white tracking-wide">
-                                Constructor Visual
-                            </h1>
-                            <span class="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-md bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30 shadow-[0_0_10px_rgba(34,197,94,0.15)]">
-                                Edición
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-2 text-sm text-gray-400">
-                            <span class="font-medium text-gray-300">{specialtyName}</span>
-                            <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
-                            <span>Plan {plan.year}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="react-save-button-root" class="flex items-center"></div>
-            </div>
+        <div class="h-10 w-px bg-gray-700/50 hidden sm:block"></div>
 
-            <!-- Canvas Container -->
-            <div class="w-full">
-                {/* @ts-ignore - TS a veces no reconoce client:load de Astro en componentes React */}
-                <CurriculumBuilder client:load planId={formattedPlan.id} plan={formattedPlan} initialCourses={courses || []} initialPlacedCourses={initialPlacedCourses} />
-            </div>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-3 mb-1">
+            <h1 class="text-xl font-extrabold text-white tracking-wide">
+              Constructor Visual
+            </h1>
+            <span
+              class="px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider rounded-md bg-[#22c55e]/15 text-[#22c55e] border border-[#22c55e]/30 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+            >
+              Edición
+            </span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-gray-400">
+            <span class="font-medium text-gray-300">{specialtyName}</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+            <span>Plan {plan.year}</span>
+          </div>
         </div>
+      </div>
+
+      <div id="react-save-button-root" class="flex items-center"></div>
     </div>
+
+    <!-- Canvas Container -->
+    <div class="w-full">
+      {
+        /* @ts-ignore - TS a veces no reconoce client:load de Astro en componentes React */
+      }
+      <CurriculumBuilder
+        client:load
+        planId={formattedPlan.id}
+        plan={formattedPlan}
+        initialCourses={courses || []}
+        initialPlacedCourses={initialPlacedCourses}
+      />
+    </div>
+  </AdminLayout>
 </Layout>

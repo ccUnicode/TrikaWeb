@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../../layouts/Layout.astro";
+import AdminLayout from "../../../../components/AdminLayout.astro";
 
 const rawCourseId = Astro.params.id;
 const courseId = Number(rawCourseId);
@@ -9,262 +10,259 @@ if (!Number.isInteger(courseId) || courseId <= 0) {
 }
 ---
 
-<Layout title="Editar Curso | TrikaWeb Admin">
-  <div class="min-h-screen py-8">
-    <div class="mx-auto w-full max-w-4xl px-4">
-      <div class="mb-6 w-full">
-        <a
-          href="/admin/courses"
-          class="group mb-5 inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 shadow-sm transition hover:border-emerald-400/50 hover:bg-emerald-500/15 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+<Layout title="" variant="admin">
+  <AdminLayout title="" description="">
+    <div class="mb-6 w-full">
+      <a
+        href="/admin/courses"
+        class="group mb-5 inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm font-semibold text-emerald-300 shadow-sm transition hover:border-emerald-400/50 hover:bg-emerald-500/15 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50"
+      >
+        <svg
+          class="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
         >
-          <svg
-            class="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M19 12H5"></path>
-            <path d="M12 19l-7-7 7-7"></path>
-          </svg>
+          <path d="M19 12H5"></path>
+          <path d="M12 19l-7-7 7-7"></path>
+        </svg>
 
-          <span>Volver a cursos</span>
-        </a>
+        <span>Volver a cursos</span>
+      </a>
 
-        <div class="flex w-full flex-wrap items-start justify-between gap-4">
-          <div class="min-w-0 flex-1">
-            <h1 class="text-2xl font-bold text-global-text">Editar curso</h1>
+      <div class="flex w-full flex-wrap items-start justify-between gap-4">
+        <div class="min-w-0 flex-1">
+          <h1 class="text-2xl font-bold text-global-text">Editar curso</h1>
 
-            <p class="mt-1 text-sm text-global-text-muted">
-              Actualiza los datos y la configuración académica.
-            </p>
-          </div>
-
-          <span
-            id="course-status"
-            class="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border px-4 text-[10px] font-bold uppercase tracking-wide"
-          >
-            Cargando...
-          </span>
+          <p class="mt-1 text-sm text-global-text-muted">
+            Actualiza los datos y la configuración académica.
+          </p>
         </div>
+
+        <span
+          id="course-status"
+          class="inline-flex h-8 shrink-0 items-center justify-center rounded-lg border px-4 text-[10px] font-bold uppercase tracking-wide"
+        >
+          Cargando...
+        </span>
+      </div>
+    </div>
+
+    <section
+      class="rounded-2xl border border-global-border bg-global-surface p-6"
+    >
+      <div
+        id="page-feedback"
+        class="mb-4 hidden rounded-xl border px-4 py-3 text-sm"
+      >
       </div>
 
-      <section
-        class="rounded-2xl border border-global-border bg-global-surface p-6"
-      >
-        <div
-          id="page-feedback"
-          class="mb-4 hidden rounded-xl border px-4 py-3 text-sm"
-        >
+      <form id="edit-course-form" class="grid gap-4 sm:grid-cols-3">
+        <input type="hidden" id="course-id" value={courseId} />
+
+        <div>
+          <label
+            for="course-code"
+            class="mb-1.5 block text-sm font-medium text-global-text-muted"
+          >
+            Código
+          </label>
+
+          <input
+            id="course-code"
+            type="text"
+            required
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+          />
         </div>
 
-        <form id="edit-course-form" class="grid gap-4 sm:grid-cols-3">
-          <input type="hidden" id="course-id" value={courseId} />
+        <div class="sm:col-span-2">
+          <label
+            for="course-name"
+            class="mb-1.5 block text-sm font-medium text-global-text-muted"
+          >
+            Nombre
+          </label>
 
-          <div>
+          <input
+            id="course-name"
+            type="text"
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+            required
+          />
+        </div>
+
+        <div class="sm:col-span-3">
+          <div class="mb-1.5 flex items-center justify-between gap-3">
             <label
-              for="course-code"
-              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+              for="course-summary"
+              class="block text-sm font-medium text-global-text-muted"
             >
-              Código
+              Sumilla (opcional)
             </label>
 
+            <span
+              id="course-summary-counter"
+              class="text-xs text-global-text-muted"
+              aria-live="polite"
+            >
+              0/1000
+            </span>
+          </div>
+
+          <textarea
+            id="course-summary"
+            maxlength="1000"
+            class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+          ></textarea>
+        </div>
+
+        <div>
+          <label
+            for="course-credits"
+            class="mb-1.5 block text-sm font-medium text-global-text-muted"
+          >
+            Créditos
+          </label>
+
+          <input
+            id="course-credits"
+            type="number"
+            min="1"
+            step="1"
+            required
+            class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+          />
+        </div>
+
+        <div class="relative">
+          <label
+            class="mb-1.5 block text-sm font-medium text-global-text-muted"
+          >
+            Sistema de evaluación
+          </label>
+
+          <input type="hidden" id="course-system" />
+
+          <div id="system-combobox-container" class="relative">
             <input
-              id="course-code"
+              id="course-system-search"
               type="text"
+              autocomplete="off"
               required
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+              class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none transition placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary"
+              placeholder="Cargando sistemas..."
             />
-          </div>
 
-          <div class="sm:col-span-2">
-            <label
-              for="course-name"
-              class="mb-1.5 block text-sm font-medium text-global-text-muted"
+            <div
+              class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
             >
-              Nombre
-            </label>
+              <svg
+                class="h-4 w-4 text-global-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
 
+            <ul
+              id="system-dropdown"
+              class="teacher-scroll absolute left-0 top-full z-30 mt-1 hidden max-h-72 w-full overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg"
+            >
+            </ul>
+          </div>
+        </div>
+
+        <div class="relative">
+          <label
+            class="mb-1.5 block text-sm font-medium text-global-text-muted"
+          >
+            Subsistema de evaluación
+          </label>
+
+          <input type="hidden" id="course-subsystem" />
+
+          <div id="subsystem-combobox-container" class="relative">
             <input
-              id="course-name"
+              id="course-subsystem-search"
               type="text"
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
-              required
-            />
-          </div>
-
-          <div class="sm:col-span-3">
-            <div class="mb-1.5 flex items-center justify-between gap-3">
-              <label
-                for="course-summary"
-                class="block text-sm font-medium text-global-text-muted"
-              >
-                Sumilla (opcional)
-              </label>
-
-              <span
-                id="course-summary-counter"
-                class="text-xs text-global-text-muted"
-                aria-live="polite"
-              >
-                0/1000
-              </span>
-            </div>
-
-            <textarea
-              id="course-summary"
-              maxlength="1000"
-              class="h-32 w-full resize-none overflow-y-auto rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm leading-relaxed text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
-            ></textarea>
-          </div>
-
-          <div>
-            <label
-              for="course-credits"
-              class="mb-1.5 block text-sm font-medium text-global-text-muted"
-            >
-              Créditos
-            </label>
-
-            <input
-              id="course-credits"
-              type="number"
-              min="1"
-              step="1"
-              required
-              class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none transition focus:border-global-primary focus:ring-1 focus:ring-global-primary"
-            />
-          </div>
-
-          <div class="relative">
-            <label
-              class="mb-1.5 block text-sm font-medium text-global-text-muted"
-            >
-              Sistema de evaluación
-            </label>
-
-            <input type="hidden" id="course-system" />
-
-            <div id="system-combobox-container" class="relative">
-              <input
-                id="course-system-search"
-                type="text"
-                autocomplete="off"
-                required
-                class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none transition placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary"
-                placeholder="Cargando sistemas..."
-              />
-
-              <div
-                class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
-              >
-                <svg
-                  class="h-4 w-4 text-global-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-
-              <ul
-                id="system-dropdown"
-                class="teacher-scroll absolute left-0 top-full z-30 mt-1 hidden max-h-72 w-full overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg"
-              >
-              </ul>
-            </div>
-          </div>
-
-          <div class="relative">
-            <label
-              class="mb-1.5 block text-sm font-medium text-global-text-muted"
-            >
-              Subsistema de evaluación
-            </label>
-
-            <input type="hidden" id="course-subsystem" />
-
-            <div id="subsystem-combobox-container" class="relative">
-              <input
-                id="course-subsystem-search"
-                type="text"
-                autocomplete="off"
-                disabled
-                class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none transition placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary disabled:cursor-not-allowed disabled:opacity-60"
-                placeholder="Selecciona primero un sistema"
-              />
-
-              <div
-                class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
-              >
-                <svg
-                  class="h-4 w-4 text-global-text-muted"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-
-              <ul
-                id="subsystem-dropdown"
-                class="teacher-scroll absolute left-0 top-full z-30 mt-1 hidden max-h-60 w-full overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg"
-              >
-              </ul>
-            </div>
-
-            <p class="font-medium mt-1 text-xs text-green-400 italic">
-              Puedes registrar el curso sin este dato, pero no podrás subir
-              archivos hasta completar su configuración.
-            </p>
-          </div>
-
-          <div id="evaluation-config-wrapper" class="hidden sm:col-span-3">
-            <label
-              class="mb-1.5 block text-sm font-medium text-global-text-muted"
-            >
-              Evaluaciones del curso
-            </label>
-
-            <p
-              id="evaluation-config-help"
-              class="mb-2 text-xs text-global-text-muted"
-            >
-            </p>
-
-            <div id="evaluation-options" class="grid gap-2 sm:grid-cols-2">
-            </div>
-          </div>
-
-          <div class="sm:col-span-3 flex flex-wrap items-center gap-3">
-            <button
-              type="submit"
-              id="save-course-btn"
-              class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+              autocomplete="off"
               disabled
-            >
-              Guardar cambios
-            </button>
+              class="w-full rounded-xl border border-global-border bg-global-card px-4 py-2.5 pr-10 text-sm text-global-text outline-none transition placeholder-gray-500 focus:border-global-primary focus:ring-1 focus:ring-global-primary disabled:cursor-not-allowed disabled:opacity-60"
+              placeholder="Selecciona primero un sistema"
+            />
 
-            <span id="save-feedback" class="text-sm"></span>
+            <div
+              class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+            >
+              <svg
+                class="h-4 w-4 text-global-text-muted"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
+
+            <ul
+              id="subsystem-dropdown"
+              class="teacher-scroll absolute left-0 top-full z-30 mt-1 hidden max-h-60 w-full overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg"
+            >
+            </ul>
           </div>
-        </form>
-      </section>
-    </div>
-  </div>
+
+          <p class="font-medium mt-1 text-xs text-green-400 italic">
+            Puedes registrar el curso sin este dato, pero no podrás subir
+            archivos hasta completar su configuración.
+          </p>
+        </div>
+
+        <div id="evaluation-config-wrapper" class="hidden sm:col-span-3">
+          <label
+            class="mb-1.5 block text-sm font-medium text-global-text-muted"
+          >
+            Evaluaciones del curso
+          </label>
+
+          <p
+            id="evaluation-config-help"
+            class="mb-2 text-xs text-global-text-muted"
+          >
+          </p>
+
+          <div id="evaluation-options" class="grid gap-2 sm:grid-cols-2"></div>
+        </div>
+
+        <div class="sm:col-span-3 flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            id="save-course-btn"
+            class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+            disabled
+          >
+            Guardar cambios
+          </button>
+
+          <span id="save-feedback" class="text-sm"></span>
+        </div>
+      </form>
+    </section>
+  </AdminLayout>
 </Layout>
 
 <script>
