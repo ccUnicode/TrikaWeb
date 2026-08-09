@@ -13,6 +13,7 @@ Permite:
 import Layout from "../../layouts/Layout.astro";
 import AdminHeader from "../../components/AdminHeader.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
+import AdminLayout from "../../components/AdminLayout.astro";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
 if (!isAdmin) {
@@ -23,52 +24,88 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
 ---
 
-<Layout title="Admin – Subir material | TrikaWeb">
-  <div class="min-h-screen py-8">
-    <div class="mx-auto w-full max-w-3xl px-4">
-      <!-- Header Section -->
-      <AdminHeader
-        title="Panel de subida"
-        description="Sube PDFs de planchas y solucionarios"
-      />
+<Layout title="Admin – Subir material | TrikaWeb" variant="admin">
+  <!-- Header Section -->
+  <AdminLayout
+    title="Panel de subida"
+    description="Sube PDFs de planchas y solucionarios"
+  >
+    <!-- Upload Form Card -->
+    <section
+      class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
+    >
+      <h2 class="text-lg font-semibold text-global-text mb-4">Subir archivo</h2>
 
-      <!-- Upload Form Card -->
-      <section
-        class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
-      >
-        <h2 class="text-lg font-semibold text-global-text mb-4">
-          Subir archivo
-        </h2>
+      <form id="upload-form" class="space-y-4">
+        <!-- Row 1: Course Code & Cycle -->
+        <div class="grid gap-4 sm:grid-cols-2 items-start">
+          <div class="relative" id="course-combobox-container">
+            <label
+              class="block text-sm font-medium text-global-text-muted mb-1.5"
+              for="course-search"
+            >
+              Curso
+            </label>
+            <div class="relative">
+              <input type="hidden" id="course-id" name="course_id" required />
 
-        <form id="upload-form" class="space-y-4">
-          <!-- Row 1: Course Code & Cycle -->
-          <div class="grid gap-4 sm:grid-cols-2 items-start">
-            <div class="relative" id="course-combobox-container">
+              <input
+                type="hidden"
+                id="course-code"
+                name="course_code"
+                required
+              />
+              <input
+                type="text"
+                id="course-search"
+                autocomplete="off"
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+                placeholder="Cargando cursos..."
+                required
+              />
+              <div
+                class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+              >
+                <svg
+                  class="h-4 w-4 text-global-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+              <ul
+                id="course-dropdown"
+                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+              >
+              </ul>
+            </div>
+          </div>
+          <div class="flex gap-2 items-start">
+            <div class="w-1/2 relative" id="year-combobox-container">
               <label
                 class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="course-search"
+                for="year-display"
               >
-                Curso
+                Año
               </label>
               <div class="relative">
-                <input type="hidden" id="course-id" name="course_id" required />
-
-                <input
-                  type="hidden"
-                  id="course-code"
-                  name="course_code"
-                  required
-                />
+                <input type="hidden" id="year-hidden" />
                 <input
                   type="text"
-                  id="course-search"
-                  autocomplete="off"
-                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                  placeholder="Cargando cursos..."
+                  id="year-display"
+                  readonly
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer placeholder-gray-500"
+                  placeholder="Selecciona"
                   required
                 />
                 <div
-                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+                  class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
                 >
                   <svg
                     class="h-4 w-4 text-global-text-muted"
@@ -84,577 +121,536 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
                   </svg>
                 </div>
                 <ul
-                  id="course-dropdown"
+                  id="year-dropdown"
                   class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
                 >
+                  {
+                    years.map((y) => (
+                      <li
+                        data-value={y}
+                        class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                      >
+                        {y}
+                      </li>
+                    ))
+                  }
+                  <li
+                    data-value="otro"
+                    class="px-4 py-2.5 hover:bg-black/30 cursor-pointer text-sm font-medium text-global-primary transition-colors border-t border-global-border"
+                  >
+                    Otro
+                  </li>
+                </ul>
+              </div>
+
+              <input
+                type="number"
+                id="year-custom"
+                placeholder="Ingresar año"
+                class="hidden mt-2 w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
+              />
+            </div>
+
+            <div class="w-1/2 relative" id="term-combobox-container">
+              <label
+                class="block text-sm font-medium text-global-text-muted mb-1.5"
+                for="term-display"
+              >
+                Semestre
+              </label>
+              <div class="relative">
+                <input type="hidden" id="term-hidden" />
+                <input
+                  type="text"
+                  id="term-display"
+                  readonly
+                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer placeholder-gray-500"
+                  placeholder="Selecciona"
+                  required
+                />
+                <div
+                  class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
+                >
+                  <svg
+                    class="h-4 w-4 text-global-text-muted"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+                <ul
+                  id="term-dropdown"
+                  class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+                >
+                  <li
+                    data-value="I"
+                    class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                  >
+                    I
+                  </li>
+                  <li
+                    data-value="II"
+                    class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                  >
+                    II
+                  </li>
+                  <li
+                    data-value="III"
+                    class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
+                  >
+                    III
+                  </li>
                 </ul>
               </div>
             </div>
-            <div class="flex gap-2 items-start">
-              <div class="w-1/2 relative" id="year-combobox-container">
-                <label
-                  class="block text-sm font-medium text-global-text-muted mb-1.5"
-                  for="year-display"
-                >
-                  Año
-                </label>
-                <div class="relative">
-                  <input type="hidden" id="year-hidden" />
-                  <input
-                    type="text"
-                    id="year-display"
-                    readonly
-                    class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer placeholder-gray-500"
-                    placeholder="Selecciona"
-                    required
-                  />
-                  <div
-                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
-                  >
-                    <svg
-                      class="h-4 w-4 text-global-text-muted"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </div>
-                  <ul
-                    id="year-dropdown"
-                    class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-                  >
-                    {
-                      years.map((y) => (
-                        <li
-                          data-value={y}
-                          class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
-                        >
-                          {y}
-                        </li>
-                      ))
-                    }
-                    <li
-                      data-value="otro"
-                      class="px-4 py-2.5 hover:bg-black/30 cursor-pointer text-sm font-medium text-global-primary transition-colors border-t border-global-border"
-                    >
-                      Otro
-                    </li>
-                  </ul>
-                </div>
 
-                <input
-                  type="number"
-                  id="year-custom"
-                  placeholder="Ingresar año"
-                  class="hidden mt-2 w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
-                />
-              </div>
-
-              <div class="w-1/2 relative" id="term-combobox-container">
-                <label
-                  class="block text-sm font-medium text-global-text-muted mb-1.5"
-                  for="term-display"
-                >
-                  Semestre
-                </label>
-                <div class="relative">
-                  <input type="hidden" id="term-hidden" />
-                  <input
-                    type="text"
-                    id="term-display"
-                    readonly
-                    class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors cursor-pointer placeholder-gray-500"
-                    placeholder="Selecciona"
-                    required
-                  />
-                  <div
-                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center"
-                  >
-                    <svg
-                      class="h-4 w-4 text-global-text-muted"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </div>
-                  <ul
-                    id="term-dropdown"
-                    class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-                  >
-                    <li
-                      data-value="I"
-                      class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
-                    >
-                      I
-                    </li>
-                    <li
-                      data-value="II"
-                      class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
-                    >
-                      II
-                    </li>
-                    <li
-                      data-value="III"
-                      class="px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors"
-                    >
-                      III
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <input type="hidden" id="cycle-code" name="cycle" required />
-            </div>
+            <input type="hidden" id="cycle-code" name="cycle" required />
           </div>
+        </div>
 
-          <!-- Row 2: Evaluation Type & Teacher -->
-          <div class="grid gap-4 sm:grid-cols-2">
-            <!-- Col 1: Evaluation -->
-            <div class="relative" id="evaluation-combobox-container">
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="evaluation-search"
-              >
-                Evaluación
-              </label>
-
-              <div class="relative">
-                <input
-                  type="hidden"
-                  id="evaluation-id"
-                  name="evaluation_id"
-                  required
-                />
-
-                <input
-                  type="text"
-                  id="evaluation-search"
-                  autocomplete="off"
-                  disabled
-                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                  placeholder="Selecciona primero un curso"
-                  required
-                />
-
-                <div
-                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
-                >
-                  <svg
-                    class="h-4 w-4 text-global-text-muted"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </div>
-              </div>
-
-              <ul
-                id="evaluation-dropdown"
-                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              >
-              </ul>
-            </div>
-
-            <!-- Col 2: Docente -->
-            <div class="relative" id="teacher-combobox-container">
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="teacher-search"
-              >
-                Docente <span
-                  id="teacher-optional-label"
-                  class="text-global-text-muted">(opcional)</span
-                >
-              </label>
-
-              <div class="relative">
-                <input type="hidden" id="teacher-id" name="teacher_id" />
-
-                <input
-                  type="text"
-                  id="teacher-search"
-                  autocomplete="off"
-                  disabled
-                  class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                  placeholder="Ingresa un curso primero"
-                />
-
-                <div
-                  class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
-                >
-                  <svg
-                    class="h-4 w-4 text-global-text-muted"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </div>
-              </div>
-
-              <ul
-                id="teacher-dropdown"
-                class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
-              >
-              </ul>
-
-              <p
-                id="teacher-loading"
-                class="hidden mt-1 text-xs text-global-text-muted"
-              >
-                Cargando profesores...
-              </p>
-            </div>
-          </div>
-
-          <!-- Toggle: Plancha de profesor específico -->
-          <div
-            id="teacher-specific-toggle"
-            class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-all duration-300"
-          >
+        <!-- Row 2: Evaluation Type & Teacher -->
+        <div class="grid gap-4 sm:grid-cols-2">
+          <!-- Col 1: Evaluation -->
+          <div class="relative" id="evaluation-combobox-container">
             <label
-              class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5"
+              class="block text-sm font-medium text-global-text-muted mb-1.5"
+              for="evaluation-search"
             >
-              <input
-                id="is-teacher-specific"
-                name="is_teacher_specific"
-                type="checkbox"
-                class="sr-only peer"
-              />
-              <div
-                class="w-9 h-5 bg-global-border rounded-full peer-checked:bg-global-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"
-              >
-              </div>
+              Evaluación
             </label>
-            <div>
-              <p class="text-sm font-medium text-global-text">
-                Plancha de profesor específico
-              </p>
-              <p class="text-xs text-global-text-muted mt-0.5">
-                Activa esto si la plancha pertenece a un profesor en particular
-                y no es la práctica general del curso.
-              </p>
-            </div>
-          </div>
 
-          <!-- Info alert (shown when toggle is active) -->
-          <div
-            id="teacher-specific-info"
-            class="hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200"
-          >
-            <strong>📋 Nota:</strong> Esta plancha se guardará como específica del
-            docente indicado. Puedes tener la plancha general <em>y</em> las de profesores
-            específicos para el mismo curso, ciclo y evaluación.
-          </div>
-
-          <!-- Row 3: Archivos -->
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="file"
-              >
-                PDF de la Plancha
-              </label>
-              <label
-                for="file"
-                class="flex justify-between items-center gap-3 w-full rounded-xl border border-global-border bg-global-card px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
-              >
-                <span
-                  class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
-                >
-                  Seleccionar
-                </span>
-                <span
-                  id="file-name"
-                  class="text-sm text-global-text-muted truncate"
-                >
-                  Sin archivo
-                </span>
-              </label>
+            <div class="relative">
               <input
-                id="file"
-                name="file"
-                type="file"
-                accept="application/pdf"
-                class="hidden"
+                type="hidden"
+                id="evaluation-id"
+                name="evaluation_id"
+                required
               />
-            </div>
 
-            <div>
-              <label
-                class="block text-sm font-medium text-global-text-muted mb-1.5"
-                for="solution-file"
-              >
-                PDF del Solucionario
-                <span class="text-global-text-muted">(opcional)</span>
-              </label>
-              <label
-                for="solution-file"
-                class="flex justify-between items-center gap-3 w-full rounded-xl border border-global-border bg-global-card px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
-              >
-                <span
-                  class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
-                >
-                  Seleccionar
-                </span>
-                <span
-                  id="solution-file-name"
-                  class="text-sm text-global-text-muted truncate"
-                >
-                  Sin archivo
-                </span>
-              </label>
               <input
-                id="solution-file"
-                name="solution_file"
-                type="file"
-                accept="application/pdf"
-                class="hidden"
+                type="text"
+                id="evaluation-search"
+                autocomplete="off"
+                disabled
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                placeholder="Selecciona primero un curso"
+                required
               />
-            </div>
-          </div>
 
-          <!-- Upload Status -->
-          <div id="upload-status" class="hidden">
-            <div class="flex items-center gap-2 text-sm">
               <div
-                id="upload-spinner"
-                class="animate-spin h-4 w-4 border-2 border-global-primary border-t-transparent rounded-full"
+                class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
               >
-              </div>
-              <span id="upload-message" class="text-global-text-muted"
-                >Preparando subida...</span
-              >
-            </div>
-            <div
-              class="mt-2 w-full bg-global-border rounded-full h-1.5 overflow-hidden"
-            >
-              <div
-                id="upload-progress"
-                class="h-full bg-global-primary rounded-full transition-all duration-300"
-                style="width: 0%"
-              >
+                <svg
+                  class="h-4 w-4 text-global-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+                </svg>
               </div>
             </div>
+
+            <ul
+              id="evaluation-dropdown"
+              class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+            >
+            </ul>
           </div>
 
-          <!-- Submit Button -->
-          <button
-            id="upload-submit-btn"
-            type="submit"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <!-- Col 2: Docente -->
+          <div class="relative" id="teacher-combobox-container">
+            <label
+              class="block text-sm font-medium text-global-text-muted mb-1.5"
+              for="teacher-search"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              ></path>
-            </svg>
-            Subir archivo
-          </button>
-        </form>
-      </section>
+              Docente <span
+                id="teacher-optional-label"
+                class="text-global-text-muted">(opcional)</span
+              >
+            </label>
 
-      <!-- Drive Sync Card -->
-      <section
-        class="rounded-2xl bg-global-surface border border-global-border p-6"
-      >
-        <div
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
-        >
-          <div>
-            <h2 class="text-lg font-semibold text-global-text">
-              Sincronización con Drive
-            </h2>
-            <p class="mt-0.5 text-sm text-global-text-muted">
-              Importa automáticamente desde Google Drive
+            <div class="relative">
+              <input type="hidden" id="teacher-id" name="teacher_id" />
+
+              <input
+                type="text"
+                id="teacher-search"
+                autocomplete="off"
+                disabled
+                class="w-full rounded-xl border border-global-border bg-global-card px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                placeholder="Ingresa un curso primero"
+              />
+
+              <div
+                class="absolute inset-y-0 right-3 flex items-center pointer-events-none"
+              >
+                <svg
+                  class="h-4 w-4 text-global-text-muted"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+
+            <ul
+              id="teacher-dropdown"
+              class="teacher-scroll absolute z-10 top-full left-0 mt-1 w-full max-h-60 overflow-auto rounded-xl border border-global-border bg-global-surface shadow-lg hidden"
+            >
+            </ul>
+
+            <p
+              id="teacher-loading"
+              class="hidden mt-1 text-xs text-global-text-muted"
+            >
+              Cargando profesores...
             </p>
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-4 justify-center">
-          <button
-            id="sync-exams-btn"
-            type="button"
-            class="inline-flex items-center gap-2 rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        <!-- Toggle: Plancha de profesor específico -->
+        <div
+          id="teacher-specific-toggle"
+          class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-all duration-300"
+        >
+          <label
+            class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5"
           >
-            <svg
-              class="w-4 h-4 text-global-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+            <input
+              id="is-teacher-specific"
+              name="is_teacher_specific"
+              type="checkbox"
+              class="sr-only peer"
+            />
+            <div
+              class="w-9 h-5 bg-global-border rounded-full peer-checked:bg-global-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"
             >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              ></path>
-            </svg>
-            Sincronizar Exámenes
-          </button>
-          <button
-            id="sync-solutions-btn"
-            type="button"
-            class="inline-flex items-center gap-2 rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg
-              class="w-4 h-4 text-global-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Sincronizar Solucionarios
-          </button>
-          <button
-            id="sync-all-btn"
-            type="button"
-            class="inline-flex items-center gap-2 rounded-xl bg-global-primary px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              ></path>
-            </svg>
-            Sincronizar Todo
-          </button>
+            </div>
+          </label>
+          <div>
+            <p class="text-sm font-medium text-global-text">
+              Plancha de profesor específico
+            </p>
+            <p class="text-xs text-global-text-muted mt-0.5">
+              Activa esto si la plancha pertenece a un profesor en particular y
+              no es la práctica general del curso.
+            </p>
+          </div>
         </div>
 
-        <!-- Status Display -->
-        <div id="sync-status" class="mt-4 hidden">
+        <!-- Info alert (shown when toggle is active) -->
+        <div
+          id="teacher-specific-info"
+          class="hidden rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200"
+        >
+          <strong>📋 Nota:</strong> Esta plancha se guardará como específica del docente
+          indicado. Puedes tener la plancha general <em>y</em> las de profesores específicos
+          para el mismo curso, ciclo y evaluación.
+        </div>
+
+        <!-- Row 3: Archivos -->
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label
+              class="block text-sm font-medium text-global-text-muted mb-1.5"
+              for="file"
+            >
+              PDF de la Plancha
+            </label>
+            <label
+              for="file"
+              class="flex justify-between items-center gap-3 w-full rounded-xl border border-global-border bg-global-card px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
+            >
+              <span
+                class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
+              >
+                Seleccionar
+              </span>
+              <span
+                id="file-name"
+                class="text-sm text-global-text-muted truncate"
+              >
+                Sin archivo
+              </span>
+            </label>
+            <input
+              id="file"
+              name="file"
+              type="file"
+              accept="application/pdf"
+              class="hidden"
+            />
+          </div>
+
+          <div>
+            <label
+              class="block text-sm font-medium text-global-text-muted mb-1.5"
+              for="solution-file"
+            >
+              PDF del Solucionario
+              <span class="text-global-text-muted">(opcional)</span>
+            </label>
+            <label
+              for="solution-file"
+              class="flex justify-between items-center gap-3 w-full rounded-xl border border-global-border bg-global-card px-3 py-2 cursor-pointer hover:border-global-primary transition-colors"
+            >
+              <span
+                class="inline-flex items-center rounded-lg bg-global-primary px-3 py-1 text-sm font-semibold text-black whitespace-nowrap"
+              >
+                Seleccionar
+              </span>
+              <span
+                id="solution-file-name"
+                class="text-sm text-global-text-muted truncate"
+              >
+                Sin archivo
+              </span>
+            </label>
+            <input
+              id="solution-file"
+              name="solution_file"
+              type="file"
+              accept="application/pdf"
+              class="hidden"
+            />
+          </div>
+        </div>
+
+        <!-- Upload Status -->
+        <div id="upload-status" class="hidden">
           <div class="flex items-center gap-2 text-sm">
             <div
-              id="sync-spinner"
+              id="upload-spinner"
               class="animate-spin h-4 w-4 border-2 border-global-primary border-t-transparent rounded-full"
             >
             </div>
-            <span id="sync-message" class="text-global-text-muted"
-              >Iniciando sincronización...</span
+            <span id="upload-message" class="text-global-text-muted"
+              >Preparando subida...</span
             >
           </div>
-        </div>
-
-        <!-- Results Display -->
-        <div id="sync-results" class="mt-4 hidden">
-          <pre
-            class="text-xs text-global-text-muted bg-global-bg p-3 rounded-lg overflow-x-auto max-h-48 overflow-y-auto border border-global-border">
-          </pre>
-        </div>
-
-        <div
-          class="mt-4 rounded-lg bg-global-bg/50 border border-global-border p-3"
-        >
-          <p class="text-xs text-global-text-muted">
-            <strong class="text-global-text">Nota:</strong> La sincronización se ejecuta
-            localmente en tu computadora. Usa el comando: <code
-              class="bg-global-card px-1.5 py-0.5 rounded border border-global-border"
-              >npm run drive:sync-solutions</code
-            >
-          </p>
-        </div>
-      </section>
-
-      <!-- RF-04: Solucionarios más solicitados -->
-      <section
-        class="rounded-2xl bg-global-surface border border-global-border p-6 mt-6"
-      >
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-lg font-semibold text-global-text">
-              Solucionarios más solicitados
-            </h2>
-            <p class="mt-0.5 text-sm text-global-text-muted">
-              Planchas sin solucionario con más solicitudes
-            </p>
-          </div>
-          <button
-            id="refresh-interests-btn"
-            type="button"
-            class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+          <div
+            class="mt-2 w-full bg-global-border rounded-full h-1.5 overflow-hidden"
           >
-            <svg
-              class="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              ></path>
-            </svg>
-            Actualizar
-          </button>
-        </div>
-
-        <div id="interests-list" class="space-y-3">
-          <!-- Loading -->
-          <div id="interests-loading" class="text-center py-6">
             <div
-              class="animate-spin h-6 w-6 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-2"
+              id="upload-progress"
+              class="h-full bg-global-primary rounded-full transition-all duration-300"
+              style="width: 0%"
             >
             </div>
-            <p class="text-sm text-global-text-muted">Cargando...</p>
           </div>
         </div>
 
-        <div id="interests-empty" class="hidden text-center py-6">
-          <p class="text-global-text-muted text-sm">
-            No hay planchas con solicitudes de solucionario aún.
+        <!-- Submit Button -->
+        <button
+          id="upload-submit-btn"
+          type="submit"
+          class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black shadow-lg shadow-green-500/20 transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            ></path>
+          </svg>
+          Subir archivo
+        </button>
+      </form>
+    </section>
+
+    <!-- Drive Sync Card -->
+    <section
+      class="rounded-2xl bg-global-surface border border-global-border p-6"
+    >
+      <div
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4"
+      >
+        <div>
+          <h2 class="text-lg font-semibold text-global-text">
+            Sincronización con Drive
+          </h2>
+          <p class="mt-0.5 text-sm text-global-text-muted">
+            Importa automáticamente desde Google Drive
           </p>
         </div>
-      </section>
-    </div>
-  </div>
+      </div>
 
-  <script>
-    /*
+      <div class="flex flex-wrap gap-4 justify-center">
+        <button
+          id="sync-exams-btn"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            class="w-4 h-4 text-global-primary"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            ></path>
+          </svg>
+          Sincronizar Exámenes
+        </button>
+        <button
+          id="sync-solutions-btn"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl border border-global-border bg-global-card px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            class="w-4 h-4 text-global-primary"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Sincronizar Solucionarios
+        </button>
+        <button
+          id="sync-all-btn"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl bg-global-primary px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            ></path>
+          </svg>
+          Sincronizar Todo
+        </button>
+      </div>
+
+      <!-- Status Display -->
+      <div id="sync-status" class="mt-4 hidden">
+        <div class="flex items-center gap-2 text-sm">
+          <div
+            id="sync-spinner"
+            class="animate-spin h-4 w-4 border-2 border-global-primary border-t-transparent rounded-full"
+          >
+          </div>
+          <span id="sync-message" class="text-global-text-muted"
+            >Iniciando sincronización...</span
+          >
+        </div>
+      </div>
+
+      <!-- Results Display -->
+      <div id="sync-results" class="mt-4 hidden">
+        <pre
+          class="text-xs text-global-text-muted bg-global-bg p-3 rounded-lg overflow-x-auto max-h-48 overflow-y-auto border border-global-border">
+        </pre>
+      </div>
+
+      <div
+        class="mt-4 rounded-lg bg-global-bg/50 border border-global-border p-3"
+      >
+        <p class="text-xs text-global-text-muted">
+          <strong class="text-global-text">Nota:</strong> La sincronización se ejecuta
+          localmente en tu computadora. Usa el comando: <code
+            class="bg-global-card px-1.5 py-0.5 rounded border border-global-border"
+            >npm run drive:sync-solutions</code
+          >
+        </p>
+      </div>
+    </section>
+
+    <!-- RF-04: Solucionarios más solicitados -->
+    <section
+      class="rounded-2xl bg-global-surface border border-global-border p-6 mt-6"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-semibold text-global-text">
+            Solucionarios más solicitados
+          </h2>
+          <p class="mt-0.5 text-sm text-global-text-muted">
+            Planchas sin solucionario con más solicitudes
+          </p>
+        </div>
+        <button
+          id="refresh-interests-btn"
+          type="button"
+          class="inline-flex items-center gap-2 rounded-lg border border-global-border bg-global-card px-3 py-1.5 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            ></path>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+
+      <div id="interests-list" class="space-y-3">
+        <!-- Loading -->
+        <div id="interests-loading" class="text-center py-6">
+          <div
+            class="animate-spin h-6 w-6 border-2 border-global-primary border-t-transparent rounded-full mx-auto mb-2"
+          >
+          </div>
+          <p class="text-sm text-global-text-muted">Cargando...</p>
+        </div>
+      </div>
+
+      <div id="interests-empty" class="hidden text-center py-6">
+        <p class="text-global-text-muted text-sm">
+          No hay planchas con solicitudes de solucionario aún.
+        </p>
+      </div>
+    </section>
+  </AdminLayout>
+</Layout>
+
+<script>
+  /*
     Script principal del panel de subida.
     Maneja:
       - Sincronización con Google Drive (syncExams/syncSolutions/syncAll)
@@ -664,1311 +660,1292 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       - PDF.js para generar miniatura de la 1ª página
       - Subida secuencial: upload-url → miniatura → Storage → metadatos DB
     */
-    import * as pdfjsLib from "pdfjs-dist";
-    import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
-    import { initTeacherDropdown } from "../../scripts/course-teacher-dropdown";
-    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+  import * as pdfjsLib from "pdfjs-dist";
+  import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
+  import { initTeacherDropdown } from "../../scripts/course-teacher-dropdown";
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-    let activeCourseId: number | null = null;
-    let evaluationsAbortController: AbortController | null = null;
+  let activeCourseId: number | null = null;
+  let evaluationsAbortController: AbortController | null = null;
 
-    const teacherSearchInput = document.getElementById("teacher-search") as HTMLInputElement;
-    const teacherIdInput = document.getElementById("teacher-id") as HTMLInputElement;
+  const teacherSearchInput = document.getElementById(
+    "teacher-search",
+  ) as HTMLInputElement;
+  const teacherIdInput = document.getElementById(
+    "teacher-id",
+  ) as HTMLInputElement;
 
-    const syncExamsBtn = document.getElementById("sync-exams-btn");
-    const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
-    const syncAllBtn = document.getElementById("sync-all-btn");
-    const syncStatus = document.getElementById("sync-status");
-    const syncMessage = document.getElementById("sync-message");
-    const syncResults = document.getElementById("sync-results");
-    const syncResultsPre = syncResults?.querySelector("pre");
+  const syncExamsBtn = document.getElementById("sync-exams-btn");
+  const syncSolutionsBtn = document.getElementById("sync-solutions-btn");
+  const syncAllBtn = document.getElementById("sync-all-btn");
+  const syncStatus = document.getElementById("sync-status");
+  const syncMessage = document.getElementById("sync-message");
+  const syncResults = document.getElementById("sync-results");
+  const syncResultsPre = syncResults?.querySelector("pre");
 
-    async function runSync(type: string) {
-      // Disable all buttons
-      [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
-        btn?.setAttribute("disabled", "true");
+  async function runSync(type: string) {
+    // Disable all buttons
+    [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
+      btn?.setAttribute("disabled", "true");
+    });
+
+    // Show status
+    syncStatus?.classList.remove("hidden");
+    syncResults?.classList.add("hidden");
+    document.getElementById("sync-spinner")?.classList.remove("hidden");
+    if (syncMessage) syncMessage.textContent = `Sincronizando ${type}...`;
+
+    try {
+      const res = await fetch("/api/admin/drive-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
       });
 
-      // Show status
-      syncStatus?.classList.remove("hidden");
-      syncResults?.classList.add("hidden");
-      document.getElementById("sync-spinner")?.classList.remove("hidden");
-      if (syncMessage) syncMessage.textContent = `Sincronizando ${type}...`;
-
-      try {
-        const res = await fetch("/api/admin/drive-sync", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type }),
-        });
-
-        if (!res.ok) {
-          if (syncMessage)
-            syncMessage.textContent = `❌ Error del servidor (${res.status})`;
-          return;
-        }
-
-        const data = await res.json();
-
-        if (syncResultsPre) {
-          syncResultsPre.textContent = JSON.stringify(data, null, 2);
-        }
-        syncResults?.classList.remove("hidden");
-
-        if (data.ok) {
-          if (syncMessage)
-            syncMessage.textContent = "Sincronización completada";
-        } else {
-          if (syncMessage)
-            syncMessage.textContent = `${data.error || "Error desconocido"}`;
-        }
-      } catch (err) {
-        if (syncMessage) syncMessage.textContent = `Error de red: ${err}`;
-      } finally {
-        // Re-enable buttons
-        [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
-          btn?.removeAttribute("disabled");
-        });
-        // Hide spinner
-        setTimeout(() => {
-          document.getElementById("sync-spinner")?.classList.add("hidden");
-        }, 500);
-      }
-    }
-
-    syncExamsBtn?.addEventListener("click", () => runSync("exams"));
-    syncSolutionsBtn?.addEventListener("click", () => runSync("solutions"));
-    syncAllBtn?.addEventListener("click", () => runSync("all"));
-
-    // Update file name display when file is selected
-    const fileInput = document.getElementById("file") as HTMLInputElement;
-    const fileNameEl = document.getElementById("file-name");
-    fileInput?.addEventListener("change", () => {
-      if (fileInput.files && fileInput.files.length > 0) {
-        if (fileNameEl) fileNameEl.textContent = fileInput.files[0].name;
-      } else {
-        if (fileNameEl) fileNameEl.textContent = "Sin archivo";
-      }
-    });
-
-    const solutionFileInput = document.getElementById(
-      "solution-file",
-    ) as HTMLInputElement;
-    const solutionFileNameEl = document.getElementById("solution-file-name");
-    solutionFileInput?.addEventListener("change", () => {
-      if (solutionFileInput.files && solutionFileInput.files.length > 0) {
-        if (solutionFileNameEl)
-          solutionFileNameEl.textContent = solutionFileInput.files[0].name;
-      } else {
-        if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
-      }
-    });
-
-    // ── RF-30: Cargar profesores del curso seleccionado ───────────
-    const { loadTeachersByCourse, resetTeacherSelection } = initTeacherDropdown(() => activeCourseId);
-
-    // ── Teacher-specific toggle behavior ──────────────
-    const teacherSpecificCheckbox = document.getElementById(
-      "is-teacher-specific",
-    ) as HTMLInputElement;
-    const teacherSpecificInfo = document.getElementById(
-      "teacher-specific-info",
-    );
-    const teacherOptionalLabel = document.getElementById(
-      "teacher-optional-label",
-    );
-    const teacherToggleWrapper = document.getElementById(
-      "teacher-specific-toggle",
-    );
-
-    function updateTeacherSpecificUI() {
-      const isActive = teacherSpecificCheckbox?.checked ?? false;
-
-      // Show/hide info alert
-      if (isActive) {
-        teacherSpecificInfo?.classList.remove("hidden");
-        teacherToggleWrapper?.classList.add("border-global-primary/50");
-        teacherToggleWrapper?.classList.remove("border-global-border");
-      } else {
-        teacherSpecificInfo?.classList.add("hidden");
-        teacherToggleWrapper?.classList.remove("border-global-primary/50");
-        teacherToggleWrapper?.classList.add("border-global-border");
-        teacherIdInput.value = "";
-        teacherSearchInput.value = "";
-      }
-
-      // Update teacher field required state and label
-      if (teacherSearchInput) {
-        teacherSearchInput.required = isActive;
-        if (isActive) {
-          teacherSearchInput.classList.add("border-global-primary/50");
-        } else {
-          teacherSearchInput.classList.remove("border-global-primary/50");
-        }
-      }
-      if (teacherOptionalLabel) {
-        teacherOptionalLabel.textContent = isActive
-          ? "(requerido)"
-          : "(opcional)";
-        if (isActive) {
-          teacherOptionalLabel.classList.add("text-global-primary");
-          teacherOptionalLabel.classList.remove("text-global-text-muted");
-        } else {
-          teacherOptionalLabel.classList.remove("text-global-primary");
-          teacherOptionalLabel.classList.add("text-global-text-muted");
-        }
-      }
-    }
-
-    teacherSpecificCheckbox?.addEventListener(
-      "change",
-      updateTeacherSpecificUI,
-    );
-    // Initialize on load
-    updateTeacherSpecificUI();
-
-    // ── Two-Step Upload (bypasses Vercel 4.5MB limit) ──────────────
-    const uploadForm = document.getElementById(
-      "upload-form",
-    ) as HTMLFormElement;
-    const uploadStatus = document.getElementById("upload-status");
-    const uploadSpinner = document.getElementById("upload-spinner");
-    const uploadMessage = document.getElementById("upload-message");
-    const uploadProgress = document.getElementById(
-      "upload-progress",
-    ) as HTMLDivElement;
-    const submitBtn = document.getElementById(
-      "upload-submit-btn",
-    ) as HTMLButtonElement;
-
-    type CourseOption = { id: number; code: string; name: string };
-    type EvaluationOption = {
-      evaluation_id: number;
-      evaluation_name: string;
-      evaluation_abr: string;
-      evaluation_category: string;
-    };
-    let allCourses: CourseOption[] = [];
-    let allEvaluations: EvaluationOption[] = [];
-
-    const courseSearchInput = document.getElementById(
-      "course-search",
-    ) as HTMLInputElement;
-    const courseIdHidden = document.getElementById(
-      "course-id",
-    ) as HTMLInputElement;
-    const courseCodeHidden = document.getElementById(
-      "course-code",
-    ) as HTMLInputElement;
-    const evaluationIdHidden = document.getElementById(
-      "evaluation-id",
-    ) as HTMLInputElement;
-
-    const evaluationSearchInput = document.getElementById(
-      "evaluation-search",
-    ) as HTMLInputElement;
-
-    const evaluationDropdown = document.getElementById(
-      "evaluation-dropdown",
-    ) as HTMLUListElement;
-
-    const evaluationComboboxContainer = document.getElementById(
-      "evaluation-combobox-container",
-    );
-
-    const courseDropdown = document.getElementById(
-      "course-dropdown",
-    ) as HTMLUListElement;
-    const courseComboboxContainer = document.getElementById(
-      "course-combobox-container",
-    );
-
-    const yearHidden = document.getElementById(
-      "year-hidden",
-    ) as HTMLInputElement;
-    const yearDisplay = document.getElementById(
-      "year-display",
-    ) as HTMLInputElement;
-    const yearDropdown = document.getElementById(
-      "year-dropdown",
-    ) as HTMLUListElement;
-    const yearCustom = document.getElementById(
-      "year-custom",
-    ) as HTMLInputElement;
-    const yearComboboxContainer = document.getElementById(
-      "year-combobox-container",
-    );
-
-    const termHidden = document.getElementById(
-      "term-hidden",
-    ) as HTMLInputElement;
-    const termDisplay = document.getElementById(
-      "term-display",
-    ) as HTMLInputElement;
-    const termDropdown = document.getElementById(
-      "term-dropdown",
-    ) as HTMLUListElement;
-    const termComboboxContainer = document.getElementById(
-      "term-combobox-container",
-    );
-
-    const cycleCodeHidden = document.getElementById(
-      "cycle-code",
-    ) as HTMLInputElement;
-
-    function updateCycleCode() {
-      let year = yearHidden.value;
-      if (year === "otro") {
-        year = yearCustom.value;
-      }
-      const term = termHidden.value;
-
-      if (year && term) {
-        cycleCodeHidden.value = `${year}-${term}`;
-      } else {
-        cycleCodeHidden.value = "";
-      }
-    }
-
-    yearDisplay?.addEventListener("click", () => {
-      yearDropdown?.classList.toggle("hidden");
-      termDropdown?.classList.add("hidden");
-    });
-
-    const yearItems = yearDropdown?.querySelectorAll("li");
-    yearItems?.forEach((item) => {
-      item.addEventListener("click", () => {
-        const val = item.getAttribute("data-value") || "";
-        yearHidden.value = val;
-
-        if (val === "otro") {
-          yearDisplay.value = "Otro";
-          yearCustom.classList.remove("hidden");
-          yearCustom.required = true;
-          yearCustom.focus();
-        } else {
-          yearDisplay.value = val;
-          yearCustom.classList.add("hidden");
-          yearCustom.required = false;
-          yearCustom.value = "";
-        }
-
-        yearDropdown.classList.add("hidden");
-        updateCycleCode();
-      });
-    });
-
-    termDisplay?.addEventListener("click", () => {
-      termDropdown?.classList.toggle("hidden");
-      yearDropdown?.classList.add("hidden");
-    });
-
-    const termItems = termDropdown?.querySelectorAll("li");
-    termItems?.forEach((item) => {
-      item.addEventListener("click", () => {
-        const val = item.getAttribute("data-value") || "";
-        termHidden.value = val;
-        termDisplay.value = val;
-
-        termDropdown.classList.add("hidden");
-        updateCycleCode();
-      });
-    });
-
-    yearCustom?.addEventListener("input", updateCycleCode);
-
-    async function loadCourseOptions() {
-      try {
-        const res = await fetch("/api/admin/course-options", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok || !data?.ok) {
-          if (courseSearchInput)
-            courseSearchInput.placeholder = "No se pudieron cargar cursos";
-          return;
-        }
-
-        allCourses = data.courses || [];
-
-        if (!allCourses.length) {
-          if (courseSearchInput)
-            courseSearchInput.placeholder = "No hay cursos disponibles";
-          return;
-        }
-
-        if (courseSearchInput) {
-          courseSearchInput.placeholder = "Buscar curso (ej. Física, BFI01)...";
-          courseSearchInput.removeAttribute("disabled");
-        }
-      } catch (e) {
-        console.error(e);
-        if (courseSearchInput)
-          courseSearchInput.placeholder = "Error cargando cursos";
-      }
-    }
-
-    async function loadEvaluationOptions(courseId: number) {
-      if (!evaluationSearchInput) return;
-
-      evaluationsAbortController?.abort();
-      evaluationsAbortController = new AbortController();
-      const { signal } = evaluationsAbortController;
-
-      resetEvaluationSelection("Cargando evaluaciones...");
-
-      try {
-        const res = await fetch(
-          `/api/admin/course-evaluations?course_id=${courseId}`,
-          {
-            method: "GET",
-            credentials: "include",
-            signal,
-          },
-        );
-
-        if (signal.aborted || activeCourseId !== courseId) {
-          return;
-        }
-
-        const data = await res.json().catch(() => null);
-
-        if (!res.ok || !data?.ok) {
-          resetEvaluationSelection("No se pudieron cargar evaluaciones");
-          return;
-        }
-
-        if (activeCourseId !== courseId) {
-          return;
-        }
-
-        const evaluations: EvaluationOption[] = data.evaluations || [];
-        allEvaluations = evaluations;
-
-        if (!evaluations.length) {
-          resetEvaluationSelection(
-            "Este curso no tiene evaluaciones registradas",
-          );
-          return;
-        }
-
-        evaluationSearchInput.removeAttribute("disabled");
-        evaluationSearchInput.placeholder = "Buscar evaluación...";
-        renderEvaluationDropdown(allEvaluations);
-      } catch (error) {
-        if (signal.aborted || activeCourseId !== courseId) {
-          return;
-        }
-
-        console.error("Error cargando evaluaciones:", error);
-        resetEvaluationSelection("Error cargando evaluaciones");
-      }
-    }
-
-    function norm(value: string) {
-      return value.trim().toLowerCase();
-    }
-
-    function renderCourseDropdown(courses: CourseOption[]) {
-      if (!courseDropdown) return;
-
-      courseDropdown.innerHTML = "";
-
-      if (courses.length === 0) {
-        const li = document.createElement("li");
-        li.className =
-          "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
-        li.textContent = "No hay cursos disponibles.";
-        courseDropdown.appendChild(li);
-      } else {
-        courses.forEach((course) => {
-          const li = document.createElement("li");
-          li.className =
-            "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
-
-          const codeSpan = document.createElement("span");
-          codeSpan.className = "font-semibold text-global-primary";
-          codeSpan.textContent = course.code;
-
-          const separator = document.createElement("span");
-          separator.className = "text-global-text-muted";
-          separator.textContent = " – ";
-
-          const nameSpan = document.createElement("span");
-          nameSpan.textContent = course.name;
-
-          li.append(codeSpan, separator, nameSpan);
-
-          li.addEventListener("mousedown", (e) => {
-            e.preventDefault();
-            selectCourse(course);
-          });
-
-          courseDropdown.appendChild(li);
-        });
-      }
-
-      courseDropdown.classList.remove("hidden");
-    }
-
-    function selectCourse(course: CourseOption) {
-      activeCourseId = course.id;
-
-      courseSearchInput.value = `${course.code} – ${course.name}`;
-      courseIdHidden.value = String(course.id);
-      courseCodeHidden.value = course.code;
-
-      courseDropdown.classList.add("hidden");
-
-      resetEvaluationSelection("Cargando evaluaciones...");
-      loadEvaluationOptions(course.id);
-
-      resetTeacherSelection("Cargando profesores...");
-      loadTeachersByCourse(course.code, course.id);
-    }
-
-    function filterCourses(query: string) {
-      const q = norm(query);
-
-      if (!q) {
-        return allCourses;
-      }
-
-      return allCourses.filter(
-        (course) =>
-          norm(course.code).includes(q) || norm(course.name).includes(q),
-      );
-    }
-
-    function resetEvaluationSelection(
-      placeholder = "Selecciona primero un curso",
-    ) {
-      if (evaluationSearchInput) {
-        evaluationSearchInput.value = "";
-        evaluationSearchInput.placeholder = placeholder;
-        evaluationSearchInput.setAttribute("disabled", "true");
-      }
-
-      if (evaluationIdHidden) evaluationIdHidden.value = "";
-
-      if (evaluationDropdown) {
-        evaluationDropdown.innerHTML = "";
-        evaluationDropdown.classList.add("hidden");
-      }
-
-      allEvaluations = [];
-    }
-
-    function renderEvaluationDropdown(evaluations: EvaluationOption[]) {
-      if (!evaluationDropdown) return;
-
-      evaluationDropdown.innerHTML = "";
-
-      if (evaluations.length === 0) {
-        const li = document.createElement("li");
-        li.className =
-          "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
-        li.textContent = "No se encontraron evaluaciones.";
-        evaluationDropdown.appendChild(li);
+      if (!res.ok) {
+        if (syncMessage)
+          syncMessage.textContent = `❌ Error del servidor (${res.status})`;
         return;
       }
 
-      evaluations.forEach((evaluation) => {
+      const data = await res.json();
+
+      if (syncResultsPre) {
+        syncResultsPre.textContent = JSON.stringify(data, null, 2);
+      }
+      syncResults?.classList.remove("hidden");
+
+      if (data.ok) {
+        if (syncMessage) syncMessage.textContent = "Sincronización completada";
+      } else {
+        if (syncMessage)
+          syncMessage.textContent = `${data.error || "Error desconocido"}`;
+      }
+    } catch (err) {
+      if (syncMessage) syncMessage.textContent = `Error de red: ${err}`;
+    } finally {
+      // Re-enable buttons
+      [syncExamsBtn, syncSolutionsBtn, syncAllBtn].forEach((btn) => {
+        btn?.removeAttribute("disabled");
+      });
+      // Hide spinner
+      setTimeout(() => {
+        document.getElementById("sync-spinner")?.classList.add("hidden");
+      }, 500);
+    }
+  }
+
+  syncExamsBtn?.addEventListener("click", () => runSync("exams"));
+  syncSolutionsBtn?.addEventListener("click", () => runSync("solutions"));
+  syncAllBtn?.addEventListener("click", () => runSync("all"));
+
+  // Update file name display when file is selected
+  const fileInput = document.getElementById("file") as HTMLInputElement;
+  const fileNameEl = document.getElementById("file-name");
+  fileInput?.addEventListener("change", () => {
+    if (fileInput.files && fileInput.files.length > 0) {
+      if (fileNameEl) fileNameEl.textContent = fileInput.files[0].name;
+    } else {
+      if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+    }
+  });
+
+  const solutionFileInput = document.getElementById(
+    "solution-file",
+  ) as HTMLInputElement;
+  const solutionFileNameEl = document.getElementById("solution-file-name");
+  solutionFileInput?.addEventListener("change", () => {
+    if (solutionFileInput.files && solutionFileInput.files.length > 0) {
+      if (solutionFileNameEl)
+        solutionFileNameEl.textContent = solutionFileInput.files[0].name;
+    } else {
+      if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
+    }
+  });
+
+  // ── RF-30: Cargar profesores del curso seleccionado ───────────
+  const { loadTeachersByCourse, resetTeacherSelection } = initTeacherDropdown(
+    () => activeCourseId,
+  );
+
+  // ── Teacher-specific toggle behavior ──────────────
+  const teacherSpecificCheckbox = document.getElementById(
+    "is-teacher-specific",
+  ) as HTMLInputElement;
+  const teacherSpecificInfo = document.getElementById("teacher-specific-info");
+  const teacherOptionalLabel = document.getElementById(
+    "teacher-optional-label",
+  );
+  const teacherToggleWrapper = document.getElementById(
+    "teacher-specific-toggle",
+  );
+
+  function updateTeacherSpecificUI() {
+    const isActive = teacherSpecificCheckbox?.checked ?? false;
+
+    // Show/hide info alert
+    if (isActive) {
+      teacherSpecificInfo?.classList.remove("hidden");
+      teacherToggleWrapper?.classList.add("border-global-primary/50");
+      teacherToggleWrapper?.classList.remove("border-global-border");
+    } else {
+      teacherSpecificInfo?.classList.add("hidden");
+      teacherToggleWrapper?.classList.remove("border-global-primary/50");
+      teacherToggleWrapper?.classList.add("border-global-border");
+      teacherIdInput.value = "";
+      teacherSearchInput.value = "";
+    }
+
+    // Update teacher field required state and label
+    if (teacherSearchInput) {
+      teacherSearchInput.required = isActive;
+      if (isActive) {
+        teacherSearchInput.classList.add("border-global-primary/50");
+      } else {
+        teacherSearchInput.classList.remove("border-global-primary/50");
+      }
+    }
+    if (teacherOptionalLabel) {
+      teacherOptionalLabel.textContent = isActive
+        ? "(requerido)"
+        : "(opcional)";
+      if (isActive) {
+        teacherOptionalLabel.classList.add("text-global-primary");
+        teacherOptionalLabel.classList.remove("text-global-text-muted");
+      } else {
+        teacherOptionalLabel.classList.remove("text-global-primary");
+        teacherOptionalLabel.classList.add("text-global-text-muted");
+      }
+    }
+  }
+
+  teacherSpecificCheckbox?.addEventListener("change", updateTeacherSpecificUI);
+  // Initialize on load
+  updateTeacherSpecificUI();
+
+  // ── Two-Step Upload (bypasses Vercel 4.5MB limit) ──────────────
+  const uploadForm = document.getElementById("upload-form") as HTMLFormElement;
+  const uploadStatus = document.getElementById("upload-status");
+  const uploadSpinner = document.getElementById("upload-spinner");
+  const uploadMessage = document.getElementById("upload-message");
+  const uploadProgress = document.getElementById(
+    "upload-progress",
+  ) as HTMLDivElement;
+  const submitBtn = document.getElementById(
+    "upload-submit-btn",
+  ) as HTMLButtonElement;
+
+  type CourseOption = { id: number; code: string; name: string };
+  type EvaluationOption = {
+    evaluation_id: number;
+    evaluation_name: string;
+    evaluation_abr: string;
+    evaluation_category: string;
+  };
+  let allCourses: CourseOption[] = [];
+  let allEvaluations: EvaluationOption[] = [];
+
+  const courseSearchInput = document.getElementById(
+    "course-search",
+  ) as HTMLInputElement;
+  const courseIdHidden = document.getElementById(
+    "course-id",
+  ) as HTMLInputElement;
+  const courseCodeHidden = document.getElementById(
+    "course-code",
+  ) as HTMLInputElement;
+  const evaluationIdHidden = document.getElementById(
+    "evaluation-id",
+  ) as HTMLInputElement;
+
+  const evaluationSearchInput = document.getElementById(
+    "evaluation-search",
+  ) as HTMLInputElement;
+
+  const evaluationDropdown = document.getElementById(
+    "evaluation-dropdown",
+  ) as HTMLUListElement;
+
+  const evaluationComboboxContainer = document.getElementById(
+    "evaluation-combobox-container",
+  );
+
+  const courseDropdown = document.getElementById(
+    "course-dropdown",
+  ) as HTMLUListElement;
+  const courseComboboxContainer = document.getElementById(
+    "course-combobox-container",
+  );
+
+  const yearHidden = document.getElementById("year-hidden") as HTMLInputElement;
+  const yearDisplay = document.getElementById(
+    "year-display",
+  ) as HTMLInputElement;
+  const yearDropdown = document.getElementById(
+    "year-dropdown",
+  ) as HTMLUListElement;
+  const yearCustom = document.getElementById("year-custom") as HTMLInputElement;
+  const yearComboboxContainer = document.getElementById(
+    "year-combobox-container",
+  );
+
+  const termHidden = document.getElementById("term-hidden") as HTMLInputElement;
+  const termDisplay = document.getElementById(
+    "term-display",
+  ) as HTMLInputElement;
+  const termDropdown = document.getElementById(
+    "term-dropdown",
+  ) as HTMLUListElement;
+  const termComboboxContainer = document.getElementById(
+    "term-combobox-container",
+  );
+
+  const cycleCodeHidden = document.getElementById(
+    "cycle-code",
+  ) as HTMLInputElement;
+
+  function updateCycleCode() {
+    let year = yearHidden.value;
+    if (year === "otro") {
+      year = yearCustom.value;
+    }
+    const term = termHidden.value;
+
+    if (year && term) {
+      cycleCodeHidden.value = `${year}-${term}`;
+    } else {
+      cycleCodeHidden.value = "";
+    }
+  }
+
+  yearDisplay?.addEventListener("click", () => {
+    yearDropdown?.classList.toggle("hidden");
+    termDropdown?.classList.add("hidden");
+  });
+
+  const yearItems = yearDropdown?.querySelectorAll("li");
+  yearItems?.forEach((item) => {
+    item.addEventListener("click", () => {
+      const val = item.getAttribute("data-value") || "";
+      yearHidden.value = val;
+
+      if (val === "otro") {
+        yearDisplay.value = "Otro";
+        yearCustom.classList.remove("hidden");
+        yearCustom.required = true;
+        yearCustom.focus();
+      } else {
+        yearDisplay.value = val;
+        yearCustom.classList.add("hidden");
+        yearCustom.required = false;
+        yearCustom.value = "";
+      }
+
+      yearDropdown.classList.add("hidden");
+      updateCycleCode();
+    });
+  });
+
+  termDisplay?.addEventListener("click", () => {
+    termDropdown?.classList.toggle("hidden");
+    yearDropdown?.classList.add("hidden");
+  });
+
+  const termItems = termDropdown?.querySelectorAll("li");
+  termItems?.forEach((item) => {
+    item.addEventListener("click", () => {
+      const val = item.getAttribute("data-value") || "";
+      termHidden.value = val;
+      termDisplay.value = val;
+
+      termDropdown.classList.add("hidden");
+      updateCycleCode();
+    });
+  });
+
+  yearCustom?.addEventListener("input", updateCycleCode);
+
+  async function loadCourseOptions() {
+    try {
+      const res = await fetch("/api/admin/course-options", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.ok) {
+        if (courseSearchInput)
+          courseSearchInput.placeholder = "No se pudieron cargar cursos";
+        return;
+      }
+
+      allCourses = data.courses || [];
+
+      if (!allCourses.length) {
+        if (courseSearchInput)
+          courseSearchInput.placeholder = "No hay cursos disponibles";
+        return;
+      }
+
+      if (courseSearchInput) {
+        courseSearchInput.placeholder = "Buscar curso (ej. Física, BFI01)...";
+        courseSearchInput.removeAttribute("disabled");
+      }
+    } catch (e) {
+      console.error(e);
+      if (courseSearchInput)
+        courseSearchInput.placeholder = "Error cargando cursos";
+    }
+  }
+
+  async function loadEvaluationOptions(courseId: number) {
+    if (!evaluationSearchInput) return;
+
+    evaluationsAbortController?.abort();
+    evaluationsAbortController = new AbortController();
+    const { signal } = evaluationsAbortController;
+
+    resetEvaluationSelection("Cargando evaluaciones...");
+
+    try {
+      const res = await fetch(
+        `/api/admin/course-evaluations?course_id=${courseId}`,
+        {
+          method: "GET",
+          credentials: "include",
+          signal,
+        },
+      );
+
+      if (signal.aborted || activeCourseId !== courseId) {
+        return;
+      }
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.ok) {
+        resetEvaluationSelection("No se pudieron cargar evaluaciones");
+        return;
+      }
+
+      if (activeCourseId !== courseId) {
+        return;
+      }
+
+      const evaluations: EvaluationOption[] = data.evaluations || [];
+      allEvaluations = evaluations;
+
+      if (!evaluations.length) {
+        resetEvaluationSelection(
+          "Este curso no tiene evaluaciones registradas",
+        );
+        return;
+      }
+
+      evaluationSearchInput.removeAttribute("disabled");
+      evaluationSearchInput.placeholder = "Buscar evaluación...";
+      renderEvaluationDropdown(allEvaluations);
+    } catch (error) {
+      if (signal.aborted || activeCourseId !== courseId) {
+        return;
+      }
+
+      console.error("Error cargando evaluaciones:", error);
+      resetEvaluationSelection("Error cargando evaluaciones");
+    }
+  }
+
+  function norm(value: string) {
+    return value.trim().toLowerCase();
+  }
+
+  function renderCourseDropdown(courses: CourseOption[]) {
+    if (!courseDropdown) return;
+
+    courseDropdown.innerHTML = "";
+
+    if (courses.length === 0) {
+      const li = document.createElement("li");
+      li.className =
+        "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
+      li.textContent = "No hay cursos disponibles.";
+      courseDropdown.appendChild(li);
+    } else {
+      courses.forEach((course) => {
         const li = document.createElement("li");
         li.className =
-          "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
+          "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
 
-        const abrSpan = document.createElement("span");
-        abrSpan.className = "font-semibold text-global-primary";
-        abrSpan.textContent = evaluation.evaluation_abr;
+        const codeSpan = document.createElement("span");
+        codeSpan.className = "font-semibold text-global-primary";
+        codeSpan.textContent = course.code;
 
         const separator = document.createElement("span");
         separator.className = "text-global-text-muted";
         separator.textContent = " – ";
 
         const nameSpan = document.createElement("span");
-        nameSpan.textContent = evaluation.evaluation_name;
+        nameSpan.textContent = course.name;
 
-        li.appendChild(abrSpan);
-        li.appendChild(separator);
-        li.appendChild(nameSpan);
+        li.append(codeSpan, separator, nameSpan);
 
         li.addEventListener("mousedown", (e) => {
           e.preventDefault();
-          evaluationIdHidden.value = String(evaluation.evaluation_id);
-          evaluationSearchInput.value = `${evaluation.evaluation_abr} – ${evaluation.evaluation_name}`;
-          evaluationDropdown.classList.add("hidden");
+          selectCourse(course);
         });
 
-        evaluationDropdown.appendChild(li);
+        courseDropdown.appendChild(li);
       });
     }
 
-    courseSearchInput?.addEventListener("input", () => {
-      activeCourseId = null;
-      courseIdHidden.value = "";
-      courseCodeHidden.value = "";
+    courseDropdown.classList.remove("hidden");
+  }
 
-      resetTeacherSelection("Ingresa un curso primero");
-      evaluationsAbortController?.abort();
+  function selectCourse(course: CourseOption) {
+    activeCourseId = course.id;
 
-      const filtered = filterCourses(courseSearchInput.value);
+    courseSearchInput.value = `${course.code} – ${course.name}`;
+    courseIdHidden.value = String(course.id);
+    courseCodeHidden.value = course.code;
 
-      renderCourseDropdown(filtered);
-      courseDropdown?.classList.remove("hidden");
+    courseDropdown.classList.add("hidden");
+
+    resetEvaluationSelection("Cargando evaluaciones...");
+    loadEvaluationOptions(course.id);
+
+    resetTeacherSelection("Cargando profesores...");
+    loadTeachersByCourse(course.code, course.id);
+  }
+
+  function filterCourses(query: string) {
+    const q = norm(query);
+
+    if (!q) {
+      return allCourses;
+    }
+
+    return allCourses.filter(
+      (course) =>
+        norm(course.code).includes(q) || norm(course.name).includes(q),
+    );
+  }
+
+  function resetEvaluationSelection(
+    placeholder = "Selecciona primero un curso",
+  ) {
+    if (evaluationSearchInput) {
+      evaluationSearchInput.value = "";
+      evaluationSearchInput.placeholder = placeholder;
+      evaluationSearchInput.setAttribute("disabled", "true");
+    }
+
+    if (evaluationIdHidden) evaluationIdHidden.value = "";
+
+    if (evaluationDropdown) {
+      evaluationDropdown.innerHTML = "";
+      evaluationDropdown.classList.add("hidden");
+    }
+
+    allEvaluations = [];
+  }
+
+  function renderEvaluationDropdown(evaluations: EvaluationOption[]) {
+    if (!evaluationDropdown) return;
+
+    evaluationDropdown.innerHTML = "";
+
+    if (evaluations.length === 0) {
+      const li = document.createElement("li");
+      li.className =
+        "px-4 py-3 text-sm text-global-text-muted text-center cursor-default";
+      li.textContent = "No se encontraron evaluaciones.";
+      evaluationDropdown.appendChild(li);
+      return;
+    }
+
+    evaluations.forEach((evaluation) => {
+      const li = document.createElement("li");
+      li.className =
+        "px-4 py-2.5 hover:bg-black/30 hover:text-white cursor-pointer text-sm text-global-text transition-colors";
+
+      const abrSpan = document.createElement("span");
+      abrSpan.className = "font-semibold text-global-primary";
+      abrSpan.textContent = evaluation.evaluation_abr;
+
+      const separator = document.createElement("span");
+      separator.className = "text-global-text-muted";
+      separator.textContent = " – ";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.textContent = evaluation.evaluation_name;
+
+      li.appendChild(abrSpan);
+      li.appendChild(separator);
+      li.appendChild(nameSpan);
+
+      li.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        evaluationIdHidden.value = String(evaluation.evaluation_id);
+        evaluationSearchInput.value = `${evaluation.evaluation_abr} – ${evaluation.evaluation_name}`;
+        evaluationDropdown.classList.add("hidden");
+      });
+
+      evaluationDropdown.appendChild(li);
     });
+  }
 
-    courseSearchInput?.addEventListener("focus", async () => {
-      activeCourseId = null;
+  courseSearchInput?.addEventListener("input", () => {
+    activeCourseId = null;
+    courseIdHidden.value = "";
+    courseCodeHidden.value = "";
 
-      if (courseIdHidden) courseIdHidden.value = "";
-      if (courseCodeHidden) courseCodeHidden.value = "";
-      courseSearchInput.value = "";
+    resetTeacherSelection("Ingresa un curso primero");
+    evaluationsAbortController?.abort();
 
-      evaluationsAbortController?.abort();
+    const filtered = filterCourses(courseSearchInput.value);
 
-      resetEvaluationSelection("Selecciona primero un curso");
-      resetTeacherSelection("Ingresa un curso primero");
+    renderCourseDropdown(filtered);
+    courseDropdown?.classList.remove("hidden");
+  });
 
-      if (allCourses.length === 0) {
-        await loadCourseOptions();
-      }
+  courseSearchInput?.addEventListener("focus", async () => {
+    activeCourseId = null;
 
-      renderCourseDropdown(allCourses);
-      courseDropdown?.classList.remove("hidden");
-    });
+    if (courseIdHidden) courseIdHidden.value = "";
+    if (courseCodeHidden) courseCodeHidden.value = "";
+    courseSearchInput.value = "";
 
-    evaluationSearchInput?.addEventListener("input", (e) => {
-      const query = (e.target as HTMLInputElement).value.toLowerCase();
+    evaluationsAbortController?.abort();
 
-      if (evaluationIdHidden) evaluationIdHidden.value = "";
+    resetEvaluationSelection("Selecciona primero un curso");
+    resetTeacherSelection("Ingresa un curso primero");
 
-      const filtered = allEvaluations.filter(
-        (ev) =>
-          ev.evaluation_abr.toLowerCase().includes(query) ||
-          ev.evaluation_name.toLowerCase().includes(query),
-      );
+    if (allCourses.length === 0) {
+      await loadCourseOptions();
+    }
 
-      renderEvaluationDropdown(filtered);
+    renderCourseDropdown(allCourses);
+    courseDropdown?.classList.remove("hidden");
+  });
+
+  evaluationSearchInput?.addEventListener("input", (e) => {
+    const query = (e.target as HTMLInputElement).value.toLowerCase();
+
+    if (evaluationIdHidden) evaluationIdHidden.value = "";
+
+    const filtered = allEvaluations.filter(
+      (ev) =>
+        ev.evaluation_abr.toLowerCase().includes(query) ||
+        ev.evaluation_name.toLowerCase().includes(query),
+    );
+
+    renderEvaluationDropdown(filtered);
+    evaluationDropdown?.classList.remove("hidden");
+  });
+  evaluationSearchInput?.addEventListener("focus", () => {
+    if (allEvaluations.length > 0) {
+      renderEvaluationDropdown(allEvaluations);
       evaluationDropdown?.classList.remove("hidden");
-    });
-    evaluationSearchInput?.addEventListener("focus", () => {
-      if (allEvaluations.length > 0) {
-        renderEvaluationDropdown(allEvaluations);
-        evaluationDropdown?.classList.remove("hidden");
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const target = e.target as Node;
+
+    if (!courseComboboxContainer?.contains(target)) {
+      courseDropdown?.classList.add("hidden");
+    }
+
+    if (!evaluationComboboxContainer?.contains(target)) {
+      evaluationDropdown?.classList.add("hidden");
+    }
+
+    if (!yearComboboxContainer?.contains(target)) {
+      yearDropdown?.classList.add("hidden");
+    }
+
+    if (!termComboboxContainer?.contains(target)) {
+      termDropdown?.classList.add("hidden");
+    }
+  });
+
+  evaluationSearchInput?.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (evaluationIdHidden && !evaluationIdHidden.value) {
+        evaluationSearchInput.value = "";
       }
-    });
+    }, 150);
+  });
 
-    document.addEventListener("click", (e) => {
-      const target = e.target as Node;
+  document.addEventListener("DOMContentLoaded", () => {
+    loadCourseOptions();
+  });
 
-      if (!courseComboboxContainer?.contains(target)) {
-        courseDropdown?.classList.add("hidden");
-      }
+  async function generatePdfThumbnail(file: File): Promise<Blob | null> {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
-      if (!evaluationComboboxContainer?.contains(target)) {
-        evaluationDropdown?.classList.add("hidden");
-      }
+      const page = await pdf.getPage(1);
 
+      // Adjust scale as needed for quality vs size (1.5 gives good resolution)
+      const viewport = page.getViewport({ scale: 1.5 });
 
-      if (!yearComboboxContainer?.contains(target)) {
-        yearDropdown?.classList.add("hidden");
-      }
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
 
-      if (!termComboboxContainer?.contains(target)) {
-        termDropdown?.classList.add("hidden");
-      }
-    });
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
 
-    evaluationSearchInput?.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (evaluationIdHidden && !evaluationIdHidden.value) {
-          evaluationSearchInput.value = "";
-        }
-      }, 150);
-    });
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
 
-    document.addEventListener("DOMContentLoaded", () => {
-      loadCourseOptions();
-    });
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+      });
+    } catch (e) {
+      console.error("Error generating thumbnail:", e);
+      return null;
+    }
+  }
 
-    async function generatePdfThumbnail(file: File): Promise<Blob | null> {
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  function setUploadUI(msg: string, pct: number, showSpinner = true) {
+    uploadStatus?.classList.remove("hidden");
+    if (uploadMessage) uploadMessage.textContent = msg;
+    if (uploadProgress) uploadProgress.style.width = `${pct}%`;
+    if (showSpinner) {
+      uploadSpinner?.classList.remove("hidden");
+    } else {
+      uploadSpinner?.classList.add("hidden");
+    }
+  }
 
-        const page = await pdf.getPage(1);
+  function resetUploadUI() {
+    uploadStatus?.classList.add("hidden");
+    if (uploadProgress) uploadProgress.style.width = "0%";
+    submitBtn?.removeAttribute("disabled");
+  }
 
-        // Adjust scale as needed for quality vs size (1.5 gives good resolution)
-        const viewport = page.getViewport({ scale: 1.5 });
+  /**
+   * Flujo de subida completo:
+   * 1. Obtener URL firmada via /api/admin/upload-url
+   * 2. Generar miniatura con PDF.js (si es plancha)
+   * 3. Subir PDF(s) a Storage (PUT a signed URL)
+   * 4. Subir miniatura a Storage
+   * 5. Registrar metadatos en DB via /api/admin/upload
+   * 6. Resetear formulario y mostrar resultado
+   */
 
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return null;
+  type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+  interface UploadUrlResponse {
+    ok?: boolean;
+    error?: string;
+    signedUrl?: string;
+    solutionSignedUrl?: string;
+    thumbSignedUrl?: string;
+    thumbPath?: string;
+    uploadSessionId?: string | null;
+  }
 
-        await page.render({canvas, canvasContext: ctx, viewport,}).promise;
+  interface UploadRegistrationResponse {
+    ok?: boolean;
+    error?: string;
+    message?: string;
+  }
 
-        return new Promise((resolve) => {
-          canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.85);
+  /**
+   * Sube un objeto utilizando una URL firmada.
+   *
+   * Los errores se convierten en false para permitir que, en AMBOS,
+   * se invoque upload.ts y el servidor limpie la sesión incompleta.
+   */
+  async function uploadToSignedUrl(
+    signedUrl: string,
+    file: Blob,
+    contentType: string,
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(signedUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": contentType,
+        },
+        body: file,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+
+        console.error("Error al subir archivo a Storage:", {
+          status: response.status,
+          errorText,
         });
-      } catch (e) {
-        console.error("Error generating thumbnail:", e);
-        return null;
-      }
-    }
-
-    function setUploadUI(msg: string, pct: number, showSpinner = true) {
-      uploadStatus?.classList.remove("hidden");
-      if (uploadMessage) uploadMessage.textContent = msg;
-      if (uploadProgress) uploadProgress.style.width = `${pct}%`;
-      if (showSpinner) {
-        uploadSpinner?.classList.remove("hidden");
-      } else {
-        uploadSpinner?.classList.add("hidden");
-      }
-    }
-
-    function resetUploadUI() {
-      uploadStatus?.classList.add("hidden");
-      if (uploadProgress) uploadProgress.style.width = "0%";
-      submitBtn?.removeAttribute("disabled");
-    }
-
-    /**
-     * Flujo de subida completo:
-     * 1. Obtener URL firmada via /api/admin/upload-url
-     * 2. Generar miniatura con PDF.js (si es plancha)
-     * 3. Subir PDF(s) a Storage (PUT a signed URL)
-     * 4. Subir miniatura a Storage
-     * 5. Registrar metadatos en DB via /api/admin/upload
-     * 6. Resetear formulario y mostrar resultado
-     */
-
-    type ResourceKind = "PLANCHA" | "SOLUCIONARIO" | "AMBOS";
-
-    interface UploadUrlResponse {
-      ok?: boolean;
-      error?: string;
-      signedUrl?: string;
-      solutionSignedUrl?: string;
-      thumbSignedUrl?: string;
-      thumbPath?: string;
-      uploadSessionId?: string | null;
-    }
-
-    interface UploadRegistrationResponse {
-      ok?: boolean;
-      error?: string;
-      message?: string;
-    }
-
-    /**
-     * Sube un objeto utilizando una URL firmada.
-     *
-     * Los errores se convierten en false para permitir que, en AMBOS,
-     * se invoque upload.ts y el servidor limpie la sesión incompleta.
-     */
-    async function uploadToSignedUrl(
-      signedUrl: string,
-      file: Blob,
-      contentType: string,
-    ): Promise<boolean> {
-      try {
-        const response = await fetch(signedUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": contentType,
-          },
-          body: file,
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text().catch(() => "");
-
-          console.error("Error al subir archivo a Storage:", {
-            status: response.status,
-            errorText,
-          });
-
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        console.error("Error de red al subir archivo a Storage:", error);
 
         return false;
       }
+
+      return true;
+    } catch (error) {
+      console.error("Error de red al subir archivo a Storage:", error);
+
+      return false;
+    }
+  }
+
+  uploadForm?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const formData = new FormData(uploadForm);
+    const courseId = Number(formData.get("course_id") ?? 0);
+    const cycle = String(formData.get("cycle") ?? "").trim();
+    const evaluationId = Number(formData.get("evaluation_id") ?? 0);
+    const teacherId = Number(formData.get("teacher_id") ?? 0);
+    const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
+    const rawFile = formData.get("file");
+    const rawSolutionFile = formData.get("solution_file");
+
+    const file = rawFile instanceof File && rawFile.size > 0 ? rawFile : null;
+    const solutionFile =
+      rawSolutionFile instanceof File && rawSolutionFile.size > 0
+        ? rawSolutionFile
+        : null;
+
+    const hasPlancha = file !== null;
+    const hasSolution = solutionFile !== null;
+
+    let resourceKind: ResourceKind = "PLANCHA";
+
+    if (hasPlancha && hasSolution) {
+      resourceKind = "AMBOS";
+    } else if (hasPlancha) {
+      resourceKind = "PLANCHA";
+    } else if (hasSolution) {
+      resourceKind = "SOLUCIONARIO";
     }
 
-    uploadForm?.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    if (
+      !Number.isSafeInteger(courseId) ||
+      courseId <= 0 ||
+      !cycle ||
+      !Number.isSafeInteger(evaluationId) ||
+      evaluationId <= 0
+    ) {
+      alert("Por favor completa los metadatos del curso, ciclo y evaluación.");
+      return;
+    }
 
-      const formData = new FormData(uploadForm);
-      const courseId = Number(formData.get("course_id") ?? 0);
-      const cycle = String(formData.get("cycle") ?? "").trim();
-      const evaluationId = Number(formData.get("evaluation_id") ?? 0);
-      const teacherId = Number(formData.get("teacher_id") ?? 0);
-      const isTeacherSpecific = teacherSpecificCheckbox?.checked ?? false;
-      const rawFile = formData.get("file");
-      const rawSolutionFile = formData.get("solution_file");
+    if (!hasPlancha && !hasSolution) {
+      alert(
+        "Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).",
+      );
+      return;
+    }
 
-      const file = rawFile instanceof File && rawFile.size > 0 ? rawFile : null;
-      const solutionFile =
-        rawSolutionFile instanceof File && rawSolutionFile.size > 0
-          ? rawSolutionFile
+    // Validar teacher_id cuando se activa la plancha específica.
+    if (
+      isTeacherSpecific &&
+      (!Number.isSafeInteger(teacherId) || teacherId <= 0)
+    ) {
+      alert(
+        "Debes seleccionar un docente válido para una plancha de profesor específico.",
+      );
+
+      teacherSearchInput?.focus();
+
+      return;
+    }
+
+    submitBtn?.setAttribute("disabled", "true");
+
+    try {
+      // Step 1: Get signed upload URL
+      setUploadUI("Obteniendo URL de subida...", 10);
+
+      const urlRes = await fetch("/api/admin/upload-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course_id: courseId,
+          cycle,
+          evaluation_id: evaluationId,
+          resource_kind: resourceKind,
+          teacher_id: isTeacherSpecific ? teacherId : null,
+          is_teacher_specific: isTeacherSpecific,
+        }),
+      });
+
+      const urlData = (await urlRes
+        .json()
+        .catch(() => null)) as UploadUrlResponse | null;
+
+      if (!urlRes.ok || !urlData?.ok) {
+        setUploadUI(
+          `❌ ${urlData?.error ?? "No se pudo preparar la subida"}`,
+          0,
+          false,
+        );
+
+        submitBtn?.removeAttribute("disabled");
+        return;
+      }
+
+      if (typeof urlData.signedUrl !== "string") {
+        console.error(
+          "upload-url no devolvió una URL principal válida:",
+          urlData,
+        );
+
+        setUploadUI("❌ No se recibió una URL de subida válida", 0, false);
+
+        submitBtn?.removeAttribute("disabled");
+        return;
+      }
+
+      const uploadSessionId =
+        resourceKind === "AMBOS" && typeof urlData.uploadSessionId === "string"
+          ? urlData.uploadSessionId
           : null;
 
-      const hasPlancha = file !== null;
-      const hasSolution = solutionFile !== null;
-
-      let resourceKind: ResourceKind = "PLANCHA";
-
-      if (hasPlancha && hasSolution) {
-        resourceKind = "AMBOS";
-      } else if (hasPlancha) {
-        resourceKind = "PLANCHA";
-      } else if (hasSolution) {
-        resourceKind = "SOLUCIONARIO";
-      }
-
       if (
-        !Number.isSafeInteger(courseId) ||
-        courseId <= 0 ||
-        !cycle ||
-        !Number.isSafeInteger(evaluationId) ||
-        evaluationId <= 0
+        resourceKind === "AMBOS" &&
+        (!uploadSessionId || typeof urlData.solutionSignedUrl !== "string")
       ) {
-        alert(
-          "Por favor completa los metadatos del curso, ciclo y evaluación.",
-        );
-        return;
-      }
+        console.error("Contrato inválido para una subida conjunta:", urlData);
 
-      if (!hasPlancha && !hasSolution) {
-        alert(
-          "Debes seleccionar al menos un archivo (PDF de la plancha o del solucionario).",
-        );
-        return;
-      }
+        setUploadUI("❌ No se pudo inicializar la subida conjunta", 0, false);
 
-      // Validar teacher_id cuando se activa la plancha específica.
-      if (
-        isTeacherSpecific &&
-        (!Number.isSafeInteger(teacherId) || teacherId <= 0)
-      ) {
-        alert(
-          "Debes seleccionar un docente válido para una plancha de profesor específico.",
-        );
-
-        teacherSearchInput?.focus();
-
-        return;
-      }
-
-      submitBtn?.setAttribute("disabled", "true");
-
-      try {
-        // Step 1: Get signed upload URL
-        setUploadUI("Obteniendo URL de subida...", 10);
-
-        const urlRes = await fetch("/api/admin/upload-url", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            course_id: courseId,
-            cycle,
-            evaluation_id: evaluationId,
-            resource_kind: resourceKind,
-            teacher_id: isTeacherSpecific ? teacherId : null,
-            is_teacher_specific: isTeacherSpecific,
-          }),
-        });
-
-        const urlData = (await urlRes
-          .json()
-          .catch(() => null)) as UploadUrlResponse | null;
-
-        if (!urlRes.ok || !urlData?.ok) {
-          setUploadUI(
-            `❌ ${urlData?.error ?? "No se pudo preparar la subida"}`,
-            0,
-            false,
-          );
-
-          submitBtn?.removeAttribute("disabled");
-          return;
-        }
-
-        if (typeof urlData.signedUrl !== "string") {
-          console.error(
-            "upload-url no devolvió una URL principal válida:",
-            urlData,
-          );
-
-          setUploadUI("❌ No se recibió una URL de subida válida", 0, false);
-
-          submitBtn?.removeAttribute("disabled");
-          return;
-        }
-
-        const uploadSessionId =
-          resourceKind === "AMBOS" &&
-          typeof urlData.uploadSessionId === "string"
-            ? urlData.uploadSessionId
-            : null;
-
-        if (
-          resourceKind === "AMBOS" &&
-          (!uploadSessionId || typeof urlData.solutionSignedUrl !== "string")
-        ) {
-          console.error("Contrato inválido para una subida conjunta:", urlData);
-
-          setUploadUI("❌ No se pudo inicializar la subida conjunta", 0, false);
-
-          submitBtn?.removeAttribute("disabled");
-          return;
-        }
-
-        // Step 1.5: Generate Thumbnail (if PLANCHA or AMBOS)
-        let thumbBlob: Blob | null = null;
-        if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-          setUploadUI("Generando miniatura de la 1ª página...", 20);
-          if (file) {
-            thumbBlob = await generatePdfThumbnail(file);
-          }
-        }
-
-        // Step 2: Upload plancha PDF directly to Storage (If present)
-        let combinedUploadHadFailure = false;
-        if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
-          setUploadUI("Subiendo plancha a Storage...", 40);
-
-          const planchaUploaded =
-            file instanceof File &&
-            (await uploadToSignedUrl(
-              urlData.signedUrl,
-              file,
-              "application/pdf",
-            ));
-
-          if (!planchaUploaded) {
-            if (resourceKind === "AMBOS") {
-              /*
-               * No se retorna todavía. upload.ts comprobará que la sesión
-               * está incompleta y eliminará sus objetos temporales.
-               */
-              combinedUploadHadFailure = true;
-            } else {
-              setUploadUI("❌ Error al subir la plancha a Storage", 40, false);
-
-              submitBtn?.removeAttribute("disabled");
-              return;
-            }
-          }
-        }
-
-        // Step 2.5: Upload Solution PDF if present
-        if (
-          !combinedUploadHadFailure &&
-          (resourceKind === "SOLUCIONARIO" || resourceKind === "AMBOS")
-        ) {
-          setUploadUI("Subiendo solucionario a Storage...", 50);
-
-          const solutionSignedUrl =
-            resourceKind === "AMBOS"
-              ? urlData.solutionSignedUrl
-              : urlData.signedUrl;
-
-          const solutionUploaded =
-            typeof solutionSignedUrl === "string" &&
-            solutionFile !== null &&
-            (await uploadToSignedUrl(
-              solutionSignedUrl,
-              solutionFile,
-              "application/pdf",
-            ));
-
-          if (!solutionUploaded) {
-            if (resourceKind === "AMBOS") {
-              combinedUploadHadFailure = true;
-            } else {
-              setUploadUI("❌ Error al subir el solucionario", 50, false);
-
-              submitBtn?.removeAttribute("disabled");
-              return;
-            }
-          }
-        }
-
-        // Step 2.8: Upload Thumbnail
-        let thumbnailUploaded = false;
-
-        if (
-          !combinedUploadHadFailure &&
-          (resourceKind === "PLANCHA" || resourceKind === "AMBOS") &&
-          thumbBlob &&
-          typeof urlData.thumbSignedUrl === "string"
-        ) {
-          setUploadUI("Subiendo miniatura...", 60);
-
-          thumbnailUploaded = await uploadToSignedUrl(
-            urlData.thumbSignedUrl,
-            thumbBlob,
-            "image/jpeg",
-          );
-
-          if (!thumbnailUploaded) {
-            console.error(
-              "No se pudo subir la miniatura. La operación continuará sin ella.",
-            );
-          }
-        }
-
-        // Step 3: Register metadata in DB
-        setUploadUI(
-          combinedUploadHadFailure
-            ? "Validando y limpiando la subida incompleta..."
-            : "Registrando en la base de datos...",
-          80,
-        );
-
-        const regRes = await fetch("/api/admin/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            course_id: courseId,
-            cycle,
-            evaluation_id: evaluationId,
-            resource_kind: resourceKind,
-
-            upload_session_id:
-              resourceKind === "AMBOS" ? uploadSessionId : undefined,
-
-            has_thumb_upload: thumbnailUploaded,
-
-            teacher_id: isTeacherSpecific ? teacherId : null,
-
-            is_teacher_specific: isTeacherSpecific,
-          }),
-        });
-
-        const regData = (await regRes
-          .json()
-          .catch(() => null)) as UploadRegistrationResponse | null;
-
-        if (!regRes.ok || !regData?.ok) {
-          setUploadUI(
-            `⚠️ ${
-              regData?.error ?? "No se pudo completar el registro de la subida"
-            }`,
-            80,
-            false,
-          );
-
-          submitBtn?.removeAttribute("disabled");
-          return;
-        }
-
-        // Success!
-        setUploadUI(`${regData.message}`, 100, false);
-        uploadForm.reset();
-        if (fileNameEl) fileNameEl.textContent = "Sin archivo";
-        if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
-
-        // Reset fields
-        resetTeacherSelection("Ingresa un curso primero");
-        activeCourseId = null;
-        resetEvaluationSelection("Selecciona primero un curso");
-        if (courseSearchInput) courseSearchInput.value = "";
-        // Reset year/term UI
-        yearHidden.value = "";
-        yearDisplay.value = "";
-        yearCustom.value = "";
-        yearCustom.classList.add("hidden");
-        termHidden.value = "";
-        termDisplay.value = "";
-        cycleCodeHidden.value = "";
-
-        if (courseIdHidden) courseIdHidden.value = "";
-        if (courseCodeHidden) courseCodeHidden.value = "";
-        courseDropdown?.classList.add("hidden");
-
-        // Reset toggle UI after form reset
-        updateTeacherSpecificUI();
-
-        // Auto-hide success message after 4 seconds
-        setTimeout(() => resetUploadUI(), 4000);
-      } catch (err) {
-        console.error("Upload error:", err);
-        setUploadUI(`Error de red: ${err}`, 0, false);
         submitBtn?.removeAttribute("disabled");
+        return;
       }
-    });
-  </script>
 
-  <script>
-    /*
+      // Step 1.5: Generate Thumbnail (if PLANCHA or AMBOS)
+      let thumbBlob: Blob | null = null;
+      if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+        setUploadUI("Generando miniatura de la 1ª página...", 20);
+        if (file) {
+          thumbBlob = await generatePdfThumbnail(file);
+        }
+      }
+
+      // Step 2: Upload plancha PDF directly to Storage (If present)
+      let combinedUploadHadFailure = false;
+      if (resourceKind === "PLANCHA" || resourceKind === "AMBOS") {
+        setUploadUI("Subiendo plancha a Storage...", 40);
+
+        const planchaUploaded =
+          file instanceof File &&
+          (await uploadToSignedUrl(urlData.signedUrl, file, "application/pdf"));
+
+        if (!planchaUploaded) {
+          if (resourceKind === "AMBOS") {
+            /*
+             * No se retorna todavía. upload.ts comprobará que la sesión
+             * está incompleta y eliminará sus objetos temporales.
+             */
+            combinedUploadHadFailure = true;
+          } else {
+            setUploadUI("❌ Error al subir la plancha a Storage", 40, false);
+
+            submitBtn?.removeAttribute("disabled");
+            return;
+          }
+        }
+      }
+
+      // Step 2.5: Upload Solution PDF if present
+      if (
+        !combinedUploadHadFailure &&
+        (resourceKind === "SOLUCIONARIO" || resourceKind === "AMBOS")
+      ) {
+        setUploadUI("Subiendo solucionario a Storage...", 50);
+
+        const solutionSignedUrl =
+          resourceKind === "AMBOS"
+            ? urlData.solutionSignedUrl
+            : urlData.signedUrl;
+
+        const solutionUploaded =
+          typeof solutionSignedUrl === "string" &&
+          solutionFile !== null &&
+          (await uploadToSignedUrl(
+            solutionSignedUrl,
+            solutionFile,
+            "application/pdf",
+          ));
+
+        if (!solutionUploaded) {
+          if (resourceKind === "AMBOS") {
+            combinedUploadHadFailure = true;
+          } else {
+            setUploadUI("❌ Error al subir el solucionario", 50, false);
+
+            submitBtn?.removeAttribute("disabled");
+            return;
+          }
+        }
+      }
+
+      // Step 2.8: Upload Thumbnail
+      let thumbnailUploaded = false;
+
+      if (
+        !combinedUploadHadFailure &&
+        (resourceKind === "PLANCHA" || resourceKind === "AMBOS") &&
+        thumbBlob &&
+        typeof urlData.thumbSignedUrl === "string"
+      ) {
+        setUploadUI("Subiendo miniatura...", 60);
+
+        thumbnailUploaded = await uploadToSignedUrl(
+          urlData.thumbSignedUrl,
+          thumbBlob,
+          "image/jpeg",
+        );
+
+        if (!thumbnailUploaded) {
+          console.error(
+            "No se pudo subir la miniatura. La operación continuará sin ella.",
+          );
+        }
+      }
+
+      // Step 3: Register metadata in DB
+      setUploadUI(
+        combinedUploadHadFailure
+          ? "Validando y limpiando la subida incompleta..."
+          : "Registrando en la base de datos...",
+        80,
+      );
+
+      const regRes = await fetch("/api/admin/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course_id: courseId,
+          cycle,
+          evaluation_id: evaluationId,
+          resource_kind: resourceKind,
+
+          upload_session_id:
+            resourceKind === "AMBOS" ? uploadSessionId : undefined,
+
+          has_thumb_upload: thumbnailUploaded,
+
+          teacher_id: isTeacherSpecific ? teacherId : null,
+
+          is_teacher_specific: isTeacherSpecific,
+        }),
+      });
+
+      const regData = (await regRes
+        .json()
+        .catch(() => null)) as UploadRegistrationResponse | null;
+
+      if (!regRes.ok || !regData?.ok) {
+        setUploadUI(
+          `⚠️ ${
+            regData?.error ?? "No se pudo completar el registro de la subida"
+          }`,
+          80,
+          false,
+        );
+
+        submitBtn?.removeAttribute("disabled");
+        return;
+      }
+
+      // Success!
+      setUploadUI(`${regData.message}`, 100, false);
+      uploadForm.reset();
+      if (fileNameEl) fileNameEl.textContent = "Sin archivo";
+      if (solutionFileNameEl) solutionFileNameEl.textContent = "Sin archivo";
+
+      // Reset fields
+      resetTeacherSelection("Ingresa un curso primero");
+      activeCourseId = null;
+      resetEvaluationSelection("Selecciona primero un curso");
+      if (courseSearchInput) courseSearchInput.value = "";
+      // Reset year/term UI
+      yearHidden.value = "";
+      yearDisplay.value = "";
+      yearCustom.value = "";
+      yearCustom.classList.add("hidden");
+      termHidden.value = "";
+      termDisplay.value = "";
+      cycleCodeHidden.value = "";
+
+      if (courseIdHidden) courseIdHidden.value = "";
+      if (courseCodeHidden) courseCodeHidden.value = "";
+      courseDropdown?.classList.add("hidden");
+
+      // Reset toggle UI after form reset
+      updateTeacherSpecificUI();
+
+      // Auto-hide success message after 4 seconds
+      setTimeout(() => resetUploadUI(), 4000);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setUploadUI(`Error de red: ${err}`, 0, false);
+      submitBtn?.removeAttribute("disabled");
+    }
+  });
+</script>
+
+<script>
+  /*
     RF-04: Carga y muestra las planchas más solicitadas (solucionarios pedidos).
     Permite al admin ver el ranking de solicitudes y reiniciar contadores.
     */
-    import { supabaseClient } from "../../lib/supabase.client";
+  import { supabaseClient } from "../../lib/supabase.client";
 
-    const interestsList = document.getElementById("interests-list");
-    const interestsLoading = document.getElementById("interests-loading");
-    const interestsEmpty = document.getElementById("interests-empty");
-    const refreshInterestsBtn = document.getElementById(
-      "refresh-interests-btn",
-    );
+  const interestsList = document.getElementById("interests-list");
+  const interestsLoading = document.getElementById("interests-loading");
+  const interestsEmpty = document.getElementById("interests-empty");
+  const refreshInterestsBtn = document.getElementById("refresh-interests-btn");
 
-    async function loadTopInterests() {
-      if (interestsLoading) interestsLoading.classList.remove("hidden");
-      if (interestsEmpty) interestsEmpty.classList.add("hidden");
+  async function loadTopInterests() {
+    if (interestsLoading) interestsLoading.classList.remove("hidden");
+    if (interestsEmpty) interestsEmpty.classList.add("hidden");
+    if (interestsList) {
+      // Keep only the loading div
+      const children = Array.from(interestsList.children);
+      children.forEach((child) => {
+        if (child.id !== "interests-loading") child.remove();
+      });
+    }
+
+    try {
+      const { data, error } = await supabaseClient
+        .from("sheets")
+        .select(
+          "id, exam_type, cycle, interest_count, solution_kind, courses:course_id (code, name)",
+        )
+        .is("solution_kind", null)
+        .gt("interest_count", 0)
+        .order("interest_count", { ascending: false })
+        .limit(10);
+
+      if (interestsLoading) interestsLoading.classList.add("hidden");
+
+      if (error) {
+        console.error("Error loading interests:", error);
+        if (interestsList) {
+          const errorMessage = document.createElement("div");
+          errorMessage.className = "text-center text-red-400 py-4 text-sm";
+          errorMessage.textContent =
+            "No se pudieron cargar las solicitudes de solucionario.";
+          interestsList.appendChild(errorMessage);
+        }
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        if (interestsEmpty) interestsEmpty.classList.remove("hidden");
+        return;
+      }
+
+      interface InterestSheet {
+        id: number;
+        exam_type: string;
+        cycle: string;
+        interest_count: number;
+        solution_kind: string | null;
+        courses:
+          { code: string; name: string } | { code: string; name: string }[];
+      }
+
+      // Render the list
       if (interestsList) {
-        // Keep only the loading div
+        // Remove all children except loading
         const children = Array.from(interestsList.children);
         children.forEach((child) => {
           if (child.id !== "interests-loading") child.remove();
         });
-      }
 
-      try {
-        const { data, error } = await supabaseClient
-          .from("sheets")
-          .select(
-            "id, exam_type, cycle, interest_count, solution_kind, courses:course_id (code, name)",
-          )
-          .is("solution_kind", null)
-          .gt("interest_count", 0)
-          .order("interest_count", { ascending: false })
-          .limit(10);
+        (data as InterestSheet[]).forEach((sheet, index: number) => {
+          const course = Array.isArray(sheet.courses)
+            ? sheet.courses[0]
+            : sheet.courses;
+          const courseCode = course?.code ?? "N/A";
+          const courseName = course?.name ?? "";
+          const count = sheet.interest_count ?? 0;
 
-        if (interestsLoading) interestsLoading.classList.add("hidden");
+          // Container
+          const container = document.createElement("div");
+          container.className =
+            "flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border group";
 
-        if (error) {
-          console.error("Error loading interests:", error);
-          if (interestsList) {
-            const errorMessage = document.createElement("div");
-            errorMessage.className = "text-center text-red-400 py-4 text-sm";
-            errorMessage.textContent =
-              "No se pudieron cargar las solicitudes de solucionario.";
-            interestsList.appendChild(errorMessage);
-          }
-          return;
-        }
+          // Link
+          const link = document.createElement("a");
+          link.href = `/exams/${sheet.id}`;
+          link.target = "_blank";
+          link.className =
+            "flex items-center gap-4 flex-1 min-w-0 hover:opacity-80 transition-opacity";
 
-        if (!data || data.length === 0) {
-          if (interestsEmpty) interestsEmpty.classList.remove("hidden");
-          return;
-        }
+          // Rank badge
+          const rankBadge = document.createElement("span");
+          rankBadge.className =
+            "flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0";
+          rankBadge.textContent = String(index + 1);
 
-        interface InterestSheet {
-          id: number;
-          exam_type: string;
-          cycle: string;
-          interest_count: number;
-          solution_kind: string | null;
-          courses:
-            { code: string; name: string } | { code: string; name: string }[];
-        }
+          // Text div
+          const textDiv = document.createElement("div");
+          textDiv.className = "flex-1 min-w-0";
 
-        // Render the list
-        if (interestsList) {
-          // Remove all children except loading
-          const children = Array.from(interestsList.children);
-          children.forEach((child) => {
-            if (child.id !== "interests-loading") child.remove();
-          });
+          const titleP = document.createElement("p");
+          titleP.className =
+            "text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate";
+          titleP.textContent = `${courseCode} — ${sheet.exam_type} ${sheet.cycle}`;
 
-          (data as InterestSheet[]).forEach((sheet, index: number) => {
-            const course = Array.isArray(sheet.courses)
-              ? sheet.courses[0]
-              : sheet.courses;
-            const courseCode = course?.code ?? "N/A";
-            const courseName = course?.name ?? "";
-            const count = sheet.interest_count ?? 0;
+          const nameP = document.createElement("p");
+          nameP.className = "text-xs text-global-text-muted truncate";
+          nameP.textContent = courseName;
 
-            // Container
-            const container = document.createElement("div");
-            container.className =
-              "flex items-center gap-4 p-3 rounded-xl bg-global-bg border border-global-border group";
+          textDiv.appendChild(titleP);
+          textDiv.appendChild(nameP);
+          link.appendChild(rankBadge);
+          link.appendChild(textDiv);
+          container.appendChild(link);
 
-            // Link
-            const link = document.createElement("a");
-            link.href = `/exams/${sheet.id}`;
-            link.target = "_blank";
-            link.className =
-              "flex items-center gap-4 flex-1 min-w-0 hover:opacity-80 transition-opacity";
+          // Right section
+          const rightDiv = document.createElement("div");
+          rightDiv.className = "flex items-center gap-3 shrink-0";
 
-            // Rank badge
-            const rankBadge = document.createElement("span");
-            rankBadge.className =
-              "flex items-center justify-center w-8 h-8 rounded-full bg-global-primary/10 text-global-primary font-bold text-sm shrink-0";
-            rankBadge.textContent = String(index + 1);
+          // Count badge
+          const countDiv = document.createElement("div");
+          countDiv.className = "flex items-center gap-1.5";
 
-            // Text div
-            const textDiv = document.createElement("div");
-            textDiv.className = "flex-1 min-w-0";
+          const countSvg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg",
+          );
+          countSvg.setAttribute("class", "h-4 w-4 text-global-primary");
+          countSvg.setAttribute("viewBox", "0 0 24 24");
+          countSvg.setAttribute("fill", "none");
+          countSvg.setAttribute("stroke", "currentColor");
+          countSvg.setAttribute("stroke-width", "2");
+          countSvg.setAttribute("stroke-linecap", "round");
+          countSvg.setAttribute("stroke-linejoin", "round");
+          const countPath1 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          countPath1.setAttribute(
+            "d",
+            "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+          );
+          const countPath2 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "rect",
+          );
+          countPath2.setAttribute("x", "8");
+          countPath2.setAttribute("y", "2");
+          countPath2.setAttribute("width", "8");
+          countPath2.setAttribute("height", "4");
+          countPath2.setAttribute("rx", "1");
+          countPath2.setAttribute("ry", "1");
+          const countPath3 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          countPath3.setAttribute("d", "m9 14 2 2 4-4");
+          countSvg.appendChild(countPath1);
+          countSvg.appendChild(countPath2);
+          countSvg.appendChild(countPath3);
 
-            const titleP = document.createElement("p");
-            titleP.className =
-              "text-sm font-semibold text-global-text group-hover:text-global-primary transition-colors truncate";
-            titleP.textContent = `${courseCode} — ${sheet.exam_type} ${sheet.cycle}`;
+          const countSpan = document.createElement("span");
+          countSpan.className = "text-sm font-bold text-global-primary";
+          countSpan.textContent = String(count);
 
-            const nameP = document.createElement("p");
-            nameP.className = "text-xs text-global-text-muted truncate";
-            nameP.textContent = courseName;
+          countDiv.appendChild(countSvg);
+          countDiv.appendChild(countSpan);
 
-            textDiv.appendChild(titleP);
-            textDiv.appendChild(nameP);
-            link.appendChild(rankBadge);
-            link.appendChild(textDiv);
-            container.appendChild(link);
+          // Reset button
+          const resetBtn = document.createElement("button");
+          resetBtn.type = "button";
+          resetBtn.dataset.resetSheetId = String(sheet.id);
+          resetBtn.title = "Reiniciar contador";
+          resetBtn.className =
+            "p-1.5 rounded-lg text-global-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100";
 
-            // Right section
-            const rightDiv = document.createElement("div");
-            rightDiv.className = "flex items-center gap-3 shrink-0";
+          const resetSvg = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "svg",
+          );
+          resetSvg.setAttribute("class", "h-4 w-4");
+          resetSvg.setAttribute("viewBox", "0 0 24 24");
+          resetSvg.setAttribute("fill", "none");
+          resetSvg.setAttribute("stroke", "currentColor");
+          resetSvg.setAttribute("stroke-width", "2");
+          resetSvg.setAttribute("stroke-linecap", "round");
+          resetSvg.setAttribute("stroke-linejoin", "round");
+          const rp1 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          rp1.setAttribute("d", "M3 6h18");
+          const rp2 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          rp2.setAttribute("d", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2");
+          const rp3 = document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "path",
+          );
+          rp3.setAttribute("d", "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6");
+          resetSvg.appendChild(rp1);
+          resetSvg.appendChild(rp2);
+          resetSvg.appendChild(rp3);
+          resetBtn.appendChild(resetSvg);
 
-            // Count badge
-            const countDiv = document.createElement("div");
-            countDiv.className = "flex items-center gap-1.5";
+          rightDiv.appendChild(countDiv);
+          rightDiv.appendChild(resetBtn);
+          container.appendChild(rightDiv);
+          interestsList.appendChild(container);
 
-            const countSvg = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "svg",
-            );
-            countSvg.setAttribute("class", "h-4 w-4 text-global-primary");
-            countSvg.setAttribute("viewBox", "0 0 24 24");
-            countSvg.setAttribute("fill", "none");
-            countSvg.setAttribute("stroke", "currentColor");
-            countSvg.setAttribute("stroke-width", "2");
-            countSvg.setAttribute("stroke-linecap", "round");
-            countSvg.setAttribute("stroke-linejoin", "round");
-            const countPath1 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
-            countPath1.setAttribute(
-              "d",
-              "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
-            );
-            const countPath2 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "rect",
-            );
-            countPath2.setAttribute("x", "8");
-            countPath2.setAttribute("y", "2");
-            countPath2.setAttribute("width", "8");
-            countPath2.setAttribute("height", "4");
-            countPath2.setAttribute("rx", "1");
-            countPath2.setAttribute("ry", "1");
-            const countPath3 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
-            countPath3.setAttribute("d", "m9 14 2 2 4-4");
-            countSvg.appendChild(countPath1);
-            countSvg.appendChild(countPath2);
-            countSvg.appendChild(countPath3);
-
-            const countSpan = document.createElement("span");
-            countSpan.className = "text-sm font-bold text-global-primary";
-            countSpan.textContent = String(count);
-
-            countDiv.appendChild(countSvg);
-            countDiv.appendChild(countSpan);
-
-            // Reset button
-            const resetBtn = document.createElement("button");
-            resetBtn.type = "button";
-            resetBtn.dataset.resetSheetId = String(sheet.id);
-            resetBtn.title = "Reiniciar contador";
-            resetBtn.className =
-              "p-1.5 rounded-lg text-global-text-muted hover:text-red-400 hover:bg-red-400/10 transition-colors cursor-pointer opacity-0 group-hover:opacity-100";
-
-            const resetSvg = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "svg",
-            );
-            resetSvg.setAttribute("class", "h-4 w-4");
-            resetSvg.setAttribute("viewBox", "0 0 24 24");
-            resetSvg.setAttribute("fill", "none");
-            resetSvg.setAttribute("stroke", "currentColor");
-            resetSvg.setAttribute("stroke-width", "2");
-            resetSvg.setAttribute("stroke-linecap", "round");
-            resetSvg.setAttribute("stroke-linejoin", "round");
-            const rp1 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
-            rp1.setAttribute("d", "M3 6h18");
-            const rp2 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
-            rp2.setAttribute("d", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2");
-            const rp3 = document.createElementNS(
-              "http://www.w3.org/2000/svg",
-              "path",
-            );
-            rp3.setAttribute("d", "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6");
-            resetSvg.appendChild(rp1);
-            resetSvg.appendChild(rp2);
-            resetSvg.appendChild(rp3);
-            resetBtn.appendChild(resetSvg);
-
-            rightDiv.appendChild(countDiv);
-            rightDiv.appendChild(resetBtn);
-            container.appendChild(rightDiv);
-            interestsList.appendChild(container);
-
-            // Attach reset handler
-            resetBtn.addEventListener("click", async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const sheetId = (resetBtn as HTMLElement).dataset.resetSheetId;
-              if (
-                !sheetId ||
-                !confirm(
-                  "¿Reiniciar el contador de solicitudes para esta plancha?",
-                )
+          // Attach reset handler
+          resetBtn.addEventListener("click", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const sheetId = (resetBtn as HTMLElement).dataset.resetSheetId;
+            if (
+              !sheetId ||
+              !confirm(
+                "¿Reiniciar el contador de solicitudes para esta plancha?",
               )
-                return;
+            )
+              return;
 
-              resetBtn.disabled = true;
-              try {
-                const res = await fetch("/api/admin/reset-interest", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ sheet_id: Number(sheetId) }),
-                });
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                if (data.ok) {
-                  loadTopInterests();
-                } else {
-                  alert(data.error || "Error al reiniciar");
-                }
-              } catch (err) {
-                console.error("Reset error:", err);
-                alert("Error de red al reiniciar contador");
+            resetBtn.disabled = true;
+            try {
+              const res = await fetch("/api/admin/reset-interest", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sheet_id: Number(sheetId) }),
+              });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const data = await res.json();
+              if (data.ok) {
+                loadTopInterests();
+              } else {
+                alert(data.error || "Error al reiniciar");
               }
-            });
+            } catch (err) {
+              console.error("Reset error:", err);
+              alert("Error de red al reiniciar contador");
+            }
           });
-        }
-      } catch (err) {
-        if (interestsLoading) interestsLoading.classList.add("hidden");
-        console.error("Error:", err);
+        });
       }
+    } catch (err) {
+      if (interestsLoading) interestsLoading.classList.add("hidden");
+      console.error("Error:", err);
     }
+  }
 
-    refreshInterestsBtn?.addEventListener("click", loadTopInterests);
-    loadTopInterests();
-  </script>
-</Layout>
+  refreshInterestsBtn?.addEventListener("click", loadTopInterests);
+  loadTopInterests();
+</script>
