@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ cookies }) => {
     const { data: contributions, error: fetchError } = await supabaseAdmin
       .from('contributions')
       .select('id, file_storage_path')
-      .eq('user_id', user.uid)
+      .eq('user_id', user.id)
       .in('status', ['pending', 'rejected']);
 
     if (fetchError) {
@@ -28,7 +28,7 @@ export const POST: APIRoute = async ({ cookies }) => {
     const { error: deleteError } = await supabaseAdmin
       .from('contributions')
       .delete()
-      .eq('user_id', user.uid)
+      .eq('user_id', user.id)
       .in('status', ['pending', 'rejected']);
 
     if (deleteError) {

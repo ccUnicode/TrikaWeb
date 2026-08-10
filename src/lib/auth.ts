@@ -1,4 +1,5 @@
-import { getFirebaseAdminAuth } from './firebase-admin';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { supabaseAdmin } from './supabaseAdmin';
 
 export interface UserProfile {
   id: string;
@@ -7,36 +8,55 @@ export interface UserProfile {
   role: 'student' | 'admin';
 }
 
+export const getSupabase = (cookies: any) => {
+  return createServerClient(
+    import.meta.env.PUBLIC_SUPABASE_URL!,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(key: string) {
+          return cookies.get(key)?.value;
+        },
+        set(key: string, value: string, options: CookieOptions) {
+          cookies.set(key, value, options);
+        },
+        remove(key: string, options: CookieOptions) {
+          cookies.delete(key, options);
+        },
+      },
+    }
+  );
+};
+
 export async function getUserSession(cookies: any): Promise<{ user: any, profile: UserProfile | null }> {
-  const firebaseSession = cookies.get('firebase_session');
-
-  if (!firebaseSession?.value) {
-    return { user: null, profile: null };
-  }
-
   try {
-    const auth = getFirebaseAdminAuth();
+    const supabase = getSupabase(cookies);
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!auth) {
+    if (!user) {
       return { user: null, profile: null };
     }
 
-    const decoded = await auth.verifySessionCookie(firebaseSession.value, true);
-    const email = decoded.email?.toLowerCase();
-
+    const email = user.email?.toLowerCase();
     if (!email || !email.endsWith('@uni.pe')) {
       return { user: null, profile: null };
     }
 
+    const { data: studentDetails } = await supabaseAdmin
+      .from('student_details')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
     const profile: UserProfile = {
-      id: decoded.uid,
+      id: user.id,
       email,
-      full_name: decoded.name || email.split('@')[0] || 'Estudiante',
+      full_name: studentDetails?.full_name || user.user_metadata?.full_name || email.split('@')[0] || 'Estudiante',
       role: 'student',
     };
 
     return { 
-      user: decoded, 
+      user, 
       profile 
     };
   } catch (err) {

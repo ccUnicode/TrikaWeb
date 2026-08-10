@@ -1,7 +1,9 @@
 import type { APIRoute } from 'astro';
+import { getSupabase } from '../../../lib/auth';
 
 export const POST: APIRoute = async ({ cookies, redirect }) => {
-  cookies.delete('firebase_session', { path: '/' });
+  const supabase = getSupabase(cookies);
+  await supabase.auth.signOut();
   
   return redirect('/login');
 };

@@ -1,24 +1,6 @@
 import cryptoNode from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/**
- * Convierte de forma determinística un UID de Firebase en un valor compatible
- * con columnas UUID de PostgreSQL.
- *
- * El resultado se utiliza como identificador estable del usuario autenticado
- * en tablas que todavía almacenan la identidad en una columna `device_id`.
- */
-export function getUuidFromFirebaseUid(uid: string): string {
-  const hash = cryptoNode.createHash("md5").update(uid).digest("hex");
-
-  return [
-    hash.substring(0, 8),
-    hash.substring(8, 12),
-    hash.substring(12, 16),
-    hash.substring(16, 20),
-    hash.substring(20, 32),
-  ].join("-");
-}
 
 /**
  * Genera un hash SHA-256 del texto recibido.

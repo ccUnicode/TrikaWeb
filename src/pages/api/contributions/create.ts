@@ -85,7 +85,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Limpiar nombre de archivo para evitar caracteres problemáticos
     const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const storagePath = `${user.uid}/${Date.now()}_${sanitizedFilename}`;
+    const storagePath = `${user.id}/${Date.now()}_${sanitizedFilename}`;
     const buffer = Buffer.from(await file.arrayBuffer());
 
     // Subir al bucket contributions
@@ -105,7 +105,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { data: contribution, error: insertError } = await supabaseAdmin
       .from('contributions')
       .insert({
-        user_id: user.uid,
+        user_id: user.id,
         user_email: user.email || '',
         user_name: profile.full_name || 'Estudiante',
         course_id: courseId,

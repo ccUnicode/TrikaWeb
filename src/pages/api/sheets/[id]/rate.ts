@@ -1,7 +1,7 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getUuidFromFirebaseUid, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 import { getUserSession } from '../../../../lib/auth';
 
 export const POST: APIRoute = async ({ params, request, cookies }) => {
@@ -33,7 +33,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
     );
   }
 
-  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const deviceId = user.id;
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
 
@@ -160,7 +160,7 @@ export const GET: APIRoute = async ({ params, cookies }) => {
     );
   }
 
-  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const deviceId = user.id;
   const supa = supabaseAdmin;
 
   const { data: existing } = await supa
@@ -194,7 +194,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
     );
   }
 
-  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const deviceId = user.id;
   const supa = supabaseAdmin;
 
   // Verificar si existe el voto antes de eliminarlo

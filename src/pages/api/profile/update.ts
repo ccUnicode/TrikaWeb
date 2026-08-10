@@ -35,7 +35,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const { data: currentProfile } = await supabaseAdmin
       .from('student_details')
       .select('avatar_url')
-      .eq('user_id', user.uid)
+      .eq('user_id', user.id)
       .maybeSingle();
     const oldAvatarPath = currentProfile?.avatar_url && !currentProfile.avatar_url.startsWith('http') 
       ? currentProfile.avatar_url 
@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       }
 
       const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const storagePath = `${user.uid}/${Date.now()}_${sanitizedFilename}`;
+      const storagePath = `${user.id}/${Date.now()}_${sanitizedFilename}`;
       const buffer = Buffer.from(await file.arrayBuffer());
 
       const { error: uploadError } = await supabaseAdmin.storage
@@ -80,7 +80,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // Preparar objeto de actualización
     const upsertData: any = {
-      user_id: user.uid,
+      user_id: user.id,
       email: user.email || '',
       full_name: user.name || 'Estudiante'
     };

@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     const { data: contributions, error } = await supabaseAdmin
       .from('contributions')
       .select('*, courses(code, name)')
-      .eq('user_id', user.uid)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {

@@ -1,7 +1,7 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getUuidFromFirebaseUid, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
 import { getUserSession } from '../../../../lib/auth';
 // @ts-ignore
 import moderationConfig from "../../../../../config/moderation.json";
@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
   // Calcular overall automaticamente
   const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
-  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const deviceId = user.id;
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
 
@@ -119,7 +119,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
         is_anonymous: isAnonymous,
         user_name: userName,
         user_email: userEmail,
-        user_id: user.uid,
+        user_id: user.id,
         is_hidden: false, // Visible by default per user request (stars immediate)
         needs_review: true,
         updated_at: new Date().toISOString()
@@ -163,7 +163,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
         is_anonymous: isAnonymous,
         user_name: userName,
         user_email: userEmail,
-        user_id: user.uid,
+        user_id: user.id,
         is_hidden: false, // Visible by default per user request
         needs_review: true,
         created_at: new Date().toISOString(),
@@ -214,7 +214,7 @@ export const GET: APIRoute = async ({ params, cookies }) => {
     );
   }
 
-  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const deviceId = user.id;
   const supa = supabaseAdmin;
 
   const { data: existing } = await supa
@@ -251,7 +251,7 @@ export const DELETE: APIRoute = async ({ params, cookies }) => {
     );
   }
 
-  const deviceId = getUuidFromFirebaseUid(user.uid);
+  const deviceId = user.id;
   const supa = supabaseAdmin;
 
   const { data: existing } = await supa

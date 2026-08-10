@@ -14,7 +14,7 @@ const isAdminSession = await validateAdminSession(Astro.cookies);
 
 const initialProfile =
   profile ?? {
-    id: user.uid,
+    id: user.id,
     email: user.email || "",
     full_name: user.name || "Estudiante",
     role: isAdminSession ? "admin" : "student",
@@ -39,14 +39,14 @@ const { data: specialties } = await supabaseAdmin
 const { data: contributions } = await supabaseAdmin
   .from("contributions")
   .select("*, courses(code, name)")
-  .eq("user_id", user.uid)
+  .eq("user_id", user.id)
   .order("created_at", { ascending: false });
 
 // Obtener perfil completo desde Supabase para especialidad y avatar
 const { data: userProfileDb } = await supabaseAdmin
   .from("student_details")
   .select("avatar_url, specialty")
-  .eq("user_id", user.uid)
+  .eq("user_id", user.id)
   .maybeSingle();
 
 const displaySpecialty = userProfileDb?.specialty || "Estudiante UNI";
