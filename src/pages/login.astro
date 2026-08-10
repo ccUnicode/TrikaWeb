@@ -35,13 +35,16 @@ if (user) {
           class="hidden mb-4 rounded-lg bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20"
         ></div>
 
-        <button
-          id="google-login-btn"
-          type="button"
-          class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
-        >
-          Continuar con Google
-        </button>
+        <form action="/api/auth/signin" method="post" id="login-form">
+          <input type="hidden" name="next" id="next-input" value="/profile" />
+          <button
+            id="google-login-btn"
+            type="submit"
+            class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+          >
+            Continuar con Google
+          </button>
+        </form>
 
         <p class="mt-4 text-center text-xs text-global-text-muted">
           Solo se permiten correos institucionales de la UNI.
@@ -52,59 +55,34 @@ if (user) {
 </Layout>
 
 <script>
-  import { createClient } from '@supabase/supabase-js';
-
   document.addEventListener("DOMContentLoaded", () => {
-    const googleBtn = document.getElementById("google-login-btn") as HTMLButtonElement;
     const errorBox = document.getElementById("error-message");
+    const nextInput = document.getElementById("next-input") as HTMLInputElement;
+    const loginForm = document.getElementById("login-form") as HTMLFormElement;
+    const googleBtn = document.getElementById("google-login-btn") as HTMLButtonElement;
 
+    // Obtener parámetros de la URL actual
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
+    const redirectParam = urlParams.get('redirect');
 
+    // Mostrar mensaje de error si existe
     if (errorParam && errorBox) {
-      errorBox.textContent = errorParam;
+      errorBox.textContent = errorParam.replace(/\+/g, ' ');
       errorBox.classList.remove('hidden');
     }
 
-    if (!googleBtn) return;
+    // Pasar el redirect al input oculto
+    if (redirectParam && nextInput) {
+      nextInput.value = redirectParam;
+    }
 
-    const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
-    const SUPABASE_ANON_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    googleBtn.addEventListener("click", async () => {
-      try {
+    // Desactivar botón al enviar para evitar múltiples clicks
+    if (loginForm && googleBtn) {
+      loginForm.addEventListener("submit", () => {
         googleBtn.disabled = true;
-        googleBtn.textContent = "Abriendo Google...";
-
-        if (errorBox) {
-          errorBox.classList.add('hidden');
-        }
-
-        const redirectUrl = urlParams.get("redirect") || "/profile";
-        const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-        callbackUrl.searchParams.set('next', redirectUrl);
-
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: callbackUrl.toString(),
-            queryParams: {
-              prompt: 'select_account',
-            }
-          },
-        });
-
-        if (error) throw error;
-      } catch (err: any) {
-        console.error("Error iniciando sesión:", err);
-        if (errorBox) {
-          errorBox.textContent = err.message || "Error al conectar con Google";
-          errorBox.classList.remove('hidden');
-        }
-        googleBtn.disabled = false;
-        googleBtn.textContent = "Continuar con Google";
-      }
-    });
+        googleBtn.textContent = "Conectando con Google...";
+      });
+    }
   });
 </script>
