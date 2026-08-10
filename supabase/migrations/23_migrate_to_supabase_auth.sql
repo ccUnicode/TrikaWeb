@@ -5,14 +5,20 @@ ALTER TABLE public.teacher_ratings DROP CONSTRAINT IF EXISTS teacher_ratings_use
 TRUNCATE TABLE public.student_details CASCADE;
 TRUNCATE TABLE public.teacher_ratings CASCADE;
 TRUNCATE TABLE public.contributions CASCADE;
-
--- Drop the view that depends on user_id
 DROP VIEW IF EXISTS public.public_teacher_ratings;
+
+-- Drop RLS policies that depend on user_id
+DROP POLICY IF EXISTS "contributions_select_own" ON public.contributions;
 
 -- Alter column types to uuid
 ALTER TABLE public.student_details ALTER COLUMN user_id TYPE uuid USING user_id::uuid;
 ALTER TABLE public.teacher_ratings ALTER COLUMN user_id TYPE uuid USING user_id::uuid;
 ALTER TABLE public.contributions ALTER COLUMN user_id TYPE uuid USING user_id::uuid;
+
+-- Recreate RLS policies with UUID compatibility
+CREATE POLICY "contributions_select_own"
+  ON public.contributions FOR SELECT
+  USING (auth.uid() = user_id OR (select auth.jwt() ->> 'email') = user_email);
 
 -- Recreate the view
 CREATE VIEW public.public_teacher_ratings AS
