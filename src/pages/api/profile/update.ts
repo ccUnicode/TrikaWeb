@@ -82,7 +82,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     const upsertData: any = {
       user_id: user.id,
       email: user.email || '',
-      full_name: user.name || 'Estudiante'
+      full_name: user.user_metadata?.full_name || 'Estudiante'
     };
     if (specialty) upsertData.specialty = specialty;
     if (avatarUrl) upsertData.avatar_url = avatarUrl;

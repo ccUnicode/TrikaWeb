@@ -51,7 +51,7 @@ export async function getUserSession(cookies: any): Promise<{ user: any, profile
     const profile: UserProfile = {
       id: user.id,
       email,
-      full_name: studentDetails?.full_name || user.user_metadata?.full_name || email.split('@')[0] || 'Estudiante',
+      full_name: studentDetails?.full_name || user.user_metadata?.full_name || 'Estudiante',
       role: 'student',
     };
 
