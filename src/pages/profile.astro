@@ -619,11 +619,6 @@ const avatarUrl = userProfileDb?.avatar_url
 </Layout>
 
 <script>
-  import {
-    auth,
-    signOut as firebaseSignOut,
-  } from "../../firebase/firebaseConfig.js";
-
   document.addEventListener("DOMContentLoaded", () => {
     // 1. Manejo de Pestañas
     const tabButtons = document.querySelectorAll(".tab-btn");
@@ -957,20 +952,8 @@ const avatarUrl = userProfileDb?.avatar_url
     document
       .getElementById("logout-form")
       ?.addEventListener("submit", async (event) => {
-
-        event.preventDefault();
-
-        try {
-          await firebaseSignOut(auth);
-        } catch {
-          // Ignore client-side sign-out failures and clear the server cookie anyway.
-        }
-
-        await fetch("/api/auth/logout", {
-          method: "POST",
-        });
-
-        window.location.href = "/login";
+        // Permitimos que el formulario envíe el POST directamente sin preventDefault()
+        // ya que el botón de submit enviará la data a action="/api/auth/logout" de forma normal.
       });
   });
 </script>
