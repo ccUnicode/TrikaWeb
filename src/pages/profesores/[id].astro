@@ -297,7 +297,7 @@ const toStudentAvatarUrl = (src?: string | null) => {
                             <span class="font-semibold block">
                               {review.is_anonymous === false ? (
                                 review.user_id ? (
-                                  <a href={`/profile/${review.user_id}`} class="hover:text-global-primary transition-colors">
+                                  <a href={review.user_id === user?.id ? "/profile" : `/profile/${review.user_id}`} class="hover:text-global-primary transition-colors">
                                     {review.user_name || "Estudiante"}
                                   </a>
                                 ) : (
