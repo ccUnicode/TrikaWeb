@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  const { user } = await getUserSession(cookies);
+  const { user, profile } = await getUserSession(cookies);
   if (!user) {
     return new Response(
       JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
@@ -79,7 +79,7 @@ export const POST: APIRoute = async ({ params, request, cookies }) => {
 
   // Set anonymity logic (defaults to true if undefined or null)
   const isAnonymous = is_anonymous !== false;
-  const userName = user.name || user.email?.split('@')[0] || 'Estudiante';
+  const userName = profile?.full_name || 'Estudiante';
   const userEmail = user.email || '';
 
   const supa = supabaseAdmin;
