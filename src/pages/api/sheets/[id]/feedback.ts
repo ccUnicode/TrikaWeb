@@ -268,7 +268,7 @@ export const GET: APIRoute = async ({ params, request, cookies }) => {
       .select('feedback_id, reaction, user_id')
       .in('feedback_id', feedbackIds);
 
-    feedbackList?.forEach(f => {
+    feedbackList?.forEach((f: any) => {
       const fReactions = (reactionsData || []).filter(r => r.feedback_id === f.id);
       
       const counts: Record<string, number> = { like: 0, love: 0, haha: 0, wow: 0, sad: 0 };

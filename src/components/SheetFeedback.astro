@@ -720,26 +720,6 @@ const userAvatar = profile?.avatar_url || null;
 
         totalComments = data.total ?? 0;
         totalPages = Math.ceil(totalComments / pageSize) || 1;
-        currentAvgRating = data.avgRating || 0;
-
-        if (avgBadge) {
-          avgBadge.textContent = currentAvgRating.toFixed(1);
-        }
-
-        if (data.userFeedback) {
-          userFeedbackId = data.userFeedback.id;
-          const userComment = data.userFeedback;
-          if (userComment.likesCount === undefined) userComment.likesCount = 0;
-          userComment.isLiked = !!userComment.isLiked;
-          userComment.isReplying = !!userComment.isReplying;
-
-          localComments = localComments.filter((i: any) => i.id !== userFeedbackId);
-          if (page === 1) {
-            localComments.unshift(userComment);
-          }
-        } else {
-          userFeedbackId = null;
-        }
 
         renderFeedbackList();
 
