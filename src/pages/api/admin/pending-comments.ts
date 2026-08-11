@@ -46,7 +46,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             .from("sheet_feedback")
             .select(`
                 id,
-                stars,
                 content,
                 created_at,
                 is_hidden,
