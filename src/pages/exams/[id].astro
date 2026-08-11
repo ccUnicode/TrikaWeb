@@ -423,15 +423,10 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
         </div>
       </div>
 
-      <!-- Sección de comentarios (Solo para solucionarios) -->
-      {
-        (solutionUrl ||
-          (sheet.solution_kind === "video" && sheet.solution_video_url)) && (
-          <div id="feedback-section" class="hidden transition-all duration-300">
-            <SheetFeedback sheetId={sheet.id} />
-          </div>
-        )
-      }
+      <!-- Sección de comentarios -->
+      <div id="feedback-section" class="transition-all duration-300">
+        <SheetFeedback sheetId={sheet.id} />
+      </div>
     </section>
   </main>
 </Layout>
@@ -573,14 +568,6 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
           examButton.classList.remove("hidden");
           examButton.classList.add("inline-flex");
         }
-
-        // Show feedback section and hide rating widget
-        if (feedbackSection) {
-          feedbackSection.classList.remove("hidden");
-        }
-        if (ratingWidget) {
-          ratingWidget.classList.add("hidden");
-        }
       });
     }
 
@@ -630,14 +617,6 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
         if (solutionButton) {
           solutionButton.classList.remove("hidden");
           solutionButton.classList.add("inline-flex");
-        }
-
-        // Hide feedback section and show rating widget
-        if (feedbackSection) {
-          feedbackSection.classList.add("hidden");
-        }
-        if (ratingWidget) {
-          ratingWidget.classList.remove("hidden");
         }
       });
     }
@@ -881,20 +860,18 @@ if (solutionKind === "pdf" && sheet.solution_storage_path) {
       const value = Number((button as HTMLElement).dataset.score);
 
       const active = value <= score;
-      const icon = button.querySelector("svg");
+      const icon = button.querySelector(".star-icon") || button.querySelector("span") || button.querySelector("svg");
 
       if (!icon) {
         return;
       }
 
       if (active) {
-        icon.classList.remove("star-inactive");
-
-        icon.classList.add("fill-global-primary", "text-global-primary");
+        icon.classList.remove("opacity-30", "grayscale", "filter", "star-inactive");
+        icon.classList.add("opacity-100", "scale-110");
       } else {
-        icon.classList.add("star-inactive");
-
-        icon.classList.remove("fill-global-primary", "text-global-primary");
+        icon.classList.add("opacity-30", "grayscale", "filter", "star-inactive");
+        icon.classList.remove("opacity-100", "scale-110");
       }
     });
   };
