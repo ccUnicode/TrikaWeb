@@ -1,16 +1,29 @@
 ---
+import { getUserSession } from "../lib/auth";
+
 export interface Props {
   sheetId: number;
   avgRating?: number | null;
 }
 const { sheetId, avgRating } = Astro.props;
 const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
+
+const { user, profile } = await getUserSession(Astro.cookies);
+const isLoggedIn = !!user;
+const sessionUserId = user?.id || "";
+const sessionUserName = profile?.full_name || "Estudiante";
+const sessionAvatarUrl = profile?.avatar_url || "";
+const userInitial = profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : "E";
+const userAvatar = profile?.avatar_url || null;
 ---
 
 <section
   id="sheet-feedback-section"
   class="rounded-2xl border border-global-border-subtle bg-global-surface p-4 sm:p-6 max-w-4xl mx-auto"
   data-sheet-id={sheetId}
+  data-session-user-id={sessionUserId}
+  data-session-user-name={sessionUserName}
+  data-session-avatar-url={sessionAvatarUrl}
 >
   <!-- Header -->
   <div class="flex items-center justify-between mb-8">
@@ -32,9 +45,13 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     <div class="flex gap-3 sm:gap-4">
       <!-- Avatar -->
       <div class="flex-shrink-0">
-        <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] flex items-center justify-center font-bold text-lg text-global-primary">
-          A
-        </div>
+        {userAvatar ? (
+          <img src={userAvatar} alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-[#2A3240]" />
+        ) : (
+          <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] flex items-center justify-center font-bold text-lg text-global-primary">
+            {userInitial}
+          </div>
+        )}
       </div>
       <!-- Inputs -->
       <div class="flex-1 flex flex-col gap-2">
@@ -44,9 +61,22 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
             id="feedback-content"
             rows="2"
             maxlength="500"
-            placeholder="Añade un comentario..."
+            placeholder={isLoggedIn ? "Añade un comentario..." : "Inicia sesión para comentar..."}
+            disabled={!isLoggedIn}
             class="w-full rounded-xl border border-global-border bg-global-bg px-4 py-3 text-sm text-global-text placeholder-global-text-muted/50 outline-none focus:border-global-primary transition-colors resize-none disabled:opacity-50"
           ></textarea>
+        </div>
+        
+        <div class="flex items-center gap-2.5 mt-2">
+          <input
+            type="checkbox"
+            id="feedback-anonymous"
+            disabled={!isLoggedIn}
+            class="rounded border-global-border-subtle bg-global-bg/50 text-global-primary focus:ring-global-primary focus:ring-offset-global-surface h-4 w-4 transition-all cursor-pointer disabled:opacity-50"
+          />
+          <label class="font-medium text-global-text-muted text-xs cursor-pointer select-none" for="feedback-anonymous">
+            Publicar anónimamente (tu nombre no será visible)
+          </label>
         </div>
         
         <!-- Estrellas y Acciones -->
@@ -75,7 +105,13 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
                 );
               })}
             </div>
-            <p id="feedback-form-status" class="text-[11px] font-medium text-red-400 hidden mt-1"></p>
+          </div>
+          
+          <div id="feedback-form-status" class="hidden mt-3 rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-xs font-medium text-red-400 flex items-center gap-2.5 transition-all">
+            <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="feedback-form-status-text" class="flex-1"></span>
           </div>
           
           <div class="flex justify-end gap-2">
@@ -178,6 +214,9 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     if (!section) return;
 
     const sheetId = section.getAttribute("data-sheet-id");
+    const sessionUserId = section.getAttribute("data-session-user-id") || "";
+    const sessionUserName = section.getAttribute("data-session-user-name") || "Tú";
+    const sessionAvatarUrl = section.getAttribute("data-session-avatar-url") || "";
     if (!sheetId) return;
 
     // Elements
@@ -192,6 +231,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     const feedbackLoading = document.getElementById("feedback-loading");
     const totalBadge = document.getElementById("feedback-total-badge");
     const avgBadge = document.getElementById("feedback-avg-badge");
+    const anonymousCheck = document.getElementById("feedback-anonymous") as HTMLInputElement;
     const paginationEl = document.getElementById("feedback-pagination");
     const prevBtn = document.getElementById("feedback-prev-btn") as HTMLButtonElement;
     const nextBtn = document.getElementById("feedback-next-btn") as HTMLButtonElement;
@@ -279,13 +319,28 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
       if (cancelBtn) cancelBtn.disabled = isSubmitting;
     };
 
+    const statusText = document.getElementById("feedback-form-status-text");
+
+    const showFormError = (msg: string) => {
+      if (statusText) statusText.textContent = msg;
+      if (formStatus) formStatus.classList.remove("hidden");
+    };
+
+    const hideFormError = () => {
+      if (formStatus) formStatus.classList.add("hidden");
+      if (statusText) statusText.textContent = "";
+    };
+
     const populateForm = (feedback: any) => {
       selectedStars = feedback.stars || 0;
       highlightStars(selectedStars);
       if (contentInput) {
         contentInput.value = feedback.content || "";
       }
-      if (formStatus) { formStatus.textContent = ""; formStatus.className = "text-xs text-center hidden"; }
+      if (anonymousCheck) {
+        anonymousCheck.checked = feedback.is_anonymous === true;
+      }
+      hideFormError();
       updateSubmitState();
     };
 
@@ -294,10 +349,8 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
       hoverStars = 0;
       highlightStars(0);
       if (contentInput) contentInput.value = "";
-      if (formStatus) {
-        formStatus.textContent = "";
-        formStatus.classList.add("hidden");
-      }
+      if (anonymousCheck) anonymousCheck.checked = false;
+      hideFormError();
       updateSubmitState();
     };
 
@@ -307,15 +360,14 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
 
       isSubmitting = true;
       updateSubmitState();
-
-      if (formStatus) formStatus.classList.add("hidden");
+      hideFormError();
 
       try {
         const deviceId = ensureDeviceId();
         const payload = {
           stars: selectedStars,
           content: contentInput?.value?.trim() || null,
-          device_id: deviceId,
+          is_anonymous: anonymousCheck?.checked || false,
         };
 
         const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
@@ -327,10 +379,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
         const data = await res.json();
 
         if (!res.ok) {
-          if (formStatus) {
-            formStatus.textContent = data.error ?? "Error al enviar";
-            formStatus.classList.remove("hidden");
-          }
+          showFormError(data.error ?? "Error al enviar el comentario");
           isSubmitting = false;
           updateSubmitState();
           return;
@@ -341,6 +390,11 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
           id: data.id || Date.now(),
           stars: selectedStars,
           content: payload.content,
+          is_anonymous: payload.is_anonymous,
+          user_name: sessionUserName,
+          user_id: sessionUserId,
+          device_id: deviceId,
+          user_avatar: sessionAvatarUrl,
           created_at: new Date().toISOString(),
         };
 
@@ -356,13 +410,9 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
         if (cancelBtn) cancelBtn.classList.add("hidden");
         
         renderFeedbackList();
-        loadFeedback(1);
         
       } catch {
-        if (formStatus) {
-          formStatus.textContent = "Error de conexión";
-          formStatus.classList.remove("hidden");
-        }
+        showFormError("Error de conexión al procesar el comentario");
       } finally {
         isSubmitting = false;
         updateSubmitState();
@@ -501,6 +551,7 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
     // ── Render ──
     function renderFeedbackList() {
       if (!feedbackList) return;
+      const deviceId = ensureDeviceId();
 
       if (totalBadge) totalBadge.textContent = String(totalComments);
 
@@ -522,13 +573,17 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
           const starsHtml = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
           const escapedContent = escapeHtml(item.content ?? "");
           
-          const isOwn = item.id === userFeedbackId;
-          const isAuthor = false; // Badge de autor
+          const isOwn = (sessionUserId && item.user_id === sessionUserId) || item.device_id === deviceId;
           const isDeleting = item.id === deletingId;
-
+          
           const isLiked = !!item.isLiked;
           const likesCount = item.likesCount ?? 0;
           const isReplying = !!item.isReplying;
+          const isAuthor = item.is_anonymous === false && isOwn;
+          
+          const avatarUrl = item.user_avatar;
+          const authorInitial = item.user_name ? item.user_name.charAt(0).toUpperCase() : "A";
+          const displayAuthor = item.is_anonymous ? "Anónimo" : (item.user_name || "Anónimo");
 
           const likeBtnClass = isLiked 
             ? "flex items-center gap-1.5 text-global-primary transition-colors duration-200 cursor-pointer group"
@@ -588,16 +643,20 @@ const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
               <div class="flex gap-3 sm:gap-4">
                 <!-- Avatar -->
                 <div class="flex-shrink-0 mt-1">
-                  <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] text-global-primary flex items-center justify-center font-bold text-lg">
-                    A
-                  </div>
+                  ${avatarUrl && !item.is_anonymous ? `
+                    <img src="${avatarUrl}" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-[#2A3240]" />
+                  ` : `
+                    <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] text-global-primary flex items-center justify-center font-bold text-lg">
+                      ${item.is_anonymous ? "A" : authorInitial}
+                    </div>
+                  `}
                 </div>
                 
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
                   <!-- Header -->
                   <div class="flex items-center gap-2 mb-0.5">
-                    <span class="font-bold text-global-text text-sm">Anónimo</span>
+                    <span class="font-bold text-global-text text-sm">${escapeHtml(displayAuthor)}</span>
                     ${isAuthor ? '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Autor</span>' : ''}
                     <span class="text-xs text-global-text-muted ml-1">${date}</span>
                     ${isOwn ? '<span class="text-[10px] font-bold text-global-primary uppercase tracking-wider bg-global-primary/10 px-1.5 py-0.5 rounded-md ml-1">(Tú)</span>' : ''}

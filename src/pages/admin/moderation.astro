@@ -639,16 +639,28 @@ if (!isAdmin) {
         const hiddenBadge = item.is_hidden
           ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
           : "";
+
+        const authorText = item.user_name
+          ? escapeHtml(item.user_name)
+          : "Anónimo";
+        const authorBadge = item.is_anonymous
+          ? '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-global-border text-global-text-muted rounded flex items-center gap-1" title="El estudiante publicó de forma anónima, pero tú (admin) puedes ver su nombre">Anónimo</span>'
+          : '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-400 rounded flex items-center gap-1" title="El estudiante publicó de forma pública">Público</span>';
+
         const table = "sheet_feedback";
 
         return `
                     <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? "ring-1 ring-amber-500/20" : ""}" data-item-id="${item.id}">
                         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
                             <div>
-                                <div class="flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-2 flex-wrap mb-1">
                                     <a href="/exams/${item.sheet_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">${escapeHtml(item.sheet_label)}</a>
                                     ${reviewBadge}
                                     ${hiddenBadge}
+                                </div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <p class="text-xs text-global-text">Autor: <span class="font-medium">${authorText}</span></p>
+                                    ${authorBadge}
                                 </div>
                                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
                             </div>
