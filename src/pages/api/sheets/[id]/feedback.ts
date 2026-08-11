@@ -1,7 +1,8 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { getUserSession } from '../../../../lib/auth';
 // @ts-ignore
 import moderationConfig from "../../../../../config/moderation.json";
 
@@ -16,10 +17,18 @@ function parseSheetId(raw: string | undefined): number | null {
   return n;
 }
 
-export const POST: APIRoute = async ({ params, request }) => {
+export const POST: APIRoute = async ({ params, request, cookies }) => {
   const sheetId = parseSheetId(params.id);
   if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user, profile } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
   let body;
@@ -31,6 +40,12 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   const stars = body.stars;
   const content = typeof body.content === 'string' ? body.content.trim() : body.content;
+  const isAnonymous = body.is_anonymous === true;
+  
+  const userName = profile?.full_name || 'Estudiante';
+  const userEmail = user.email || '';
+  const userAvatar = profile?.avatar_url || '';
+  const userId = user.id;
 
   if (!stars || !Number.isInteger(stars) || stars < 1 || stars > 5) {
     return new Response(
@@ -67,7 +82,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     }
   }
 
-  const deviceId = getDeviceId(body);
+  const deviceId = user.id;
   if (!deviceId || !UUID_REGEX.test(deviceId)) {
     return new Response(JSON.stringify({ error: 'Falta device_id o formato inválido' }), { status: 400 });
   }
@@ -110,7 +125,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     .from('sheet_feedback')
     .select('id, stars, content')
     .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
+    .eq('user_id', userId)
     .maybeSingle();
 
   let error;
@@ -131,12 +146,17 @@ export const POST: APIRoute = async ({ params, request }) => {
         stars,
         content: content || null,
         ip_hash: ipHash,
+        user_id: userId,
+        user_name: userName,
+        user_email: userEmail,
+        user_avatar: userAvatar,
+        is_anonymous: isAnonymous,
         is_hidden: false,
         needs_review: true,
         updated_at: new Date().toISOString()
       })
       .eq('sheet_id', sheetId)
-      .eq('device_id', deviceId);
+      .eq('user_id', userId); // Cambiar deviceId por userId para la actualización del usuario logueado
 
     error = result.error;
   } else {
@@ -168,6 +188,10 @@ export const POST: APIRoute = async ({ params, request }) => {
         stars,
         content: content || null,
         ip_hash: ipHash,
+        user_id: userId,
+        user_name: userName,
+        user_email: userEmail,
+        is_anonymous: isAnonymous,
         is_hidden: false,
         needs_review: true,
         created_at: new Date().toISOString(),
@@ -192,17 +216,16 @@ export const POST: APIRoute = async ({ params, request }) => {
 };
 
 // GET: verificar si el usuario ya dejó feedback y obtener lista de feedback
-export const GET: APIRoute = async ({ params, request }) => {
+export const GET: APIRoute = async ({ params, request, cookies }) => {
   const sheetId = parseSheetId(params.id);
   if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
+  const { user } = await getUserSession(cookies);
+  const deviceId = user?.id || null;
+  
   const url = new URL(request.url);
-  const deviceId = url.searchParams.get('device_id');
-  if (deviceId && !UUID_REGEX.test(deviceId)) {
-    return new Response(JSON.stringify({ error: 'Formato de device_id inválido' }), { status: 400 });
-  }
   let page = Number(url.searchParams.get('page') ?? 1);
   let pageSize = Number(url.searchParams.get('pageSize') ?? 10);
 
@@ -240,19 +263,19 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const feedbackPromise = supa
     .from('sheet_feedback')
-    .select('id, stars, content, created_at', { count: 'exact', head: false })
+    .select('id, stars, content, created_at, user_name, is_anonymous, user_id, device_id, user_avatar', { count: 'exact', head: false })
     .eq('sheet_id', sheetId)
     .eq('is_hidden', false)
     .neq('content', '')
     .order('created_at', { ascending: false })
     .range(from, to);
 
-  const userFeedbackPromise = deviceId
+  const userFeedbackPromise = user?.id
     ? supa
         .from('sheet_feedback')
-        .select('id, stars, content, created_at')
+        .select('id, stars, content, created_at, user_name, is_anonymous, user_id, device_id, user_avatar')
         .eq('sheet_id', sheetId)
-        .eq('device_id', deviceId)
+        .eq('user_id', user.id)
         .maybeSingle()
     : Promise.resolve({ data: null, error: null });
 
@@ -301,23 +324,21 @@ export const GET: APIRoute = async ({ params, request }) => {
 };
 
 // DELETE: eliminar feedback propio
-export const DELETE: APIRoute = async ({ params, request }) => {
+export const DELETE: APIRoute = async ({ params, cookies }) => {
   const sheetId = parseSheetId(params.id);
   if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId || !UUID_REGEX.test(deviceId)) {
-    return new Response(JSON.stringify({ error: 'Falta device_id o formato inválido' }), { status: 400 });
-  }
+  const deviceId = user.id;
 
   const supa = supabaseAdmin;
 
@@ -325,7 +346,7 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     .from('sheet_feedback')
     .delete()
     .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
+    .eq('user_id', user.id)
     .select();
 
   if (error) {
