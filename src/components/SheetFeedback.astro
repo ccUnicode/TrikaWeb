@@ -3,10 +3,8 @@ import { getUserSession } from "../lib/auth";
 
 export interface Props {
   sheetId: number;
-  avgRating?: number | null;
 }
-const { sheetId, avgRating } = Astro.props;
-const formattedAvgRating = avgRating ? avgRating.toFixed(1) : "0.0";
+const { sheetId } = Astro.props;
 
 const { user, profile } = await getUserSession(Astro.cookies);
 const isLoggedIn = !!user;
@@ -32,11 +30,6 @@ const userAvatar = profile?.avatar_url || null;
         Comentarios
         <span id="feedback-total-badge" class="text-sm font-medium text-global-text-muted ml-1">0</span>
       </h2>
-    </div>
-    <div class="flex items-center gap-2">
-      <span class="text-yellow-400 text-sm flex items-center font-semibold tracking-wide bg-yellow-400/10 px-2 py-1 rounded-lg">
-        <span class="mr-1 text-[16px]">★</span><span id="feedback-avg-badge">{formattedAvgRating}</span>
-      </span>
     </div>
   </div>
 
@@ -79,34 +72,8 @@ const userAvatar = profile?.avatar_url || null;
           </label>
         </div>
         
-        <!-- Estrellas y Acciones -->
-        <div class="flex items-center justify-between mt-1">
-          <div>
-            <div class="flex items-center gap-0.5" id="feedback-stars-input">
-              {Array.from({ length: 5 }).map((_, idx) => {
-                const val = idx + 1;
-                return (
-                  <button
-                    type="button"
-                    class="feedback-star-btn w-7 h-7 flex items-center justify-center rounded hover:bg-global-surface transition-all focus:outline-none cursor-pointer disabled:opacity-50"
-                    data-star={val}
-                    aria-label={`${val} estrellas`}
-                  >
-                    <svg
-                      class="w-5 h-5 pointer-events-none transition-colors duration-150 text-global-text-muted/30"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          
+        <!-- Acciones -->
+        <div class="flex items-center justify-end mt-1">
           <div id="feedback-form-status" class="hidden mt-3 rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-xs font-medium text-red-400 flex items-center gap-2.5 transition-all">
             <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -221,7 +188,6 @@ const userAvatar = profile?.avatar_url || null;
 
     // Elements
     const formContainer = document.getElementById("feedback-form-container");
-    const starsInput = document.getElementById("feedback-stars-input");
     const contentInput = document.getElementById("feedback-content") as HTMLTextAreaElement;
     const cancelBtn = document.getElementById("cancel-feedback-btn") as HTMLButtonElement;
     const submitBtn = document.getElementById("submit-feedback-btn") as HTMLButtonElement;
@@ -230,7 +196,6 @@ const userAvatar = profile?.avatar_url || null;
     const feedbackEmpty = document.getElementById("feedback-empty");
     const feedbackLoading = document.getElementById("feedback-loading");
     const totalBadge = document.getElementById("feedback-total-badge");
-    const avgBadge = document.getElementById("feedback-avg-badge");
     const anonymousCheck = document.getElementById("feedback-anonymous") as HTMLInputElement;
     const paginationEl = document.getElementById("feedback-pagination");
     const prevBtn = document.getElementById("feedback-prev-btn") as HTMLButtonElement;
@@ -245,54 +210,16 @@ const userAvatar = profile?.avatar_url || null;
     // Local State (Optimistic UI)
     let localComments: any[] = [];
     let totalComments = 0;
-    let currentAvgRating = 0;
     
-    let selectedStars = 0;
-    let hoverStars = 0;
     let currentPage = 1;
     let totalPages = 1;
     const pageSize = 5;
     
-    let userFeedbackId: number | null = null;
     let isSubmitting = false;
     let deletingId: number | null = null;
     let commentToDelete: number | null = null;
-
-    // ── Stars interaction ──
-    const highlightStars = (count: number) => {
-      starsInput?.querySelectorAll(".feedback-star-btn").forEach((btn) => {
-        const val = Number((btn as HTMLElement).dataset.star);
-        const svg = btn.querySelector("svg");
-        if (svg) {
-          if (val <= count) {
-            svg.classList.remove("text-global-text-muted/30");
-            svg.classList.add("fill-yellow-400", "text-yellow-400");
-          } else {
-            svg.classList.add("text-global-text-muted/30");
-            svg.classList.remove("fill-yellow-400", "text-yellow-400");
-          }
-        }
-      });
-    };
-
-    starsInput?.querySelectorAll(".feedback-star-btn").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        if (isSubmitting) return;
-        selectedStars = Number((btn as HTMLElement).dataset.star);
-        highlightStars(selectedStars);
-        updateSubmitState();
-      });
-      btn.addEventListener("mouseenter", () => {
-        if (isSubmitting) return;
-        hoverStars = Number((btn as HTMLElement).dataset.star);
-        highlightStars(hoverStars);
-      });
-    });
-    starsInput?.addEventListener("mouseleave", () => {
-      if (isSubmitting) return;
-      hoverStars = 0;
-      highlightStars(selectedStars);
-    });
+    let editingId: number | null = null;
+    let isEditingSubmitting = false;
 
     // ── Character counter ──
     contentInput?.addEventListener("input", () => {
@@ -312,7 +239,7 @@ const userAvatar = profile?.avatar_url || null;
     const updateSubmitState = () => {
       const hasText = contentInput ? contentInput.value.trim().length > 0 : false;
       if (submitBtn) {
-        submitBtn.disabled = isSubmitting || selectedStars === 0 || !hasText;
+        submitBtn.disabled = isSubmitting || !hasText;
         submitBtn.textContent = isSubmitting ? "Publicando..." : "Comentar";
       }
       if (contentInput) contentInput.disabled = isSubmitting;
@@ -331,23 +258,7 @@ const userAvatar = profile?.avatar_url || null;
       if (statusText) statusText.textContent = "";
     };
 
-    const populateForm = (feedback: any) => {
-      selectedStars = feedback.stars || 0;
-      highlightStars(selectedStars);
-      if (contentInput) {
-        contentInput.value = feedback.content || "";
-      }
-      if (anonymousCheck) {
-        anonymousCheck.checked = feedback.is_anonymous === true;
-      }
-      hideFormError();
-      updateSubmitState();
-    };
-
     const resetForm = () => {
-      selectedStars = 0;
-      hoverStars = 0;
-      highlightStars(0);
       if (contentInput) contentInput.value = "";
       if (anonymousCheck) anonymousCheck.checked = false;
       hideFormError();
@@ -356,7 +267,10 @@ const userAvatar = profile?.avatar_url || null;
 
     // ── Submit feedback (Optimistic) ──
     submitBtn?.addEventListener("click", async () => {
-      if (selectedStars === 0 || isSubmitting) return;
+      if (isSubmitting) return;
+
+      const content = contentInput?.value?.trim();
+      if (!content) return;
 
       isSubmitting = true;
       updateSubmitState();
@@ -365,8 +279,7 @@ const userAvatar = profile?.avatar_url || null;
       try {
         const deviceId = ensureDeviceId();
         const payload = {
-          stars: selectedStars,
-          content: contentInput?.value?.trim() || null,
+          content: content,
           is_anonymous: anonymousCheck?.checked || false,
         };
 
@@ -385,31 +298,15 @@ const userAvatar = profile?.avatar_url || null;
           return;
         }
 
-        // Optimistic UI update
-        const newComment = {
-          id: data.id || Date.now(),
-          stars: selectedStars,
-          content: payload.content,
-          is_anonymous: payload.is_anonymous,
-          user_name: sessionUserName,
-          user_id: sessionUserId,
-          device_id: deviceId,
-          user_avatar: sessionAvatarUrl,
-          created_at: new Date().toISOString(),
-        };
-
-        if (userFeedbackId) {
-          localComments = [newComment, ...localComments.filter((c: any) => c.id !== userFeedbackId)];
-        } else {
-          localComments = [newComment, ...localComments];
-          totalComments++;
-        }
-        userFeedbackId = newComment.id;
-
+        // Ya no hacemos Optimistic full, simplemente recargamos
+        // porque ahora el ID nos lo devuelve la base de datos
+        // y necesitamos saberlo para editar/borrar
+        
         resetForm();
         if (cancelBtn) cancelBtn.classList.add("hidden");
         
-        renderFeedbackList();
+        // Recargar desde la página 1
+        loadFeedback(1);
         
       } catch {
         showFormError("Error de conexión al procesar el comentario");
@@ -443,21 +340,19 @@ const userAvatar = profile?.avatar_url || null;
       
       hideDeleteModal();
       deletingId = idToDelete;
-      renderFeedbackList(); // Show "Eliminando..."
+      renderFeedbackList();
 
       try {
-        const deviceId = ensureDeviceId();
         const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ device_id: deviceId }),
+          body: JSON.stringify({ comment_id: idToDelete }),
         });
 
         if (res.ok) {
           localComments = localComments.filter((c: any) => c.id !== idToDelete);
-          userFeedbackId = null;
           totalComments = Math.max(0, totalComments - 1);
-          loadFeedback(1);
+          loadFeedback(currentPage);
         } else {
           alert("Error al eliminar");
         }
@@ -472,17 +367,81 @@ const userAvatar = profile?.avatar_url || null;
       }
     });
 
-    // ── Edit/Delete/Like/Reply own feedback ──
-    feedbackList?.addEventListener("click", (e) => {
+    // ── Reactions emojis ──
+    const REACTION_EMOJIS: Record<string, string> = {
+      like: "👍",
+      love: "❤️",
+      haha: "😂",
+      wow: "😮",
+      sad: "😢"
+    };
+
+    // ── Interactions (Edit, Delete, React) ──
+    feedbackList?.addEventListener("click", async (e) => {
       const target = e.target as HTMLElement;
       
-      // Edit logic
+      // Inline Edit: Start
       if (target.closest("[data-edit-own]")) {
-        const userFeedback = localComments.find((c: any) => c.id === userFeedbackId);
-        if (userFeedback) populateForm(userFeedback);
-        contentInput?.focus();
-        if (cancelBtn) cancelBtn.classList.remove("hidden");
-        formContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const btn = target.closest("[data-edit-own]") as HTMLElement;
+        editingId = Number(btn.dataset.id);
+        renderFeedbackList();
+        
+        // Focus textarea
+        setTimeout(() => {
+          const ta = feedbackList.querySelector(`textarea[data-edit-textarea="${editingId}"]`) as HTMLTextAreaElement;
+          if (ta) {
+            ta.focus();
+            ta.setSelectionRange(ta.value.length, ta.value.length);
+          }
+        }, 0);
+        return;
+      }
+
+      // Inline Edit: Cancel
+      if (target.closest("[data-cancel-edit]")) {
+        editingId = null;
+        renderFeedbackList();
+        return;
+      }
+
+      // Inline Edit: Save
+      if (target.closest("[data-save-edit]")) {
+        const btn = target.closest("[data-save-edit]") as HTMLButtonElement;
+        const id = Number(btn.dataset.saveEdit);
+        const ta = feedbackList.querySelector(`textarea[data-edit-textarea="${id}"]`) as HTMLTextAreaElement;
+        if (!ta || isEditingSubmitting) return;
+
+        const newContent = ta.value.trim();
+        if (!newContent) return;
+
+        isEditingSubmitting = true;
+        btn.textContent = "Guardando...";
+        btn.disabled = true;
+
+        try {
+          const res = await fetch(`/api/sheets/${sheetId}/feedback`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ comment_id: id, content: newContent }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const comment = localComments.find(c => c.id === id);
+            if (comment && data.comment) {
+              comment.content = data.comment.content;
+              comment.updated_at = data.comment.updated_at;
+            }
+            editingId = null;
+          } else {
+            alert("Error al actualizar comentario");
+          }
+        } catch {
+          alert("Error de red");
+        } finally {
+          isEditingSubmitting = false;
+          renderFeedbackList();
+        }
         return;
       }
 
@@ -494,59 +453,78 @@ const userAvatar = profile?.avatar_url || null;
         return;
       }
 
-      // Like logic
-      const likeBtn = target.closest("[data-like-id]") as HTMLElement;
-      if (likeBtn) {
-        const id = Number(likeBtn.dataset.likeId);
-        const comment = localComments.find((c: any) => c.id === id);
-        if (comment) {
-          comment.isLiked = !comment.isLiked;
-          comment.likesCount = (comment.likesCount ?? 0) + (comment.isLiked ? 1 : -1);
-          renderFeedbackList();
+      // Reaction toggle (Clicking an emoji in the picker)
+      const reactBtn = target.closest("[data-react]") as HTMLElement;
+      if (reactBtn) {
+        if (!sessionUserId) {
+          alert("Debes iniciar sesión para reaccionar");
+          return;
         }
+
+        const id = Number(reactBtn.dataset.feedbackId);
+        const reactionType = reactBtn.dataset.react as string;
+        await handleReaction(id, reactionType);
         return;
       }
 
-      // Reply logic
-      const replyBtn = target.closest("[data-reply-id]") as HTMLElement;
-      if (replyBtn) {
-        const id = Number(replyBtn.dataset.replyId);
-        const comment = localComments.find((c: any) => c.id === id);
-        if (comment) {
-          comment.isReplying = true;
-          renderFeedbackList();
-          setTimeout(() => {
-            const ta = feedbackList.querySelector(`textarea[data-reply-textarea="${id}"]`) as HTMLTextAreaElement;
-            ta?.focus();
-          }, 0);
+      // Reaction toggle (Clicking the main Reaccionar button)
+      const reactToggleBtn = target.closest("[data-react-toggle]") as HTMLElement;
+      if (reactToggleBtn && !target.closest("[data-react]")) {
+        if (!sessionUserId) {
+          alert("Debes iniciar sesión para reaccionar");
+          return;
         }
-        return;
-      }
 
-      // Cancel reply
-      const cancelReplyBtn = target.closest("[data-cancel-reply]") as HTMLElement;
-      if (cancelReplyBtn) {
-        const id = Number(cancelReplyBtn.dataset.cancelReply);
+        const id = Number(reactToggleBtn.dataset.reactToggle);
         const comment = localComments.find((c: any) => c.id === id);
-        if (comment) {
-          comment.isReplying = false;
-          renderFeedbackList();
-        }
-        return;
-      }
+        if (!comment) return;
 
-      // Submit reply
-      const submitReplyBtn = target.closest("[data-submit-reply]") as HTMLElement;
-      if (submitReplyBtn) {
-        const id = Number(submitReplyBtn.dataset.submitReply);
-        const comment = localComments.find((c: any) => c.id === id);
-        if (comment) {
-          comment.isReplying = false;
-          renderFeedbackList();
-        }
+        // If already reacted, toggle off (or toggle to 'like' if none)
+        const reactionType = comment.user_reaction ? comment.user_reaction : "like";
+        await handleReaction(id, reactionType);
         return;
       }
     });
+
+    async function handleReaction(id: number, reactionType: string) {
+      const comment = localComments.find((c: any) => c.id === id);
+      if (!comment) return;
+
+      // Optimistic UI for reaction
+      const prevReaction = comment.user_reaction;
+      if (prevReaction === reactionType) {
+        comment.user_reaction = null;
+        comment.reactions[reactionType] = Math.max(0, (comment.reactions[reactionType] || 1) - 1);
+        comment.total_reactions = Math.max(0, (comment.total_reactions || 1) - 1);
+      } else {
+        comment.user_reaction = reactionType;
+        comment.reactions[reactionType] = (comment.reactions[reactionType] || 0) + 1;
+        if (!prevReaction) {
+          comment.total_reactions = (comment.total_reactions || 0) + 1;
+        } else {
+          comment.reactions[prevReaction] = Math.max(0, (comment.reactions[prevReaction] || 1) - 1);
+        }
+      }
+      renderFeedbackList();
+
+      try {
+        const res = await fetch(`/api/sheets/${sheetId}/feedback-react`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feedback_id: id, reaction: reactionType })
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          comment.user_reaction = data.userReaction;
+          comment.reactions = data.reactions;
+          comment.total_reactions = data.totalReactions;
+          renderFeedbackList();
+        }
+      } catch (err) {
+        console.error("Error al reaccionar", err);
+      }
+    }
 
     // ── Render ──
     function renderFeedbackList() {
@@ -570,34 +548,23 @@ const userAvatar = profile?.avatar_url || null;
             month: "short",
             year: "numeric",
           });
-          const starsHtml = "★".repeat(item.stars) + "☆".repeat(5 - item.stars);
-          const escapedContent = escapeHtml(item.content ?? "");
           
           const isOwn = (sessionUserId && item.user_id === sessionUserId) || item.device_id === deviceId;
           const isDeleting = item.id === deletingId;
-          
-          const isLiked = !!item.isLiked;
-          const likesCount = item.likesCount ?? 0;
-          const isReplying = !!item.isReplying;
+          const isEditing = item.id === editingId;
           const isAuthor = item.is_anonymous === false && isOwn;
           
           const avatarUrl = item.user_avatar;
           const authorInitial = item.user_name ? item.user_name.charAt(0).toUpperCase() : "A";
           const displayAuthor = item.is_anonymous ? "Anónimo" : (item.user_name || "Anónimo");
 
-          const likeBtnClass = isLiked 
-            ? "flex items-center gap-1.5 text-global-primary transition-colors duration-200 cursor-pointer group"
-            : "flex items-center gap-1.5 text-global-text-muted hover:text-global-text transition-colors duration-200 cursor-pointer group";
-
-          const likeSvgFill = isLiked ? "currentColor" : "none";
-
           let actionsHtml = "";
           if (isOwn) {
             if (isDeleting) {
               actionsHtml = `<span class="text-xs text-red-400 font-medium mr-2">Eliminando...</span>`;
-            } else {
+            } else if (!isEditing) {
               actionsHtml = `
-                <button type="button" data-edit-own class="text-global-text-muted hover:text-blue-400 transition-colors cursor-pointer p-1" title="Editar">
+                <button type="button" data-edit-own data-id="${item.id}" class="text-global-text-muted hover:text-blue-400 transition-colors cursor-pointer p-1" title="Editar">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                 </button>
                 <button type="button" data-delete-own data-id="${item.id}" class="text-global-text-muted hover:text-red-400 transition-colors cursor-pointer p-1" title="Eliminar">
@@ -607,39 +574,69 @@ const userAvatar = profile?.avatar_url || null;
             }
           }
 
-          let replyFormHtml = "";
-          if (isReplying) {
-            replyFormHtml = `
-              <div class="mt-3 ml-8 sm:ml-12 border-l-2 border-global-border-subtle pl-4 py-1">
-                <div class="flex gap-3">
-                  <div class="flex-shrink-0">
-                    <div class="w-8 h-8 rounded-full bg-[#1E2430] border border-[#2A3240] flex items-center justify-center font-bold text-sm text-global-primary">
-                      A
-                    </div>
-                  </div>
-                  <div class="flex-1 flex flex-col gap-2">
-                    <textarea
-                      data-reply-textarea="${item.id}"
-                      placeholder="Escribe una respuesta..."
-                      class="w-full rounded-xl border border-global-border bg-global-bg px-3 py-2 text-xs text-global-text placeholder-global-text-muted/50 outline-none focus:border-global-primary transition-colors resize-none"
-                      rows="2"
-                    ></textarea>
-                    <div class="flex justify-end gap-2">
-                      <button type="button" data-cancel-reply="${item.id}" class="rounded-full px-3 py-1.5 text-xs font-semibold text-global-text transition hover:bg-global-surface cursor-pointer">
-                        Cancelar
-                      </button>
-                      <button type="button" data-submit-reply="${item.id}" class="rounded-full bg-global-primary px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
-                        Responder
-                      </button>
-                    </div>
-                  </div>
+          // Reactions HTML
+          const reactions = item.reactions || {};
+          let reactionsBadges = "";
+          
+          Object.keys(REACTION_EMOJIS).forEach(key => {
+            if (reactions[key] > 0) {
+              const isSelected = item.user_reaction === key;
+              reactionsBadges += `
+                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${isSelected ? 'bg-global-primary/20 text-global-primary border border-global-primary/30' : 'bg-global-surface border border-global-border-subtle text-global-text-muted'}">
+                  <span>${REACTION_EMOJIS[key]}</span> <span>${reactions[key]}</span>
+                </span>
+              `;
+            }
+          });
+
+          const currentEmoji = item.user_reaction ? REACTION_EMOJIS[item.user_reaction] : "👍";
+          const reactLabelColor = item.user_reaction ? "text-global-primary" : "text-global-text-muted";
+          
+          const reactionPicker = `
+            <div class="relative group">
+              <button type="button" data-react-toggle="${item.id}" class="flex items-center gap-1.5 ${reactLabelColor} hover:text-global-text transition-colors duration-200 cursor-pointer p-1 rounded hover:bg-global-surface">
+                <span class="text-sm pointer-events-none">${currentEmoji}</span>
+                <span class="text-xs font-semibold pointer-events-none">Reaccionar</span>
+              </button>
+              
+              <!-- Popup (Hover) -->
+              <div class="absolute bottom-full left-0 mb-1 hidden group-hover:flex items-center gap-1 p-1.5 rounded-full bg-global-card border border-global-border shadow-lg z-10 transition-all">
+                ${Object.keys(REACTION_EMOJIS).map(key => `
+                  <button type="button" data-react="${key}" data-feedback-id="${item.id}" class="text-xl hover:scale-125 transition-transform cursor-pointer px-1 outline-none" title="${key}">
+                    ${REACTION_EMOJIS[key]}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+
+          // Body Content (Text or Textarea for editing)
+          const escapedContent = escapeHtml(item.content ?? "");
+          let bodyContentHtml = "";
+          if (isEditing) {
+            bodyContentHtml = `
+              <div class="mt-2 flex flex-col gap-2">
+                <textarea
+                  data-edit-textarea="${item.id}"
+                  class="w-full rounded-xl border border-global-primary bg-global-bg px-3 py-2 text-sm text-global-text outline-none resize-none"
+                  rows="3"
+                >${escapedContent}</textarea>
+                <div class="flex justify-end gap-2">
+                  <button type="button" data-cancel-edit="${item.id}" class="rounded-full px-3 py-1.5 text-xs font-semibold text-global-text transition hover:bg-global-surface cursor-pointer">
+                    Cancelar
+                  </button>
+                  <button type="button" data-save-edit="${item.id}" class="rounded-full bg-global-primary px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
+                    Guardar
+                  </button>
                 </div>
               </div>
             `;
+          } else {
+            bodyContentHtml = escapedContent ? `<p class="text-sm text-global-text-muted leading-relaxed whitespace-pre-line mt-1">${escapedContent}</p>` : "";
           }
 
           return `
-            <div ${isOwn ? 'id="user-own-feedback-item"' : ''} class="py-4 border-b border-global-border last:border-b-0 bg-global-card/50 px-2 sm:px-4 transition-colors relative flex flex-col ${isDeleting ? 'opacity-50' : ''}">
+            <div class="py-4 border-b border-global-border last:border-b-0 bg-global-card/50 px-2 sm:px-4 transition-colors relative flex flex-col ${isDeleting ? 'opacity-50' : ''}">
               <div class="flex gap-3 sm:gap-4">
                 <!-- Avatar -->
                 <div class="flex-shrink-0 mt-1">
@@ -662,27 +659,23 @@ const userAvatar = profile?.avatar_url || null;
                     ${isOwn ? '<span class="text-[10px] font-bold text-global-primary uppercase tracking-wider bg-global-primary/10 px-1.5 py-0.5 rounded-md ml-1">(Tú)</span>' : ''}
                   </div>
                   
-                  <!-- Stars -->
-                  <div class="text-yellow-400 text-xs tracking-wider mb-2">
-                    ${starsHtml}
-                  </div>
-                  
                   <!-- Body text -->
-                  ${escapedContent ? `<p class="text-sm text-global-text-muted leading-relaxed whitespace-pre-line">${escapedContent}</p>` : ""}
+                  ${bodyContentHtml}
                   
                   <!-- Footer / Interactions -->
-                  <div class="flex items-center gap-4 mt-3">
+                  <div class="flex items-center gap-4 mt-3 flex-wrap">
+                    ${reactionPicker}
+                    
+                    ${reactionsBadges ? `<div class="flex items-center gap-1.5 mr-auto">${reactionsBadges}</div>` : `<div class="mr-auto"></div>`}
+                    
                     ${isOwn ? `
-                      <div class="flex items-center gap-2 ml-auto">
+                      <div class="flex items-center gap-1 ml-auto">
                         ${actionsHtml}
                       </div>
                     ` : ""}
                   </div>
                 </div>
               </div>
-              
-              <!-- Reply Form -->
-              ${replyFormHtml}
             </div>
           `;
         })
