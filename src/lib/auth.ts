@@ -5,6 +5,7 @@ export interface UserProfile {
   id: string;
   email: string;
   full_name: string;
+  avatar_url?: string;
   role: 'student' | 'admin';
 }
 
@@ -44,7 +45,7 @@ export async function getUserSession(cookies: any): Promise<{ user: any, profile
 
     const { data: studentDetails } = await supabaseAdmin
       .from('student_details')
-      .select('full_name')
+      .select('full_name, avatar_url')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -52,6 +53,7 @@ export async function getUserSession(cookies: any): Promise<{ user: any, profile
       id: user.id,
       email,
       full_name: studentDetails?.full_name || user.user_metadata?.full_name || 'Estudiante',
+      avatar_url: studentDetails?.avatar_url || user.user_metadata?.avatar_url,
       role: 'student',
     };
 
