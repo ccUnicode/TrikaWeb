@@ -410,6 +410,7 @@ const isActiveRoute = (href: string): boolean => {
 
   updateToggleAccessibility();
   loadModerationBadge();
+  window.addEventListener("refresh-moderation-badges", loadModerationBadge);
 </script>
 
 <style is:global>
