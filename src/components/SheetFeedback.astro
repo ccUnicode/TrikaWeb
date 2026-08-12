@@ -60,32 +60,25 @@ const userAvatar = profile?.avatar_url || null;
           ></textarea>
         </div>
         
-        <div class="flex items-center gap-2.5 mt-2">
-          <input
-            type="checkbox"
-            id="feedback-anonymous"
-            disabled={!isLoggedIn}
-            class="rounded border-global-border-subtle bg-global-bg/50 text-global-primary focus:ring-global-primary focus:ring-offset-global-surface h-4 w-4 transition-all cursor-pointer disabled:opacity-50"
-          />
-          <label class="font-medium text-global-text-muted text-xs cursor-pointer select-none" for="feedback-anonymous">
-            Publicar anónimamente (tu nombre no será visible)
-          </label>
-        </div>
-        
-        <!-- Acciones -->
-        <div class="flex items-center justify-end mt-1">
-          <div id="feedback-form-status" class="hidden mt-3 rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-xs font-medium text-red-400 flex items-center gap-2.5 transition-all">
-            <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span id="feedback-form-status-text" class="flex-1"></span>
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-2">
+          <div class="flex items-center gap-2.5">
+            <input
+              type="checkbox"
+              id="feedback-anonymous"
+              disabled={!isLoggedIn}
+              class="rounded border-global-border-subtle bg-global-bg/50 text-global-primary focus:ring-global-primary focus:ring-offset-global-surface h-4 w-4 transition-all cursor-pointer disabled:opacity-50"
+            />
+            <label class="font-medium text-global-text-muted text-xs cursor-pointer select-none" for="feedback-anonymous">
+              Publicar anónimamente
+            </label>
           </div>
           
-          <div class="flex justify-end gap-2">
+          <!-- Acciones -->
+          <div class="flex items-center gap-2">
             <button
               type="button"
               id="cancel-feedback-btn"
-              class="rounded-full px-4 py-2 text-sm font-semibold text-global-text transition hover:bg-global-surface cursor-pointer hidden disabled:opacity-50"
+              class="rounded-full px-4 py-2 text-sm font-semibold text-global-text transition hover:bg-[#2A3441] cursor-pointer hidden disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -99,12 +92,19 @@ const userAvatar = profile?.avatar_url || null;
             </button>
           </div>
         </div>
+        
+        <div id="feedback-form-status" class="hidden mt-3 rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 text-xs font-medium text-red-400 flex items-center gap-2.5 transition-all">
+          <svg class="w-4 h-4 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span id="feedback-form-status-text" class="flex-1"></span>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- Lista de comentarios -->
-  <div id="feedback-list" class="space-y-3">
+  <div id="feedback-list" class="space-y-2.5">
     <!-- Se llena con JS -->
   </div>
 
@@ -543,16 +543,22 @@ const userAvatar = profile?.avatar_url || null;
 
       feedbackList.innerHTML = localComments
          .map((item) => {
-          const date = new Date(item.created_at).toLocaleDateString("es-PE", {
+          const dateObj = new Date(item.created_at);
+          const dateStr = dateObj.toLocaleDateString("es-PE", {
             day: "numeric",
             month: "short",
             year: "numeric",
           });
+          const timeStr = dateObj.toLocaleTimeString("es-PE", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          });
+          const fullDateTime = `${dateStr}, ${timeStr}`;
           
           const isOwn = (sessionUserId && item.user_id === sessionUserId) || item.device_id === deviceId;
           const isDeleting = item.id === deletingId;
           const isEditing = item.id === editingId;
-          const isAuthor = item.is_anonymous === false && isOwn;
           
           const avatarUrl = item.user_avatar;
           const authorInitial = item.user_name ? item.user_name.charAt(0).toUpperCase() : "A";
@@ -561,14 +567,14 @@ const userAvatar = profile?.avatar_url || null;
           let actionsHtml = "";
           if (isOwn) {
             if (isDeleting) {
-              actionsHtml = `<span class="text-xs text-red-400 font-medium mr-2">Eliminando...</span>`;
+              actionsHtml = `<span class="text-xs text-red-400 font-medium animate-pulse">Eliminando...</span>`;
             } else if (!isEditing) {
               actionsHtml = `
-                <button type="button" data-edit-own data-id="${item.id}" class="text-global-text-muted hover:text-blue-400 transition-colors cursor-pointer p-1" title="Editar">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                <button type="button" data-edit-own data-id="${item.id}" class="text-global-text-muted hover:text-blue-400 transition-all duration-200 cursor-pointer p-1.5 rounded-lg hover:bg-blue-500/10" title="Editar">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                 </button>
-                <button type="button" data-delete-own data-id="${item.id}" class="text-global-text-muted hover:text-red-400 transition-colors cursor-pointer p-1" title="Eliminar">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <button type="button" data-delete-own data-id="${item.id}" class="text-global-text-muted hover:text-red-400 transition-all duration-200 cursor-pointer p-1.5 rounded-lg hover:bg-red-500/10" title="Eliminar">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                 </button>
               `;
             }
@@ -582,30 +588,30 @@ const userAvatar = profile?.avatar_url || null;
             if (reactions[key] > 0) {
               const isSelected = item.user_reaction === key;
               reactionsBadges += `
-                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${isSelected ? 'bg-global-primary/20 text-global-primary border border-global-primary/30' : 'bg-global-surface border border-global-border-subtle text-global-text-muted'}">
-                  <span>${REACTION_EMOJIS[key]}</span> <span>${reactions[key]}</span>
-                </span>
+                <button type="button" data-react="${key}" data-feedback-id="${item.id}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all duration-200 cursor-pointer ${isSelected ? 'bg-[#132723] text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 shadow-sm' : 'bg-[#1E2634] border border-[#2D384A] text-global-text-muted hover:border-[#3E4C63] hover:text-global-text'}">
+                  <span class="text-sm">${REACTION_EMOJIS[key]}</span><span>${reactions[key]}</span>
+                </button>
               `;
             }
           });
 
-          const currentEmoji = item.user_reaction ? REACTION_EMOJIS[item.user_reaction] : "👍";
-          const reactLabelColor = item.user_reaction ? "text-global-primary" : "text-global-text-muted";
+          const isUserReacted = !!item.user_reaction;
           
           const reactionPicker = `
             <div class="relative group">
-              <button type="button" data-react-toggle="${item.id}" class="flex items-center gap-1.5 ${reactLabelColor} hover:text-global-text transition-colors duration-200 cursor-pointer p-1 rounded hover:bg-global-surface">
-                <span class="text-sm pointer-events-none">${currentEmoji}</span>
-                <span class="text-xs font-semibold pointer-events-none">Reaccionar</span>
+              <button type="button" data-react-toggle="${item.id}" class="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer ${isUserReacted ? 'bg-global-primary/10 text-global-primary hover:bg-global-primary/20' : 'text-global-text-muted hover:bg-global-surface hover:text-global-text'}">
+                <span class="font-semibold pointer-events-none">Reaccionar</span>
               </button>
               
-              <!-- Popup (Hover) -->
-              <div class="absolute bottom-full left-0 mb-1 hidden group-hover:flex items-center gap-1 p-1.5 rounded-full bg-global-card border border-global-border shadow-lg z-10 transition-all">
-                ${Object.keys(REACTION_EMOJIS).map(key => `
-                  <button type="button" data-react="${key}" data-feedback-id="${item.id}" class="text-xl hover:scale-125 transition-transform cursor-pointer px-1 outline-none" title="${key}">
-                    ${REACTION_EMOJIS[key]}
-                  </button>
-                `).join('')}
+              <!-- Popup Reacciones -->
+              <div class="absolute bottom-full left-0 pb-1 hidden group-hover:flex z-20">
+                <div class="flex items-center gap-0.5 p-1 rounded-[14px] bg-global-card border border-global-border shadow-xl">
+                  ${Object.keys(REACTION_EMOJIS).map(key => `
+                    <button type="button" data-react="${key}" data-feedback-id="${item.id}" class="text-lg hover:scale-125 active:scale-95 transition-transform duration-150 cursor-pointer px-1.5 py-0.5 rounded-lg hover:bg-global-surface outline-none" title="${key}">
+                      ${REACTION_EMOJIS[key]}
+                    </button>
+                  `).join('')}
+                </div>
               </div>
             </div>
           `;
@@ -615,35 +621,38 @@ const userAvatar = profile?.avatar_url || null;
           let bodyContentHtml = "";
           if (isEditing) {
             bodyContentHtml = `
-              <div class="mt-2 flex flex-col gap-2">
+              <div class="mt-2.5">
                 <textarea
                   data-edit-textarea="${item.id}"
-                  class="w-full rounded-xl border border-global-primary bg-global-bg px-3 py-2 text-sm text-global-text outline-none resize-none"
+                  class="w-full rounded-xl border border-global-primary/60 bg-global-bg px-3 py-2.5 text-sm text-global-text outline-none resize-none focus:border-global-primary transition-colors"
                   rows="3"
                 >${escapedContent}</textarea>
-                <div class="flex justify-end gap-2">
-                  <button type="button" data-cancel-edit="${item.id}" class="rounded-full px-3 py-1.5 text-xs font-semibold text-global-text transition hover:bg-global-surface cursor-pointer">
-                    Cancelar
-                  </button>
-                  <button type="button" data-save-edit="${item.id}" class="rounded-full bg-global-primary px-3 py-1.5 text-xs font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
-                    Guardar
-                  </button>
-                </div>
               </div>
             `;
           } else {
-            bodyContentHtml = escapedContent ? `<p class="text-sm text-global-text-muted leading-relaxed whitespace-pre-line mt-1">${escapedContent}</p>` : "";
+            bodyContentHtml = escapedContent ? `<p class="text-[13px] text-global-text/90 leading-relaxed whitespace-pre-line mt-2">${escapedContent}</p>` : "";
           }
 
+          const editActionsHtml = isEditing ? `
+            <div class="flex items-center gap-2 ml-auto">
+              <button type="button" data-cancel-edit="${item.id}" class="rounded-full px-3.5 py-1.5 text-xs font-semibold text-global-text-muted transition-all hover:bg-global-surface cursor-pointer border border-transparent hover:border-global-border-subtle">
+                Cancelar
+              </button>
+              <button type="button" data-save-edit="${item.id}" class="rounded-full bg-global-primary px-3.5 py-1.5 text-xs font-semibold text-black transition-all hover:bg-global-primary-hover cursor-pointer shadow-sm shadow-global-primary/20">
+                Guardar
+              </button>
+            </div>
+          ` : "";
+
           return `
-            <div class="py-4 border-b border-global-border last:border-b-0 bg-global-card/50 px-2 sm:px-4 transition-colors relative flex flex-col ${isDeleting ? 'opacity-50' : ''}">
-              <div class="flex gap-3 sm:gap-4">
+            <div class="rounded-2xl bg-global-card border border-global-border-subtle p-4 transition-all duration-200 hover:border-global-border ${isDeleting ? 'opacity-40 scale-[0.98]' : ''}">
+              <div class="flex gap-3.5">
                 <!-- Avatar -->
-                <div class="flex-shrink-0 mt-1">
+                <div class="flex-shrink-0">
                   ${avatarUrl && !item.is_anonymous ? `
-                    <img src="${avatarUrl}" alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-[#2A3240]" />
+                    <img src="${avatarUrl}" alt="Avatar" class="w-9 h-9 rounded-full object-cover border border-global-border-subtle" />
                   ` : `
-                    <div class="w-10 h-10 rounded-full bg-[#1E2430] border border-[#2A3240] text-global-primary flex items-center justify-center font-bold text-lg">
+                    <div class="w-9 h-9 rounded-full bg-global-surface border border-global-border-subtle text-global-primary flex items-center justify-center font-bold text-sm">
                       ${item.is_anonymous ? "A" : authorInitial}
                     </div>
                   `}
@@ -652,27 +661,30 @@ const userAvatar = profile?.avatar_url || null;
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
                   <!-- Header -->
-                  <div class="flex items-center gap-2 mb-0.5">
-                    <span class="font-bold text-global-text text-sm">${escapeHtml(displayAuthor)}</span>
-                    ${isAuthor ? '<span class="text-[10px] font-bold text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded">Autor</span>' : ''}
-                    <span class="text-xs text-global-text-muted ml-1">${date}</span>
-                    ${isOwn ? '<span class="text-[10px] font-bold text-global-primary uppercase tracking-wider bg-global-primary/10 px-1.5 py-0.5 rounded-md ml-1">(Tú)</span>' : ''}
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-wrap min-w-0">
+                      <span class="font-semibold text-global-text text-sm truncate">${escapeHtml(displayAuthor)}</span>
+                      ${isOwn ? '<span class="text-xs font-semibold text-global-primary ml-0.5">(Tú)</span>' : ''}
+                      <span class="text-xs text-global-text-muted/60">•</span>
+                      <span class="text-xs text-global-text-muted/75">${fullDateTime}</span>
+                    </div>
+                    ${isOwn && actionsHtml ? `
+                      <div class="flex items-center gap-1">
+                        ${actionsHtml}
+                      </div>
+                    ` : ""}
                   </div>
                   
                   <!-- Body text -->
                   ${bodyContentHtml}
                   
-                  <!-- Footer / Interactions -->
-                  <div class="flex items-center gap-4 mt-3 flex-wrap">
-                    ${reactionPicker}
-                    
-                    ${reactionsBadges ? `<div class="flex items-center gap-1.5 mr-auto">${reactionsBadges}</div>` : `<div class="mr-auto"></div>`}
-                    
-                    ${isOwn ? `
-                      <div class="flex items-center gap-1 ml-auto">
-                        ${actionsHtml}
-                      </div>
-                    ` : ""}
+                  <!-- Footer / Reactions & Edit controls -->
+                  <div class="flex items-center justify-between gap-2 mt-3 flex-wrap">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      ${reactionPicker}
+                      ${reactionsBadges ? `<div class="flex items-center gap-1.5 flex-wrap">${reactionsBadges}</div>` : ""}
+                    </div>
+                    ${editActionsHtml}
                   </div>
                 </div>
               </div>
