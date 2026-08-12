@@ -543,7 +543,10 @@ const userAvatar = profile?.avatar_url || null;
 
       feedbackList.innerHTML = localComments
          .map((item) => {
-          const dateObj = new Date(item.created_at);
+          const isEdited = !!(item.updated_at && (new Date(item.updated_at).getTime() - new Date(item.created_at).getTime() > 2000));
+          const targetDate = isEdited ? item.updated_at : item.created_at;
+          
+          const dateObj = new Date(targetDate);
           const dateStr = dateObj.toLocaleDateString("es-PE", {
             day: "numeric",
             month: "short",
@@ -667,6 +670,7 @@ const userAvatar = profile?.avatar_url || null;
                       ${isOwn ? '<span class="text-xs font-semibold text-global-primary ml-0.5">(Tú)</span>' : ''}
                       <span class="text-xs text-global-text-muted/60">•</span>
                       <span class="text-xs text-global-text-muted/75">${fullDateTime}</span>
+                      ${isEdited ? '<span class="text-xs text-global-text-muted/50 italic">(editado)</span>' : ''}
                     </div>
                     ${isOwn && actionsHtml ? `
                       <div class="flex items-center gap-1">

@@ -236,7 +236,7 @@ export const GET: APIRoute = async ({ params, request, cookies }) => {
 
   const feedbackPromise = supa
     .from('sheet_feedback')
-    .select('id, content, created_at, user_name, is_anonymous, user_id, device_id, user_avatar', { count: 'exact', head: false })
+    .select('id, content, created_at, updated_at, user_name, is_anonymous, user_id, device_id, user_avatar', { count: 'exact', head: false })
     .eq('sheet_id', sheetId)
     .eq('is_hidden', false)
     .neq('content', '')
