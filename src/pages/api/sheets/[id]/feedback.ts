@@ -286,6 +286,15 @@ export const GET: APIRoute = async ({ params, request, cookies }) => {
       f.reactions = counts;
       f.total_reactions = fReactions.length;
       f.user_reaction = userReaction;
+
+      // Aplicar máscara de privacidad para comentarios anónimos
+      // Solo el autor original podrá ver su propio user_id (para permitirle editar/borrar)
+      if (f.is_anonymous && (!user || f.user_id !== user.id)) {
+        f.user_name = 'Estudiante Anónimo';
+        f.user_avatar = null;
+        f.user_id = null;
+        f.device_id = null;
+      }
     });
   }
 
