@@ -43,6 +43,7 @@ function CurriculumInner({ data }: Props) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [isControlsVisible, setIsControlsVisible] = useState(true);
 
   const [minZoom, setMinZoom] = useState(0.2);
   const [currentZoom, setCurrentZoom] = useState(0.85);
@@ -316,55 +317,83 @@ function CurriculumInner({ data }: Props) {
         className="flex-1 h-full border border-global-border rounded-xl overflow-hidden relative bg-global-bg"
       >
         {/* Panel de Controles Flotante */}
-        <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg">
-          {/* Indicador de Estado */}
-          <div className="flex items-center gap-1.5 px-2 text-xs font-medium border-r border-global-border pr-3 mr-1 text-gray-400">
-            <span className={`w-2 h-2 rounded-full ${isZoomedIn ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
-            <span>{isZoomedIn ? 'Libre' : 'Centrado'}</span>
+        {isControlsVisible ? (
+          <div className="absolute bottom-6 right-6 flex gap-2 z-50 bg-global-card/90 p-2 rounded-xl border border-global-border backdrop-blur-sm shadow-lg transition-all">
+            {/* Indicador de Estado */}
+            <div className="flex items-center gap-1.5 px-2 text-xs font-medium border-r border-global-border pr-3 mr-1 text-gray-400">
+              <span className={`w-2 h-2 rounded-full ${isZoomedIn ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`} />
+              <span>{isZoomedIn ? 'Libre' : 'Centrado'}</span>
+            </div>
+
+            {/* Botón Zoom In */}
+            <button
+              onClick={() => zoomIn()}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] cursor-pointer"
+              title="Acercar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            </button>
+
+            {/* Botón Zoom Out */}
+            <button
+              onClick={() => zoomOut()}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] cursor-pointer"
+              title="Alejar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            </button>
+
+            {/* Botón Reset */}
+            <button
+              onClick={handleReset}
+              className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold cursor-pointer"
+              title="Restaurar y Centrar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+              Reset
+            </button>
+
+            {/* Botón Fullscreen */}
+            <button
+              onClick={toggleFullScreen}
+              className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold cursor-pointer"
+              title="Pantalla Completa"
+            >
+              {isFullscreen ? (
+                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> Salir</>
+              ) : (
+                <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> Full</>
+              )}
+            </button>
+
+            {/* Botón Ocultar Controles */}
+            <button
+              onClick={() => setIsControlsVisible(false)}
+              className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] cursor-pointer"
+              title="Ocultar controles"
+              aria-label="Ocultar controles"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                <circle cx="12" cy="12" r="3" />
+                <line x1="3" y1="3" x2="21" y2="21" />
+              </svg>
+            </button>
           </div>
-
-          {/* Botón Zoom In */}
+        ) : (
+          /* Botón flotante compacto para volver a mostrar controles */
           <button
-            onClick={() => zoomIn()}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] cursor-pointer"
-            title="Acercar"
+            onClick={() => setIsControlsVisible(true)}
+            className="absolute bottom-6 right-6 z-50 flex items-center justify-center w-10 h-10 rounded-xl bg-global-card/90 hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] border border-global-border backdrop-blur-sm shadow-lg transition-all cursor-pointer"
+            title="Mostrar controles"
+            aria-label="Mostrar controles"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
           </button>
-
-          {/* Botón Zoom Out */}
-          <button
-            onClick={() => zoomOut()}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] cursor-pointer"
-            title="Alejar"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
-          </button>
-
-          {/* Botón Reset */}
-          <button
-            onClick={handleReset}
-            className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold cursor-pointer"
-            title="Restaurar y Centrar"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
-            Reset
-          </button>
-
-          {/* Botón Fullscreen */}
-          <button
-            onClick={toggleFullScreen}
-            className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-lg bg-[#1E2430] hover:bg-[#2A3240] text-gray-400 hover:text-[#22c55e] transition-colors border border-[#2A3240] text-xs font-semibold cursor-pointer"
-            title="Pantalla Completa"
-          >
-            {isFullscreen ? (
-              <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg> Salir</>
-            ) : (
-              <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> Full</>
-            )}
-          </button>
-
-        </div>
+        )}
 
         <ReactFlow
           nodes={initialNodes}
