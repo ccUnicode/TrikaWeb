@@ -1,0 +1,702 @@
+---
+import LogoAdmin from "../assets/logo-admin.svg";
+import AdminNavIcon, { type AdminIconName } from "./icons/AdminNavIcon.astro";
+
+const currentPath = Astro.url.pathname;
+
+interface NavigationItem {
+  href: string;
+  label: string;
+  icon: AdminIconName;
+  showBadge?: boolean;
+}
+
+const navigationItems: NavigationItem[] = [
+  {
+    href: "/admin/upload",
+    label: "Panel de subida",
+    icon: "upload",
+  },
+  {
+    href: "/admin/sheets",
+    label: "Planchas",
+    icon: "sheets",
+  },
+  {
+    href: "/admin/courses",
+    label: "Cursos",
+    icon: "courses",
+  },
+  {
+    href: "/admin/teachers",
+    label: "Profesores",
+    icon: "teachers",
+  },
+  {
+    href: "/admin/moderation",
+    label: "Moderación",
+    icon: "moderation",
+    showBadge: true,
+  },
+  {
+    href: "/admin/contributions",
+    label: "Aportes",
+    icon: "contributions",
+  },
+  {
+    href: "/admin/mallas",
+    label: "Mallas",
+    icon: "curriculum",
+  },
+];
+
+const isActiveRoute = (href: string): boolean => {
+  return currentPath === href || currentPath.startsWith(`${href}/`);
+};
+---
+
+<aside
+  id="admin-sidebar"
+  class="fixed inset-y-0 left-0 z-50
+    flex w-[280px] flex-col
+    -translate-x-full
+    overflow-hidden
+    border-r border-global-border
+    bg-global-card
+    transition-[transform,width]
+    duration-300
+    ease-in-out
+    lg:z-40
+    lg:translate-x-0"
+>
+  <!-- Branding -->
+  <div
+    class="sidebar-brand
+      relative
+      flex min-h-[104px]
+      shrink-0
+      items-center
+      justify-center
+      overflow-hidden
+      border-b
+      border-global-border
+      px-4"
+  >
+    <a
+      href="/admin/upload"
+      class="sidebar-brand-link
+        flex min-w-0
+        flex-1
+        items-center
+        justify-center
+        pr-12"
+      aria-label="Ir al panel administrativo"
+      title="Panel administrativo"
+    >
+      <!-- Expandido -->
+      <LogoAdmin
+        class="sidebar-logo-full
+          h-auto
+          w-full
+          max-w-[180px]"
+        aria-hidden="true"
+      />
+
+      <!-- Contraído -->
+      <img
+        src="/img/icono.png"
+        alt=""
+        width="40"
+        height="40"
+        class="sidebar-logo-icon
+          h-10
+          w-10
+          object-contain"
+        aria-hidden="true"
+      />
+    </a>
+
+    <!-- Cerrar drawer móvil -->
+    <button
+      id="admin-mobile-sidebar-close"
+      type="button"
+      class="absolute
+        right-4
+        top-1/2
+        grid
+        h-10
+        w-10
+        -translate-y-1/2
+        cursor-pointer
+        place-items-center
+        rounded-lg
+        border
+        border-global-border
+        bg-global-bg
+        text-global-text-muted
+        transition-colors
+        hover:border-global-primary/50
+        hover:text-global-primary
+        lg:hidden"
+      aria-label="Cerrar menú administrativo"
+      title="Cerrar menú"
+    >
+      <svg
+        class="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+
+    <!-- Expandir / contraer escritorio -->
+    <button
+      id="admin-sidebar-toggle"
+      type="button"
+      class="absolute
+        right-4
+        hidden
+        h-10
+        w-10
+        shrink-0
+        cursor-pointer
+        place-items-center
+        rounded-lg
+        border
+        border-global-border
+        bg-global-bg
+        text-global-text-muted
+        transition-colors
+        duration-200
+        hover:border-global-primary/50
+        hover:text-global-primary
+        lg:grid"
+      aria-label="Contraer menú lateral"
+      title="Contraer menú"
+    >
+      <svg
+        id="admin-sidebar-toggle-icon"
+        class="h-4
+          w-4
+          transition-transform
+          duration-300
+          ease-in-out"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 19l-7-7 7-7"></path>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Navegación -->
+  <nav
+    class="flex
+      min-h-0
+      flex-1
+      overflow-hidden
+      p-4"
+    aria-label="Navegación administrativa"
+  >
+    <ul
+      class="flex
+        h-full
+        w-full
+        flex-col
+        justify-evenly"
+    >
+      {
+        navigationItems.map((item) => {
+          const isActive = isActiveRoute(item.href);
+
+          return (
+            <li>
+              <a
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                aria-label={item.label}
+                title={item.label}
+                class:list={[
+                  "sidebar-link relative flex min-h-11 w-full items-center gap-4 overflow-hidden rounded-xl border px-5 text-sm font-semibold transition-[background-color,border-color,color,box-shadow] duration-200",
+                  isActive
+                    ? [
+                        "border-global-primary/70",
+                        "bg-global-primary/10",
+                        "text-global-primary",
+                        "shadow-[0_0_14px_rgba(34,197,94,0.20)]",
+                      ]
+                    : [
+                        "border-transparent",
+                        "text-global-text-muted",
+                        "hover:border-global-border",
+                        "hover:bg-global-bg",
+                        "hover:text-global-text",
+                      ],
+                ]}
+              >
+                <AdminNavIcon
+                  name={item.icon}
+                  class="sidebar-icon h-5 w-5 shrink-0"
+                />
+
+                <span class="sidebar-label whitespace-nowrap">
+                  {item.label}
+                </span>
+
+                {item.showBadge && (
+                  <span
+                    id="admin-sidebar-moderation-badge"
+                    class="
+                        sidebar-badge
+                        ml-auto
+                        hidden
+                        min-w-[22px]
+                        rounded-full
+                        bg-red-500
+                        px-1.5
+                        py-0.5
+                        text-center
+                        text-[10px]
+                        font-bold
+                        leading-tight
+                        text-white
+                      "
+                  >
+                    0
+                  </span>
+                )}
+              </a>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </nav>
+
+  <!-- Logout -->
+  <div
+    class="sidebar-footer
+      shrink-0
+      border-t
+      border-global-border
+      p-4"
+  >
+    <form action="/api/admin/logout" method="POST" class="w-full">
+      <button
+        type="submit"
+        aria-label="Cerrar sesión"
+        title="Cerrar sesión"
+        class="sidebar-logout
+          flex
+          min-h-12
+          w-full
+          cursor-pointer
+          items-center
+          justify-center
+          gap-3
+          overflow-hidden
+          rounded-xl
+          border
+          border-red-600/40
+          bg-red-600/20
+          px-4
+          text-sm
+          font-semibold
+          text-red-400
+          transition-colors
+          duration-200
+          hover:bg-red-600/30"
+      >
+        <AdminNavIcon
+          name="logout"
+          class="sidebar-logout-icon
+            h-5
+            w-5
+            shrink-0"
+        />
+
+        <span class="sidebar-logout-label
+            whitespace-nowrap">
+          Cerrar sesión
+        </span>
+      </button>
+    </form>
+  </div>
+</aside>
+
+<script>
+  const toggleButton = document.getElementById("admin-sidebar-toggle");
+
+  function isSidebarCollapsed(): boolean {
+    return document.documentElement.dataset.adminSidebarCollapsed === "true";
+  }
+
+  function updateToggleAccessibility(): void {
+    const collapsed = isSidebarCollapsed();
+
+    toggleButton?.setAttribute(
+      "aria-label",
+      collapsed ? "Expandir menú lateral" : "Contraer menú lateral",
+    );
+
+    toggleButton?.setAttribute(
+      "title",
+      collapsed ? "Expandir menú" : "Contraer menú",
+    );
+  }
+
+  toggleButton?.addEventListener("click", () => {
+    window.dispatchEvent(new CustomEvent("admin-sidebar-toggle"));
+
+    requestAnimationFrame(() => {
+      updateToggleAccessibility();
+    });
+  });
+
+  async function loadModerationBadge() {
+    const badge = document.getElementById("admin-sidebar-moderation-badge");
+
+    if (!badge) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/admin/moderation-counts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+
+      if (!data.ok) {
+        return;
+      }
+
+      const teachersCount = Number(data.teachers ?? 0);
+
+      const sheetsCount = Number(data.sheets ?? 0);
+
+      const total = teachersCount + sheetsCount;
+
+      badge.textContent = String(total);
+
+      badge.classList.toggle("hidden", total <= 0);
+    } catch {
+      // El contador no debe impedir
+      // que el sidebar funcione.
+    }
+  }
+
+  updateToggleAccessibility();
+  loadModerationBadge();
+  window.addEventListener("refresh-moderation-badges", loadModerationBadge);
+</script>
+
+<style is:global>
+  /*
+   * =====================================================
+   * ESTADO EXPANDIDO
+   * =====================================================
+   */
+
+  #admin-sidebar-toggle-icon {
+    transform: rotate(0deg);
+  }
+
+  .sidebar-logo-icon {
+    display: none;
+  }
+
+  .sidebar-label,
+  .sidebar-logout-label {
+    opacity: 1;
+    visibility: visible;
+
+    transition:
+      opacity 120ms ease 160ms,
+      visibility 0s linear 0s;
+  }
+
+  .sidebar-logo-full {
+    opacity: 1;
+    visibility: visible;
+
+    transition:
+      opacity 120ms ease 150ms,
+      visibility 0s linear 0s;
+  }
+
+  /*
+   * =====================================================
+   * MÓVIL / TABLET
+   * =====================================================
+   */
+
+  @media (max-width: 1023px) {
+    #admin-sidebar {
+      width: min(280px, 84vw);
+    }
+
+    /*
+     * En móvil siempre mostramos
+     * el logo completo.
+     */
+    .sidebar-brand-link {
+      padding-right: 0;
+    }
+
+    .sidebar-logo-full {
+      display: block;
+      max-width: 165px;
+    }
+
+    .sidebar-logo-icon {
+      display: none;
+    }
+
+    /*
+     * Los botones deben caber incluso
+     * en teléfonos pequeños.
+     */
+    .sidebar-link {
+      min-height: 44px;
+    }
+
+    .sidebar-footer {
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .sidebar-logout {
+      min-height: 46px;
+    }
+  }
+
+  /*
+   * =====================================================
+   * DESKTOP CONTRAÍDO
+   * =====================================================
+   */
+
+  @media (min-width: 1024px) {
+    html[data-admin-sidebar-collapsed="true"] #admin-sidebar {
+      width: 88px;
+    }
+
+    /*
+     * Branding
+     */
+    html[data-admin-sidebar-collapsed="true"] .sidebar-brand {
+      min-height: 120px;
+
+      flex-direction: column;
+
+      gap: 10px;
+
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-brand-link {
+      width: 40px;
+      min-width: 40px;
+
+      flex: none;
+
+      padding: 0;
+      margin: 0;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-logo-full {
+      position: absolute;
+
+      width: 0;
+      height: 0;
+
+      overflow: hidden;
+
+      opacity: 0;
+      visibility: hidden;
+
+      pointer-events: none;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-logo-icon {
+      display: block;
+
+      width: 40px;
+      height: 40px;
+
+      margin: 0;
+
+      object-fit: contain;
+    }
+
+    /*
+     * Toggle
+     */
+    html[data-admin-sidebar-collapsed="true"] #admin-sidebar-toggle {
+      position: static;
+
+      display: grid;
+      place-items: center;
+
+      margin: 0;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] #admin-sidebar-toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    /*
+     * Navegación
+     */
+    html[data-admin-sidebar-collapsed="true"] #admin-sidebar nav {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-link {
+      display: grid;
+
+      width: 64px;
+      min-width: 64px;
+
+      height: 52px;
+      min-height: 52px;
+
+      place-items: center;
+
+      gap: 0;
+      padding: 0;
+
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-icon {
+      display: block;
+
+      width: 22px;
+      height: 22px;
+
+      margin: 0;
+
+      flex: none;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-label {
+      position: absolute;
+
+      width: 0;
+      height: 0;
+
+      overflow: hidden;
+
+      opacity: 0;
+      visibility: hidden;
+
+      pointer-events: none;
+    }
+
+    /*
+     * Moderación como punto rojo
+     */
+    html[data-admin-sidebar-collapsed="true"] .sidebar-badge:not(.hidden) {
+      position: absolute;
+
+      top: 6px;
+      right: 7px;
+
+      display: block;
+
+      width: 8px;
+      min-width: 8px;
+      height: 8px;
+
+      padding: 0;
+      margin: 0;
+
+      border-radius: 9999px;
+
+      font-size: 0;
+      line-height: 0;
+    }
+
+    /*
+     * Logout
+     */
+    html[data-admin-sidebar-collapsed="true"] .sidebar-footer {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-footer form {
+      width: 64px;
+
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-logout {
+      display: grid;
+
+      width: 64px;
+      min-width: 64px;
+
+      height: 58px;
+      min-height: 58px;
+
+      place-items: center;
+
+      gap: 0;
+
+      padding: 0;
+      margin: 0;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-logout-icon {
+      display: block;
+
+      width: 22px;
+      height: 22px;
+
+      margin: 0;
+    }
+
+    html[data-admin-sidebar-collapsed="true"] .sidebar-logout-label {
+      position: absolute;
+
+      width: 0;
+      height: 0;
+
+      overflow: hidden;
+
+      opacity: 0;
+      visibility: hidden;
+
+      pointer-events: none;
+    }
+  }
+</style>

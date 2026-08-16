@@ -1,10 +1,16 @@
 ---
+/*
+Widget de votación de dificultad para planchas.
+Muestra 5 estrellas interactivas con hover preview.
+El comportamiento JS está en la página exams/[id].astro.
+*/
 export interface Props {
   sheetId: number;
   avg: number | null;
   count: number | null;
+  isLoggedIn?: boolean;
 }
-const { sheetId, avg, count } = Astro.props as Props;
+const { sheetId, avg, count, isLoggedIn = false } = Astro.props as Props;
 const displayAvg = typeof avg === "number" ? avg.toFixed(2) : "-";
 const displayCount = count ?? 0;
 ---
@@ -13,6 +19,7 @@ const displayCount = count ?? 0;
   class="sheet-rating space-y-2"
   data-rating-widget
   data-sheet-id={sheetId}
+  data-is-logged-in={isLoggedIn ? "true" : "false"}
   data-current-rating={typeof avg === "number" ? avg : ""}
 >
   <div class="flex items-center justify-between">
@@ -45,19 +52,11 @@ const displayCount = count ?? 0;
             return (
               <button
                 type="button"
-                class="star-btn w-6 h-6 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl hover:bg-global-bg transition-all focus:outline-none focus:ring-2 focus:ring-global-primary/50 cursor-pointer"
+                class="star-btn w-7 h-7 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl hover:bg-global-bg/60 transition-all focus:outline-none focus:ring-2 focus:ring-orange-500/50 cursor-pointer text-lg sm:text-2xl select-none"
                 data-score={val}
-                aria-label={`${val} estrellas`}
+                aria-label={`${val} fueguitos de dificultad`}
               >
-                <svg
-                  class="w-4 h-4 sm:w-7 sm:h-7 pointer-events-none transition-transform duration-200 star-inactive"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                >
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
+                <span class="star-icon pointer-events-none transition-all duration-200 opacity-30 grayscale filter">🔥</span>
               </button>
             );
           })

@@ -1,101 +1,125 @@
 export const prerender = false;
 
-import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../lib/supabaseAdmin';
-import { validateAdminSession } from '../../../lib/adminAuth';
+import type { APIRoute } from "astro";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin";
+import { validateAdminSession } from "../../../lib/adminAuth";
 
-const STORAGE_CHUNK = 500;
-
-async function removePaths(bucket: string, paths: string[]) {
-    const unique = [...new Set(paths.filter(Boolean))];
-    for (let i = 0; i < unique.length; i += STORAGE_CHUNK) {
-        const slice = unique.slice(i, i + STORAGE_CHUNK);
-        await supabaseAdmin.storage.from(bucket).remove(slice);
-    }
+interface DeleteCourseResult {
+  ok: boolean;
+  code?: "invalid_id" | "not_found" | "course_has_sheets";
+  error?: string;
 }
 
+const jsonError = (error: string, status: number): Response =>
+  Response.json(
+    {
+      ok: false,
+      error,
+    },
+    {
+      status,
+    },
+  );
+
+/**
+ * POST /api/admin/delete-course
+ *
+ * Elimina un curso únicamente cuando no tiene planchas asociadas.
+ *
+ * Los cursos con planchas deben ocultarse mediante is_hidden.
+ * Esto evita que ON DELETE CASCADE elimine los registros de sheets
+ * mientras los PDF, solucionarios y miniaturas permanecen huérfanos
+ * en Supabase Storage.
+ */
 export const POST: APIRoute = async ({ request, cookies }) => {
-    try {
-        const isValid = await validateAdminSession(cookies);
-        if (!isValid) {
-            return new Response(JSON.stringify({ ok: false, error: 'Sesión inválida' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
+  try {
+    const isAdmin = await validateAdminSession(cookies);
 
-        const body = await request.json();
-        const { course_id } = body;
-
-        const id = Number(course_id);
-        if (!Number.isFinite(id) || id <= 0) {
-            return new Response(JSON.stringify({ ok: false, error: 'ID de curso inválido' }), {
-                status: 400,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        const { data: sheets, error: sheetsError } = await supabaseAdmin
-            .from('sheets')
-            .select('exam_storage_path, solution_storage_path, thumb_storage_path')
-            .eq('course_id', id);
-
-        if (sheetsError) {
-            console.error('Error listing sheets for course deletion:', sheetsError);
-            return new Response(JSON.stringify({ ok: false, error: 'No se pudo preparar la eliminación del curso' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        const examPaths: string[] = [];
-        const solutionPaths: string[] = [];
-        const thumbPaths: string[] = [];
-
-        for (const row of sheets || []) {
-            if (row.exam_storage_path) examPaths.push(row.exam_storage_path);
-            if (row.solution_storage_path) solutionPaths.push(row.solution_storage_path);
-            if (row.thumb_storage_path) thumbPaths.push(row.thumb_storage_path);
-        }
-
-        const { error } = await supabaseAdmin.from('courses').delete().eq('id', id);
-
-        if (error) {
-            console.error('Error deleting course:', error);
-            return new Response(JSON.stringify({ ok: false, error: 'Error al eliminar el curso' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
-        }
-
-        // Tras cascade en BD, limpiar Storage (si el delete de BD falla, no tocamos archivos).
-        const storageJobs: Promise<unknown>[] = [];
-        if (examPaths.length) storageJobs.push(removePaths('exams', examPaths));
-        if (solutionPaths.length) storageJobs.push(removePaths('solutions', solutionPaths));
-        if (thumbPaths.length) storageJobs.push(removePaths('thumbnails', thumbPaths));
-        await Promise.allSettled(storageJobs);
-
-        const { count: visibleCount } = await supabaseAdmin
-            .from('courses')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_hidden', false);
-        const { count: hiddenCount } = await supabaseAdmin
-            .from('courses')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_hidden', true);
-
-        return new Response(JSON.stringify({
-            ok: true,
-            counts: { visible: visibleCount ?? 0, hidden: hiddenCount ?? 0 },
-        }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' },
-        });
-    } catch (err) {
-        console.error('delete-course API error:', err);
-        return new Response(JSON.stringify({ ok: false, error: 'Error interno del servidor' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+    if (!isAdmin) {
+      return jsonError("Sesión inválida", 401);
     }
+
+    let body: Record<string, unknown>;
+
+    try {
+      const parsedBody: unknown = await request.json();
+
+      if (
+        !parsedBody ||
+        typeof parsedBody !== "object" ||
+        Array.isArray(parsedBody)
+      ) {
+        return jsonError("Cuerpo de petición inválido o vacío", 400);
+      }
+
+      body = parsedBody as Record<string, unknown>;
+    } catch {
+      return jsonError("Cuerpo de petición inválido o vacío", 400);
+    }
+
+    const courseId = Number(body.course_id);
+
+    if (!Number.isSafeInteger(courseId) || courseId <= 0) {
+      return jsonError("ID de curso inválido", 400);
+    }
+
+    /*
+     * La RPC bloquea el curso, comprueba que no tenga planchas
+     * y realiza la eliminación dentro de una sola transacción.
+     */
+    const { data, error: rpcError } = await supabaseAdmin.rpc(
+      "delete_empty_course",
+      {
+        p_course_id: courseId,
+      },
+    );
+
+    if (rpcError) {
+      console.error("Error calling delete_empty_course:", rpcError);
+
+      return jsonError("Error al eliminar el curso", 500);
+    }
+
+    const result = data as DeleteCourseResult | null;
+
+    if (!result || typeof result.ok !== "boolean") {
+      console.error("Respuesta inválida de delete_empty_course:", data);
+
+      return jsonError("No se pudo procesar la eliminación", 500);
+    }
+
+    if (!result.ok) {
+      switch (result.code) {
+        case "invalid_id":
+          return jsonError(result.error || "ID de curso inválido", 400);
+
+        case "not_found":
+          return jsonError(result.error || "Curso no encontrado", 404);
+
+        case "course_has_sheets":
+          return jsonError(
+            result.error ||
+              "El curso tiene planchas asociadas y debe ocultarse en lugar de eliminarse",
+            409,
+          );
+
+        default:
+          return jsonError(result.error || "No se pudo eliminar el curso", 400);
+      }
+    }
+
+    return Response.json(
+      {
+        ok: true,
+        message: "Curso eliminado correctamente",
+      },
+      {
+        status: 200,
+      },
+    );
+  } catch (error) {
+    console.error("delete-course API error:", error);
+
+    return jsonError("Error interno del servidor", 500);
+  }
 };

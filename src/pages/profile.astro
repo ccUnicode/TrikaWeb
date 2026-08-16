@@ -1,0 +1,959 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getUserSession } from "../lib/auth";
+import { validateAdminSession } from "../lib/adminAuth";
+import { supabaseAdmin } from "../lib/supabaseAdmin";
+
+const { user, profile } = await getUserSession(Astro.cookies);
+
+if (!user) {
+  return Astro.redirect("/login");
+}
+
+const isAdminSession = await validateAdminSession(Astro.cookies);
+
+const initialProfile =
+  profile ?? {
+    id: user.id,
+    email: user.email || "",
+    full_name: user.name || "Estudiante",
+    role: isAdminSession ? "admin" : "student",
+  };
+
+const isStudent = initialProfile?.role === "student";
+const isAdmin = initialProfile?.role === "admin";
+
+// Obtener lista de cursos para el dropdown de donación (RF-23)
+const { data: courses } = await supabaseAdmin
+  .from("courses")
+  .select("id, code, name")
+  .order("code", { ascending: true });
+
+// Obtener lista de especialidades para el modal de edición
+const { data: specialties } = await supabaseAdmin
+  .from("specialties")
+  .select("id, name")
+  .order("name", { ascending: true });
+
+// Obtener aportes del alumno (RF-22)
+const { data: contributions } = await supabaseAdmin
+  .from("contributions")
+  .select("*, courses(code, name)")
+  .eq("user_id", user.id)
+  .order("created_at", { ascending: false });
+
+// Obtener perfil completo desde Supabase para especialidad y avatar
+const { data: userProfileDb } = await supabaseAdmin
+  .from("student_details")
+  .select("avatar_url, specialty")
+  .eq("user_id", user.id)
+  .maybeSingle();
+
+const displaySpecialty = userProfileDb?.specialty || "Estudiante UNI";
+const avatarUrl = userProfileDb?.avatar_url
+  ? userProfileDb.avatar_url.startsWith("http")
+    ? userProfileDb.avatar_url
+    : `${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${userProfileDb.avatar_url}`
+  : null;
+
+---
+
+<Layout title="Mi Perfil - TrikaWeb">
+  <div
+    class="flex min-h-[calc(100vh-100px)] w-full flex-col items-center justify-center px-4 py-12"
+  >
+    <div
+      class="w-full max-w-4xl rounded-3xl border-2 border-global-border bg-global-surface shadow-2xl"
+    >
+      <div
+        class="h-32 bg-gradient-to-r from-global-border to-global-background rounded-t-[22px]"
+      ></div>
+
+      <div class="px-8 pb-8">
+        <!-- Contenedor de Información de Perfil -->
+        <div class="flex flex-col sm:flex-row sm:items-end gap-5 -mt-10 mb-8">
+          <!-- Avatar superpuesto al banner -->
+          <div class="relative flex-shrink-0 rounded-full border-4 border-global-surface bg-global-background p-1 shadow-lg group">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={initialProfile?.full_name}
+                class="h-20 w-20 rounded-full object-cover shadow-[0_0_15px_rgba(0,230,118,0.15)]"
+              />
+            ) : (
+              <div
+                id="profile-initial"
+                class="flex h-20 w-20 items-center justify-center rounded-full bg-global-primary/10 border border-global-primary text-3xl font-bold text-global-primary shadow-[0_0_15px_rgba(0,230,118,0.15)]"
+              >
+                {
+                  initialProfile?.full_name
+                    ? initialProfile.full_name.charAt(0).toUpperCase()
+                    : initialProfile?.email
+                      ? initialProfile.email.charAt(0).toUpperCase()
+                      : "?"
+                }
+              </div>
+            )}
+            <!-- Botón flotante para editar foto -->
+            <button id="quick-edit-avatar-btn" class="absolute bottom-0 right-0 bg-global-primary text-black p-1.5 rounded-full shadow-md hover:scale-110 transition-transform cursor-pointer border-2 border-global-surface">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Detalles del estudiante alineados -->
+          <div class="flex-grow pb-1 space-y-2">
+            <div class="flex flex-wrap items-center gap-3">
+              <h1 id="profile-name" class="text-2xl sm:text-3xl font-extrabold text-global-text tracking-tight leading-none">
+                {initialProfile?.full_name || "Cargando..."}
+              </h1>
+              <span
+                id="profile-role"
+                class={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold border uppercase tracking-wider ${
+                  isAdmin
+                    ? "bg-purple-950/30 text-purple-400 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.15)]"
+                    : "bg-green-950/30 text-green-400 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+                }`}
+              >
+                {(initialProfile?.role || "student").toUpperCase()}
+              </span>
+            </div>
+
+            <!-- Correo electrónico con ícono y especialidad -->
+            <div class="flex items-center gap-4 text-global-text-muted text-sm leading-none flex-wrap mt-2">
+              <div class="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-global-text-muted/60">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                </svg>
+                <span id="profile-email" class="font-medium tracking-wide">
+                  {initialProfile?.email || "Verificando sesión..."}
+                </span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-global-text-muted/60">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
+                </svg>
+                <span id="profile-specialty" class="font-medium tracking-wide text-global-primary">
+                  {displaySpecialty}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navegación por pestañas -->
+        <div class="flex border-b border-global-border mb-6">
+          <button
+            id="tab-btn-info"
+            class="tab-btn px-6 py-3 text-sm font-bold border-b-2 border-global-primary text-global-text transition-all focus:outline-none"
+            data-tab="info"
+          >
+            Mi Perfil
+          </button>
+          <button
+            id="tab-btn-aportes"
+            class="tab-btn px-6 py-3 text-sm font-bold border-b-2 border-transparent text-global-text-muted hover:text-global-text transition-all focus:outline-none"
+            data-tab="aportes"
+          >
+            Mis Aportes
+          </button>
+        </div>
+
+        <!-- Panel 1: Mi Perfil -->
+        <div id="tab-panel-info" class="tab-panel space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              class="rounded-2xl border border-global-border bg-global-background/50 p-6"
+            >
+              <h2 class="text-lg font-semibold text-global-text mb-4">
+                Opciones de Cuenta
+              </h2>
+              <ul class="space-y-3">
+                <li>
+                  <a
+                    href="/saved"
+                    class="flex items-center text-global-text-muted hover:text-global-primary transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="mr-3 h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      ><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                      ></path></svg
+                    >
+                    Mis planchas guardadas
+                  </a>
+                </li>
+
+                <li id="admin-link" class={isAdmin ? "" : "hidden"}>
+                  <a
+                    href="/admin/courses"
+                    class="flex items-center text-global-text-muted hover:text-purple-400 transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="mr-3 h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      ><rect x="3" y="3" width="18" height="18" rx="2" ry="2"
+                      ></rect><line x1="3" y1="9" x2="21" y2="9"></line><line
+                        x1="9"
+                        y1="21"
+                        x2="9"
+                        y2="9"></line></svg
+                    >
+                    Panel de Administración
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div
+              class="rounded-2xl border border-global-border bg-global-background/50 p-6 flex flex-col justify-between"
+            >
+              <div>
+                <h2 class="text-lg font-semibold text-global-text mb-4">
+                  Información
+                </h2>
+                <p class="text-sm text-global-text-muted leading-relaxed">
+                  Estás conectado con tu cuenta institucional de la UNI. Personaliza tu perfil público eligiendo tu especialidad y una foto de perfil.
+                </p>
+              </div>
+              <button
+                type="button"
+                id="edit-profile-btn"
+                class="mt-6 w-full rounded-xl border border-global-primary/30 bg-global-primary/10 px-4 py-2.5 text-sm font-semibold text-global-primary transition-all hover:bg-global-primary hover:text-black focus:outline-none cursor-pointer flex items-center justify-center gap-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                </svg>
+                Editar Perfil
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: Mis Aportes (RF-22) -->
+        <div id="tab-panel-aportes" class="tab-panel hidden space-y-6">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Formulario de Donación (RF-23) -->
+            <div class="lg:col-span-5 rounded-2xl border border-global-border bg-global-background/50 p-6">
+              <h2 class="text-lg font-semibold text-global-text mb-4">
+                Subir nuevo aporte
+              </h2>
+              <form id="contribution-form" class="space-y-4">
+                <div class="relative">
+                  <label for="course_search" class="block text-xs font-semibold text-global-text-muted mb-1.5">
+                    Curso
+                  </label>
+                  <div class="relative">
+                    <input
+                      type="text"
+                      id="course_search"
+                      placeholder="Selecciona un curso..."
+                      autocomplete="off"
+                      required
+                      class="w-full rounded-xl border border-global-border bg-global-surface pl-3 pr-10 py-2.5 text-sm text-global-text placeholder:text-global-text-muted outline-none focus:border-global-primary cursor-pointer"
+                    />
+                    <!-- Chevron Arrow -->
+                    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-global-text-muted">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                      </svg>
+                    </div>
+                  </div>
+                  <input type="hidden" name="course_id" id="course_id" required />
+                  
+                  <!-- Contenedor del listado desplegable -->
+                  <div
+                    id="course_dropdown"
+                    class="hidden absolute z-50 left-0 right-0 max-h-60 overflow-y-auto rounded-xl border border-global-border bg-global-card shadow-2xl mt-1 teacher-scroll"
+                  >
+                    {courses?.map((c) => (
+                      <div
+                        class="course-option px-3 py-2.5 text-sm text-global-text cursor-pointer hover:bg-global-primary hover:text-black transition-colors"
+                        data-value={c.id}
+                        data-text={`[${c.code}] ${c.name}`}
+                        data-search={`${c.code} ${c.name}`.toLowerCase()}
+                      >
+                        [{c.code}] {c.name}
+                      </div>
+                    ))}
+                    <div id="no-courses-found" class="hidden px-3 py-3 text-xs text-global-text-muted text-center bg-global-card">
+                      No se encontraron cursos
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="cycle" class="block text-xs font-semibold text-global-text-muted mb-1.5">
+                      Ciclo Académico
+                    </label>
+                    <input
+                      type="text"
+                      name="cycle"
+                      id="cycle"
+                      placeholder="Ej: 2025-I"
+                      required
+                      class="w-full rounded-xl border border-global-border bg-global-surface px-3 py-2.5 text-sm text-global-text placeholder:text-global-text-muted outline-none focus:border-global-primary"
+                    />
+                  </div>
+                  <div>
+                    <label for="exam_type" class="block text-xs font-semibold text-global-text-muted mb-1.5">
+                      Tipo de Examen
+                    </label>
+                    <select
+                      name="exam_type"
+                      id="exam_type"
+                      required
+                      class="w-full rounded-xl border border-global-border bg-global-surface px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary"
+                    >
+                      <option value="PC1">Práctica Calificada 1</option>
+                      <option value="PC2">Práctica Calificada 2</option>
+                      <option value="PC3">Práctica Calificada 3</option>
+                      <option value="PC4">Práctica Calificada 4</option>
+                      <option value="PC5">Práctica Calificada 5</option>
+                      <option value="Parcial">Examen Parcial</option>
+                      <option value="Final">Examen Final</option>
+                      <option value="Sustitutorio">Examen Sustitutorio</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-global-text-muted mb-1.5">
+                    ¿Qué estás aportando?
+                  </label>
+                  <div class="flex gap-4">
+                    <label class="flex items-center text-sm text-global-text cursor-pointer">
+                      <input
+                        type="radio"
+                        name="contribution_type"
+                        value="sheet"
+                        checked
+                        class="mr-2 accent-global-primary"
+                      />
+                      Plancha (Examen)
+                    </label>
+                    <label class="flex items-center text-sm text-global-text cursor-pointer">
+                      <input
+                        type="radio"
+                        name="contribution_type"
+                        value="solution"
+                        class="mr-2 accent-global-primary"
+                      />
+                      Borrador de Solucionario
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-global-text-muted mb-1.5">
+                    Archivo (PDF o Imagen, máx. 10MB)
+                  </label>
+                  <div class="flex items-center gap-3">
+                    <button
+                      type="button"
+                      id="custom-file-btn"
+                      class="px-4 py-2 bg-global-primary/10 hover:bg-global-primary/20 text-global-primary text-xs font-semibold rounded-xl cursor-pointer transition-colors border border-global-primary/30"
+                    >
+                      Seleccionar archivo
+                    </button>
+                    <span id="file-name-display" class="text-xs text-global-text-muted truncate max-w-[200px]">
+                      Sin archivo seleccionado
+                    </span>
+                  </div>
+                  <input
+                    type="file"
+                    name="file"
+                    id="file"
+                    accept="application/pdf,image/png,image/jpeg,image/webp"
+                    required
+                    class="hidden"
+                  />
+                </div>
+
+                <div
+                  id="form-status"
+                  class="hidden p-3 text-xs rounded-xl border"
+                ></div>
+
+                <button
+                  type="submit"
+                  id="submit-contrib-btn"
+                  class="w-full rounded-xl bg-global-primary px-4 py-2.5 text-sm font-semibold text-black hover:bg-global-primary-hover transition cursor-pointer"
+                >
+                  Enviar Donación
+                </button>
+              </form>
+            </div>
+
+            <!-- Listado de Aportes del Estudiante (RF-22) -->
+            <div class="lg:col-span-7 flex flex-col">
+              <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h2 class="text-lg font-semibold text-global-text">
+                  Mi Historial de Aportes
+                </h2>
+                {contributions && contributions.length > 0 && (
+                  <button
+                    type="button"
+                    id="clear-history-btn"
+                    class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-xl cursor-pointer transition-colors border border-red-500/30 flex items-center gap-1"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                    </svg>
+                    Vaciar Historial
+                  </button>
+                )}
+              </div>
+              <div class="flex-1 overflow-y-auto overflow-x-hidden max-h-[550px] pr-2 teacher-scroll">
+                {contributions && contributions.length > 0 ? (
+                  <div class="space-y-3">
+                    {contributions.map((contrib) => {
+                      const isPending = contrib.status === "pending";
+                      const isApproved = contrib.status === "approved";
+                      const isRejected = contrib.status === "rejected";
+                      return (
+                        <div class="rounded-xl border border-global-border bg-global-card p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
+                          <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                              <span class="text-xs font-bold text-global-primary">
+                                {contrib.courses?.code}
+                              </span>
+                              <span class="text-xs text-global-text-muted">
+                                {contrib.cycle}
+                              </span>
+                              <span class="text-xs bg-global-border px-2 py-0.5 rounded text-global-text">
+                                {contrib.exam_type}
+                              </span>
+                            </div>
+                            <h3 class="text-sm font-semibold text-global-text mt-1">
+                              {contrib.courses?.name}
+                            </h3>
+                            <div class="flex items-center gap-1.5 mt-2">
+                              <span class="text-xs text-global-text-muted">
+                                Tipo:
+                              </span>
+                              <span class="text-xs font-medium text-global-text">
+                                {contrib.contribution_type === "sheet" ? "Plancha" : "Solucionario"}
+                              </span>
+                            </div>
+                            {contrib.admin_notes && (
+                              <p class={`text-xs mt-2.5 p-2 rounded-lg border ${
+                                isApproved
+                                  ? "text-green-400 bg-green-500/5 border-green-500/10"
+                                  : isRejected
+                                    ? "text-red-400 bg-red-500/5 border-red-500/10"
+                                    : "text-global-text-muted bg-global-bg border-global-border"
+                              }`}>
+                                <strong>Nota del Administrador:</strong> {contrib.admin_notes}
+                              </p>
+                            )}
+                          </div>
+                          <div class="flex items-center md:justify-end">
+                            <span
+                              class={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold border uppercase tracking-wider ${
+                                isApproved
+                                  ? "bg-green-950/30 text-green-400 border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.15)]"
+                                  : isPending
+                                    ? "bg-yellow-950/30 text-yellow-400 border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.15)]"
+                                    : "bg-red-950/30 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.15)]"
+                              }`}
+                            >
+                              {isApproved ? "Aprobado" : isPending ? "Pendiente" : "Rechazado"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div class="rounded-xl border border-global-border border-dashed p-8 text-center text-global-text-muted">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="mx-auto h-8 w-8 mb-2"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                    </svg>
+                    <p class="text-sm">Aún no has realizado aportes.</p>
+                    <p class="text-xs mt-1">¡Apoya a la comunidad subiendo material!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8 border-t border-global-border pt-8 flex justify-end">
+          <form id="logout-form" method="POST" action="/api/auth/logout">
+            <button
+              type="submit"
+              class="inline-flex items-center justify-center rounded-xl border border-red-500/50 bg-red-500/10 px-6 py-2.5 text-sm font-semibold text-red-500 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-global-surface"
+            >
+              Cerrar Sesión
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación para Vaciar Historial -->
+  <div
+    id="clear-history-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden"
+  >
+    <div class="w-full max-w-md rounded-2xl border border-global-border bg-global-card p-6 shadow-2xl">
+      <h3 class="text-lg font-bold text-global-text mb-2">¿Vaciar historial de aportes?</h3>
+      <p class="text-sm text-global-text-muted mb-6 leading-relaxed">
+        Esta acción es irreversible y eliminará todos tus registros de aportes de la lista y los borradores asociados. Los aportes aprobados que ya se publicaron oficialmente seguirán disponibles.
+      </p>
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          id="close-clear-modal-btn"
+          class="px-4 py-2 text-sm font-semibold text-global-text-muted hover:text-global-text rounded-xl border border-global-border hover:bg-global-border/20 transition-all cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="confirm-clear-history-btn"
+          class="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all cursor-pointer"
+        >
+          Confirmar y Vaciar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Edición de Perfil -->
+  <div
+    id="edit-profile-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm hidden"
+  >
+    <div class="w-full max-w-md rounded-2xl border border-global-border bg-global-card p-6 shadow-2xl">
+      <h3 class="text-xl font-bold text-global-text mb-6">Editar Mi Perfil</h3>
+      
+      <form id="edit-profile-form" class="space-y-5">
+        <div>
+          <label class="block text-xs font-semibold text-global-text-muted mb-1.5">
+            Foto de Perfil (Opcional, máx 5MB)
+          </label>
+          <div class="flex items-center gap-4">
+            <div class="h-16 w-16 flex-shrink-0 rounded-full border-2 border-global-border bg-global-background overflow-hidden flex items-center justify-center">
+              <img id="avatar-preview" src={avatarUrl || ""} class={avatarUrl ? "h-full w-full object-cover" : "hidden"} />
+              {!avatarUrl && <span class="text-global-text-muted text-xs font-medium">Vacío</span>}
+            </div>
+            <div>
+              <button
+                type="button"
+                id="edit-avatar-btn"
+                class="px-3 py-1.5 bg-global-primary/10 hover:bg-global-primary/20 text-global-primary text-xs font-semibold rounded-lg cursor-pointer transition-colors border border-global-primary/30"
+              >
+                Subir Imagen
+              </button>
+              <input type="file" id="avatar-input" name="avatar" accept="image/jpeg,image/png,image/webp" class="hidden" />
+              <p id="avatar-filename" class="text-[10px] text-global-text-muted mt-1 truncate max-w-[150px]">
+                Solo JPG, PNG o WebP
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label for="specialty-select" class="block text-xs font-semibold text-global-text-muted mb-1.5">
+            Especialidad (Carrera)
+          </label>
+          <select
+            name="specialty"
+            id="specialty-select"
+            class="w-full rounded-xl border border-global-border bg-global-surface px-3 py-2.5 text-sm text-global-text outline-none focus:border-global-primary"
+          >
+            <option value="" disabled selected={!userProfileDb?.specialty}>Selecciona tu carrera...</option>
+            {specialties?.map((s) => (
+              <option value={s.name} selected={userProfileDb?.specialty === s.name}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div id="edit-profile-status" class="hidden p-3 text-xs rounded-xl border"></div>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button
+            type="button"
+            id="close-edit-profile-modal"
+            class="px-4 py-2 text-sm font-semibold text-global-text-muted hover:text-global-text rounded-xl border border-global-border hover:bg-global-border/20 transition-all cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            id="submit-edit-profile"
+            class="px-4 py-2 text-sm font-semibold text-black bg-global-primary hover:bg-global-primary-hover rounded-xl transition-all cursor-pointer"
+          >
+            Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Manejo de Pestañas
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const tabPanels = document.querySelectorAll(".tab-panel");
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tabId = btn.getAttribute("data-tab");
+        if (tabId) {
+          window.location.hash = tabId;
+        }
+
+        // Activar botón de pestaña actual
+        tabButtons.forEach((b) => {
+          b.classList.remove("border-global-primary", "text-global-text");
+          b.classList.add("border-transparent", "text-global-text-muted");
+        });
+        btn.classList.remove("border-transparent", "text-global-text-muted");
+        btn.classList.add("border-global-primary", "text-global-text");
+
+        // Activar panel correspondiente
+        tabPanels.forEach((panel) => {
+          if (panel.id === `tab-panel-${tabId}`) {
+            panel.classList.remove("hidden");
+          } else {
+            panel.classList.add("hidden");
+          }
+        });
+      });
+    });
+
+    // Activar pestaña según el hash del URL al cargar (ej: #aportes)
+    const initialHash = window.location.hash.replace("#", "");
+    if (initialHash) {
+      const activeTabBtn = document.querySelector(`.tab-btn[data-tab="${initialHash}"]`);
+      if (activeTabBtn) {
+        (activeTabBtn as HTMLButtonElement).click();
+      }
+    }
+
+    // 1.5. Buscador de Cursos Desplegable
+    const courseSearch = document.getElementById("course_search") as HTMLInputElement;
+    const courseIdInput = document.getElementById("course_id") as HTMLInputElement;
+    const courseDropdown = document.getElementById("course_dropdown")!;
+    const courseOptions = document.querySelectorAll(".course-option");
+    const noCoursesFound = document.getElementById("no-courses-found")!;
+
+    if (courseSearch && courseDropdown) {
+      // Mostrar al hacer foco
+      courseSearch.addEventListener("focus", () => {
+        courseDropdown.classList.remove("hidden");
+      });
+
+      const normalize = (value = "") =>
+        value
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim();
+
+      // Filtrar al escribir
+      courseSearch.addEventListener("input", function () {
+        const query = normalize(this.value);
+        let matches = 0;
+
+        courseOptions.forEach((opt) => {
+          const searchData = normalize(opt.getAttribute("data-search") || "");
+          if (searchData.includes(query)) {
+            opt.classList.remove("hidden");
+            matches++;
+          } else {
+            opt.classList.add("hidden");
+          }
+        });
+
+        if (matches === 0) {
+          noCoursesFound.classList.remove("hidden");
+        } else {
+          noCoursesFound.classList.add("hidden");
+        }
+
+        // Si borra el texto, limpiar la id seleccionada
+        if (!this.value.trim()) {
+          courseIdInput.value = "";
+        }
+      });
+
+      // Seleccionar opción
+      courseOptions.forEach((opt) => {
+        opt.addEventListener("click", () => {
+          const value = opt.getAttribute("data-value") || "";
+          const text = opt.getAttribute("data-text") || "";
+
+          courseSearch.value = text;
+          courseIdInput.value = value;
+          courseDropdown.classList.add("hidden");
+        });
+      });
+
+      // Cerrar al hacer clic afuera
+      document.addEventListener("click", (e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest(".relative")) {
+          courseDropdown.classList.add("hidden");
+          // Si hace clic fuera sin seleccionar un curso válido, limpiamos el buscador
+          if (!courseIdInput.value) {
+            courseSearch.value = "";
+          }
+        }
+      });
+    }
+
+    // 1.8. Manejo del input de archivo personalizado
+    const fileInput = document.getElementById("file") as HTMLInputElement;
+    const customFileBtn = document.getElementById("custom-file-btn")!;
+    const fileNameDisplay = document.getElementById("file-name-display")!;
+
+    if (fileInput && customFileBtn && fileNameDisplay) {
+      customFileBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", function () {
+        if (this.files && this.files.length > 0) {
+          fileNameDisplay.textContent = this.files[0].name;
+          fileNameDisplay.classList.remove("text-global-text-muted");
+          fileNameDisplay.classList.add("text-global-text");
+        } else {
+          fileNameDisplay.textContent = "Sin archivo seleccionado";
+          fileNameDisplay.classList.remove("text-global-text");
+          fileNameDisplay.classList.add("text-global-text-muted");
+        }
+      });
+    }
+
+    // 2. Subida del Formulario de Aportes
+    const form = document.getElementById("contribution-form") as HTMLFormElement;
+    const formStatus = document.getElementById("form-status")!;
+    const submitBtn = document.getElementById("submit-contrib-btn") as HTMLButtonElement;
+
+    form?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Subiendo...";
+
+      formStatus.className = "p-3 text-xs rounded-xl border bg-global-primary/15 border-global-primary text-global-text text-center";
+      formStatus.textContent = "Subiendo aporte a la plataforma...";
+      formStatus.classList.remove("hidden");
+
+      try {
+        const formData = new FormData(form);
+
+        const res = await fetch("/api/contributions/create", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Ocurrió un error inesperado");
+        }
+
+        formStatus.className = "p-3 text-xs rounded-xl border bg-green-500/10 border-green-500/20 text-green-400 text-center";
+        formStatus.textContent = "¡Aporte recibido con éxito! Será revisado pronto. ¡Muchas gracias por tu aporte!";
+        form.reset();
+        if (fileNameDisplay) {
+          fileNameDisplay.textContent = "Sin archivo seleccionado";
+          fileNameDisplay.classList.remove("text-global-text");
+          fileNameDisplay.classList.add("text-global-text-muted");
+        }
+
+        // Recargar página después de 2.5s para actualizar lista
+        setTimeout(() => {
+          window.location.reload();
+        }, 2500);
+
+      } catch (err: any) {
+        formStatus.className = "p-3 text-xs rounded-xl border bg-red-500/10 border-red-500/20 text-red-400 text-center";
+        formStatus.textContent = err.message || "Error al procesar el aporte.";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Enviar Donación";
+      }
+    });
+
+    // 2.5. Vaciar Historial de Aportes
+    const clearHistoryBtn = document.getElementById("clear-history-btn");
+    const clearHistoryModal = document.getElementById("clear-history-modal");
+    const closeClearModalBtn = document.getElementById("close-clear-modal-btn");
+    const confirmClearHistoryBtn = document.getElementById("confirm-clear-history-btn") as HTMLButtonElement;
+
+    if (clearHistoryBtn && clearHistoryModal && closeClearModalBtn && confirmClearHistoryBtn) {
+      // Mostrar modal
+      clearHistoryBtn.addEventListener("click", () => {
+        clearHistoryModal.classList.remove("hidden");
+      });
+
+      // Ocultar modal al cancelar
+      closeClearModalBtn.addEventListener("click", () => {
+        clearHistoryModal.classList.add("hidden");
+      });
+
+      // Cerrar al hacer clic fuera del modal
+      clearHistoryModal.addEventListener("click", (e) => {
+        if (e.target === clearHistoryModal) {
+          clearHistoryModal.classList.add("hidden");
+        }
+      });
+
+      // Confirmar eliminación
+      confirmClearHistoryBtn.addEventListener("click", async () => {
+        try {
+          confirmClearHistoryBtn.disabled = true;
+          confirmClearHistoryBtn.textContent = "Vaciando...";
+
+          const res = await fetch("/api/contributions/clear-history", {
+            method: "POST",
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Ocurrió un error inesperado al vaciar el historial");
+          }
+
+          // Recargar página para actualizar lista
+          window.location.reload();
+
+        } catch (err: any) {
+          alert(err.message || "Error al vaciar el historial.");
+          confirmClearHistoryBtn.disabled = false;
+          confirmClearHistoryBtn.textContent = "Confirmar y Vaciar";
+        }
+      });
+    }
+
+    // 4. Modal de Edición de Perfil
+    const editProfileBtn = document.getElementById("edit-profile-btn");
+    const quickEditAvatarBtn = document.getElementById("quick-edit-avatar-btn");
+    const editProfileModal = document.getElementById("edit-profile-modal");
+    const closeEditProfileModalBtn = document.getElementById("close-edit-profile-modal");
+    const editProfileForm = document.getElementById("edit-profile-form") as HTMLFormElement;
+    const editProfileStatus = document.getElementById("edit-profile-status");
+    const submitEditProfileBtn = document.getElementById("submit-edit-profile") as HTMLButtonElement;
+    
+    // Controles de archivo de avatar
+    const avatarInput = document.getElementById("avatar-input") as HTMLInputElement;
+    const editAvatarBtn = document.getElementById("edit-avatar-btn");
+    const avatarFilename = document.getElementById("avatar-filename");
+    const avatarPreview = document.getElementById("avatar-preview") as HTMLImageElement;
+
+    if (editProfileBtn && editProfileModal && closeEditProfileModalBtn && editProfileForm) {
+      const openModal = () => editProfileModal.classList.remove("hidden");
+      const closeModal = () => editProfileModal.classList.add("hidden");
+
+      editProfileBtn.addEventListener("click", openModal);
+      if (quickEditAvatarBtn) quickEditAvatarBtn.addEventListener("click", openModal);
+      closeEditProfileModalBtn.addEventListener("click", closeModal);
+      
+      editProfileModal.addEventListener("click", (e) => {
+        if (e.target === editProfileModal) closeModal();
+      });
+
+      // Manejo del input file del avatar
+      if (editAvatarBtn && avatarInput && avatarFilename && avatarPreview) {
+        editAvatarBtn.addEventListener("click", () => avatarInput.click());
+        
+        avatarInput.addEventListener("change", function() {
+          if (this.files && this.files.length > 0) {
+            const file = this.files[0];
+            avatarFilename!.textContent = file.name;
+            
+            // Preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (e.target?.result) {
+                avatarPreview.src = e.target.result as string;
+                avatarPreview.classList.remove("hidden");
+                avatarPreview.nextElementSibling?.classList.add("hidden"); // Ocultar texto "Vacío"
+              }
+            };
+            reader.readAsDataURL(file);
+          } else {
+            avatarFilename!.textContent = "Solo JPG, PNG o WebP";
+          }
+        });
+      }
+
+      // Envío del formulario
+      editProfileForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        submitEditProfileBtn.disabled = true;
+        submitEditProfileBtn.textContent = "Guardando...";
+        
+        editProfileStatus!.className = "p-3 text-xs rounded-xl border bg-global-primary/15 border-global-primary text-global-text text-center mt-4";
+        editProfileStatus!.textContent = "Guardando cambios en el perfil...";
+        editProfileStatus!.classList.remove("hidden");
+
+        try {
+          const formData = new FormData(editProfileForm);
+          
+          const res = await fetch("/api/profile/update", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.error || "Ocurrió un error inesperado al actualizar perfil");
+          }
+
+          editProfileStatus!.className = "p-3 text-xs rounded-xl border bg-green-500/10 border-green-500/20 text-green-400 text-center mt-4";
+          editProfileStatus!.textContent = "¡Perfil actualizado con éxito!";
+          
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+
+        } catch (err: any) {
+          editProfileStatus!.className = "p-3 text-xs rounded-xl border bg-red-500/10 border-red-500/20 text-red-400 text-center mt-4";
+          editProfileStatus!.textContent = err.message || "Error al actualizar perfil.";
+          submitEditProfileBtn.disabled = false;
+          submitEditProfileBtn.textContent = "Guardar Cambios";
+        }
+      });
+    }
+
+    // 3. Manejo de Logout
+    document
+      .getElementById("logout-form")
+      ?.addEventListener("submit", async (event) => {
+        // Permitimos que el formulario envíe el POST directamente sin preventDefault()
+        // ya que el botón de submit enviará la data a action="/api/auth/logout" de forma normal.
+      });
+  });
+</script>

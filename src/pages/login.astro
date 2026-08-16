@@ -1,0 +1,88 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { getUserSession } from "../lib/auth";
+import { getSafeRedirect } from "../lib/urlUtils";
+
+const { user } = await getUserSession(Astro.cookies);
+const redirectUrl = Astro.url.searchParams.get("redirect") || "/profile";
+const safeRedirect = getSafeRedirect(redirectUrl);
+
+if (user) {
+  return Astro.redirect(safeRedirect);
+}
+---
+
+<Layout title="Acceder - TrikaWeb">
+  <div class="flex min-h-[calc(100vh-100px)] w-full items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md overflow-hidden rounded-2xl border-2 border-global-border bg-global-surface shadow-2xl">
+      <div class="p-8">
+        <div class="text-center mb-8">
+          <img
+            src="/img/mascota.png"
+            alt="Trika Logo"
+            class="mx-auto h-20 w-20 object-contain drop-shadow-md mb-4"
+          />
+          <h1 class="text-2xl font-bold text-global-text">Iniciar Sesión</h1>
+          <p class="text-sm text-global-text-muted mt-2">
+            Accede con tu cuenta institucional @uni.pe
+          </p>
+        </div>
+
+        <div
+          id="error-message"
+          role="alert"
+          aria-live="polite"
+          class="hidden mb-4 rounded-lg bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20"
+        ></div>
+
+        <form action="/api/auth/signin" method="post" id="login-form">
+          <input type="hidden" name="next" id="next-input" value="/profile" />
+          <button
+            id="google-login-btn"
+            type="submit"
+            class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+          >
+            Continuar con Google
+          </button>
+        </form>
+
+        <p class="mt-4 text-center text-xs text-global-text-muted">
+          Solo se permiten correos institucionales de la UNI.
+        </p>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const errorBox = document.getElementById("error-message");
+    const nextInput = document.getElementById("next-input") as HTMLInputElement;
+    const loginForm = document.getElementById("login-form") as HTMLFormElement;
+    const googleBtn = document.getElementById("google-login-btn") as HTMLButtonElement;
+
+    // Obtener parámetros de la URL actual
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    const redirectParam = urlParams.get('redirect');
+
+    // Mostrar mensaje de error si existe
+    if (errorParam && errorBox) {
+      errorBox.textContent = errorParam.replace(/\+/g, ' ');
+      errorBox.classList.remove('hidden');
+    }
+
+    // Pasar el redirect al input oculto
+    if (redirectParam && nextInput) {
+      nextInput.value = redirectParam;
+    }
+
+    // Desactivar botón al enviar para evitar múltiples clicks
+    if (loginForm && googleBtn) {
+      loginForm.addEventListener("submit", () => {
+        googleBtn.disabled = true;
+        googleBtn.textContent = "Conectando con Google...";
+      });
+    }
+  });
+</script>

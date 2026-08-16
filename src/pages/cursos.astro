@@ -1,4 +1,9 @@
 ---
+/*
+Listado completo de cursos con búsqueda en cliente y paginación.
+La paginación usa una ventana deslizante de 5 páginas visibles
+y se reinicia al cambiar el filtro de búsqueda.
+*/
 export const prerender = false;
 import Layout from "../layouts/Layout.astro";
 import type { CourseSummary } from "../lib/data";
@@ -131,6 +136,7 @@ const courses: CourseSummary[] = await getCourses();
 </Layout>
 
 <script>
+  /** Normaliza texto eliminando tildes para búsqueda insensible a acentos */
   const normalize = (value = "") =>
     value
       .toLowerCase()
@@ -146,9 +152,15 @@ const courses: CourseSummary[] = await getCourses();
     document.querySelectorAll(".course-item"),
   ) as HTMLElement[];
 
-  const ITEMS_PER_PAGE = 12; // 4 filas x 3 columnas
+  /** Cantidad de cursos por página (4 filas × 3 columnas en grid) */
+  const ITEMS_PER_PAGE = 12;
   let currentPage = 1;
 
+  /**
+   * Construye los botones de paginación con ventana deslizante de máximo 5 páginas.
+   * Incluye: « anterior, números con ellipsis, siguiente ».
+   * Se oculta completamente si hay 12 o menos resultados.
+   */
   function updatePagination(filteredItems: HTMLElement[]) {
     if (!paginationContainer) return;
 
@@ -161,6 +173,7 @@ const courses: CourseSummary[] = await getCourses();
     }
     paginationContainer.classList.remove("hidden");
 
+    /** Fábrica de botones de paginación según tipo (número o flecha) */
     const createButton = (
       label: string,
       page: number,
@@ -262,6 +275,7 @@ const courses: CourseSummary[] = await getCourses();
     );
   }
 
+  /** Muestra solo los items de la página actual y regenera los botones de paginación */
   function applyPagination(filteredItems: HTMLElement[]) {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     const endIndex = startIndex + ITEMS_PER_PAGE;
@@ -277,6 +291,7 @@ const courses: CourseSummary[] = await getCourses();
     updatePagination(filteredItems);
   }
 
+  /** Filtra los cursos cuyo nombre o código contengan el término de búsqueda */
   function getFilteredItems() {
     const term = normalize(input?.value || "");
     return items.filter((item) => {
@@ -287,6 +302,7 @@ const courses: CourseSummary[] = await getCourses();
   }
 
   if (input && grid) {
+    /** Al escribir en el buscador: resetea a página 1 y aplica filtro + paginación */
     input.addEventListener("input", () => {
       currentPage = 1;
       const filteredItems = getFilteredItems();
@@ -302,7 +318,7 @@ const courses: CourseSummary[] = await getCourses();
       }
     });
 
-    // Initial load
+    /** Carga inicial: muestra primera página */
     applyPagination(items);
   }
 </script>

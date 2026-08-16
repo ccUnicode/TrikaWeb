@@ -3,125 +3,225 @@ import "../styles/global.css";
 import SiteHeader from "../components/SiteHeader.astro";
 
 export interface Props {
-	title?: string;
-	description?: string;
-	keywords?: string;
-	lang?: string;
-	favicon?: string;
-	ogImage?: string;
+  title?: string;
+  description?: string;
+  keywords?: string;
+  lang?: string;
+  favicon?: string;
+  ogImage?: string;
+  variant?: "public" | "admin";
 }
 
 const {
-	title = "TrikaWeb - Planchas y Reseñas de Profesores UNI",
-	description = "Encuentra planchas resueltas, exámenes pasados y reseñas de profesores de la Universidad Nacional de Ingeniería (UNI). Prepárate mejor para tus evaluaciones.",
-	keywords = "planchas uni, examenes uni, profesores uni, reseñas profesores, universidad nacional de ingenieria, exámenes resueltos, solucionarios,trikaweb,uni,trika,web,owo",
-	lang = "es",
-	favicon = "/img/icono.png",
-	ogImage = "/img/og-image.png",
+  title = "TrikaWeb - Planchas y Reseñas de Profesores UNI",
+  description = "Encuentra planchas resueltas, exámenes pasados y reseñas de profesores de la Universidad Nacional de Ingeniería (UNI). Prepárate mejor para tus evaluaciones.",
+  keywords = "planchas uni, examenes uni, profesores uni, reseñas profesores, universidad nacional de ingenieria, exámenes resueltos, solucionarios, trikaweb, uni, trika, web, owo",
+  lang = "es",
+  favicon = "/img/icono.png",
+  ogImage = "/img/og-image.png",
+  variant = "public",
 } = Astro.props as Props;
 
+const isAdmin = variant === "admin";
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 ---
 
 <!doctype html>
 <html lang={lang}>
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="generator" content={Astro.generator} />
+  <head>
+    <meta charset="UTF-8" />
 
-		<!-- SEO Meta Tags -->
-		<meta name="description" content={description} />
-		<meta name="keywords" content={keywords} />
-		<meta name="author" content="Unicode - TrikaWeb" />
-		<link rel="canonical" href={canonicalURL} />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
 
-		<!-- Open Graph / Facebook -->
-		<meta property="og:type" content="website" />
-		<meta property="og:url" content={canonicalURL} />
-		<meta property="og:title" content={title} />
-		<meta property="og:description" content={description} />
-		<meta property="og:image" content={new URL(ogImage, Astro.site)} />
-		<meta property="og:locale" content="es_PE" />
-		<meta property="og:site_name" content="TrikaWeb" />
+    <!-- SEO -->
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <meta name="author" content="Unicode - TrikaWeb" />
+    <link rel="canonical" href={canonicalURL} />
 
-		<!-- Twitter -->
-		<meta name="twitter:card" content="summary_large_image" />
-		<meta name="twitter:url" content={canonicalURL} />
-		<meta name="twitter:title" content={title} />
-		<meta name="twitter:description" content={description} />
-		<meta name="twitter:image" content={new URL(ogImage, Astro.site)} />
+    {
+      isAdmin && (
+        <meta
+          name="robots"
+          content="noindex, nofollow, noarchive"
+        />
+      )
+    }
 
-		<!-- Favicon -->
-		<link
-			rel="icon"
-			type="image/png"
-			sizes="96x96"
-			href="/favicon-96x96.png"
-		/>
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="shortcut icon" href="/favicon.ico" />
-		<link
-			rel="apple-touch-icon"
-			sizes="180x180"
-			href="/apple-touch-icon.png"
-		/>
-		<meta name="apple-mobile-web-app-title" content="TrikaWeb" />
-		<link rel="manifest" href="/site.webmanifest" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
 
-		<!-- Title -->
-		<title>{title}</title>
+    <meta
+      property="og:image"
+      content={new URL(ogImage, Astro.site)}
+    />
 
-		<!-- Schema.org Structured Data -->
-		<script
-			type="application/ld+json"
-			set:html={JSON.stringify({
-				"@context": "https://schema.org",
-				"@type": "EducationalOrganization",
-				name: "TrikaWeb",
-				description:
-					"Plataforma de planchas y reseñas de profesores de la Universidad Nacional de Ingeniería",
-				url: Astro.site,
-				logo: new URL("/img/icono.png", Astro.site),
-				address: {
-					"@type": "PostalAddress",
-					addressCountry: "PE",
-					addressLocality: "Lima",
-				},
-			})}
-		/>
+    <meta property="og:locale" content="es_PE" />
+    <meta property="og:site_name" content="TrikaWeb" />
 
-		<!-- Theme initialization: Dark mode only -->
-		<script is:inline>
-			document.documentElement.classList.add("dark");
-		</script>
-	</head>
-	<body
-		class="bg-global-bg text-global-text antialiased flex flex-col min-h-screen"
-	>
-		<SiteHeader />
-		<main class="pt-16 flex-grow">
-			<slot />
-		</main>
-		<footer
-			class="bg-global-surface text-center py-6 mt-12 relative overflow-hidden"
-		>
-			<p class="text-global-text">
-				© {new Date().getFullYear()}
-				<a
-					href="/admin/upload"
-					class="text-inherit no-underline hover:text-global-text cursor-default"
-					>Unicode</a
-				>. Todos los derechos reservados.
-			</p>
-		</footer>
-	</body>
-	<style>
-		html,
-		body {
-			margin: 0;
-			width: 100%;
-			height: 100%;
-		}
-	</style>
+    <!-- Twitter -->
+    <meta
+      name="twitter:card"
+      content="summary_large_image"
+    />
+
+    <meta
+      name="twitter:url"
+      content={canonicalURL}
+    />
+
+    <meta
+      name="twitter:title"
+      content={title}
+    />
+
+    <meta
+      name="twitter:description"
+      content={description}
+    />
+
+    <meta
+      name="twitter:image"
+      content={new URL(ogImage, Astro.site)}
+    />
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="/favicon-96x96.png"
+    />
+
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+
+    <link
+      rel="shortcut icon"
+      href="/favicon.ico"
+    />
+
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/apple-touch-icon.png"
+    />
+
+    <meta
+      name="apple-mobile-web-app-title"
+      content="TrikaWeb"
+    />
+
+    <link
+      rel="manifest"
+      href="/site.webmanifest"
+    />
+
+    <title>{title}</title>
+
+    <!-- Schema únicamente para el sitio público -->
+    {
+      !isAdmin && (
+        <script
+          type="application/ld+json"
+          set:html={JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "EducationalOrganization",
+            name: "TrikaWeb",
+            description:
+              "Plataforma de planchas y reseñas de profesores de la Universidad Nacional de Ingeniería",
+            url: Astro.site,
+            logo: new URL(
+              "/img/icono.png",
+              Astro.site,
+            ),
+            address: {
+              "@type": "PostalAddress",
+              addressCountry: "PE",
+              addressLocality: "Lima",
+            },
+          })}
+        />
+      )
+    }
+
+    <!-- Dark mode -->
+    <script is:inline>
+      document.documentElement.classList.add("dark");
+    </script>
+
+    <!--
+      Leer el estado del sidebar ANTES del primer render.
+      Evita el flash expandido -> contraído al cambiar de página.
+    -->
+    {
+      isAdmin && (
+        <script is:inline>
+          try {
+            const collapsed =
+              localStorage.getItem(
+                "admin-sidebar-collapsed",
+              ) === "true";
+
+            document.documentElement.dataset.adminSidebarCollapsed =
+              String(collapsed);
+          } catch {
+            document.documentElement.dataset.adminSidebarCollapsed =
+              "false";
+          }
+
+          document.documentElement.dataset.adminMobileSidebarOpen =
+            "false";
+        </script>
+      )
+    }
+  </head>
+
+  <body
+    class="flex min-h-screen flex-col bg-global-bg text-global-text antialiased"
+  >
+    <!-- Header únicamente público -->
+    {!isAdmin && <SiteHeader />}
+
+    <main
+      class:list={[
+        "flex-grow",
+        !isAdmin && "pt-16",
+      ]}
+    >
+      <slot />
+    </main>
+
+    <!-- Footer únicamente público -->
+    {
+      !isAdmin && (
+        <footer
+          class="relative overflow-hidden bg-global-surface py-6 text-center"
+        >
+          <p class="text-global-text">
+            © {new Date().getFullYear()}{" "}
+            Unicode. Todos los derechos reservados.
+          </p>
+        </footer>
+      )
+    }
+  </body>
 </html>
+
+<style>
+  html,
+  body {
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+  }
+</style>

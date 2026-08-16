@@ -1,16 +1,33 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { getUserSession } from '../../../../lib/auth';
 // @ts-ignore
 import moderationConfig from "../../../../../config/moderation.json";
 
 const bannedWords = ((moderationConfig as any).bannedWords ?? []).map((w: string) => w.toLowerCase());
 
-export const POST: APIRoute = async ({ params, request }) => {
+/**
+ * Crea o actualiza una calificación de profesor.
+ * - Calcula el overall automáticamente como promedio de las 5 dimensiones.
+ * - Valida contra palabras prohibidas (moderation.json).
+ * - Aplica rate limiting por IP y límite de 3 votos por IP por profesor.
+ * - Las calificaciones se crean visibles por defecto.
+ */
+
+export const POST: APIRoute = async ({ params, request, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user, profile } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
   let body;
@@ -20,9 +37,9 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const { difficulty, didactic, resources, responsability, grading, comment } = body;
+  const { difficulty, didactic, resources, responsability, grading, comment, is_anonymous } = body;
 
-  // check for bad words
+  // Revisar por palabras no permitidas
   if (comment) {
     const commentLower = comment.toLowerCase();
     const foundBadWord = bannedWords.find((word: string) => commentLower.includes(word));
@@ -53,16 +70,17 @@ export const POST: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Calculate overall automatically
+  // Calcular overall automaticamente
   const overall = ratings.reduce((a, b) => a + b, 0) / ratings.length;
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
-  }
-
+  const deviceId = user.id;
   const clientIP = getClientIP(request);
   const ipHash = await sha256Hash(clientIP + import.meta.env.IP_SALT);
+
+  // Set anonymity logic (defaults to true if undefined or null)
+  const isAnonymous = is_anonymous !== false;
+  const userName = profile?.full_name || 'Estudiante';
+  const userEmail = user.email || '';
 
   const supa = supabaseAdmin;
 
@@ -77,7 +95,6 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
   }
 
-  // Verificar si ya existe
   const { data: existing } = await supa
     .from('teacher_ratings')
     .select('id')
@@ -87,9 +104,7 @@ export const POST: APIRoute = async ({ params, request }) => {
 
   let error;
 
-  // IMPORTANT: is_hidden is always true on write to enforce moderation
   if (existing) {
-    // Actualizar
     const result = await supa
       .from('teacher_ratings')
       .update({
@@ -101,7 +116,12 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
+        is_anonymous: isAnonymous,
+        user_name: userName,
+        user_email: userEmail,
+        user_id: user.id,
         is_hidden: false, // Visible by default per user request (stars immediate)
+        needs_review: true,
         updated_at: new Date().toISOString()
       })
       .eq('teacher_id', teacherId)
@@ -109,7 +129,6 @@ export const POST: APIRoute = async ({ params, request }) => {
 
     error = result.error;
   } else {
-    // Verificar límite de votos por IP para este profesor (Anti-spam)
     const { count, error: countError } = await supa
       .from('teacher_ratings')
       .select('id', { count: 'exact', head: true })
@@ -128,7 +147,6 @@ export const POST: APIRoute = async ({ params, request }) => {
       );
     }
 
-    // Insertar
     const result = await supa
       .from('teacher_ratings')
       .insert({
@@ -142,7 +160,12 @@ export const POST: APIRoute = async ({ params, request }) => {
         responsability,
         grading,
         comment: comment || null,
+        is_anonymous: isAnonymous,
+        user_name: userName,
+        user_email: userEmail,
+        user_id: user.id,
         is_hidden: false, // Visible by default per user request
+        needs_review: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
@@ -170,25 +193,33 @@ export const POST: APIRoute = async ({ params, request }) => {
   );
 };
 
-// GET handler para verificar si el usuario ya votó
-export const GET: APIRoute = async ({ params, request }) => {
+/**
+ * Verifica si el dispositivo ya calificó a este profesor.
+ * Usado por el frontend para mostrar/ocultar el botón "Eliminar mi calificación".
+ */
+export const GET: APIRoute = async ({ params, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  const url = new URL(request.url);
-  const deviceId = url.searchParams.get('device_id');
-
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({
+        hasVoted: false,
+        rating: null
+      }),
+      { status: 200 }
+    );
   }
 
+  const deviceId = user.id;
   const supa = supabaseAdmin;
 
   const { data: existing } = await supa
     .from('teacher_ratings')
-    .select('id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at')
+    .select('id, overall, difficulty, didactic, resources, responsability, grading, comment, is_anonymous, created_at')
     .eq('teacher_id', teacherId)
     .eq('device_id', deviceId)
     .maybeSingle();
@@ -202,28 +233,27 @@ export const GET: APIRoute = async ({ params, request }) => {
   );
 };
 
-// DELETE handler para quitar calificación
-export const DELETE: APIRoute = async ({ params, request }) => {
+/**
+ * Elimina la calificación del dispositivo para este profesor.
+ * Verifica que exista antes de eliminar, luego retorna las stats actualizadas.
+ */
+export const DELETE: APIRoute = async ({ params, cookies }) => {
   const teacherId = Number(params.id);
   if (!teacherId) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId) {
-    return new Response(JSON.stringify({ error: 'Falta device_id' }), { status: 400 });
-  }
-
+  const deviceId = user.id;
   const supa = supabaseAdmin;
 
-  // Verificar si existe la calificación antes de eliminarla
   const { data: existing } = await supa
     .from('teacher_ratings')
     .select('id')
@@ -235,7 +265,6 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'No hay calificación para eliminar' }), { status: 404 });
   }
 
-  // Eliminar la calificación
   const { error } = await supa
     .from('teacher_ratings')
     .delete()
@@ -250,7 +279,6 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     );
   }
 
-  // Obtener estadísticas actualizadas
   const { data: stats } = await supa
     .from('teachers')
     .select('avg_overall, rating_count')
