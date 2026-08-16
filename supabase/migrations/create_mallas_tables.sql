@@ -2,7 +2,7 @@
 
 -- 0. Tabla specialties (Especialidades o Carreras)
 CREATE TABLE IF NOT EXISTS specialties (
-  id SERIAL PRIMARY KEY,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   code VARCHAR(20) UNIQUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS specialties (
 -- 1. Tabla study_plans
 CREATE TABLE IF NOT EXISTS study_plans (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  specialty_id INT NOT NULL REFERENCES specialties(id) ON DELETE CASCADE,
+  specialty_id UUID NOT NULL REFERENCES specialties(id) ON DELETE CASCADE,
   year VARCHAR(20) NOT NULL,
   is_current BOOLEAN NOT NULL DEFAULT false,
   is_published BOOLEAN NOT NULL DEFAULT false,

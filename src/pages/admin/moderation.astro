@@ -879,6 +879,9 @@ if (!isAdmin) {
             badgeSheets.classList.add("hidden");
           }
         }
+        
+        // Despachar evento para actualizar el indicador del Sidebar
+        window.dispatchEvent(new CustomEvent("refresh-moderation-badges"));
       }
     } catch {
       // Silently ignore badge errors
@@ -947,7 +950,10 @@ if (!isAdmin) {
     loadItems(1);
   });
 
-  refreshBtn?.addEventListener("click", () => loadItems(currentPage));
+  refreshBtn?.addEventListener("click", () => {
+    loadItems(currentPage);
+    loadCounts();
+  });
   prevBtn?.addEventListener("click", () => loadItems(currentPage - 1));
   nextBtn?.addEventListener("click", () => loadItems(currentPage + 1));
 

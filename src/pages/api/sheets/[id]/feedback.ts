@@ -287,6 +287,11 @@ export const GET: APIRoute = async ({ params, request, cookies }) => {
       f.total_reactions = fReactions.length;
       f.user_reaction = userReaction;
 
+      if (f.user_avatar && !f.user_avatar.startsWith('http')) {
+        const cleanSrc = f.user_avatar.replace(/^\/+/, '');
+        f.user_avatar = `${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${cleanSrc}`;
+      }
+
       // Aplicar máscara de privacidad para comentarios anónimos
       // Solo el autor original podrá ver su propio user_id (para permitirle editar/borrar)
       if (f.is_anonymous && (!user || f.user_id !== user.id)) {

@@ -2,12 +2,12 @@ CREATE OR REPLACE FUNCTION edit_malla_transaction(payload JSONB)
 RETURNS VOID AS $$
 DECLARE
   v_id UUID;
-  v_specialty_id INT;
+  v_specialty_id UUID;
   v_year TEXT;
   v_is_current BOOLEAN;
 BEGIN
   v_id := (payload->>'id')::UUID;
-  v_specialty_id := (payload->>'specialty_id')::INT;
+  v_specialty_id := (payload->>'specialty_id')::UUID;
   v_year := payload->>'year';
   v_is_current := (payload->>'is_current')::BOOLEAN;
 
