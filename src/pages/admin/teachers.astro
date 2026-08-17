@@ -482,7 +482,7 @@ const courses = await getCourses();
                                 <p class="text-xs ${starsColor} mb-2">${stars} <span class="text-global-text-muted">(${t.rating_count})</span></p>
                                 ${t.bio ? `<p class="text-xs text-global-text-muted line-clamp-2 mb-3">${escapeHtml(t.bio)}</p>` : '<p class="text-xs text-global-text-muted italic mb-3">Sin biografía</p>'}
                             </div>
-                            <div class="flex gap-2 pt-3 border-t border-global-border/40 mt-auto">
+                            <div class="flex gap-2 pt-1 mt-auto">
                                 <button
                                     type="button"
                                     onclick="toggleTeacher(${t.id}, ${!isHidden})"
