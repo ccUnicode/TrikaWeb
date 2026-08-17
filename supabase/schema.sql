@@ -23,7 +23,7 @@ create table public.contributions (
   cycle text not null,
   exam_type text not null,
   contribution_type text not null,
-  file_storage_path text not null,
+  file_storage_path text,
   status text default 'pending'::text not null,
   admin_notes text,
   created_at timestamptz default now() not null,
