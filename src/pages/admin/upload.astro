@@ -328,9 +328,10 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         <!-- Toggle: Plancha de profesor específico -->
         <div
           id="teacher-specific-toggle"
-          class="flex items-start gap-3 rounded-xl border border-global-border bg-global-bg p-3 transition-all duration-300"
+          class="flex items-start gap-3.5 rounded-xl border border-global-border bg-global-bg p-3.5 transition-all duration-300"
         >
           <label
+            for="is-teacher-specific"
             class="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5"
           >
             <input
@@ -340,19 +341,19 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
               class="sr-only peer"
             />
             <div
-              class="w-9 h-5 bg-global-border rounded-full peer-checked:bg-global-primary transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"
+              class="w-11 h-6 bg-[#1E2633] border border-[#2B374A] rounded-full peer peer-checked:bg-global-primary peer-checked:border-global-primary transition-all duration-200 after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-4.5 after:w-4.5 after:shadow-sm after:transition-all duration-200 peer-checked:after:translate-x-5"
             >
             </div>
           </label>
-          <div>
-            <p class="text-sm font-medium text-global-text">
+          <label for="is-teacher-specific" class="cursor-pointer select-none">
+            <p class="text-sm font-semibold text-global-text">
               Plancha de profesor específico
             </p>
-            <p class="text-xs text-global-text-muted mt-0.5">
+            <p class="text-xs text-global-text-muted mt-0.5 leading-relaxed">
               Activa esto si la plancha pertenece a un profesor en particular y
               no es la práctica general del curso.
             </p>
-          </div>
+          </label>
         </div>
 
         <!-- Info alert (shown when toggle is active) -->
@@ -368,10 +369,7 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         <!-- Row 3: Archivos -->
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label
-              class="block text-sm font-medium text-global-text-muted mb-1.5"
-              for="file"
-            >
+            <label class="block text-sm font-medium text-global-text-muted mb-1.5 cursor-default">
               PDF de la Plancha
             </label>
             <label
@@ -400,12 +398,8 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
           </div>
 
           <div>
-            <label
-              class="block text-sm font-medium text-global-text-muted mb-1.5"
-              for="solution-file"
-            >
-              PDF del Solucionario
-              <span class="text-global-text-muted">(opcional)</span>
+            <label class="block text-sm font-medium text-global-text-muted mb-1.5 cursor-default">
+              PDF del Solucionario <span class="text-global-text-muted font-normal">(opcional)</span>
             </label>
             <label
               for="solution-file"
