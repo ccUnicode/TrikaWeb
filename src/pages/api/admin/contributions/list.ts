@@ -24,6 +24,13 @@ export const GET: APIRoute = async ({ cookies }) => {
     // Generar Signed URLs para poder descargar los borradores de forma segura en el admin
     const contributionsWithUrls = await Promise.all(
       contributions.map(async (contrib) => {
+        if (!contrib.file_storage_path || contrib.file_storage_path === "") {
+          return {
+            ...contrib,
+            signedUrl: null
+          };
+        }
+
         const { data } = await supabaseAdmin.storage
           .from('contributions')
           .createSignedUrl(contrib.file_storage_path, 3600); // 1 hora de validez

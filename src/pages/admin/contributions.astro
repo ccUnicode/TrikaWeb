@@ -261,6 +261,44 @@ if (!isAdmin) {
       </div>
     </div>
   </div>
+
+  <!-- Modal de Confirmación para Eliminar Archivo (Procesado) -->
+  <div
+    id="mark-used-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
+  >
+    <div
+      class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300"
+      id="mark-used-modal-box"
+    >
+      <h3 class="text-lg font-bold text-global-text mb-2">
+        ¿Eliminar archivo?
+      </h3>
+
+      <p class="text-global-text-muted text-sm mb-6 leading-relaxed">
+        Esta acción es permanente. Se eliminará el archivo del servidor para liberar espacio de almacenamiento, manteniendo el aporte como procesado en el historial del estudiante.
+      </p>
+
+      <div id="mark-used-error" class="hidden p-3 text-xs rounded-xl border bg-red-500/10 border-red-500/20 text-red-400 mb-4"></div>
+
+      <div class="flex justify-end gap-3">
+        <button
+          type="button"
+          id="cancel-mark-used-btn"
+          class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          id="confirm-mark-used-btn"
+          class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium inline-flex items-center gap-2"
+        >
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
 </Layout>
 
 <script>
@@ -390,23 +428,49 @@ if (!isAdmin) {
             ` : ""}
           </div>
           <div class="flex items-center justify-end gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-global-border/40">
-            ${
-              isPending
-                ? `<button class="btn-review w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer" data-id="${contrib.id}">
+            ${(() => {
+              if (isPending) {
+                return `<button class="btn-review w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer" data-id="${contrib.id}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
                     </svg>
                     <span>Revisar aporte</span>
-                  </button>`
-                : `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border ${
-                    isApproved
-                      ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]"
-                      : "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]"
-                  }">
-                    <span class="w-1.5 h-1.5 rounded-full ${isApproved ? "bg-emerald-400" : "bg-red-400"}"></span>
-                    ${isApproved ? "Aprobado" : "Rechazado"}
-                  </span>`
-            }
+                  </button>`;
+              }
+              
+              if (isApproved) {
+                if (contrib.contribution_type === 'sheet') {
+                  return `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border bg-emerald-500/10 text-emerald-300 border-emerald-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    Publicado automáticamente
+                  </span>`;
+                } else {
+                  if (contrib.file_storage_path && contrib.file_storage_path !== "") {
+                    return `
+                      <a href="${contrib.signedUrl || '#'}" target="_blank" class="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold bg-[#1C2534] hover:bg-[#253245] text-blue-400 border border-[#2B374A] transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Descargar
+                      </a>
+                      <button class="btn-mark-used inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-600/25 transition-all shadow-sm cursor-pointer" data-id="${contrib.id}" title="Eliminar archivo del servidor">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Eliminar archivo
+                      </button>
+                    `;
+                  } else {
+                    return `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border bg-gray-500/10 text-gray-400 border-gray-500/20">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                      Solucionario Procesado
+                    </span>`;
+                  }
+                }
+              }
+
+              // Rejected
+              return `<span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                Rechazado
+              </span>`;
+            })()}
           </div>
         `;
         listContainer.appendChild(card);
@@ -418,8 +482,16 @@ if (!isAdmin) {
           openReviewModal(id);
         });
       });
+
+      document.querySelectorAll(".btn-mark-used").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = Number(btn.getAttribute("data-id"));
+          openMarkUsedModal(id);
+        });
+      });
     }
 
+    // Modal de Revisión
     function openReviewModal(id: number) {
       const contrib = allContributions.find((c) => c.id === id);
       if (!contrib) return;
@@ -448,6 +520,61 @@ if (!isAdmin) {
     closeModalBtn.addEventListener("click", closeReviewModal);
     btnCancelModal.addEventListener("click", closeReviewModal);
     modal.addEventListener("click", (e) => { if (e.target === modal) closeReviewModal(); });
+
+    // Modal de Eliminar Archivo (Procesado)
+    const markUsedModal = document.getElementById("mark-used-modal")!;
+    const markUsedModalBox = document.getElementById("mark-used-modal-box")!;
+    const cancelMarkUsedBtn = document.getElementById("cancel-mark-used-btn")!;
+    const confirmMarkUsedBtn = document.getElementById("confirm-mark-used-btn") as HTMLButtonElement;
+    const markUsedError = document.getElementById("mark-used-error")!;
+    let targetMarkUsedId: number | null = null;
+
+    function openMarkUsedModal(id: number) {
+      targetMarkUsedId = id;
+      markUsedError.classList.add("hidden");
+      confirmMarkUsedBtn.disabled = false;
+      confirmMarkUsedBtn.textContent = "Eliminar";
+      markUsedModal.classList.remove("pointer-events-none", "opacity-0");
+      markUsedModalBox.classList.remove("scale-95");
+      markUsedModalBox.classList.add("scale-100");
+    }
+
+    function closeMarkUsedModal() {
+      targetMarkUsedId = null;
+      markUsedModal.classList.add("pointer-events-none", "opacity-0");
+      markUsedModalBox.classList.remove("scale-100");
+      markUsedModalBox.classList.add("scale-95");
+    }
+
+    cancelMarkUsedBtn.addEventListener("click", closeMarkUsedModal);
+    markUsedModal.addEventListener("click", (e) => { if (e.target === markUsedModal) closeMarkUsedModal(); });
+
+    confirmMarkUsedBtn.addEventListener("click", async () => {
+      if (!targetMarkUsedId) return;
+      confirmMarkUsedBtn.disabled = true;
+      confirmMarkUsedBtn.innerHTML = `
+        <div class="animate-spin h-3.5 w-3.5 border-2 border-red-400 border-t-transparent rounded-full"></div>
+        <span>Eliminando...</span>
+      `;
+      markUsedError.classList.add("hidden");
+
+      try {
+        const fd = new FormData();
+        fd.append("contribution_id", String(targetMarkUsedId));
+        const res = await fetch("/api/admin/contributions/mark-used", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Error al procesar el aporte.");
+
+        closeMarkUsedModal();
+        loadContributions();
+        window.dispatchEvent(new CustomEvent("refresh-contributions-badges"));
+      } catch (err: any) {
+        markUsedError.textContent = err.message || "Error al procesar el aporte.";
+        markUsedError.classList.remove("hidden");
+        confirmMarkUsedBtn.disabled = false;
+        confirmMarkUsedBtn.textContent = "Reintentar";
+      }
+    });
 
     reviewForm.addEventListener("submit", async (e) => {
       e.preventDefault();

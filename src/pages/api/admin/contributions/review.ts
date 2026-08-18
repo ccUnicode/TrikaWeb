@@ -56,12 +56,18 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     // 2. Procesar Rechazo
     if (action === 'reject') {
+      // 2.1. Eliminar archivo del bucket si existe (para no acumular basura)
+      if (contribution.file_storage_path) {
+        await supabaseAdmin.storage.from('contributions').remove([contribution.file_storage_path]);
+      }
+
       const { error: rejectError } = await supabaseAdmin
         .from('contributions')
         .update({
           status: 'rejected',
           admin_notes: adminNotes || 'Rechazado por el administrador',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          file_storage_path: null
         })
         .eq('id', contributionId);
 
@@ -108,20 +114,69 @@ export const POST: APIRoute = async ({ request, cookies }) => {
           return new Response(JSON.stringify({ error: 'Error copiando el archivo a exámenes oficiales' }), { status: 500 });
         }
 
-        // 3.3. Crear o actualizar la tabla 'sheets'
-        const { data: existingSheet } = await supabaseAdmin
+        // 3.3. Obtener el evaluation_id correspondiente para la tabla sheets
+        let evaluationId: number | null = null;
+        let officialExamType = contribution.exam_type;
+
+        const { data: evalType } = await supabaseAdmin
+          .from('evaluation_type')
+          .select('evaluation_id, evaluation_abr')
+          .or(`evaluation_abr.eq.${contribution.exam_type},evaluation_name.eq.${contribution.exam_type}`)
+          .maybeSingle();
+
+        if (evalType) {
+          evaluationId = evalType.evaluation_id;
+          officialExamType = evalType.evaluation_abr || contribution.exam_type;
+        } else {
+          // Si no se encuentra directo, buscar en course_evaluations
+          const { data: courseEvals } = await supabaseAdmin
+            .from('course_evaluations')
+            .select('evaluation_id, evaluation_type(evaluation_id, evaluation_abr)')
+            .eq('course_id', contribution.course_id);
+
+          const match = courseEvals?.find((ce: any) => 
+            ce.evaluation_type?.evaluation_abr === contribution.exam_type
+          );
+          if (match && match.evaluation_type) {
+            evaluationId = (match.evaluation_type as any).evaluation_id;
+            officialExamType = (match.evaluation_type as any).evaluation_abr;
+          }
+        }
+
+        if (!evaluationId) {
+          return new Response(JSON.stringify({ 
+            error: `No se encontró el tipo de evaluación '${contribution.exam_type}' en el catálogo para registrar la plancha.` 
+          }), { status: 400 });
+        }
+
+        // Registrar el ciclo si no existe
+        const cycleMatch = contribution.cycle.match(/^(\d{4})-(.+)$/);
+        if (cycleMatch) {
+          await supabaseAdmin
+            .from('cycles')
+            .upsert({
+              cycle_code: contribution.cycle,
+              year: Number(cycleMatch[1]),
+              term: cycleMatch[2]
+            }, { onConflict: 'cycle_code' });
+        }
+
+        // 3.4. Crear o actualizar la tabla 'sheets'
+        let sheetQuery = supabaseAdmin
           .from('sheets')
           .select('id')
           .eq('course_id', contribution.course_id)
           .eq('cycle', contribution.cycle)
-          .eq('exam_type', contribution.exam_type)
-          .maybeSingle();
+          .eq('evaluation_id', evaluationId);
+
+        const { data: existingSheet } = await sheetQuery.maybeSingle();
 
         if (existingSheet) {
           const { error: updateSheetError } = await supabaseAdmin
             .from('sheets')
             .update({
               exam_storage_path: destinationPath,
+              exam_type: officialExamType,
               is_hidden: false
             })
             .eq('id', existingSheet.id);
@@ -136,45 +191,63 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             .insert({
               course_id: contribution.course_id,
               cycle: contribution.cycle,
-              exam_type: contribution.exam_type,
+              evaluation_id: evaluationId,
+              exam_type: officialExamType,
               exam_storage_path: destinationPath,
-              is_hidden: false
+              is_hidden: false,
+              is_teacher_specific: false
             });
 
-          if (insertSheetError) {
-            console.error('Error inserting into sheets table:', insertSheetError);
-            return new Response(JSON.stringify({ error: 'Error registrando la plancha en la base de datos' }), { status: 500 });
-          }
-        }
-
-      }
-
-      // 3.4. Definir nota de retroalimentación por defecto según el tipo de aporte
-      let finalNotes = adminNotes;
-      if (!finalNotes) {
-        if (contribution.contribution_type === 'solution') {
-          finalNotes = '¡Muchas gracias por tu aporte! Se utilizará como guía para redactar y publicar la solución oficial tipeada.';
-        } else {
-          finalNotes = 'Aprobado y publicado correctamente. ¡Gracias por tu aporte!';
+        if (insertSheetError) {
+          console.error('Error inserting into sheets table:', insertSheetError);
+          return new Response(JSON.stringify({ error: 'Error registrando la plancha en la base de datos' }), { status: 500 });
         }
       }
 
-      // 3.5. Actualizar estado del aporte a 'approved'
-      const { error: updateContributionError } = await supabaseAdmin
-        .from('contributions')
-        .update({
-          status: 'approved',
-          admin_notes: finalNotes,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', contributionId);
-
-      if (updateContributionError) {
-        console.error('Error updating contribution status to approved:', updateContributionError);
-        return new Response(JSON.stringify({ error: 'Error finalizando el registro del aporte' }), { status: 500 });
+      // 3.4.5 Eliminar archivo original del bucket de contribuciones ya que fue copiado a 'exams'
+      if (contribution.file_storage_path) {
+        const { error: removeError } = await supabaseAdmin.storage
+          .from('contributions')
+          .remove([contribution.file_storage_path]);
+        if (removeError) {
+          console.error('Error removing original draft from storage:', removeError);
+        }
       }
+    }
 
-      return new Response(JSON.stringify({ success: true, message: 'Aporte procesado correctamente' }), { status: 200 });
+    // 3.5. Definir nota de retroalimentación por defecto según el tipo de aporte
+    let finalNotes = adminNotes;
+    if (!finalNotes) {
+      if (contribution.contribution_type === 'solution') {
+        finalNotes = '¡Muchas gracias por tu aporte! Se utilizará como guía para redactar y publicar la solución oficial tipeada.';
+      } else {
+        finalNotes = 'Aprobado y publicado automáticamente. ¡Gracias por tu aporte!';
+      }
+    }
+
+    // 3.6. Actualizar estado del aporte a 'approved'
+    const updateData: any = {
+      status: 'approved',
+      admin_notes: finalNotes,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Si es plancha, ya se copió, así que limpiamos el path
+    if (contribution.contribution_type === 'sheet') {
+      updateData.file_storage_path = null;
+    }
+
+    const { error: updateContributionError } = await supabaseAdmin
+      .from('contributions')
+      .update(updateData)
+      .eq('id', contributionId);
+
+    if (updateContributionError) {
+      console.error('Error updating contribution status to approved:', updateContributionError);
+      return new Response(JSON.stringify({ error: 'Error finalizando el registro del aporte' }), { status: 500 });
+    }
+
+    return new Response(JSON.stringify({ success: true, message: 'Aporte procesado correctamente' }), { status: 200 });
     }
 
     // Retorno fallback requerido por Astro Check si la acción no coincidió (aunque ya se validó al inicio)
