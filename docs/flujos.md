@@ -504,27 +504,44 @@ sequenceDiagram
 
 ## Flujo: Contribuciones de Usuarios
 
-Cuando un usuario externo envía una plancha:
+Cuando un usuario externo envía una contribución (plancha o solucionario):
 
 ```mermaid
 sequenceDiagram
     actor User as Estudiante
     participant UI as Frontend
-    participant API as Contribución
     participant DB as Supabase DB
+    participant Storage as Supabase Storage
     participant AdminUI as Panel Admin
     
     User->>UI: Completa formulario de contribución
-    UI->>API: POST (course, exam, cycle, file, datos usuario)
-    API->>DB: INSERT contributions (status: "pending")
-    DB-->>API: Contribución creada
-    API-->>UI: { success: true }
+    UI->>Storage: Sube archivo (PDF/IMG)
+    UI->>DB: INSERT contributions (status: "pending")
     UI-->>User: "Contribución enviada, gracias"
 
     Note over AdminUI: Administrador revisa
     AdminUI->>AdminUI: Revisa contribuciones pendientes
-    AdminUI->>DB: UPDATE contributions SET status = "approved" | "rejected"
-    DB-->>AdminUI: Actualizado
+    
+    alt Es Plancha (Examen) y se Aprueba
+        AdminUI->>Storage: Mueve archivo a bucket exams
+        AdminUI->>DB: Crea Sheet (Plancha)
+        AdminUI->>Storage: Elimina archivo original de contributions
+        AdminUI->>DB: UPDATE contributions (status: "approved")
+    else Es Solucionario y se Aprueba
+        AdminUI->>DB: UPDATE contributions (status: "approved")
+        Note over AdminUI: Uso manual posterior
+        AdminUI->>AdminUI: Admin asocia a examen existente
+        AdminUI->>Storage: Admin hace clic en "Eliminar archivo" (Storage)
+        AdminUI->>DB: UPDATE file_storage_path = null
+    else Se Rechaza
+        AdminUI->>Storage: Elimina archivo de contributions
+        AdminUI->>DB: UPDATE contributions (status: "rejected")
+    end
+    
+    Note over User: Usuario limpia historial
+    User->>UI: Click en "Vaciar Historial"
+    UI->>DB: DELETE contributions WHERE status IN (pending, rejected)
+    Note right of DB: Las aprobadas se mantienen para su perfil
 ```
 
 ---
