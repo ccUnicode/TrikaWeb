@@ -22,8 +22,8 @@ const {
 } = Astro.props;
 ---
 
-<div id={id} class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300">
-  <div class="w-full max-w-md rounded-xl bg-global-surface border border-global-border p-6 shadow-xl text-left transform scale-95 transition-transform duration-300">
+<div id={id} class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-modal-backdrop">
+  <div class="w-full max-w-md rounded-xl bg-global-surface border border-global-border p-6 shadow-xl text-left animate-modal-content">
     <h3 class="text-lg font-bold text-global-text mb-2">{title}</h3>
     <p class="text-sm text-global-text-muted mb-6 leading-relaxed">{message}</p>
     
