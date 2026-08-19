@@ -12,6 +12,7 @@ export const prerender = false;
 import Layout from "../../layouts/Layout.astro";
 import TeacherRatingForm from "../../components/TeacherRatingForm.astro";
 import TeacherAvatar from "../../components/TeacherAvatar.astro";
+import ModalConfirm from "../../components/ModalConfirm.astro";
 import { getTeacherDetail } from "../../lib/data";
 import { getUserSession } from "../../lib/auth";
 
@@ -116,67 +117,71 @@ const toStudentAvatarUrl = (src?: string | null) => {
 
 <Layout title={`Profesor ${detail.teacher.full_name}`}>
   <main class="mx-auto max-w-7xl px-2 sm:px-4 py-10 text-global-text">
-    <!-- Contenedor principal con fondo #171A1F -->
+    <!-- Contenedor principal con fondo estructurado -->
     <div
-      class="rounded-3xl p-4 sm:p-10 shadow-2xl"
-      style="background-color: #171A1F;"
+      class="rounded-3xl p-4 sm:p-10 shadow-2xl bg-global-surface border border-global-border"
     >
-      <div class="grid gap-6 lg:grid-cols-3">
+      <div class="grid gap-6 lg:grid-cols-3 items-stretch">
         <!-- Columna izquierda: avatar, nombre, score y CTA -->
         <section
-          class="rounded-3xl bg-global-card border border-global-border-subtle p-6 flex flex-col gap-6 shadow-lg"
+          class="rounded-3xl bg-global-card border border-global-border p-6 flex flex-col shadow-lg"
         >
-          <div class="flex flex-col items-center gap-6">
+          <div class="flex flex-col items-center gap-4">
             <TeacherAvatar
               name={detail.teacher.full_name}
               avatarSrc={detail.teacher.avatar_url}
               size="lg"
             />
             <div
-              class="w-full rounded-2xl border border-global-border-subtle px-4 py-3 text-center"
-              style="background-color: #2A3240;"
+              class="w-full rounded-2xl border border-global-border bg-global-surface px-4 py-3 text-center"
             >
               <p class="text-lg font-semibold">{detail.teacher.full_name}</p>
             </div>
-          </div>
-          <div
-            class="flex items-center justify-between bg-global-bg/60 rounded-2xl px-4 py-3"
-          >
-            <div class="text-sm text-global-text-muted leading-tight">
-              <p>Puntuación</p>
-              <p>General</p>
+            <div
+              class="w-full flex items-center justify-between bg-global-bg/60 rounded-2xl px-4 py-3"
+            >
+              <div class="text-sm text-global-text-muted leading-tight text-left">
+                <p>Puntuación</p>
+                <p>General</p>
+              </div>
+              <div class="text-right">
+                <p class="text-4xl font-bold">
+                  {formatScore(detail.teacher.avg_overall)}
+                </p>
+                <p class="text-xs text-global-text-muted mt-1">
+                  {detail.teacher.rating_count} reseñas
+                </p>
+              </div>
             </div>
-            <div class="text-right">
-              <p class="text-4xl font-bold">
-                {formatScore(detail.teacher.avg_overall)}
-              </p>
-              <p class="text-xs text-global-text-muted mt-1">
-                {detail.teacher.rating_count} reseñas
-              </p>
-            </div>
           </div>
-          <button
-            id="open-rating-modal"
-            type="button"
-            data-is-logged-in={isLoggedIn ? "true" : "false"}
-            class="rounded-2xl bg-global-primary text-black font-semibold text-center py-3 hover:bg-global-primary-hover transition cursor-pointer"
-          >
-            Califica al profesor
-          </button>
-          <!-- Botón para eliminar calificación (oculto por defecto) -->
-          <button
-            id="delete-rating-btn"
-            type="button"
-            data-teacher-id={detail.teacher.id}
-            class="hidden rounded-2xl border border-red-500/50 text-red-400 font-medium text-center py-2 text-sm hover:bg-red-500/10 transition cursor-pointer"
-          >
-            Eliminar mi calificación
-          </button>
-          <p
-            id="rating-status-msg"
-            class="text-xs text-center text-global-text-muted"
-          >
-          </p>
+
+          <div class="mt-auto pt-6 flex flex-col gap-2">
+            <button
+              id="open-rating-modal"
+              type="button"
+              data-is-logged-in={isLoggedIn ? "true" : "false"}
+              class="w-full rounded-2xl bg-global-primary hover:bg-global-primary-hover px-4 py-3 text-sm font-bold text-black shadow-md transition-all active:scale-95 cursor-pointer text-center"
+            >
+              Califica al profesor
+            </button>
+            <!-- Botón para eliminar calificación (oculto por defecto) -->
+            <button
+              id="delete-rating-btn"
+              type="button"
+              data-teacher-id={detail.teacher.id}
+              class="hidden w-full items-center justify-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 hover:text-red-300 cursor-pointer shadow-sm active:scale-95 text-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+              </svg>
+              <span>Eliminar mi calificación</span>
+            </button>
+            <p
+              id="rating-status-msg"
+              class="text-xs text-center text-global-text-muted"
+            >
+            </p>
+          </div>
         </section>
 
         <!-- Columna centro: descripción y estadísticas -->
@@ -356,20 +361,20 @@ const toStudentAvatarUrl = (src?: string | null) => {
 
 <div
   id="rating-modal"
-  class="hidden fixed inset-0 z-40 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6 mt-8 animate-modal-backdrop"
+  class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6 animate-modal-backdrop"
 >
   <div
-    class="rating-modal relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl bg-global-card p-6 sm:p-8 shadow-2xl animate-modal-content"
+    class="rating-modal relative w-full max-w-3xl max-h-[92vh] overflow-y-auto rounded-3xl bg-global-card border border-global-border p-5 sm:p-6 shadow-2xl animate-modal-content teacher-scroll"
   >
     <button
       type="button"
       id="close-rating-modal"
-      class="absolute right-5 top-5 text-2xl text-global-text-muted hover:text-global-primary transition-colors"
+      class="absolute right-5 top-5 text-xl text-global-text-muted hover:text-global-primary transition-colors cursor-pointer"
       aria-label="Cerrar"
     >
       ✕
     </button>
-    <h3 class="text-2xl font-semibold mb-8 truncate pr-10">
+    <h3 class="text-xl font-bold mb-4 truncate pr-8">
       Calificar a {detail.teacher.full_name}
     </h3>
     <TeacherRatingForm
@@ -380,6 +385,16 @@ const toStudentAvatarUrl = (src?: string | null) => {
     />
   </div>
 </div>
+
+<ModalConfirm
+  id="delete-rating-modal"
+  title="Eliminar Calificación"
+  message="¿Estás seguro de que quieres eliminar tu calificación? Esta acción no se puede deshacer."
+  confirmText="Sí, eliminar"
+  cancelText="Cancelar"
+  confirmId="confirm-delete-rating-btn"
+  cancelId="cancel-delete-rating-btn"
+/>
 
 <style>
   /* Fuerza el formulario abierto dentro del modal y oculta el toggle interno */
@@ -468,24 +483,38 @@ const toStudentAvatarUrl = (src?: string | null) => {
         const data = await response.json();
         if (data.hasVoted) {
           deleteBtn.classList.remove("hidden");
+          deleteBtn.classList.add("flex");
+          
+          const openBtn = document.getElementById("open-rating-modal");
+          if (openBtn) {
+            openBtn.textContent = "Editar mi calificación";
+          }
         }
       }
     } catch (err) {
       console.error("Error verificando votación:", err);
     }
 
-    /* Elimina la calificación del usuario y recarga la página */
-    deleteBtn.addEventListener("click", async () => {
-      if (
-        !confirm(
-          "¿Estás seguro de que quieres eliminar tu calificación? Esta acción no se puede deshacer.",
-        )
-      ) {
-        return;
-      }
+    /* Manejo del modal de confirmación de eliminación */
+    const deleteModal = document.getElementById("delete-rating-modal");
+    const confirmDeleteBtn = document.getElementById("confirm-delete-rating-btn") as HTMLButtonElement;
+    const cancelDeleteBtn = document.getElementById("cancel-delete-rating-btn");
 
-      deleteBtn.disabled = true;
-      deleteBtn.textContent = "Eliminando...";
+    deleteBtn.addEventListener("click", () => {
+      deleteModal?.classList.remove("hidden");
+      deleteModal?.classList.add("flex");
+    });
+
+    cancelDeleteBtn?.addEventListener("click", () => {
+      deleteModal?.classList.add("hidden");
+      deleteModal?.classList.remove("flex");
+    });
+
+    confirmDeleteBtn?.addEventListener("click", async () => {
+      confirmDeleteBtn.disabled = true;
+      confirmDeleteBtn.textContent = "Eliminando...";
+      const originalText = deleteBtn.innerHTML;
+      deleteBtn.innerHTML = "<span>Eliminando...</span>";
 
       try {
         const response = await fetch(`/api/profesores/${teacherId}/rate`, {
@@ -499,8 +528,9 @@ const toStudentAvatarUrl = (src?: string | null) => {
             statusMsg.textContent = error?.error ?? "Error al eliminar";
             statusMsg.classList.add("text-red-400");
           }
-          deleteBtn.disabled = false;
-          deleteBtn.textContent = "Eliminar mi calificación";
+          confirmDeleteBtn.disabled = false;
+          confirmDeleteBtn.textContent = "Sí, eliminar";
+          deleteBtn.innerHTML = originalText;
           return;
         }
 
@@ -509,6 +539,9 @@ const toStudentAvatarUrl = (src?: string | null) => {
           statusMsg.classList.remove("text-red-400");
           statusMsg.classList.add("text-green-500");
         }
+        
+        deleteModal?.classList.add("hidden");
+        deleteModal?.classList.remove("flex");
 
         setTimeout(() => {
           window.location.reload();
