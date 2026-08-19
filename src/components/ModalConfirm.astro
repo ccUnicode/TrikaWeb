@@ -31,14 +31,14 @@ const {
       <button 
         id={cancelId} 
         type="button"
-        class="px-4 py-2 rounded-lg text-sm font-medium text-global-text bg-global-card border border-global-border hover:bg-global-bg transition cursor-pointer select-none"
+        class="inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium text-global-text bg-global-card border border-global-border hover:bg-global-bg transition cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {cancelText}
       </button>
       <button 
         id={confirmId} 
         type="button"
-        class="px-4 py-2 rounded-lg text-sm font-medium text-red-400 bg-red-600/20 border border-red-600/30 hover:bg-red-600/30 transition cursor-pointer select-none"
+        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-red-400 bg-red-600/20 border border-red-600/30 hover:bg-red-600/30 transition cursor-pointer select-none disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {confirmText}
       </button>

@@ -555,7 +555,7 @@ if (!isAdmin) {
       if (!targetMarkUsedId) return;
       confirmMarkUsedBtn.disabled = true;
       confirmMarkUsedBtn.innerHTML = `
-        <div class="animate-spin h-3.5 w-3.5 border-2 border-red-400 border-t-transparent rounded-full"></div>
+        <span class="animate-spin inline-block h-3.5 w-3.5 border-2 border-red-400 border-t-transparent rounded-full shrink-0"></span>
         <span>Eliminando...</span>
       `;
       markUsedError.classList.add("hidden");
