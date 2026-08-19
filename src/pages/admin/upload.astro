@@ -829,7 +829,12 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
     "upload-submit-btn",
   ) as HTMLButtonElement;
 
-  type CourseOption = { id: number; code: string; name: string };
+  type CourseOption = {
+    id: number;
+    code: string;
+    name: string;
+    subsystem_id: number | null;
+  };
   type EvaluationOption = {
     evaluation_id: number;
     evaluation_name: string;
@@ -1067,12 +1072,28 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
       courseDropdown.appendChild(li);
     } else {
       courses.forEach((course) => {
+        const hasSubsystem = course.subsystem_id !== null;
+
         const li = document.createElement("li");
-        li.className =
-          "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
+
+        if (hasSubsystem) {
+          li.className =
+            "px-3 py-2 text-sm cursor-pointer transition-colors hover:bg-global-primary/15 text-global-text";
+        } else {
+          li.className =
+            "px-3 py-2 text-sm cursor-not-allowed opacity-50 text-global-text-muted";
+        }
+
+        const courseRow = document.createElement("div");
+        courseRow.className = "flex items-center justify-between gap-3";
+
+        const courseInfo = document.createElement("div");
+        courseInfo.className = "min-w-0";
 
         const codeSpan = document.createElement("span");
-        codeSpan.className = "font-semibold text-global-primary";
+        codeSpan.className = hasSubsystem
+          ? "font-semibold text-global-primary"
+          : "font-semibold text-global-text-muted";
         codeSpan.textContent = course.code;
 
         const separator = document.createElement("span");
@@ -1082,12 +1103,26 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
         const nameSpan = document.createElement("span");
         nameSpan.textContent = course.name;
 
-        li.append(codeSpan, separator, nameSpan);
+        courseInfo.append(codeSpan, separator, nameSpan);
+        courseRow.appendChild(courseInfo);
 
-        li.addEventListener("mousedown", (e) => {
-          e.preventDefault();
-          selectCourse(course);
-        });
+        if (!hasSubsystem) {
+          const badge = document.createElement("span");
+          badge.className =
+            "shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-300";
+          badge.textContent = "Sin subsistema";
+
+          courseRow.appendChild(badge);
+        }
+
+        li.appendChild(courseRow);
+
+        if (hasSubsystem) {
+          li.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            selectCourse(course);
+          });
+        }
 
         courseDropdown.appendChild(li);
       });
@@ -1097,6 +1132,13 @@ const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
   }
 
   function selectCourse(course: CourseOption) {
+    if (course.subsystem_id === null) {
+      alert(
+        "Este curso no tiene un subsistema de evaluaciones configurado. Configúralo antes de subir material.",
+      );
+      return;
+    }
+
     activeCourseId = course.id;
 
     courseSearchInput.value = `${course.code} – ${course.name}`;
