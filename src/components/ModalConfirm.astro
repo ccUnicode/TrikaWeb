@@ -22,23 +22,23 @@ const {
 } = Astro.props;
 ---
 
-<div id={id} class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-  <div class="w-full max-w-md rounded-xl bg-[#151b23] border border-[#30363d]/80 p-6 shadow-2xl text-left transform scale-95 transition-all duration-200">
-    <h3 class="text-lg font-bold text-[#f0f6fc] mb-2">{title}</h3>
-    <p class="text-sm text-[#8b949e] mb-6 leading-relaxed">{message}</p>
+<div id={id} class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300">
+  <div class="w-full max-w-md rounded-xl bg-global-surface border border-global-border p-6 shadow-xl text-left transform scale-95 transition-transform duration-300">
+    <h3 class="text-lg font-bold text-global-text mb-2">{title}</h3>
+    <p class="text-sm text-global-text-muted mb-6 leading-relaxed">{message}</p>
     
     <div class="flex justify-end gap-3">
       <button 
         id={cancelId} 
         type="button"
-        class="px-4 py-2 rounded-lg text-sm font-medium text-[#c9d1d9] bg-[#21262d] border border-[#30363d] hover:bg-[#30363d] hover:text-[#f0f6fc] hover:border-[#8b949e] transition-all cursor-pointer select-none active:scale-95"
+        class="px-4 py-2 rounded-lg text-sm font-medium text-global-text bg-global-card border border-global-border hover:bg-global-bg transition cursor-pointer select-none"
       >
         {cancelText}
       </button>
       <button 
         id={confirmId} 
         type="button"
-        class="px-4 py-2 rounded-lg text-sm font-semibold text-[#ff7b72] bg-[#2d191e] border border-[#ff7b72]/20 hover:bg-[#49222b] hover:border-[#ff7b72]/40 transition-all cursor-pointer select-none active:scale-95"
+        class="px-4 py-2 rounded-lg text-sm font-medium text-red-400 bg-red-600/20 border border-red-600/30 hover:bg-red-600/30 transition cursor-pointer select-none"
       >
         {confirmText}
       </button>

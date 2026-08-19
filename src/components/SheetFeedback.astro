@@ -1,5 +1,6 @@
 ---
 import { getUserSession } from "../lib/auth";
+import ModalConfirm from "./ModalConfirm.astro";
 
 export interface Props {
   sheetId: number;
@@ -143,35 +144,13 @@ const userAvatar = profile?.avatar_url || null;
 </section>
 
 <!-- Modal de eliminación -->
-<div
+<ModalConfirm
   id="feedback-delete-modal"
-  class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
->
-  <div class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300" id="feedback-delete-modal-box">
-    <h3 class="text-lg font-bold text-global-text mb-2">
-      ¿Eliminar tu comentario?
-    </h3>
-    <p class="text-global-text-muted text-sm mb-6">
-      Esta acción es permanente y no se puede deshacer.
-    </p>
-    <div class="flex justify-end gap-3">
-      <button
-        type="button"
-        id="cancel-feedback-delete-btn"
-        class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
-      >
-        Cancelar
-      </button>
-      <button
-        type="button"
-        id="confirm-feedback-delete-btn"
-        class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium"
-      >
-        Eliminar
-      </button>
-    </div>
-  </div>
-</div>
+  title="¿Eliminar tu comentario?"
+  message="Esta acción es permanente y no se puede deshacer."
+  confirmId="confirm-feedback-delete-btn"
+  cancelId="cancel-feedback-delete-btn"
+/>
 
 <script>
   import { ensureDeviceId } from "../lib/client/device";
@@ -318,15 +297,13 @@ const userAvatar = profile?.avatar_url || null;
 
     // ── Delete Modal Logic ──
     const showDeleteModal = () => {
-      deleteModal?.classList.remove("opacity-0", "pointer-events-none");
-      deleteModalBox?.classList.remove("scale-95");
-      deleteModalBox?.classList.add("scale-100");
+      deleteModal?.classList.remove("hidden");
+      deleteModal?.classList.add("flex");
     };
 
     const hideDeleteModal = () => {
-      deleteModal?.classList.add("opacity-0", "pointer-events-none");
-      deleteModalBox?.classList.remove("scale-100");
-      deleteModalBox?.classList.add("scale-95");
+      deleteModal?.classList.add("hidden");
+      deleteModal?.classList.remove("flex");
     };
 
     cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
