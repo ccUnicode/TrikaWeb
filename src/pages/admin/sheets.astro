@@ -298,12 +298,10 @@ if (!isAdmin) {
   });
 
   courseInput?.addEventListener("input", () => {
-    if (qInput) qInput.value = "";
     scheduleSearch();
   });
 
   qInput?.addEventListener("input", () => {
-    if (courseInput) courseInput.value = "";
     scheduleSearch();
   });
 
