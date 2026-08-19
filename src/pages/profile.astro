@@ -70,45 +70,64 @@ const avatarUrl = userProfileDb?.avatar_url
     <div class="w-full max-w-5xl min-h-[60vh] rounded-3xl border border-global-border bg-global-surface shadow-2xl p-6 sm:p-8 flex flex-col profile-card-container">
       
       <!-- Información del Usuario -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 shrink-0">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 shrink-0">
         <div class="flex flex-col sm:flex-row sm:items-center gap-4">
-          <!-- Avatar -->
-          <div class="relative flex-shrink-0 rounded-full border-4 border-global-surface bg-global-bg p-1 shadow-lg group">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={initialProfile?.full_name}
-                class="h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover shadow-[0_0_15px_rgba(34,197,94,0.15)]"
-                onerror="this.style.display='none'; document.getElementById('profile-initial').style.display='flex';"
-              />
-            ) : null}
-            <div
-              id="profile-initial"
-              class={`flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-global-primary/10 border border-global-primary text-3xl sm:text-4xl font-bold text-global-primary shadow-[0_0_15px_rgba(34,197,94,0.15)] ${avatarUrl ? "hidden" : "flex"}`}
-            >
-              {
-                initialProfile?.full_name
-                  ? initialProfile.full_name.charAt(0).toUpperCase()
-                  : initialProfile?.email
-                    ? initialProfile.email.charAt(0).toUpperCase()
-                    : "?"
-              }
+          <!-- Top Row on Mobile: Avatar on Left, Logout on Right -->
+          <div class="flex items-center justify-between w-full sm:w-auto">
+            <!-- Avatar -->
+            <div class="relative w-fit shrink-0 rounded-full border-4 border-global-surface bg-global-bg p-1 shadow-lg group">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={initialProfile?.full_name}
+                  class="h-20 w-20 sm:h-24 sm:w-24 rounded-full object-cover shadow-[0_0_15px_rgba(34,197,94,0.15)]"
+                  onerror="this.style.display='none'; document.getElementById('profile-initial').style.display='flex';"
+                />
+              ) : null}
+              <div
+                id="profile-initial"
+                class={`flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-global-primary/10 border border-global-primary text-3xl sm:text-4xl font-bold text-global-primary shadow-[0_0_15px_rgba(34,197,94,0.15)] ${avatarUrl ? "hidden" : "flex"}`}
+              >
+                {
+                  initialProfile?.full_name
+                    ? initialProfile.full_name.charAt(0).toUpperCase()
+                    : initialProfile?.email
+                      ? initialProfile.email.charAt(0).toUpperCase()
+                      : "?"
+                }
+              </div>
+              <!-- Botón flotante para editar foto -->
+              <button
+                id="quick-edit-avatar-btn"
+                class="absolute bottom-0 right-0 bg-global-primary text-black p-1.5 sm:p-2 rounded-full shadow-md hover:scale-110 transition-transform cursor-pointer border-2 border-global-surface"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 sm:w-4 sm:h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                </svg>
+              </button>
             </div>
-            <!-- Botón flotante para editar foto -->
-            <button
-              id="quick-edit-avatar-btn"
-              class="absolute bottom-0 right-0 bg-global-primary text-black p-1.5 sm:p-2 rounded-full shadow-md hover:scale-110 transition-transform cursor-pointer border-2 border-global-surface"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5 sm:w-4 sm:h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-              </svg>
-            </button>
+
+            <!-- Botón Cerrar Sesión (Mobile only, en la misma fila del Avatar) -->
+            <div class="sm:hidden">
+              <form method="POST" action="/api/auth/logout">
+                <button
+                  type="submit"
+                  class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-2 text-xs font-semibold text-red-400 transition-all hover:bg-red-500 hover:text-white cursor-pointer shadow-sm active:scale-95"
+                  title="Cerrar sesión"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                  </svg>
+                  <span>Cerrar Sesión</span>
+                </button>
+              </form>
+            </div>
           </div>
 
           <!-- Datos del Usuario -->
-          <div class="space-y-1">
-            <div class="flex flex-wrap items-center gap-3">
-              <h1 id="profile-name" class="text-2xl sm:text-3xl font-extrabold text-global-text tracking-tight leading-none">
+          <div class="space-y-1.5">
+            <div class="flex flex-wrap items-center gap-2.5">
+              <h1 id="profile-name" class="text-2xl sm:text-3xl font-extrabold text-global-text tracking-tight leading-tight">
                 {initialProfile?.full_name || "Estudiante"}
               </h1>
               <span
@@ -124,15 +143,15 @@ const avatarUrl = userProfileDb?.avatar_url
             </div>
 
             <!-- Correo y Especialidad -->
-            <div class="flex flex-wrap items-center gap-4 text-global-text-muted text-sm mt-1">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-global-text-muted text-sm mt-1">
               <div class="flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-global-text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-global-text-muted shrink-0">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
                 </svg>
-                <span id="profile-email">{initialProfile?.email}</span>
+                <span id="profile-email" class="break-all">{initialProfile?.email}</span>
               </div>
               <div class="flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-global-text-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-global-text-muted shrink-0">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.636 50.636 0 00-2.658-.813A59.906 59.906 0 0112 3.493a59.903 59.903 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0A50.717 50.717 0 0112 13.489a50.702 50.702 0 017.74-3.342M6.75 15a.75.75 0 100-1.5.75.75 0 000 1.5zm0 0v-3.675A55.378 55.378 0 0112 8.443m-7.007 11.55A5.981 5.981 0 006.75 15.75v-1.5" />
                 </svg>
                 <span id="profile-specialty" class="font-medium text-global-primary">{displaySpecialty}</span>
@@ -141,8 +160,8 @@ const avatarUrl = userProfileDb?.avatar_url
           </div>
         </div>
 
-        <!-- Cerrar Sesión (Esquina superior derecha) -->
-        <div class="flex items-center sm:self-start shrink-0">
+        <!-- Cerrar Sesión (Desktop only, esquina superior derecha) -->
+        <div class="hidden sm:flex items-center self-start shrink-0">
           <form id="logout-form" method="POST" action="/api/auth/logout">
             <button
               type="submit"
@@ -256,12 +275,12 @@ const avatarUrl = userProfileDb?.avatar_url
 
         <!-- Panel 2: Mis Aportes -->
         <div id="tab-panel-aportes" class="tab-panel hidden space-y-6">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-start">
             
             <!-- Formulario de Donación (Lado Izquierdo) -->
-            <div class="lg:col-span-5 flex flex-col pt-1">
-              <h2 class="text-xl font-bold text-white mb-1">Subir nuevo aporte</h2>
-              <p class="text-sm text-global-text-muted mb-5">Dona material para que el equipo lo digitalice y diseñe.</p>
+            <div class="lg:col-span-5 flex flex-col rounded-2xl border border-global-border bg-global-card/40 p-5 sm:p-6 shadow-sm">
+              <h2 class="text-lg sm:text-xl font-bold text-white mb-1">Subir nuevo aporte</h2>
+              <p class="text-xs sm:text-sm text-global-text-muted mb-5">Dona material para que el equipo lo digitalice y diseñe.</p>
 
               <form id="contribution-form" class="space-y-4">
                 <!-- Buscador de Curso (Combobox estilo Admin Upload) -->
@@ -326,7 +345,7 @@ const avatarUrl = userProfileDb?.avatar_url
                         >
                           <span id="contrib-year-label" class="text-global-text-muted truncate">Año</span>
                           <svg id="contrib-year-chevron" class="h-4 w-4 text-gray-400 transition-transform shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         <ul
@@ -360,7 +379,7 @@ const avatarUrl = userProfileDb?.avatar_url
                         >
                           <span id="contrib-term-label" class="text-global-text-muted truncate">Sem.</span>
                           <svg id="contrib-term-chevron" class="h-4 w-4 text-gray-400 transition-transform shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         <ul
@@ -404,7 +423,7 @@ const avatarUrl = userProfileDb?.avatar_url
                     >
                       <span id="contrib-eval-label" class="text-global-text-muted truncate">Selecciona un curso primero</span>
                       <svg id="contrib-eval-chevron" class="h-4 w-4 text-gray-400 transition-transform shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
                     
@@ -469,11 +488,11 @@ const avatarUrl = userProfileDb?.avatar_url
 
             <!-- Historial de Aportes (Lado Derecho) -->
             <div class="lg:col-span-7 flex flex-col">
-              <div class="flex items-center justify-between mb-4 flex-wrap gap-2 px-1">
-                <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                  Mi Historial de Aportes
+              <div class="flex items-center justify-between mb-4 gap-2 px-1">
+                <h2 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                  <span>Mi Historial de Aportes</span>
                   {contributions && contributions.length > 0 && (
-                    <span class="text-sm font-semibold px-2.5 py-0.5 rounded-full bg-global-card border border-global-border text-gray-400">
+                    <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-global-card border border-global-border text-gray-400 shrink-0">
                       {contributions.length}
                     </span>
                   )}
@@ -482,12 +501,12 @@ const avatarUrl = userProfileDb?.avatar_url
                   <button
                     type="button"
                     id="clear-history-btn"
-                    class="px-3 py-1.5 bg-transparent hover:bg-red-600/10 text-global-text-muted hover:text-red-500 text-xs font-semibold rounded-full cursor-pointer transition-colors border border-global-border hover:border-red-600/20 flex items-center gap-1.5"
+                    class="px-3 py-1.5 bg-transparent hover:bg-red-600/10 text-global-text-muted hover:text-red-500 text-xs font-semibold rounded-full cursor-pointer transition-colors border border-global-border hover:border-red-600/20 flex items-center gap-1.5 shrink-0"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                     </svg>
-                    Vaciar Historial
+                    <span>Vaciar Historial</span>
                   </button>
                 )}
               </div>
