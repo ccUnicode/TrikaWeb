@@ -429,6 +429,7 @@ erDiagram
         text file_storage_path
         text status
         text admin_notes
+        boolean hidden_by_user
         timestamptz created_at
         timestamptz updated_at
     }
@@ -538,10 +539,12 @@ sequenceDiagram
         AdminUI->>DB: UPDATE contributions (status: "rejected")
     end
     
-    Note over User: Usuario limpia historial
-    User->>UI: Click en "Vaciar Historial"
-    UI->>DB: DELETE contributions WHERE status IN (pending, rejected)
-    Note right of DB: Las aprobadas se mantienen para su perfil
+    Note over User: Usuario limpia historial (o borra individualmente)
+    User->>UI: Click en "Vaciar Historial" o "Eliminar"
+    UI->>Storage: Elimina archivos de aportes pending/rejected (Hard Delete)
+    UI->>DB: DELETE contributions WHERE status IN (pending, rejected) (Hard Delete)
+    UI->>DB: UPDATE contributions SET hidden_by_user = true WHERE status = "approved" (Soft Delete)
+    Note right of DB: Las aprobadas se ocultan del UI pero persisten en la BD
 ```
 
 ---
