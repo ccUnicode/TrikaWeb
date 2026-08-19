@@ -5,23 +5,23 @@ export interface Props {
   class?: string;
 }
 
-const { intent = "neutral", showDot = false, class: extraClass = "" } = Astro.props;
+const { intent = "neutral", showDot = true, class: extraClass = "" } = Astro.props;
 
 const intentClasses = {
-  primary: "bg-global-primary-soft text-global-primary border-global-primary/20",
-  danger: "bg-global-danger-soft text-global-danger-text border-global-danger/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]",
-  success: "bg-global-success-soft text-global-success-text border-global-success/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]",
-  warning: "bg-global-warning-soft text-global-warning-text border-global-warning/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]",
-  info: "bg-global-info-soft text-global-info-text border-global-info/20",
-  neutral: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+  primary: "bg-global-primary/10 text-global-primary border-global-primary/20",
+  danger: "bg-red-600/20 text-red-400 border-red-600/30",
+  success: "bg-emerald-600/20 text-emerald-400 border-emerald-600/30",
+  warning: "bg-yellow-600/20 text-yellow-400 border-yellow-600/30",
+  info: "bg-blue-600/20 text-blue-400 border-blue-600/30",
+  neutral: "bg-white/5 text-global-text-muted border-white/10",
 };
 
 const dotClasses = {
   primary: "bg-global-primary",
-  danger: "bg-global-danger",
-  success: "bg-global-success",
-  warning: "bg-global-warning",
-  info: "bg-global-info",
+  danger: "bg-red-500",
+  success: "bg-emerald-500",
+  warning: "bg-yellow-500",
+  info: "bg-blue-500",
   neutral: "bg-gray-400",
 };
 
