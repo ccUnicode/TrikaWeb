@@ -328,7 +328,7 @@ y columnas completas están en [`db_schema.md`](../db_schema.md).
 | `course_prerequisites` | Prerrequisitos entre cursos dentro de un plan (`plan_id`, `course_id`, `prerequisite_id`) |
 
 > Las columnas `study_plans.id`, `plan_id` y `specialty_id` son «source of truth» de
-> `supabase/migrations/create_mallas_tables.sql`. A diferencia de `specialties` (serial),
+> `supabase/migrations/32_create_mallas_tables.sql`. A diferencia de `specialties` (serial),
 > `study_plans.id` es `uuid` con `gen_random_uuid()` y las eliminaciones en cascada
 > (`ON DELETE CASCADE`) se aplican sobre `plan_courses` y `course_prerequisites`.
 
