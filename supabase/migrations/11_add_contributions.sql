@@ -10,9 +10,10 @@ create table if not exists public.contributions (
   cycle text not null,
   exam_type text not null,
   contribution_type text not null check (contribution_type in ('sheet', 'solution')),
-  file_storage_path text not null,
+  file_storage_path text,
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   admin_notes text,
+  hidden_by_user boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -34,5 +35,5 @@ create policy "contributions_select_approved"
 
 -- Importante: El INSERT se realiza únicamente desde el backend con service_role para validar estado y usuario.
 -- Se omiten user_email y file_storage_path de la lectura pública por seguridad.
-grant select (id, user_id, user_name, course_id, cycle, exam_type, contribution_type, status, admin_notes, created_at, updated_at) on public.contributions to anon, authenticated;
+grant select (id, user_id, user_name, course_id, cycle, exam_type, contribution_type, status, admin_notes, hidden_by_user, created_at, updated_at) on public.contributions to anon, authenticated;
 grant usage on sequence public.contributions_id_seq to authenticated;

@@ -24,15 +24,42 @@ export default defineConfig({
     extend: {
       colors: {
         global: {
-          primary: "#22C55E",
-          "primary-hover": "#51A624",
+          // Tokens heredados (superficies y bordes)
           bg: "#101010",
           surface: "#171A1F",
           card: "#1E2430",
           border: "#2A3240",
-          "border-subtle": "#1E1E1E", // Custom subtle border color
+          "border-subtle": "#1E1E1E",
           text: "#E6E9EF",
-          "text-muted": "#B4BDC9", // Increased opacity for better readability
+          "text-muted": "#B4BDC9",
+
+          // --- NUEVOS COLORES SEMÁNTICOS (UI Kit) ---
+          primary: {
+            DEFAULT: "#22C55E",
+            hover: "#51A624",
+            soft: "rgba(34, 197, 94, 0.1)", // bg-green-500/10 equivalent
+          },
+          danger: {
+            DEFAULT: "#EF4444", // red-500
+            hover: "#DC2626",   // red-600
+            text: "#F87171",    // red-400
+            soft: "rgba(239, 68, 68, 0.1)",
+          },
+          success: {
+            DEFAULT: "#10B981", // emerald-500
+            text: "#6EE7B7",    // emerald-300
+            soft: "rgba(16, 185, 129, 0.1)",
+          },
+          warning: {
+            DEFAULT: "#F59E0B", // amber-500
+            text: "#FCD34D",    // amber-300
+            soft: "rgba(245, 158, 11, 0.1)",
+          },
+          info: {
+            DEFAULT: "#3B82F6", // blue-500
+            text: "#60A5FA",    // blue-400
+            soft: "rgba(59, 130, 246, 0.1)",
+          }
         },
       },
       maxWidth: {

@@ -9,6 +9,7 @@ interface NavigationItem {
   label: string;
   icon: AdminIconName;
   showBadge?: boolean;
+  badgeId?: string;
 }
 
 const navigationItems: NavigationItem[] = [
@@ -37,11 +38,14 @@ const navigationItems: NavigationItem[] = [
     label: "Moderación",
     icon: "moderation",
     showBadge: true,
+    badgeId: "admin-sidebar-moderation-badge",
   },
   {
     href: "/admin/contributions",
     label: "Aportes",
     icon: "contributions",
+    showBadge: true,
+    badgeId: "admin-sidebar-contributions-badge",
   },
   {
     href: "/admin/mallas",
@@ -258,7 +262,7 @@ const isActiveRoute = (href: string): boolean => {
 
                 {item.showBadge && (
                   <span
-                    id="admin-sidebar-moderation-badge"
+                    id={item.badgeId || "admin-sidebar-moderation-badge"}
                     class="
                         sidebar-badge
                         ml-auto
@@ -408,9 +412,27 @@ const isActiveRoute = (href: string): boolean => {
     }
   }
 
+  async function loadContributionsBadge() {
+    const badge = document.getElementById("admin-sidebar-contributions-badge");
+    if (!badge) return;
+
+    try {
+      const response = await fetch("/api/admin/contributions/list");
+      if (!response.ok) return;
+      const data = await response.json();
+      const pending = (data.contributions ?? []).filter((c: any) => c.status === "pending").length;
+      badge.textContent = String(pending);
+      badge.classList.toggle("hidden", pending <= 0);
+    } catch {
+      // El contador no debe impedir que el sidebar funcione.
+    }
+  }
+
   updateToggleAccessibility();
   loadModerationBadge();
+  loadContributionsBadge();
   window.addEventListener("refresh-moderation-badges", loadModerationBadge);
+  window.addEventListener("refresh-contributions-badges", loadContributionsBadge);
 </script>
 
 <style is:global>

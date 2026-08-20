@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import AdminHeader from "../../components/AdminHeader.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 import AdminLayout from "../../components/AdminLayout.astro";
+import ModalConfirm from "../../components/ModalConfirm.astro";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
 if (!isAdmin) {
@@ -89,7 +90,7 @@ if (!isAdmin) {
         <button
           id="status-pending"
           type="button"
-          class="status-tab rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
+          class="status-tab flex-1 sm:flex-initial rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
           data-status="pending"
         >
           Pendientes
@@ -97,52 +98,54 @@ if (!isAdmin) {
         <button
           id="status-all"
           type="button"
-          class="status-tab rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
+          class="status-tab flex-1 sm:flex-initial rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
           data-status="all"
         >
           Historial
         </button>
       </div>
-      <div class="relative flex-1">
-        <svg
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-global-text-muted"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <div class="flex items-center gap-2 flex-1">
+        <div class="relative flex-1">
+          <svg
+            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-global-text-muted"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Buscar..."
+            class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+          />
+        </div>
+        <button
+          id="refresh-btn"
+          type="button"
+          class="inline-flex items-center justify-center shrink-0 w-10 h-10 rounded-xl border border-global-border bg-global-card text-global-text transition hover:bg-global-border cursor-pointer active:scale-95"
+          title="Actualizar"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-        </svg>
-        <input
-          id="search-input"
-          type="text"
-          placeholder="Buscar..."
-          class="w-full rounded-xl border border-global-border bg-global-bg pl-10 pr-4 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-        />
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            ></path>
+          </svg>
+        </button>
       </div>
-      <button
-        id="refresh-btn"
-        type="button"
-        class="inline-flex items-center justify-center gap-2 rounded-xl border border-global-border bg-global-card px-3 py-2 text-sm text-global-text transition hover:bg-global-border cursor-pointer"
-        title="Actualizar"
-      >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          ></path>
-        </svg>
-      </button>
     </div>
   </div>
 
@@ -218,41 +221,14 @@ if (!isAdmin) {
     <p class="text-sm text-global-text-muted">Cargando...</p>
   </div>
   <!-- Generic Confirmation Modal -->
-  <div
+  <ModalConfirm
     id="admin-confirm-modal"
-    class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
-  >
-    <div
-      class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300"
-      id="admin-confirm-modal-box"
-    >
-      <h3
-        id="admin-modal-title"
-        class="text-lg font-bold text-global-text mb-2"
-      >
-        Confirmar
-      </h3>
-      <p id="admin-modal-body" class="text-global-text-muted text-sm mb-6">
-        ¿Desea continuar?
-      </p>
-      <div class="flex justify-end gap-3">
-        <button
-          type="button"
-          id="admin-modal-cancel"
-          class="rounded-xl border border-global-border bg-global-card px-4 py-2 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
-        >
-          Cancelar
-        </button>
-        <button
-          type="button"
-          id="admin-modal-confirm"
-          class="rounded-xl px-4 py-2 text-sm font-semibold transition cursor-pointer text-white"
-        >
-          Confirmar
-        </button>
-      </div>
-    </div>
-  </div>
+    title="¿Eliminar permanentemente?"
+    message="Esta acción no se puede deshacer."
+    confirmText="Eliminar"
+    confirmId="admin-modal-confirm"
+    cancelId="admin-modal-cancel"
+  />
   </AdminLayout>
 </Layout>
 
@@ -283,9 +259,6 @@ if (!isAdmin) {
 
   // Modal
   const adminModal = document.getElementById("admin-confirm-modal");
-  const adminModalBox = document.getElementById("admin-confirm-modal-box");
-  const adminModalTitle = document.getElementById("admin-modal-title");
-  const adminModalBody = document.getElementById("admin-modal-body");
   const adminModalCancel = document.getElementById("admin-modal-cancel");
   const adminModalConfirm = document.getElementById(
     "admin-modal-confirm",
@@ -293,30 +266,19 @@ if (!isAdmin) {
 
   let confirmActionCb: (() => void) | null = null;
 
-  function showAdminModal(
-    title: string,
-    body: string,
-    btnText: string,
-    btnClass: string,
-    actionCb: () => void,
-  ) {
-    if (adminModalTitle) adminModalTitle.textContent = title;
-    if (adminModalBody) adminModalBody.textContent = body;
-    if (adminModalConfirm) {
-      adminModalConfirm.textContent = btnText;
-      adminModalConfirm.className = `rounded-xl px-4 py-2 text-sm font-semibold transition cursor-pointer ${btnClass}`;
-    }
+  function showAdminModal(actionCb: () => void) {
     confirmActionCb = actionCb;
-
-    adminModal?.classList.remove("opacity-0", "pointer-events-none");
-    adminModalBox?.classList.remove("scale-95");
-    adminModalBox?.classList.add("scale-100");
+    if (adminModal) {
+      adminModal.classList.remove("hidden");
+      adminModal.classList.add("flex");
+    }
   }
 
   function hideAdminModal() {
-    adminModal?.classList.add("opacity-0", "pointer-events-none");
-    adminModalBox?.classList.remove("scale-100");
-    adminModalBox?.classList.add("scale-95");
+    if (adminModal) {
+      adminModal.classList.add("hidden");
+      adminModal.classList.remove("flex");
+    }
     confirmActionCb = null;
   }
 
@@ -501,40 +463,43 @@ if (!isAdmin) {
         const stars =
           "★".repeat(Math.round(item.overall)) +
           "☆".repeat(5 - Math.round(item.overall));
-        const reviewBadge = item.needs_review
-          ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">Pendiente</span>'
-          : '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Revisado</span>';
-        const hiddenBadge = item.is_hidden
-          ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
-          : "";
+        const statusBadge = item.is_hidden
+          ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-red-600/20 text-red-400 border-red-600/30"><span class="w-1.5 h-1.5 rounded-full shrink-0 bg-red-500"></span> OCULTO</span>'
+          : item.needs_review
+          ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-amber-600/20 text-amber-400 border-amber-600/30"><span class="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-500"></span> PENDIENTE</span>'
+          : '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-emerald-600/20 text-emerald-400 border-emerald-600/30"><span class="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500"></span> REVISADO</span>';
 
         const authorText = item.user_name
           ? escapeHtml(item.user_name)
           : "Anónimo";
         const authorBadge = item.is_anonymous
-          ? '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-global-border text-global-text-muted rounded flex items-center gap-1" title="El estudiante publicó de forma anónima, pero tú (admin) puedes ver su nombre">Anónimo</span>'
-          : '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-400 rounded flex items-center gap-1" title="El estudiante publicó de forma pública">Público</span>';
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-md border border-gray-700 bg-gray-800 text-gray-400" title="El estudiante publicó de forma anónima, pero tú (admin) puedes ver su nombre">Anónimo</span>'
+          : '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-md border border-blue-600/30 bg-blue-600/20 text-blue-400" title="El estudiante publicó de forma pública">Público</span>';
 
         const table = "teacher_ratings";
 
         return `
-                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? "ring-1 ring-amber-500/20" : ""}" data-item-id="${item.id}">
-                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                            <div>
-                                <div class="flex items-center gap-2 flex-wrap mb-1">
-                                    <a href="/profesores/${item.teacher_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">${escapeHtml(item.teacher_name)}</a>
-                                    ${reviewBadge}
-                                    ${hiddenBadge}
-                                </div>
-                                <div class="flex items-center gap-2 mb-1">
+                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 transition-all ${item.is_hidden ? "opacity-45 border-dashed border-gray-800 bg-[#0c0c0c]" : item.needs_review ? "ring-1 ring-amber-500/20" : ""}" data-item-id="${item.id}">
+                        <div class="flex items-start justify-between gap-3 mb-3">
+                            <div class="flex-1 min-w-0">
+                                <a href="/profesores/${item.teacher_id}" target="_blank" class="group inline-flex items-center gap-1.5 font-bold text-white hover:text-global-primary transition text-base line-clamp-1 max-w-full" title="Ver perfil de ${escapeHtml(item.teacher_name)}">
+                                    <span class="truncate">${escapeHtml(item.teacher_name)}</span>
+                                    <svg class="w-3.5 h-3.5 text-global-text-muted group-hover:text-global-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
                                     <p class="text-xs text-global-text">Autor: <span class="font-medium">${authorText}</span></p>
                                     ${authorBadge}
                                 </div>
                                 <p class="text-xs text-global-text-muted mt-0.5">${date}</p>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <span class="text-yellow-400 text-sm">${stars}</span>
-                                <span class="text-xs text-global-text-muted">(${item.overall.toFixed(1)})</span>
+                            <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                ${statusBadge}
+                                <div class="flex items-center gap-1 mt-0.5">
+                                    <span class="text-yellow-400 text-xs">${stars}</span>
+                                    <span class="text-xs text-global-text-muted">(${item.overall.toFixed(1)})</span>
+                                </div>
                             </div>
                         </div>
 
@@ -573,7 +538,7 @@ if (!isAdmin) {
                               item.needs_review
                                 ? `
                                 <button type="button" onclick="approveItem(${item.id}, '${table}')"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
+                                    class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-global-primary text-black hover:bg-global-primary-hover focus-visible:ring-global-primary">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
@@ -586,18 +551,18 @@ if (!isAdmin) {
                               !item.is_hidden
                                 ? `
                                 <button type="button" onclick="hideItem(${item.id}, '${table}')"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-orange-600/20 border border-orange-600/30 px-4 py-2 text-sm font-medium text-orange-400 transition hover:bg-orange-600/30 cursor-pointer">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                                    class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-amber-600/20 text-amber-400 border border-amber-600/30 hover:bg-amber-600/30 focus-visible:ring-amber-500">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        <path d="M3 3l18 18" />
                                     </svg>
                                     Ocultar
                                 </button>
                             `
                                 : `
                                 <button type="button" onclick="unhideItem(${item.id}, '${table}')"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-600/30 cursor-pointer">
+                                    class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600/30 focus-visible:ring-emerald-500">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -607,7 +572,7 @@ if (!isAdmin) {
                             `
                             }
                             <button type="button" onclick="deleteItem(${item.id}, '${table}')"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer">
+                                class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 focus-visible:ring-red-500">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
@@ -635,36 +600,39 @@ if (!isAdmin) {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const reviewBadge = item.needs_review
-          ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-amber-500/20 text-amber-400 rounded-full border border-amber-500/30">Pendiente</span>'
-          : '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-green-500/20 text-green-400 rounded-full border border-green-500/30">Revisado</span>';
-        const hiddenBadge = item.is_hidden
-          ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-red-500/20 text-red-400 rounded-full border border-red-500/30">Oculto</span>'
-          : "";
+        const statusBadge = item.is_hidden
+          ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-red-600/20 text-red-400 border-red-600/30"><span class="w-1.5 h-1.5 rounded-full shrink-0 bg-red-500"></span> OCULTO</span>'
+          : item.needs_review
+          ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-amber-600/20 text-amber-400 border-amber-600/30"><span class="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-500"></span> PENDIENTE</span>'
+          : '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-emerald-600/20 text-emerald-400 border-emerald-600/30"><span class="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500"></span> REVISADO</span>';
 
         const authorText = item.user_name
           ? escapeHtml(item.user_name)
           : "Anónimo";
         const authorBadge = item.is_anonymous
-          ? '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-global-border text-global-text-muted rounded flex items-center gap-1" title="El estudiante publicó de forma anónima, pero tú (admin) puedes ver su nombre">Anónimo</span>'
-          : '<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500/10 text-blue-400 rounded flex items-center gap-1" title="El estudiante publicó de forma pública">Público</span>';
+          ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-md border border-gray-700 bg-gray-800 text-gray-400" title="El estudiante publicó de forma anónima, pero tú (admin) puedes ver su nombre">Anónimo</span>'
+          : '<span class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold rounded-md border border-blue-600/30 bg-blue-600/20 text-blue-400" title="El estudiante publicó de forma pública">Público</span>';
 
         const table = "sheet_feedback";
 
         return `
-                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 ${item.needs_review ? "ring-1 ring-amber-500/20" : ""}" data-item-id="${item.id}">
-                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                            <div>
-                                <div class="flex items-center gap-2 flex-wrap mb-1">
-                                    <a href="/exams/${item.sheet_id}" target="_blank" class="font-semibold text-global-text hover:text-global-primary transition">${escapeHtml(item.sheet_label)}</a>
-                                    ${reviewBadge}
-                                    ${hiddenBadge}
-                                </div>
-                                <div class="flex items-center gap-2 mb-1">
+                    <div class="rounded-2xl bg-global-surface border border-global-border p-5 transition-all ${item.is_hidden ? "opacity-45 border-dashed border-gray-800 bg-[#0c0c0c]" : item.needs_review ? "ring-1 ring-amber-500/20" : ""}" data-item-id="${item.id}">
+                        <div class="flex items-start justify-between gap-3 mb-3">
+                            <div class="flex-1 min-w-0">
+                                <a href="/exams/${item.sheet_id}" target="_blank" class="group inline-flex items-center gap-1.5 font-bold text-white hover:text-global-primary transition text-base line-clamp-1 max-w-full" title="Ver plancha ${escapeHtml(item.sheet_label)}">
+                                    <span class="truncate">${escapeHtml(item.sheet_label)}</span>
+                                    <svg class="w-3.5 h-3.5 text-global-text-muted group-hover:text-global-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                                <div class="flex items-center gap-2 mt-1 flex-wrap">
                                     <p class="text-xs text-global-text">Autor: <span class="font-medium">${authorText}</span></p>
                                     ${authorBadge}
                                 </div>
                                 <p class="text-xs text-global-text-muted mt-0.5">${date} ${isEdited ? '<span class="italic text-global-text-muted/60 ml-1">(editado)</span>' : ''}</p>
+                            </div>
+                            <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                ${statusBadge}
                             </div>
                         </div>
 
@@ -679,7 +647,7 @@ if (!isAdmin) {
                               item.needs_review
                                 ? `
                                 <button type="button" onclick="approveItem(${item.id}, '${table}')"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-global-primary px-4 py-2 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer">
+                                    class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-global-primary text-black hover:bg-global-primary-hover focus-visible:ring-global-primary">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                     </svg>
@@ -692,18 +660,18 @@ if (!isAdmin) {
                               !item.is_hidden
                                 ? `
                                 <button type="button" onclick="hideItem(${item.id}, '${table}')"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-orange-600/20 border border-orange-600/30 px-4 py-2 text-sm font-medium text-orange-400 transition hover:bg-orange-600/30 cursor-pointer">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />
+                                    class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-amber-600/20 text-amber-400 border border-amber-600/30 hover:bg-amber-600/30 focus-visible:ring-amber-500">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        <path d="M3 3l18 18" />
                                     </svg>
                                     Ocultar
                                 </button>
                             `
                                 : `
                                 <button type="button" onclick="unhideItem(${item.id}, '${table}')"
-                                    class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-600/30 px-4 py-2 text-sm font-medium text-blue-400 transition hover:bg-blue-600/30 cursor-pointer">
+                                    class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600/30 focus-visible:ring-emerald-500">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -713,7 +681,7 @@ if (!isAdmin) {
                             `
                             }
                             <button type="button" onclick="deleteItem(${item.id}, '${table}')"
-                                class="inline-flex items-center gap-1.5 rounded-lg bg-red-600/20 border border-red-600/30 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer">
+                                class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3.5 py-1.5 text-xs rounded-lg gap-1.5 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 focus-visible:ring-red-500">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                 </svg>
@@ -790,12 +758,7 @@ if (!isAdmin) {
   };
 
   (window as any).deleteItem = function (id: number, table: string) {
-    showAdminModal(
-      "¿Eliminar permanentemente?",
-      "Esta acción no se puede deshacer.",
-      "Eliminar",
-      "bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20",
-      async () => {
+    showAdminModal(async () => {
         const card = document.querySelector(`[data-item-id="${id}"]`);
         if (card) card.classList.add("opacity-50", "pointer-events-none");
 

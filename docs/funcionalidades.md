@@ -115,11 +115,13 @@
 
 ## Contribuciones de usuarios
 
-- Usuarios externos pueden enviar planchas/solucionarios.
+- Usuarios externos pueden enviar planchas o solucionarios.
 - Las contribuciones pasan por un flujo de revisión (pending → approved/rejected).
 - Almacena datos del contribuyente (nombre, email).
-- El usuario puede listar sus contribuciones y limpiar su historial (las aprobadas se conservan).
-- Al aprobar una contribución, el archivo se copia a `exams` y se crea la plancha.
+- El usuario puede listar sus contribuciones y gestionarlas (eliminarlas individualmente o vaciar su historial completo). Para aportes pendientes y rechazados se aplica un borrado real (Hard Delete, que también elimina el archivo), mientras que los aprobados se ocultan de su vista (Soft Delete) para conservar la estadística general.
+- **Flujo de Planchas (Exámenes):** Al aprobar, el archivo se auto-publica (se copia a `exams` y se crea la plancha). El archivo original de contribuciones se elimina inmediatamente del Storage, pero se conserva el registro de la contribución en base de datos.
+- **Flujo de Solucionarios:** Al aprobar, se mantiene en el panel del administrador hasta que sea vinculado manualmente a un examen existente. Luego, el administrador puede marcarlo como procesado ("Eliminar archivo"), lo que borra el archivo del Storage y deja el campo de la ruta en `null`, conservando el registro histórico.
+- **Rechazos:** Si una contribución es rechazada, se elimina automáticamente su archivo del Storage.
 
 ## Perfiles de usuario
 

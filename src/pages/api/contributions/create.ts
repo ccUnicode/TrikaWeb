@@ -17,8 +17,8 @@ const VALID_EXAM_TYPES = new Set([
   'Parcial', 'Final', 'Sustitutorio'
 ]);
 
-// Valida formatos como 2024-I, 2024-II, 2024-0
-const CYCLE_REGEX = /^20\d{2}-(I|II|0)$/;
+// Valida formatos como 2024-I, 2024-II, 2024-III
+const CYCLE_REGEX = /^20\d{2}-(I|II|III)$/;
 
 export const POST: APIRoute = async ({ request, cookies }) => {
   const { user, profile } = await getUserSession(cookies);
@@ -48,12 +48,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       return new Response(JSON.stringify({ error: 'Tipo de aporte inválido' }), { status: 400 });
     }
 
-    if (!VALID_EXAM_TYPES.has(examType)) {
+    if (!examType || examType.length > 50) {
       return new Response(JSON.stringify({ error: 'Tipo de evaluación inválido' }), { status: 400 });
     }
 
     if (!CYCLE_REGEX.test(cycle)) {
-      return new Response(JSON.stringify({ error: 'Formato de ciclo inválido. Use el formato YYYY-I, YYYY-II o YYYY-0 (ej. 2025-I)' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'Formato de ciclo inválido. Use el formato YYYY-I, YYYY-II o YYYY-III (ej. 2025-I)' }), { status: 400 });
     }
 
     if (!(file instanceof File)) {
@@ -68,6 +68,100 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
     if (file.size > MAX_BYTES) {
       return new Response(JSON.stringify({ error: 'El archivo no puede superar los 10 MB' }), { status: 400 });
+    }
+
+    // --- Validaciones de no duplicidad ---
+
+    // 1. Validar si ya hay un aporte PENDIENTE para la misma combinación
+    const { data: pendingContrib } = await supabaseAdmin
+      .from('contributions')
+      .select('id, user_id')
+      .eq('course_id', courseId)
+      .eq('cycle', cycle)
+      .ilike('exam_type', examType)
+      .eq('contribution_type', contributionType)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (pendingContrib) {
+      const isMine = pendingContrib.user_id === user.id;
+      return new Response(JSON.stringify({
+        error: isMine
+          ? `Ya tienes un aporte pendiente de revisión para ${examType} (${cycle}).`
+          : `Ya existe un aporte en revisión enviado para ${examType} (${cycle}).`
+      }), { status: 400 });
+    }
+
+    // 2. Si es una plancha (examen), validar si ya está aprobada o ya existe en el catálogo oficial
+    if (contributionType === 'sheet') {
+      // 2.1. Comprobar si ya existe un aporte aprobado en contributions
+      const { data: approvedContrib } = await supabaseAdmin
+        .from('contributions')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('cycle', cycle)
+        .ilike('exam_type', examType)
+        .eq('contribution_type', 'sheet')
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      if (approvedContrib) {
+        return new Response(JSON.stringify({
+          error: `Ya existe una plancha aprobada para ${examType} (${cycle}) en este curso.`
+        }), { status: 400 });
+      }
+
+      // 2.2. Comprobar si ya existe en la tabla oficial de 'sheets'
+      let { data: existingSheet } = await supabaseAdmin
+        .from('sheets')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('cycle', cycle)
+        .ilike('exam_type', examType)
+        .maybeSingle();
+
+      if (!existingSheet) {
+        const { data: evalType } = await supabaseAdmin
+          .from('evaluation_type')
+          .select('evaluation_id')
+          .or(`evaluation_abr.eq.${examType},evaluation_name.eq.${examType}`)
+          .maybeSingle();
+
+        if (evalType) {
+          const { data: sheetByEval } = await supabaseAdmin
+            .from('sheets')
+            .select('id')
+            .eq('course_id', courseId)
+            .eq('cycle', cycle)
+            .eq('evaluation_id', evalType.evaluation_id)
+            .maybeSingle();
+          existingSheet = sheetByEval;
+        }
+      }
+
+      if (existingSheet) {
+        return new Response(JSON.stringify({
+          error: `Ya existe una plancha oficial publicada para ${examType} (${cycle}) en este curso.`
+        }), { status: 400 });
+      }
+    } else if (contributionType === 'solution') {
+      // 2.3. Si es un solucionario, comprobar si ya hay uno aprobado activo
+      const { data: approvedSolution } = await supabaseAdmin
+        .from('contributions')
+        .select('id')
+        .eq('course_id', courseId)
+        .eq('cycle', cycle)
+        .ilike('exam_type', examType)
+        .eq('contribution_type', 'solution')
+        .eq('status', 'approved')
+        .not('file_storage_path', 'is', null)
+        .maybeSingle();
+
+      if (approvedSolution) {
+        return new Response(JSON.stringify({
+          error: `Ya existe un solucionario aprobado para ${examType} (${cycle}) en este curso.`
+        }), { status: 400 });
+      }
     }
 
     // Asegurar que el bucket privado 'contributions' exista

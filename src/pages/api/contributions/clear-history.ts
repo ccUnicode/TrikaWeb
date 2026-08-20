@@ -12,8 +12,8 @@ export const POST: APIRoute = async ({ cookies }) => {
   }
 
   try {
-    // 1. Obtener todos los aportes del usuario para poder limpiar sus archivos del storage
-    const { data: contributions, error: fetchError } = await supabaseAdmin
+    // 1. Obtener todos los aportes pendientes/rechazados del usuario para limpiar sus archivos del storage
+    const { data: contributionsForDeletion, error: fetchError } = await supabaseAdmin
       .from('contributions')
       .select('id, file_storage_path')
       .eq('user_id', user.id)
@@ -24,7 +24,7 @@ export const POST: APIRoute = async ({ cookies }) => {
       return new Response(JSON.stringify({ error: 'Error al consultar los aportes' }), { status: 500 });
     }
 
-    // 2. Eliminar todos los registros de aportes del usuario en la base de datos
+    // 2. Hard Delete: Eliminar registros de aportes pendientes/rechazados
     const { error: deleteError } = await supabaseAdmin
       .from('contributions')
       .delete()
@@ -36,9 +36,21 @@ export const POST: APIRoute = async ({ cookies }) => {
       return new Response(JSON.stringify({ error: 'Error al eliminar el historial de aportes de la base de datos' }), { status: 500 });
     }
 
-    // 3. Si se eliminaron de la BD con éxito y tienen archivos asociados, eliminarlos del bucket
-    if (contributions && contributions.length > 0) {
-      const filePaths = contributions
+    // 3. Soft Delete: Ocultar los aprobados
+    const { error: hideError } = await supabaseAdmin
+      .from('contributions')
+      .update({ hidden_by_user: true })
+      .eq('user_id', user.id)
+      .eq('status', 'approved');
+
+    if (hideError) {
+      console.error('Error hiding approved contributions rows:', hideError);
+      return new Response(JSON.stringify({ error: 'Error al ocultar el historial de aportes aprobados' }), { status: 500 });
+    }
+
+    // 4. Limpiar archivos huérfanos del bucket
+    if (contributionsForDeletion && contributionsForDeletion.length > 0) {
+      const filePaths = contributionsForDeletion
         .map((c) => c.file_storage_path)
         .filter((path): path is string => typeof path === 'string' && path.trim() !== '');
 
@@ -49,7 +61,6 @@ export const POST: APIRoute = async ({ cookies }) => {
 
         if (storageError) {
           console.error('Error deleting user draft files from storage:', storageError);
-          // Al menos ya no bloqueamos la BD, aunque queden archivos huérfanos en Storage
         }
       }
     }
