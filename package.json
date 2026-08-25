@@ -9,6 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "check": "astro check",
+    "test:e2e": "playwright test",
     "astro": "astro",
     "drive:sync": "ts-node scripts/upload-from-drive.ts --type=all",
     "drive:sync-exams": "ts-node scripts/upload-from-drive.ts --type=exams",
