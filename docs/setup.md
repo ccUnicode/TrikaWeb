@@ -1,21 +1,55 @@
-# Setup y Configuración
+# Setup y configuración
+
+Este documento describe cómo preparar, configurar y validar un entorno local de TrikaWeb.
+
+Para una guía de incorporación al proyecto, accesos necesarios y primera contribución, consultar [`onboarding.md`](./onboarding.md).
 
 ## Requisitos
 
-- Node.js >=22.12.0
-- npm
-- Proyecto de Supabase (DB + Storage)
-- Proyecto de Firebase (Auth para estudiantes)
+Antes de comenzar, instalar:
+
+- Node.js >= 22.12.0.
+- npm.
+- Git.
+
+Para ejecutar las pruebas E2E también se requieren los navegadores administrados por Playwright.
 
 ## Instalación local
 
+Clonar el repositorio:
+
 ```bash
-npm install
+git clone <URL_DEL_REPOSITORIO>
+cd TrikaWeb
+```
+
+Instalar las dependencias utilizando las versiones registradas en `package-lock.json`:
+
+```bash
+npm ci
+```
+
+Crear el archivo de variables de entorno tomando `.env.example` como referencia.
+
+En Git Bash, Linux o WSL:
+
+```bash
 cp .env.example .env
+```
+
+En PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Completar las variables necesarias y levantar el servidor:
+
+```bash
 npm run dev
 ```
 
-Servidor local:
+Por defecto, la aplicación estará disponible en:
 
 ```text
 http://localhost:4321
@@ -23,241 +57,343 @@ http://localhost:4321
 
 ## Variables de entorno
 
-Usar `.env.example` como referencia.
+Usar `.env.example` como referencia para conocer las variables requeridas y su formato.
 
-### Servidor — variables privadas
+No incluir credenciales reales en la documentación ni versionar el archivo `.env`.
 
-* `SUPABASE_URL`
-* `SUPABASE_SERVICE_KEY`
-* `IP_SALT`
-* `ADMIN_PASS`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
-* `GOOGLE_APPLICATION_CREDENTIALS`, si se utiliza la sincronización con Drive
-* `DRIVE_EXAMS_FOLDER_ID`, si se utiliza la sincronización con Drive
-* `DRIVE_SOLUTIONS_FOLDER_ID`, si se utiliza la sincronización con Drive
+### Variables privadas del servidor
 
-Estas variables no deben exponerse mediante el prefijo `PUBLIC_` ni utilizarse directamente en componentes ejecutados en el navegador.
+Las siguientes variables deben utilizarse exclusivamente desde código ejecutado en el servidor:
 
-### Cliente (publicas)
+- `SUPABASE_URL`: URL del proyecto de Supabase.
+- `SUPABASE_SERVICE_KEY`: `service_role` o secret key utilizada por operaciones administrativas.
+- `IP_SALT`: cadena aleatoria utilizada para generar hashes asociados a direcciones IP.
+- `ADMIN_PASS`: contraseña utilizada para el acceso administrstivo (`/admin/login`).
+- `GOOGLE_APPLICATION_CREDENTIALS`: ruta a las credenciales utilizadas por la sincronización con Google Drive, si aplica.
+- `DRIVE_EXAMS_FOLDER_ID`: identificador de la carpeta de evaluaciones de Google Drive, si aplica.
+- `DRIVE_SOLUTIONS_FOLDER_ID`: identificador de la carpeta de solucionarios de Google Drive, si aplica.
 
-- `PUBLIC_SUPABASE_URL`
-- `PUBLIC_SUPABASE_ANON_KEY`
+`SUPABASE_SERVICE_KEY`, `IP_SALT`, `ADMIN_PASS` y otras credenciales privadas nunca deben exponerse mediante variables `PUBLIC_*` ni utilizarse directamente desde componentes ejecutados en el navegador.
 
-Nota: Supabase sigue siendo la base de datos y storage; Firebase queda como proveedor de autenticación para estudiantes.
+### Variables públicas del cliente
+
+- `PUBLIC_SUPABASE_URL`: URL pública del proyecto de Supabase.
+- `PUBLIC_SUPABASE_ANON_KEY`: clave `anon` o `publishable` utilizada por el cliente.
+
+Las variables con prefijo `PUBLIC_` pueden formar parte del código enviado al navegador y, por lo tanto, no deben contener secretos.
+
+## Autenticación
+
+TrikaWeb utiliza actualmente Supabase Auth para la autenticación de estudiantes.
+
+El flujo de autenticación de estudiantes utiliza OAuth con Google mediante Supabase y las rutas:
+
+```text
+/api/auth/signin
+/api/auth/callback
+/api/auth/logout
+```
+
+La autenticación administrativa utiliza su propio flujo de sesión y debe ejecutarse exclusivamente mediante endpoints y utilidades del servidor.
+
+Para conocer el flujo completo, consultar la documentación de arquitectura y API.
+
+## Validación del proyecto
+
+Después de instalar y configurar el proyecto, ejecutar las validaciones antes de comenzar cambios funcionales.
+
+### Validación estática
+
+```bash
+npm run check
+```
+
+Este comando ejecuta las comprobaciones de Astro y TypeScript.
+
+Debe finalizar sin errores.
+
+### Build de producción
+
+```bash
+npm run build
+```
+
+El build debe completarse correctamente antes de considerar válido el entorno.
+
+### Pruebas E2E
+
+Las pruebas end-to-end utilizan Playwright.
+
+En una máquina nueva, instalar primero los navegadores requeridos:
+
+```bash
+npx playwright install
+```
+
+En Linux o entornos CI puede utilizarse:
+
+```bash
+npx playwright install --with-deps
+```
+
+Ejecutar las pruebas:
+
+```bash
+npm run test:e2e
+```
+
+Playwright utiliza la configuración definida en `playwright.config.ts` y puede iniciar automáticamente el servidor requerido para las pruebas.
 
 ## Base de datos
 
-La base de datos se construye mediante:
+TrikaWeb utiliza PostgreSQL mediante Supabase.
 
-1. El esquema inicial del proyecto.
-2. Las migraciones organizadas por funcionalidad.
-3. Las migraciones finales de seguridad y permisos.
+La configuración de base de datos se encuentra principalmente en:
 
-`supabase/function_triggers.sql` ya no forma parte del flujo de instalación. Sus funciones y triggers fueron distribuidos dentro de las migraciones correspondientes.
+```text
+supabase/
+├── migrations/
+├── schema.sql
+└── seed.sql
+```
+
+`supabase/schema.sql` representa el esquema inicial del proyecto.
+
+Los cambios posteriores al esquema deben aplicarse mediante las migraciones almacenadas en:
+
+```text
+supabase/migrations/
+```
+
+`supabase/function_triggers.sql` no debe utilizarse como una etapa adicional del flujo actual de instalación si sus funciones y triggers ya se encuentran incorporados en las migraciones correspondientes.
 
 ### Instalación nueva
 
-Para una base de datos vacía, ejecutar primero:
+Para preparar una base de datos vacía:
 
-```text
-supabase/schema.sql
-```
+1. Crear o seleccionar el proyecto de Supabase correspondiente.
+2. Aplicar el esquema inicial cuando el procedimiento del proyecto lo requiera.
+3. Aplicar las migraciones pendientes respetando sus dependencias.
+4. Ejecutar los datos iniciales únicamente cuando sean necesarios.
+5. Verificar las políticas, permisos, funciones y triggers resultantes.
 
-Después, ejecutar las migraciones en el siguiente orden.
+> **Importante:** el orden y los nombres de las migraciones deben corresponder exactamente con los archivos existentes en `supabase/migrations/`.
 
-#### 1. Configuración inicial de seguridad
+### Migraciones
 
-```text
-supabase/migrations/harden_public_schema_defaults.sql
-```
+Las migraciones representan cambios incrementales realizados sobre la base de datos.
 
-Esta migración configura los privilegios predeterminados para evitar que las nuevas funciones queden disponibles automáticamente para roles cliente.
+Antes de ejecutar una migración:
 
-#### 2. Perfiles de usuario
+1. Revisar si ya fue aplicada al ambiente.
+2. Revisar sus dependencias con migraciones anteriores.
+3. Comprobar si modifica datos existentes.
+4. Crear un backup cuando el cambio pueda afectar información existente.
+5. Evitar ejecutar manualmente una migración más de una vez salvo que haya sido diseñada explícitamente para ello.
 
-```text
-supabase/migrations/add_user_profiles.sql
-```
-
-Crea las estructuras relacionadas con los perfiles y la sincronización con los usuarios autenticados.
-
-#### 3. Catálogos de evaluación
-
-```text
-supabase/migrations/add_evaluation_catalogs.sql
-```
-
-Crea primero las estructuras requeridas por la gestión de cursos:
-
-* `cycles`
-* `evaluation_systems`
-* `evaluation_subsystems`
-* `evaluation_type`
-* relaciones entre sistemas, notas y evaluaciones
-
-Los catálogos deben existir antes de agregar las relaciones y configuraciones de los cursos.
-
-#### 4. Configuración administrativa de cursos
-
-```text
-supabase/migrations/add_course_configuration.sql
-```
-
-Agrega y configura, entre otros campos:
-
-* `courses.summary`
-* `courses.system_id`
-* `courses.subsystem_id`
-* `courses.status`
-* `courses.is_hidden`
-
-La migración debe completar el `system_id` de los cursos existentes antes de establecerlo como obligatorio.
-
-#### 5. Evaluaciones asociadas a cursos
-
-```text
-supabase/migrations/add_course_evaluations.sql
-```
-
-Crea:
-
-* `course_evaluations`
-* relaciones entre cursos y evaluaciones
-* `create_course_with_evaluations`
-* `update_course_with_evaluations`
-
-Las funciones administrativas quedan disponibles únicamente para `service_role`.
-
-#### 6. Visibilidad y moderación de docentes
-
-```text
-supabase/migrations/add_teacher_visibility.sql
-supabase/migrations/add_teacher_rating_moderation.sql
-```
-
-Estas migraciones agregan la visibilidad de docentes y la moderación de sus valoraciones.
-
-#### 7. Planchas por docente y evaluación
-
-```text
-supabase/migrations/add_teacher_specific_sheets.sql
-```
-
-Agrega:
-
-* `sheets.evaluation_id`
-* `sheets.is_teacher_specific`
-* relaciones e índices asociados
-
-Esta migración debe ejecutarse después de crear `evaluation_type` y `course_evaluations`.
-
-#### 8. Eliminación segura de cursos
-
-```text
-supabase/migrations/prevent_deleting_courses_with_sheets.sql
-```
-
-Crea la función `delete_empty_course` que impide eliminar cursos con planchas asociadas, evitando archivos huérfanos en Storage.
-
-#### 9. Solicitudes de solucionario
-
-```text
-supabase/migrations/add_sheet_interests.sql
-```
-
-Agrega:
-
-* `sheets.interest_count`
-* `sheet_interests`
-* funciones para registrar y reiniciar solicitudes
-* trigger de sincronización del contador
-* RLS y restricciones de acceso
-
-La tabla `sheet_interests` es interna y solo puede ser utilizada desde el backend mediante `supabaseAdmin` y `service_role`.
-
-#### 10. Seguridad de valoraciones, vistas y límites
-
-Ejecutar estas migraciones al final:
-
-```text
-supabase/migrations/secure_sheet_ratings.sql
-supabase/migrations/secure_sheet_views.sql
-supabase/migrations/secure_write_limits.sql
-```
-
-Estas migraciones aplican las políticas RLS, permisos y restricciones finales de las tablas utilizadas por los endpoints públicos.
+No deben ejecutarse simultáneamente cambios duplicados presentes en `schema.sql` y en las migraciones.
 
 ### Datos iniciales
 
-Después de crear las estructuras, se puede ejecutar opcionalmente:
+Cuando se necesiten datos iniciales o de desarrollo, revisar:
 
 ```text
 supabase/seed.sql
 ```
 
-El archivo debe cumplir estas condiciones:
+Antes de ejecutarlo, verificar que:
 
-* Los sistemas y subsistemas referenciados deben existir.
-* Cada curso debe incluir un `system_id` válido.
-* Los identificadores de evaluaciones deben existir en `evaluation_type`.
-* No debe duplicar registros ya insertados por las migraciones.
-* Debe poder ejecutarse después de las migraciones estructurales.
+- Las estructuras requeridas ya existan.
+- Las claves foráneas referenciadas sean válidas.
+- Los identificadores utilizados existan en sus tablas correspondientes.
+- No duplique información creada previamente por las migraciones.
+- El contenido sea apropiado para el ambiente donde se ejecutará.
 
 ### Base de datos existente
 
 Para actualizar una base que ya contiene datos:
 
-1. Crear una copia de seguridad.
+1. Crear una copia de seguridad cuando el cambio pueda afectar información existente.
 2. No volver a ejecutar `supabase/schema.sql`.
-3. No volver a ejecutar migraciones ya aplicadas.
+3. Identificar qué migraciones ya fueron aplicadas.
 4. Ejecutar únicamente las migraciones pendientes.
-5. Respetar el mismo orden de dependencias utilizado para instalaciones nuevas.
-6. Verificar el backfill de `system_id`, evaluaciones y demás relaciones antes de aplicar restricciones `NOT NULL`.
-7. Ejecutar las migraciones de seguridad y permisos al final.
-8. Validar el funcionamiento de los endpoints administrativos y públicos.
+5. Respetar las dependencias entre migraciones.
+6. Verificar los backfills antes de aplicar restricciones como `NOT NULL`.
+7. Aplicar las migraciones de seguridad y permisos en el orden definido por el proyecto.
+8. Validar los endpoints y flujos afectados.
 
-No deben ejecutarse simultáneamente cambios duplicados presentes en `schema.sql` y en las migraciones. El archivo `schema.sql` representa únicamente el esquema inicial; las modificaciones posteriores pertenecen al directorio `supabase/migrations`.
+Nunca asumir que una migración pendiente puede ejecutarse directamente en producción solo porque funciona sobre una base vacía.
 
 ### Verificación posterior
 
-Después de aplicar las migraciones, comprobar:
+Después de aplicar cambios de base de datos, verificar según el alcance de las migraciones:
 
-* Que todos los cursos tengan un `system_id` válido.
-* Que las evaluaciones de los cursos existan en `course_evaluations`.
-* Que `sheets.evaluation_id` apunte a una evaluación existente.
-* Que las funciones administrativas solo puedan ejecutarse con `service_role`.
-* Que `sheet_interests` tenga RLS habilitado y no tenga políticas para `anon` o `authenticated`.
-* Que los contadores de solicitudes, vistas y valoraciones estén sincronizados.
-* Que una plancha o curso oculto no sea accesible mediante endpoints públicos.
+- Integridad de las relaciones afectadas.
+- Restricciones y claves foráneas.
+- Índices relevantes.
+- Funciones y triggers.
+- Políticas RLS.
+- Permisos de `anon`, `authenticated` y `service_role`.
+- Endpoints que dependen de las tablas modificadas.
+- Acceso a recursos ocultos o moderados.
+- Contadores o estadísticas mantenidos mediante funciones o triggers.
 
-## Storage buckets
+Las verificaciones específicas de una migración deben documentarse junto con el cambio correspondiente cuando no sean evidentes.
 
-Crear los siguientes buckets:
+## Storage
 
-* `exams`
-* `solutions`
-* `thumbnails`
-* `avatars` (público, para las fotos de perfil)
-* `contributions` (privado, para moderación)
-Los buckets deben ser privados. El acceso a los archivos se realiza mediante URLs firmadas generadas por endpoints del servidor.
+TrikaWeb utiliza Supabase Storage para almacenar distintos tipos de archivos.
 
+Los buckets utilizados por el proyecto incluyen:
+
+- `exams`
+- `solutions`
+- `thumbnails`
+- `avatars`
+- `contributions`
+
+La visibilidad de cada bucket debe corresponder con las políticas y el mecanismo de acceso implementado actualmente.
+
+No asumir que todos los buckets son públicos ni que todos son privados.
+
+Los archivos privados deben entregarse mediante mecanismos controlados por el servidor, como URLs firmadas, cuando corresponda.
+
+Las operaciones privilegiadas de Storage deben realizarse exclusivamente desde el servidor mediante las credenciales apropiadas.
+
+> Antes de cambiar la visibilidad de un bucket, revisar las políticas de Storage y el código que construye o genera las URLs utilizadas por la aplicación.
+
+## Sincronización con Google Drive
+
+El proyecto contiene scripts para sincronizar determinados recursos desde Google Drive.
+
+Cuando se utilicen, configurar:
+
+```text
+GOOGLE_APPLICATION_CREDENTIALS
+DRIVE_EXAMS_FOLDER_ID
+DRIVE_SOLUTIONS_FOLDER_ID
+```
+
+La cuenta de servicio correspondiente debe tener acceso a las carpetas requeridas.
+
+Los scripts disponibles son:
+
+```bash
+npm run drive:sync
+npm run drive:sync-exams
+npm run drive:sync-solutions
+```
+
+No versionar el archivo JSON de credenciales de la cuenta de servicio.
 
 ## Scripts disponibles
 
-* `npm run dev`
-* `npm run build`
-* `npm run preview`
-* `npm run drive:sync`
-* `npm run drive:sync-exams`
-* `npm run drive:sync-solutions`
+### Desarrollo
 
-## Notas operativas
+```bash
+npm run dev
+```
 
-* `SUPABASE_SERVICE_KEY` nunca debe exponerse al cliente.
-* Las operaciones con `supabaseAdmin` deben ejecutarse exclusivamente en el servidor.
-* Los endpoints administrativos requieren una sesión administrativa válida.
-* Los errores internos de Supabase o PostgreSQL deben registrarse en el servidor y no devolverse directamente al cliente.
-* Si se utilizan scripts de Drive, debe verificarse el acceso al archivo JSON de la cuenta de servicio.
-* Las nuevas migraciones deben respetar sus dependencias y evitar recrear objetos que ya existan.
+Inicia el servidor de desarrollo de Astro.
+
+### Validación
+
+```bash
+npm run check
+```
+
+Ejecuta las comprobaciones estáticas del proyecto.
+
+### Build
+
+```bash
+npm run build
+```
+
+Genera el build de producción.
+
+### Preview
+
+```bash
+npm run preview
+```
+
+Permite ejecutar localmente el resultado del build cuando la configuración del proyecto lo permita.
+
+### Pruebas E2E
+
+```bash
+npm run test:e2e
+```
+
+Ejecuta las pruebas end-to-end mediante Playwright.
+
+### Sincronización con Drive
+
+```bash
+npm run drive:sync
+npm run drive:sync-exams
+npm run drive:sync-solutions
+```
+
+Ejecutan los procesos de sincronización configurados para Google Drive.
+
+## Notas de seguridad
+
+- `SUPABASE_SERVICE_KEY` nunca debe exponerse al cliente.
+- Las operaciones con `supabaseAdmin` deben ejecutarse exclusivamente en el servidor.
+- Las credenciales reales no deben almacenarse en `.env.example`.
+- `.env` no debe versionarse.
+- Las credenciales de Google Drive no deben incluirse en el repositorio.
+- Los endpoints administrativos deben validar la sesión correspondiente.
+- Los errores internos de Supabase o PostgreSQL deben registrarse en el servidor y no exponerse directamente al cliente.
+- Las operaciones que requieren `service_role` no deben ejecutarse desde el navegador.
+
+## Resolución de problemas
+
+### Las dependencias no se instalan con `npm ci`
+
+Verificar que:
+
+- `package-lock.json` existe.
+- `package.json` y `package-lock.json` están sincronizados.
+- Se está utilizando una versión compatible de Node.js.
+
+Si las dependencias fueron modificadas intencionalmente, el integrante que realizó el cambio debe actualizar correctamente `package.json` y `package-lock.json`.
+
+### Playwright no encuentra el navegador
+
+Ejecutar:
+
+```bash
+npx playwright install
+```
+
+### Las variables de entorno no son reconocidas
+
+Verificar:
+
+1. Que `.env` exista en la raíz.
+2. Que los nombres coincidan con `.env.example`.
+3. Que no existan espacios o caracteres adicionales.
+4. Reiniciar el servidor después de modificar las variables.
+
+### No hay conexión con Supabase
+
+Comprobar primero:
+
+- `SUPABASE_URL`.
+- `PUBLIC_SUPABASE_URL`.
+- Las claves correspondientes al ambiente.
+- Que el proyecto de Supabase esté disponible.
+
+No modificar el código de conexión antes de descartar un problema de configuración.
+
+## Documentación relacionada
+
+- [`onboarding.md`](./onboarding.md): incorporación de nuevos integrantes.
+- [`arquitectura.md`](./arquitectura.md): arquitectura y componentes del sistema.
+- [`api.md`](./api.md): rutas y contratos de la API.
+- [`funcionalidades.md`](./funcionalidades.md): comportamiento funcional.
+- [`deploy.md`](./deploy.md): despliegue y operación.
+- [`../CONTRIBUTING.md`](../CONTRIBUTING.md): flujo de colaboración.
