@@ -335,6 +335,121 @@ Content-Type: application/json
 
 ---
 
+### GET `/api/sheets/:id/feedback`
+
+Lista los comentarios (feedback) de una plancha de forma paginada. Oculta la identidad si el comentario es anónimo y el usuario no es el autor.
+
+**Request:**
+
+```http
+GET /api/sheets/12/feedback?page=1&pageSize=10
+```
+
+**Response (200):**
+
+```json
+{
+  "feedback": [
+    {
+      "id": 1,
+      "content": "Excelente plancha",
+      "user_name": "Juan Pérez",
+      "is_anonymous": false,
+      "created_at": "2024-03-20T14:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 10
+}
+```
+
+---
+
+### POST `/api/sheets/:id/feedback`
+
+Crea un comentario en una plancha. Requiere sesión.
+
+**Request:**
+
+```http
+POST /api/sheets/12/feedback
+Content-Type: application/json
+
+{
+  "content": "Muy útil, gracias.",
+  "is_anonymous": false
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "insertedId": 5
+}
+```
+
+---
+
+### PUT `/api/sheets/:id/feedback`
+
+Edita un comentario propio en una plancha.
+
+**Request:**
+
+```http
+PUT /api/sheets/12/feedback
+Content-Type: application/json
+
+{
+  "comment_id": 5,
+  "content": "Muy útil, gracias editado.",
+  "is_anonymous": false
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "comment": {
+    "id": 5,
+    "content": "Muy útil, gracias editado."
+  }
+}
+```
+
+---
+
+### DELETE `/api/sheets/:id/feedback`
+
+Elimina un comentario propio.
+
+**Request:**
+
+```http
+DELETE /api/sheets/12/feedback
+Content-Type: application/json
+
+{
+  "comment_id": 5
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "deleted": true
+}
+```
+
+---
+
 ### GET `/api/cursos`
 
 Lista cursos visibles para autocompletado y selectores públicos.
@@ -695,6 +810,28 @@ Content-Type: application/json
 
 ---
 
+### POST `/api/admin/moderation-counts`
+
+Obtiene la cantidad de calificaciones pendientes de revisión tanto para profesores como para planchas.
+
+**Request:**
+
+```http
+POST /api/admin/moderation-counts
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "teachers": 5,
+  "sheets": 2
+}
+```
+
+---
+
 ### POST `/api/admin/pending-comments`
 
 Lista comentarios pendientes de moderación.
@@ -744,6 +881,23 @@ Oculta un comentario.
 ```
 
 **Efecto:** establece `is_hidden = true`.
+
+---
+
+### PATCH `/api/admin/unhide-comment`
+
+Desoculta un comentario de profesor o plancha.
+
+**Request:**
+
+```json
+{
+  "recordId": 105,
+  "table": "teacher_ratings"
+}
+```
+
+**Efecto:** establece `is_hidden = false`. La tabla debe ser `teacher_ratings` o `sheet_feedback`.
 
 ---
 
@@ -1612,48 +1766,47 @@ Content-Type: application/json
 
 ## Endpoints de autenticación
 
-> Los endpoints de autenticación de estudiantes usan Firebase Auth y emiten/consumen la cookie `firebase_session` (HTTP-only). El correo debe terminar en `@uni.pe`.
+> Los endpoints de autenticación de estudiantes usan Supabase Auth mediante OAuth (Google). El correo debe terminar en `@uni.pe`.
 
-### POST `/api/auth/login`
+### POST `/api/auth/signin`
 
-Inicia sesión con la cuenta institucional de Firebase (Google).
+Inicia el flujo OAuth con Google institucional.
 
 **Request:**
 
 ```http
-POST /api/auth/login
-Content-Type: application/json
+POST /api/auth/signin
+Content-Type: multipart/form-data
 
-{
-  "idToken": "<idToken de Firebase>"
-}
+next=/profile
 ```
 
-**Response (200):**
+**Response:**
 
-```json
-{
-  "success": true,
-  "user": {
-    "uid": "firebase-uid",
-    "email": "estudiante@uni.pe",
-    "name": "Nombre Apellido"
-  }
-}
+- `302`: Redirección a la URL de autenticación de Google.
+
+---
+
+### GET `/api/auth/callback`
+
+Callback para OAuth. Intercambia el código por la sesión y registra al estudiante.
+
+**Request:**
+
+```http
+GET /api/auth/callback?code=...&next=/profile
 ```
 
 **Efecto:**
 
-- Verifica el `idToken` con el Admin SDK de Firebase.
+- Verifica el `code` con Supabase Auth.
 - Exige correo `@uni.pe`.
-- Crea/actualiza la fila en `student_details` (`user_id`, `email`, `full_name`).
-- Establece la cookie `firebase_session`.
+- Crea o actualiza la fila en `student_details` (`user_id`, `email`, `full_name`, `avatar_url`).
+- Establece la sesión en las cookies del navegador.
 
-**Errores:**
+**Response:**
 
-- `400`: Falta el token.
-- `403`: El correo no es `@uni.pe`.
-- `503`: Variables de entorno de Firebase ausentes.
+- `302`: Redirección a `next` si es exitoso, o a `/login?error=...` si falla.
 
 ---
 
@@ -1737,6 +1890,34 @@ Reemplaza el avatar del estudiante.
 ## Endpoints de contribuciones
 
 > Requieren una sesión de estudiante (`firebase_session`).
+
+### GET `/api/contributions/course-evaluations`
+
+Obtiene los tipos de evaluación disponibles para un curso específico.
+
+**Request:**
+
+```http
+GET /api/contributions/course-evaluations?course_id=1
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "evaluations": [
+    {
+      "evaluation_id": 1,
+      "evaluation_name": "Parcial 1",
+      "evaluation_abr": "PC1",
+      "evaluation_category": "examen"
+    }
+  ]
+}
+```
+
+---
 
 ### POST `/api/contributions/create`
 
@@ -1972,5 +2153,26 @@ Aprueba o rechaza una contribución.
 {
   "success": true,
   "message": "Contribución aprobada correctamente"
+}
+```
+
+---
+
+### POST `/api/admin/contributions/mark-used`
+
+Marca un aporte previamente aprobado como "utilizado", eliminando su archivo temporal de Storage para ahorrar espacio, pero conservando su registro en el historial.
+
+**Request (FormData):**
+
+| Campo | Requerido | Descripción |
+|---|---|---|
+| `contribution_id` | ✅ | ID de la contribución |
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Aporte procesado y limpiado correctamente"
 }
 ```
