@@ -6,7 +6,7 @@ Base local: `http://localhost:4321`
 
 - La mayoría de endpoints responde JSON.
 - Los endpoints administrativos usan la cookie de sesión `admin_session`, salvo `login`.
-- Las calificaciones de planchas y profesores se asocian al usuario autenticado mediante Firebase.
+- Las calificaciones de planchas y profesores se asocian al usuario autenticado mediante Supabase Auth.
 - Los endpoints de vistas e interés pueden requerir `device_id`, un UUID generado en el cliente.
 - Los errores usan un código HTTP apropiado y normalmente incluyen `{ "error": "mensaje" }` o `{ "ok": false, "error": "mensaje" }`.
 
@@ -405,8 +405,7 @@ Content-Type: application/json
 
 {
   "comment_id": 5,
-  "content": "Muy útil, gracias editado.",
-  "is_anonymous": false
+  "content": "Muy útil, gracias editado."
 }
 ```
 
@@ -445,6 +444,44 @@ Content-Type: application/json
 {
   "success": true,
   "deleted": true
+}
+```
+
+---
+
+### POST `/api/sheets/:id/feedback-react`
+
+Crea, cambia o retira una reacción a un comentario (feedback). Requiere sesión.
+
+**Request:**
+
+```http
+POST /api/sheets/12/feedback-react
+Content-Type: application/json
+
+{
+  "feedback_id": 5,
+  "reaction": "like"
+}
+```
+
+Las reacciones válidas son: `like`, `love`, `haha`, `wow`, `sad`.
+Si envías la misma reacción que ya tenías, esta se eliminará (toggle).
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "userReaction": "like",
+  "reactions": {
+    "like": 1,
+    "love": 0,
+    "haha": 0,
+    "wow": 0,
+    "sad": 0
+  },
+  "totalReactions": 1
 }
 ```
 
@@ -1889,7 +1926,7 @@ Reemplaza el avatar del estudiante.
 
 ## Endpoints de contribuciones
 
-> Requieren una sesión de estudiante (`firebase_session`).
+> Requieren una sesión de estudiante (mediante Supabase Auth).
 
 ### GET `/api/contributions/course-evaluations`
 
