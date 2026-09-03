@@ -693,8 +693,6 @@ en las migraciones o configuración de Supabase Storage.
 | `SUPABASE_SERVICE_KEY` | Operaciones administrativas del servidor |
 | `IP_SALT` | Hasheo de direcciones IP |
 | `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` | Cliente público de Supabase (navegador) |
-
-| `ADMIN_PASS` | Contraseña administrativa heredada (según versión) |
 | `DRIVE_EXAMS_FOLDER_ID` / `DRIVE_SOLUTIONS_FOLDER_ID` / `GOOGLE_APPLICATION_CREDENTIALS` | Sincronización con Google Drive |
 
 ### Reglas

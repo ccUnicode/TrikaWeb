@@ -29,7 +29,6 @@ Usar `.env.example` como referencia.
 * `SUPABASE_URL`
 * `SUPABASE_SERVICE_KEY`
 * `IP_SALT`
-* `ADMIN_PASS`
 
 * `GOOGLE_APPLICATION_CREDENTIALS`, si se utiliza la sincronización con Drive
 * `DRIVE_EXAMS_FOLDER_ID`, si se utiliza la sincronización con Drive

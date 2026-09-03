@@ -1,12 +1,12 @@
-# ADR-002: Uso de Supabase como base de datos, storage y autenticación administrativa
+# ADR-002: Uso de Supabase como base de datos, storage y autenticación
 
 ## Estado
 Aprobada
 
 ## Contexto
-TrikaWeb necesita una base de datos relacional robusta, almacenamiento de archivos (storage para imágenes o PDFs de exámenes) y un mecanismo de autenticación para el acceso administrativo, sin la necesidad de desarrollar, configurar y mantener infraestructura backend compleja desde cero.
+TrikaWeb necesita una base de datos relacional robusta, almacenamiento de archivos (storage para imágenes o PDFs de exámenes) y un mecanismo de autenticación tanto para estudiantes como para el acceso administrativo, sin la necesidad de desarrollar, configurar y mantener infraestructura backend compleja desde cero.
 
-> **Nota**: Supabase Auth se utiliza para la autenticación de todos los usuarios de la plataforma (tanto estudiantes como acceso administrativo), unificando el sistema tras la migración desde Firebase.
+> **Nota**: Inicialmente Supabase Auth se utilizó de forma exclusiva para el acceso administrativo mientras Firebase Auth gestionaba a los estudiantes. Tras la unificación de la arquitectura, Supabase Auth gestiona la autenticación de todos los usuarios de la plataforma (ver ADR-006).
 
 ## Alternativas consideradas
 * **Firebase**: Excelente ecosistema, pero su base de datos principal es NoSQL (Firestore), lo que dificulta realizar consultas complejas y mantener la integridad relacional que requiere el sistema educativo (cursos, profesores, exámenes, etc.).
@@ -17,10 +17,8 @@ TrikaWeb necesita una base de datos relacional robusta, almacenamiento de archiv
 Se eligió **Supabase** como plataforma de backend as a service para los siguientes componentes:
 * **PostgreSQL** como motor de base de datos principal.
 * **Supabase Storage** para el almacenamiento de archivos (imágenes, PDFs de exámenes).
-* **Supabase Auth** exclusivamente para la autenticación administrativa.
-
-La autenticación de usuarios generales y administradores se maneja integralmente a través de **Supabase Auth** (ver ADR correspondiente sobre la migración desde Firebase).
+* **Supabase Auth** para la autenticación integral de la plataforma (tanto para estudiantes con Google OAuth institucional como para administradores con credenciales seguras).
 
 ## Consecuencias
-* **Positivas**: Desarrollo backend drásticamente acelerado. Se aprovecha el poder de PostgreSQL y SQL puro. Seguridad robusta gracias a Row Level Security (RLS) directamente en la base de datos.
+* **Positivas**: Desarrollo backend drásticamente acelerado. Se aprovecha el poder de PostgreSQL y SQL puro. Seguridad robusta gracias a Row Level Security (RLS) directamente en la base de datos. Sistema de identidad unificado bajo un único proveedor y SDK.
 * **Negativas**: Existe una fuerte dependencia hacia el SDK de Supabase (vendor lock-in relativo). La configuración compleja de roles y políticas en SQL puede ser difícil de depurar si no se documenta bien.
