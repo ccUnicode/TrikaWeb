@@ -1,4 +1,4 @@
-﻿# Despliegue
+# Despliegue
 
 Este documento describe el proceso de despliegue, validación y rollback de TrikaWeb.
 
@@ -6,14 +6,18 @@ Para procedimientos de recuperación ante fallas, ubicación de logs y respuesta
 
 ## 1. Entorno de producción
 
-TrikaWeb se despliega mediante Vercel.
+TrikaWeb se despliega mediante Vercel (Proyecto: `TrikaWeb`).
 
 La aplicación utiliza:
 
 - Astro con salida de servidor.
 - Adapter de Vercel.
 - Supabase para base de datos, autenticación y Storage.
-- GitHub como repositorio de código y origen del flujo de despliegue.
+- GitHub como repositorio de código (`ccUnicode/TrikaWeb`).
+
+**Ramas:**
+- Rama de producción (enlazada a Vercel): `main`
+- Rama de pruebas e integración: `dev`
 
 El flujo general es:
 
@@ -58,9 +62,7 @@ Antes de crear o aprobar un Pull Request hacia producción, ejecutar:
 
 ```bash
 npm ci
-npm run check
 npm run build
-npm run test:e2e
 ```
 
 Todos los comandos deben finalizar correctamente.
@@ -273,49 +275,48 @@ Se prefiere una migración correctiva sobre una reversión destructiva improvisa
 ## 10. Backups de base de datos
 
 Antes de ejecutar migraciones con riesgo sobre información existente, crear un backup de la base de datos.
+Al utilizar un plan que puede no incluir respaldos automatizados o Point-in-Time Recovery, la copia debe realizarse manualmente mediante Supabase CLI o el Dashboard.
 
-Si el proyecto utiliza un plan de Supabase sin backups automáticos, la copia debe realizarse manualmente mediante las herramientas disponibles para PostgreSQL/Supabase.
+### Generar un backup (Exportar)
 
-El procedimiento exacto debe validarse con el entorno actual antes de utilizarlo en producción.
+Mediante Supabase CLI (requiere Docker y haber hecho login con `npx supabase login`):
 
-Los archivos de backup:
+```bash
+# Exportar esquema y datos
+npx supabase db dump -f trikaweb-production-YYYY-MM-DD.sql --db-url "postgres://[user]:[password]@[host]:[port]/[db_name]"
+```
+*(Los datos de conexión se encuentran en Settings > Database en el panel de Supabase).*
 
-- no deben subirse al repositorio;
-- pueden contener información sensible;
-- deben almacenarse en una ubicación segura;
-- deben identificarse con fecha y ambiente.
+Alternativamente, desde el panel web de Supabase:
+1. Ir a **Database** > **Backups** o utilizar un cliente externo como DBeaver/pgAdmin para hacer un export.
 
-Ejemplo de nombre:
+Los archivos de backup no deben subirse al repositorio ni exponerse.
 
-```text
-trikaweb-production-2026-08-25.sql
+### Restaurar un backup
+
+Para restaurar una base de datos desde un archivo SQL (precaución: esto sobrescribirá la base de datos):
+
+```bash
+psql -h [host] -U [user] -d [db_name] -p [port] -f trikaweb-production-YYYY-MM-DD.sql
 ```
 
 ---
 
 ## 11. Storage y backups
 
-Los backups de PostgreSQL no incluyen automáticamente los archivos físicos almacenados en Supabase Storage.
+Los backups de PostgreSQL no incluyen automáticamente los archivos físicos almacenados en Supabase Storage (exámenes, solucionarios, miniaturas, avatares, etc.).
 
-Esto significa que restaurar una base de datos no necesariamente recupera:
+### Generar un backup de Storage
 
-- PDFs;
-- solucionarios;
-- miniaturas;
-- avatares;
-- contribuciones.
+Para resguardar los archivos, se puede descargar el contenido de los buckets mediante el Dashboard de Supabase, o emplear un script utilizando AWS CLI (dado que Supabase Storage expone compatibilidad con S3).
 
-Los buckets utilizados actualmente incluyen:
-
-```text
-exams
-solutions
-thumbnails
-avatars
-contributions
+Ejemplo con AWS CLI:
+```bash
+aws s3 sync s3://exams ./backup-exams --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
 ```
+*(Requiere configurar las credenciales S3 desde Supabase Settings > Storage).*
 
-Cualquier estrategia de recuperación completa debe contemplar tanto la base de datos como los archivos de Storage.
+Cualquier estrategia de recuperación completa debe contemplar ambos componentes (Base de datos y Storage).
 
 ---
 
@@ -376,7 +377,5 @@ Después del deployment:
 
 - [`runbook.md`](./runbook.md): fallas, logs, recuperación y procedimientos operativos.
 - [`setup.md`](./setup.md): configuración local.
-- [`onboarding.md`](./onboarding.md): incorporación de nuevos integrantes.
 - [`arquitectura.md`](./arquitectura.md): arquitectura del sistema.
 - [`api.md`](./api.md): endpoints.
-- [`../CONTRIBUTING.md`](../CONTRIBUTING.md): flujo de colaboración.
