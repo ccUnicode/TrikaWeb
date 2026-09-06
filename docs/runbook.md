@@ -23,12 +23,12 @@ El objetivo de este runbook es permitir que una persona con los accesos adecuado
 
 TrikaWeb depende principalmente de:
 
-| Servicio | Uso |
-| --- | --- |
-| GitHub | Repositorio, issues, ramas y Pull Requests |
-| Vercel | Build, deployments, runtime y variables de entorno |
-| Supabase | PostgreSQL, Auth y Storage |
-| Google Drive | Sincronización de recursos cuando aplica |
+| Servicio     | Uso                                                |
+| ------------ | -------------------------------------------------- |
+| GitHub       | Repositorio, issues, ramas y Pull Requests         |
+| Vercel       | Build, deployments, runtime y variables de entorno |
+| Supabase     | PostgreSQL, Auth y Storage                         |
+| Google Drive | Sincronización de recursos cuando aplica           |
 
 ---
 
@@ -442,25 +442,31 @@ Después de recuperar el servicio:
 
 ## 16. Transferencia operativa
 
-Antes de una rotación de equipo, verificar:
+Antes de una rotación de equipo, verificar la entrega de accesos a los siguientes recursos específicos:
 
 ### GitHub
 
-- [ ] El equipo entrante tiene acceso.
-- [ ] Conoce la rama de producción.
-- [ ] Conoce el flujo de PR.
+**Proyecto:** `ccUnicode/TrikaWeb`
+
+- [ ] El equipo entrante tiene acceso al repositorio (concedido por el administrador de la organización `ccUnicode`).
+- [ ] Conoce la rama de producción (`main`) y la de prueba (`dev`).
+- [ ] Conoce el flujo de Pull Requests.
 - [ ] Puede revisar issues y deployments relacionados.
 
 ### Vercel
 
-- [ ] Tiene acceso al proyecto.
+**Proyecto:** `TrikaWeb`
+
+- [ ] Tiene acceso al proyecto en Vercel (asignado por el propietario del equipo en Vercel).
 - [ ] Puede consultar deployments.
 - [ ] Puede consultar logs.
 - [ ] Conoce dónde se administran variables de entorno.
 
 ### Supabase
 
-- [ ] Tiene acceso al proyecto.
+**Proyecto:** `TrikaWeb`
+
+- [ ] Tiene acceso al proyecto en Supabase (invitado por el administrador de la organización en Supabase).
 - [ ] Puede revisar Database.
 - [ ] Puede revisar Auth.
 - [ ] Puede revisar Storage.
@@ -468,9 +474,14 @@ Antes de una rotación de equipo, verificar:
 
 ### Google Drive
 
-- [ ] Se tiene acceso a las carpetas necesarias.
-- [ ] Se conoce qué cuenta de servicio utiliza la sincronización.
-- [ ] Las credenciales están almacenadas en un mecanismo seguro externo al repositorio.
+**Carpetas:** Exámenes y Solucionarios.
+
+- [ ] Se tiene acceso a las carpetas compartidas de Drive requeridas para sincronización.
+- [ ] Se conoce qué cuenta de servicio utiliza la sincronización (Service Account).
+
+### Gestión de Credenciales y Secretos
+
+- [ ] La entrega de variables de entorno (.env de producción) y accesos de administrador se gestiona de forma segura a través del líder técnico saliente utilizando un gestor de contraseñas de equipo o un canal de comunicación cifrado. Nunca a través del repositorio ni de chats públicos.
 
 ---
 
@@ -499,7 +510,5 @@ La consulta debe incluir:
 
 - [`deploy.md`](./deploy.md)
 - [`setup.md`](./setup.md)
-- [`onboarding.md`](./onboarding.md)
 - [`arquitectura.md`](./arquitectura.md)
 - [`api.md`](./api.md)
-- [`../CONTRIBUTING.md`](../CONTRIBUTING.md)
