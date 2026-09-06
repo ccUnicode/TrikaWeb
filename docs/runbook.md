@@ -457,7 +457,7 @@ Antes de una rotación de equipo, verificar la entrega de accesos a los siguient
 
 **Proyecto:** `TrikaWeb`
 
-- [ ] Tiene acceso al proyecto en Vercel (asignado por el propietario del equipo en Vercel).
+- [ ] Tiene acceso al proyecto en Vercel (asignado por el propietario del proyecto en Vercel).
 - [ ] Puede consultar deployments.
 - [ ] Puede consultar logs.
 - [ ] Conoce dónde se administran variables de entorno.
@@ -481,7 +481,7 @@ Antes de una rotación de equipo, verificar la entrega de accesos a los siguient
 
 ### Gestión de Credenciales y Secretos
 
-- [ ] La entrega de variables de entorno (.env de producción) y accesos de administrador se gestiona de forma segura a través del líder técnico saliente utilizando un gestor de contraseñas de equipo o un canal de comunicación cifrado. Nunca a través del repositorio ni de chats públicos.
+- [ ] La entrega de variables de entorno (.env de producción) y accesos de administrador se gestiona de forma segura a través del líder del equipo saliente o el director del área, utilizando un gestor de contraseñas de equipo o un canal de comunicación cifrado.
 
 ---
 
