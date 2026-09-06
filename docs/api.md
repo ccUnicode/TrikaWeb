@@ -799,6 +799,27 @@ La respuesta incluye la URL firmada, token, ruta y bucket necesarios para subir 
 
 ---
 
+### GET `/api/admin/upload`
+
+Endpoint de verificación que confirma la disponibilidad de la ruta de subida.
+
+**Request:**
+
+```http
+GET /api/admin/upload
+```
+
+**Response (200):**
+
+```json
+{
+  "ok": true,
+  "route": "/api/admin/upload"
+}
+```
+
+---
+
 ### POST `/api/admin/upload`
 
 Registra en la base de datos los metadatos del archivo previamente subido a Supabase Storage.
@@ -814,11 +835,12 @@ Content-Type: application/json
   "evaluation_id": 4,
   "cycle": "2024-1",
   "resource_kind": "PLANCHA",
-  "storage_path": "MAT01/2024-1/parcial-1.pdf",
-  "thumb_storage_path": "MAT01/2024-1/parcial-1.webp",
+  "has_thumb_upload": true,
   "is_teacher_specific": false
 }
 ```
+
+> **Nota:** Si `resource_kind` es `AMBOS`, se debe incluir adicionalmente el campo `upload_session_id`.
 
 **Reglas principales:**
 
