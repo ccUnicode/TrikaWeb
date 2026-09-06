@@ -28,7 +28,7 @@ validaciones explícitas y el cliente administrativo de Supabase.
 | **Backend** | Astro API Routes (`src/pages/api`) |
 | **Base de datos** | Supabase PostgreSQL |
 | **Storage** | Supabase Storage |
-| **Autenticación de estudiantes** | Firebase Authentication (cookie `firebase_session`, correos `@uni.pe`) |
+| **Autenticación de estudiantes** | Supabase Auth (cookies de sesión, correos `@uni.pe`) |
 | **Sesión administrativa** | Supabase Auth con cookie `admin_session` validada en el servidor |
 | **Deploy** | Vercel mediante `@astrojs/vercel` (output `server`) |
 | **Documentación** | Markdown + diagramas Mermaid |
@@ -75,13 +75,12 @@ src/
 │   ├── adminAuth.ts                # Validación de la sesión administrativa
 │   ├── adminUploadPaths.ts         # Construcción de rutas de Storage para subidas
 │   ├── adminUploadStorage.ts       # Verificación y promoción de objetos en Storage
-│   ├── auth.ts                     # Sesión de estudiantes (Firebase) y getUserSession
+│   ├── auth.ts                     # Sesión de estudiantes (Supabase) y getUserSession
 │   ├── authConstants.ts            # Constantes de autenticación (sufijo @uni.pe)
-│   ├── firebase-admin.ts           # Inicialización/verificación del Admin SDK de Firebase
 │   ├── sessionCookies.ts           # Helpers de cookies de sesión
 │   ├── favorites.ts                # Favoritos en localStorage
 │   ├── urlUtils.ts                 # Utilitarios de URLs
-│   ├── utils.ts                    # Hashing de IP, rate limiting, getUuidFromFirebaseUid...
+│   ├── utils.ts                    # Hashing de IP, rate limiting...
 │   ├── client/                     # Lógica de cliente
 │   │   ├── device.ts               # device_id persistido en localStorage
 │   │   └── favorites.ts
@@ -143,8 +142,9 @@ src/
 │   │   │   └── contributions/
 │   │   │       ├── list.ts          # GET /api/admin/contributions/list
 │   │   │       └── review.ts        # POST /api/admin/contributions/review
-│   │   ├── auth/                  # Autenticación de estudiantes (Firebase)
-│   │   │   ├── login.ts
+│   │   ├── auth/                  # Autenticación de estudiantes (Supabase)
+│   │   │   ├── signin.ts
+│   │   │   ├── callback.ts
 │   │   │   ├── register.ts
 │   │   │   └── logout.ts
 │   │   ├── contributions/         # Contribuciones de usuarios
@@ -256,7 +256,6 @@ flowchart LR
     subgraph Cliente
         PAGE[Páginas Astro]
         CLIENT_JS[JavaScript del navegador]
-        FIREBASE[Firebase Auth]
     end
 
     subgraph Servidor_Astro
@@ -278,7 +277,6 @@ flowchart LR
 
     PAGE --> SSR
     CLIENT_JS --> API
-    CLIENT_JS --> FIREBASE
     SSR --> DATA
     API --> AUTH
     API --> DATA
@@ -336,29 +334,26 @@ y columnas completas están en [`db_schema.md`](../db_schema.md).
 
 ### Estudiantes
 
-La autenticación de estudiantes se realiza con Firebase Authentication.
+La autenticación de estudiantes se realiza con Supabase Auth.
 
 ```mermaid
 sequenceDiagram
     participant U as Usuario
-    participant F as Firebase Auth
-    participant A as Astro
-    participant S as Supabase
+    participant S as Supabase Auth
+    participant A as Astro API
+    participant DB as Base de Datos
 
-    U->>F: Iniciar sesión
-    F-->>U: Usuario autenticado
-    U->>A: Solicitud con sesión
-    A->>A: getUserSession()
-    A->>A: Convertir Firebase UID a UUID
-    A->>S: Consultar o escribir rating
-    S-->>A: Resultado
-    A-->>U: Respuesta
+    U->>A: /api/auth/signin
+    A-->>U: Redirige a Google
+    U->>S: Iniciar sesión
+    S-->>U: Callback con código
+    U->>A: /api/auth/callback
+    A->>S: Intercambia código por sesión
+    A->>DB: Upsert en student_details
+    A-->>U: Redirige a /profile
 ```
 
-El flujo de autenticación de estudiantes usa Firebase Auth y una cookie de sesión
-`firebase_session` (creada en `POST /api/auth/login`, ver `api.md`). La verificación la
-realiza el servidor mediante `getFirebaseAdminAuth().verifySessionCookie`, y el correo
-debe terminar en `@uni.pe` (constante en `authConstants.ts`).
+El flujo de autenticación de estudiantes usa Supabase Auth y cookies de sesión administradas a través de `@supabase/ssr`. La validación del correo institucional (`@uni.pe`) se realiza durante el callback, antes de registrar al usuario, y `getUserSession` (en `src/lib/auth.ts`) valida la sesión en cada solicitud protegida.
 
 ```mermaid
 erDiagram
@@ -374,16 +369,9 @@ erDiagram
     PLAN_COURSES ||--o{ COURSE_PREREQUISITES : requires
 ```
 
-Para tablas que almacenan `device_id` como UUID, el backend transforma el UID de
-Firebase mediante `getUuidFromFirebaseUid`. De esta forma, el identificador no
-depende de un UUID arbitrario enviado por el navegador.
+Para tablas que almacenan identificadores de usuario, el backend utiliza directamente el `user.id` (UUID nativo) proveído por Supabase Auth, manteniendo la integridad relacional de forma sencilla.
 
-La sesión de estudiante se establece mediante `POST /api/auth/login`: el navegador
-envía el `idToken` de Firebase, el servidor lo verifica con el Admin SDK, exige que el
-correo termine en `@uni.pe`, persiste/actualiza la fila en `student_details` y emite la
-cookie `firebase_session` (HTTP-only, 5 días). `getUserSession` (en `src/lib/auth.ts`)
-la valida en cada solicitud protegida. El registro directo (`/api/auth/register`) está
-deshabilitado: solo se permite el ingreso con la cuenta institucional Google.
+La sesión de estudiante se establece iniciando en `/api/auth/signin` que delega la autenticación OAuth a Supabase. El registro directo (`/api/auth/register`) está deshabilitado: solo se permite el ingreso con la cuenta institucional Google.
 
 ### Administradores
 
@@ -643,7 +631,7 @@ acciones sensibles. Cuando se excede el límite, el endpoint responde `429`.
 
 ### Identificación de votos
 
-- Ratings de planchas y profesores: identidad derivada de la sesión de Firebase.
+- Ratings de planchas y profesores: identidad derivada de la sesión de Supabase Auth.
 - Vistas e intereses: pueden utilizar un `device_id` anónimo generado en el cliente.
 - La base de datos mantiene restricciones únicas para evitar duplicados.
 
@@ -705,9 +693,6 @@ en las migraciones o configuración de Supabase Storage.
 | `SUPABASE_SERVICE_KEY` | Operaciones administrativas del servidor |
 | `IP_SALT` | Hasheo de direcciones IP |
 | `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` | Cliente público de Supabase (navegador) |
-| `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Admin SDK de Firebase (verificación de sesión de estudiantes) |
-| `PUBLIC_FIREBASE_*` | Inicialización de Firebase Auth en el cliente |
-| `ADMIN_PASS` | Contraseña administrativa heredada (según versión) |
 | `DRIVE_EXAMS_FOLDER_ID` / `DRIVE_SOLUTIONS_FOLDER_ID` / `GOOGLE_APPLICATION_CREDENTIALS` | Sincronización con Google Drive |
 
 ### Reglas

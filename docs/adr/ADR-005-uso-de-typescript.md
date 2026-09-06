@@ -14,7 +14,7 @@ A medida que el proyecto TrikaWeb crece en funcionalidades (rutas de API, consul
 ## Decisión
 Se eligió **TypeScript** como el lenguaje principal y estándar de programación para toda la lógica nueva del cliente y el servidor (endpoints de la API) en TrikaWeb.
 
-> **Nota**: Existen algunas excepciones heredadas en JavaScript puro, como `firebase/firebaseConfig.js` (configuración de Firebase) y `public/sw.js` (Service Worker). Estos archivos se mantienen en JS por compatibilidad, pero todo el código nuevo debe escribirse en TypeScript.
+> **Nota**: Existen algunas excepciones heredadas en JavaScript puro, como `public/sw.js` (Service Worker). Estos archivos se mantienen en JS por compatibilidad, pero todo el código nuevo debe escribirse en TypeScript.
 
 ## Consecuencias
 * **Positivas**: 
