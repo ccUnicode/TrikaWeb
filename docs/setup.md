@@ -234,14 +234,49 @@ Después de aplicar las migraciones, comprobar:
 
 ## Storage buckets
 
-Crear los siguientes buckets:
+TrikaWeb utiliza cinco buckets de Supabase Storage. La configuración documentada a continuación fue contrastada con la configuración vigente de Supabase y con la forma de acceso utilizada por el código.
 
-* `exams`
-* `solutions`
-* `thumbnails`
-* `avatars` (público, para las fotos de perfil)
-* `contributions` (privado, para moderación)
-Los buckets deben ser privados. El acceso a los archivos se realiza mediante URLs firmadas generadas por endpoints del servidor.
+| Bucket          | Finalidad                         | Visibilidad | Forma de acceso                                                      | Límite de bucket       | MIME types                              |
+| --------------- | --------------------------------- | ----------- | -------------------------------------------------------------------- | ---------------------- | --------------------------------------- |
+| `exams`         | Planchas y evaluaciones           | Privado     | URLs firmadas generadas por el servidor                              | Sin límite configurado | Sin restricción configurada             |
+| `solutions`     | Solucionarios                     | Privado     | URLs firmadas generadas por el servidor                              | Sin límite configurado | Sin restricción configurada             |
+| `thumbnails`    | Miniaturas de planchas            | Público     | URL pública                                                          | Sin límite configurado | `image/jpeg`, `image/png`               |
+| `avatars`       | Fotos de perfil                   | Público     | URL pública; escritura mediante endpoints del servidor               | Sin límite configurado | `image/jpeg`, `image/png`, `image/webp` |
+| `contributions` | Archivos enviados para moderación | Privado     | URLs firmadas para revisión; gestión mediante endpoints del servidor | 10 MB                  | Sin restricción configurada             |
+
+### Buckets públicos
+
+`avatars` y `thumbnails` son públicos.
+
+Sus recursos pueden consultarse mediante las URLs públicas de Supabase Storage. El código no debe generar URLs firmadas para miniaturas salvo que en el futuro el bucket cambie a privado.
+
+La escritura y eliminación siguen realizándose desde endpoints controlados del servidor cuando corresponda.
+
+### Buckets privados
+
+`exams`, `solutions` y `contributions` son privados.
+
+Los archivos de estos buckets no deben exponerse mediante rutas públicas de Storage.
+
+El acceso se realiza desde el servidor mediante `supabaseAdmin` y, para entregar temporalmente un recurso al cliente, se generan URLs firmadas cuando corresponde.
+
+### Policies de Storage
+
+Actualmente no existen policies explícitas vigentes sobre `storage.objects` para estos buckets.
+
+Las operaciones privilegiadas se realizan desde el servidor mediante `supabaseAdmin`/`service_role`. `service_role` no depende de policies RLS de cliente para estas operaciones y nunca debe exponerse al navegador.
+
+Los buckets públicos permiten la lectura de objetos mediante su URL pública por la propia configuración del bucket.
+
+### Límites relevantes
+
+- `contributions` tiene un límite de 10 MB configurado a nivel de bucket.
+- `avatars` no tiene límite de bucket, pero los endpoints de perfil aplican validaciones de tipo y tamaño antes de subir una imagen.
+- `thumbnails` acepta únicamente JPEG y PNG a nivel de bucket.
+- `avatars` acepta JPEG, PNG y WebP a nivel de bucket.
+- `exams` y `solutions` no tienen actualmente un límite de tamaño ni una restricción MIME configurados a nivel de bucket.
+
+Antes de cambiar la visibilidad, límites o MIME types de un bucket, revisar también el código que genera URLs y realiza las operaciones de Storage.
 
 
 ## Scripts disponibles
