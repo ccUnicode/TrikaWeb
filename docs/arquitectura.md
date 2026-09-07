@@ -684,16 +684,19 @@ la autorización debe validarse en el endpoint o función RPC.
 
 ## Storage buckets
 
-| Bucket | Contenido | Acceso utilizado por la aplicación |
-|---|---|---|
-| `exams` | Planchas y evaluaciones | URLs firmadas, streaming o descarga |
-| `solutions` | Solucionarios PDF | URLs firmadas, streaming o descarga |
-| `thumbnails` | Miniaturas | URL firmada o política definida para el bucket |
-| `avatars` | Avatares | Según política del bucket |
-| `contributions` | Archivos enviados por usuarios | Acceso privado y controlado |
+La configuración vigente de Supabase Storage distingue recursos públicos de archivos que deben permanecer protegidos. Las operaciones privilegiadas de subida, eliminación y generación de URLs se realizan desde el servidor con `supabaseAdmin`.
 
-La configuración exacta de MIME types, tamaño máximo y políticas debe mantenerse
-en las migraciones o configuración de Supabase Storage.
+| Bucket | Finalidad | Visibilidad | Acceso utilizado por la aplicación | Límites / MIME relevantes |
+|---|---|---|---|---|
+| `exams` | Planchas y evaluaciones | Privado | URLs firmadas generadas por el servidor; operaciones administrativas con `service_role` | Sin límite de bucket ni MIME types configurados |
+| `solutions` | Solucionarios | Privado | URLs firmadas generadas por el servidor; operaciones administrativas con `service_role` | Sin límite de bucket ni MIME types configurados |
+| `thumbnails` | Miniaturas de planchas | Público | URL pública (`getPublicUrl` o ruta pública de Storage) | Sin límite de bucket; `image/jpeg`, `image/png` |
+| `avatars` | Avatares de usuarios | Público | URL pública; subidas y eliminaciones mediante endpoints del servidor | Sin límite de bucket; `image/jpeg`, `image/png`, `image/webp` |
+| `contributions` | Archivos enviados por usuarios para moderación | Privado | Acceso administrativo mediante URL firmada; subida y gestión desde endpoints del servidor | 10 MB; sin MIME types configurados en el bucket |
+
+Actualmente no existen policies explícitas sobre `storage.objects` para estos buckets. Los buckets públicos (`avatars` y `thumbnails`) permiten lectura mediante su URL pública. Las operaciones privilegiadas y el acceso a los buckets privados se realizan desde el servidor mediante `service_role`, que no depende de policies RLS de cliente.
+
+No debe exponerse `SUPABASE_SERVICE_KEY` al navegador ni utilizarse acceso directo de cliente para operaciones privilegiadas de Storage.
 
 ---
 
