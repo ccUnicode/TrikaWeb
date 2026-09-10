@@ -768,7 +768,7 @@ Content-Type: application/json
 {
   "course_id": 1,
   "evaluation_id": 4,
-  "cycle": "2024-1",
+  "cycle": "2024-I",
   "resource_kind": "PLANCHA",
   "is_teacher_specific": false
 }
@@ -780,7 +780,7 @@ Content-Type: application/json
 |---|---|---|
 | `course_id` | ✅ | ID del curso |
 | `evaluation_id` | ✅ | ID de la evaluación asociada |
-| `cycle` | ✅ | Ciclo con formato `AAAA-T` |
+| `cycle` | ✅ | Ciclo con formato `AAAA-I`, `AAAA-II` o `AAAA-III` |
 | `resource_kind` | ✅ | `PLANCHA`, `SOLUCIONARIO` o `AMBOS` |
 | `is_teacher_specific` | ✅ | Indica si el recurso pertenece a un profesor |
 | `teacher_id` | Condicional | Profesor asociado cuando corresponde |
@@ -791,10 +791,9 @@ La respuesta incluye la URL firmada, token, ruta y bucket necesarios para subir 
 
 **Errores:**
 
-- `400`: Campos faltantes, ciclo inválido o tipo de recurso inválido.
+- `400`: Campos faltantes, ciclo inválido, tipo de recurso inválido o no existe una plancha previa para subir únicamente un solucionario.
 - `401`: Sesión administrativa inválida.
 - `404`: Curso, evaluación o profesor no encontrado.
-- `409`: No existe una plancha previa para subir únicamente un solucionario.
 - `500`: Error al generar la URL firmada.
 
 ---
@@ -833,14 +832,17 @@ Content-Type: application/json
 {
   "course_id": 1,
   "evaluation_id": 4,
-  "cycle": "2024-1",
+  "cycle": "2024-I",
   "resource_kind": "PLANCHA",
   "has_thumb_upload": true,
   "is_teacher_specific": false
 }
 ```
 
-> **Nota:** Si `resource_kind` es `AMBOS`, se debe incluir adicionalmente el campo `upload_session_id`.
+**Propósitos de campos específicos:**
+
+- `has_thumb_upload`: Indica si se subió una miniatura asociada en el flujo anterior.
+- `upload_session_id`: Debe ser exactamente el identificador devuelto previamente por `/api/admin/upload-url`. Es estrictamente obligatorio cuando `resource_kind` es `AMBOS`.
 
 **Reglas principales:**
 
@@ -855,16 +857,20 @@ Content-Type: application/json
 
 ```json
 {
-  "ok": true
+  "ok": true,
+  "message": "Plancha guardada correctamente",
+  "path": "MAT01/2024-I/parcial-1.pdf",
+  "teacherId": null,
+  "teacherName": null
 }
 ```
 
 **Errores:**
 
-- `400`: Metadatos o rutas inválidas.
+- `400`: Metadatos inválidos, solucionario sin plancha previa o rutas inválidas.
 - `401`: Sesión administrativa inválida.
 - `404`: Curso, evaluación, profesor o plancha no encontrada.
-- `409`: Curso incompleto, solucionario sin plancha previa o recurso incompatible.
+- `409`: Curso incompleto o recurso incompatible.
 - `500`: Error al registrar el archivo.
 
 ---
