@@ -265,13 +265,23 @@
 
 ## Storage Buckets
 
-| Bucket | Contenido | Acceso | Límite | MIME types |
-|--------|-----------|--------|--------|------------|
-| `exams` | PDFs de planchas | Privado (signed URLs) | — | — |
-| `solutions` | PDFs de solucionarios | Privado (signed URLs) | — | — |
-| `thumbnails` | Miniaturas de preview | Público | — | `image/jpeg, image/png` |
-| `avatars` | Avatares de profesores/usuarios | Público | — | `image/jpeg, image/png, image/webp` |
-| `contributions` | Archivos subidos por contribuciones | Privado | 10 MB | — |
+Configuración verificada en Supabase Storage:
+
+| Bucket | Contenido | Visibilidad | Forma de acceso | Límite de bucket | MIME types |
+|--------|-----------|-------------|-----------------|------------------|------------|
+| `exams` | PDFs de planchas | Privado | URL firmada generada por el servidor | Sin límite configurado | Sin restricción configurada |
+| `solutions` | PDFs de solucionarios | Privado | URL firmada generada por el servidor | Sin límite configurado | Sin restricción configurada |
+| `thumbnails` | Miniaturas de preview | Público | URL pública | Sin límite configurado | `image/jpeg`, `image/png` |
+| `avatars` | Avatares de usuarios | Público | URL pública | Sin límite configurado | `image/jpeg`, `image/png`, `image/webp` |
+| `contributions` | Archivos subidos para moderación | Privado | URL firmada para revisión administrativa | 10 MB | Sin restricción configurada |
+
+No existen policies explícitas vigentes sobre `storage.objects` para estos buckets. Las operaciones de escritura, eliminación y generación de URLs firmadas se realizan desde endpoints del servidor con `supabaseAdmin`/`service_role`. La lectura pública de `avatars` y `thumbnails` utiliza las rutas públicas de Supabase Storage.
+
+Notas de límites de aplicación:
+
+- `avatars` no tiene límite de tamaño configurado a nivel de bucket; los endpoints de perfil aplican validaciones de tamaño y MIME antes de subir archivos.
+- `contributions` aplica un límite de 10 MB a nivel de bucket.
+- `exams`, `solutions` y `thumbnails` no tienen un límite de tamaño configurado actualmente a nivel de bucket.
 
 ## Índices
 
