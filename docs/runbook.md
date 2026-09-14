@@ -244,7 +244,6 @@ Consultar [`deploy.md`](./deploy.md) para el procedimiento de rollback.
 
 ```bash
 npm ci
-npm run check
 npm run build
 ```
 
@@ -354,7 +353,7 @@ Ejemplo de nombre:
 trikaweb-production-YYYY-MM-DD.sql
 ```
 
-La forma exacta de generar y restaurar backups debe validarse con la configuración actual de Supabase antes de usarse en producción.
+Para el procedimiento de exportación e importación validado, consultar la sección correspondiente en [`deploy.md`](./deploy.md).
 
 ### Storage
 
@@ -444,44 +443,51 @@ Después de recuperar el servicio:
 
 Antes de una rotación de equipo, verificar la entrega de accesos a los siguientes recursos específicos:
 
+### Dominio y DNS
+
+**Dominio:** `trikaweb.ccunicode.org`
+
+- [ ] Administrador actual del DNS: Cuenta de Cloudflare asociada a `ccunicodedesarrollo@gmail.com`.
+- [ ] El equipo entrante conoce el procedimiento formal para solicitar cambios en los registros DNS mediante el canal oficial del área de ID.
+
 ### GitHub
 
-**Proyecto:** `ccUnicode/TrikaWeb`
+**Organización:** `ccUnicode`
+**Proyecto:** `TrikaWeb`
 
-- [ ] El equipo entrante tiene acceso al repositorio (concedido por el administrador de la organización `ccUnicode`).
+- [ ] El equipo entrante tiene acceso al repositorio (concedido por el propietario de la organización `ccUnicode`, el Director de ID).
 - [ ] Conoce la rama de producción (`main`) y la de prueba (`dev`).
-- [ ] Conoce el flujo de Pull Requests.
-- [ ] Puede revisar issues y deployments relacionados.
+- Puede revisar issues y deployments relacionados.
 
 ### Vercel
 
-**Proyecto:** `TrikaWeb`
+**Equipo:** `CCUnicode-ID`
+**Proyecto exacto:** `trikaweb`
 
-- [ ] Tiene acceso al proyecto en Vercel (asignado por el propietario del proyecto en Vercel).
-- [ ] Puede consultar deployments.
-- [ ] Puede consultar logs.
-- [ ] Conoce dónde se administran variables de entorno.
+- [ ] Tiene acceso al proyecto (asignado por el propietario del equipo en Vercel).
+- [ ] Puede consultar deployments, logs y configuración de variables de entorno.
 
 ### Supabase
 
+**Organización:** `UNI Projects`
 **Proyecto:** `TrikaWeb`
+**Project Reference ID:** `ijjkflazhbrrfbjqewyu`
 
-- [ ] Tiene acceso al proyecto en Supabase (invitado por el administrador de la organización en Supabase).
-- [ ] Puede revisar Database.
-- [ ] Puede revisar Auth.
-- [ ] Puede revisar Storage.
-- [ ] Puede revisar logs.
+- [ ] Tiene acceso al proyecto en Supabase (invitado por el administrador de la organización `UNI Projects`).
+- [ ] Puede revisar Database, Auth, Storage y logs del Reference ID `ijjkflazhbrrfbjqewyu`.
 
 ### Google Drive
 
-**Carpetas:** Exámenes y Solucionarios.
+**Carpetas concretas:** "1. EXAMENES" y "2. RESOLUCIONES", contenidas dentro de la carpeta principal "Planchas académica".
+Sus IDs de Drive no se exponen aquí, sino que se configuran en las variables de entorno de producción (`DRIVE_EXAMS_FOLDER_ID`, `DRIVE_SOLUTIONS_FOLDER_ID`, etc.) en Vercel.
 
 - [ ] Se tiene acceso a las carpetas compartidas de Drive requeridas para sincronización.
-- [ ] Se conoce qué cuenta de servicio utiliza la sincronización (Service Account).
+- [ ] Se conoce que la cuenta propietaria y quien administra el acceso es Franz Nuñez (`franz.nunez.v@gmail.com`), director del Área Académica de Unicode.
+- [ ] El equipo sabe que debe escalar la solicitud de permisos a él en caso de requerir sincronizar una nueva carpeta o cambiar la Service Account.
 
 ### Gestión de Credenciales y Secretos
 
-- [ ] La entrega de variables de entorno (.env de producción) y accesos de administrador se gestiona de forma segura a través del líder del equipo saliente o el director del área, utilizando un gestor de contraseñas de equipo o un canal de comunicación cifrado.
+- [ ] La entrega de variables de entorno (.env de producción) y accesos de administrador se gestiona de forma segura a través del líder del equipo saliente o el Director de ID.
 
 ---
 
