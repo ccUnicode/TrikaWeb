@@ -1,4 +1,4 @@
-﻿# TrikaWeb
+# TrikaWeb
 
 Plataforma colaborativa para compartir examenes pasados, solucionarios y
 calificaciones de profesores universitarios.
@@ -8,7 +8,7 @@ calificaciones de profesores universitarios.
 - Frontend: Astro + Tailwind CSS
 - Backend: Astro API Routes (output server)
 - Base de datos y storage: Supabase (PostgreSQL)
-- Auth de estudiantes: Firebase
+- Auth de estudiantes: Supabase Auth
 - Auth de administrador: Supabase Auth
 - Deploy: Vercel
 

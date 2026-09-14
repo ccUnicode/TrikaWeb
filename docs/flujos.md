@@ -228,7 +228,7 @@ sequenceDiagram
     Admin->>UI: Selecciona PDF + metadata
     Note right of UI: course_code, exam_type,<br/>cycle, resource_kind
     UI->>API: POST multipart/form-data
-    API->>API: Valida admin_pass
+    API->>API: Valida admin_session
     API->>Storage: upload(file, path)
     Storage-->>API: storage_path
     API->>DB: INSERT sheets (metadata + path)
