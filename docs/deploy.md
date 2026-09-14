@@ -279,26 +279,42 @@ Al utilizar un plan que puede no incluir respaldos automatizados o Point-in-Time
 
 ### Generar un backup (Exportar)
 
-Mediante Supabase CLI (requiere Docker y haber hecho login con `npx supabase login`):
+Mediante Supabase CLI (requiere Docker y haber hecho login con `npx supabase login`), se deben realizar exports separados para esquema, datos y roles, ya que un solo comando no exporta todo adecuadamente.
 
 ```bash
-# Exportar esquema y datos
-npx supabase db dump -f trikaweb-production-YYYY-MM-DD.sql --db-url "postgres://[user]:[password]@[host]:[port]/[db_name]"
+# 1. Exportar esquema (estructura de tablas, funciones, etc.)
+npx supabase db dump --db-url "postgres://[user]:[password]@[host]:[port]/[db_name]" -f schema.sql
+
+# 2. Exportar datos (insertos limpios)
+npx supabase db dump --db-url "postgres://[user]:[password]@[host]:[port]/[db_name]" --data-only --use-copy -f data.sql
+
+# 3. Exportar roles (ignorar errores de roles administrados por Supabase)
+npx supabase db dump --db-url "postgres://[user]:[password]@[host]:[port]/[db_name]" --role-only -f roles.sql
 ```
 *(Los datos de conexión se encuentran en Settings > Database en el panel de Supabase).*
-
-Alternativamente, desde el panel web de Supabase:
-1. Ir a **Database** > **Backups** o utilizar un cliente externo como DBeaver/pgAdmin para hacer un export.
 
 Los archivos de backup no deben subirse al repositorio ni exponerse.
 
 ### Restaurar un backup
 
-Para restaurar una base de datos desde un archivo SQL (precaución: esto sobrescribirá la base de datos):
+Para restaurar una base de datos desde los archivos generados, es crucial especificar correctamente el destino (`-h [host] -d [db_name]`).
 
+**Precaución:** Los comandos `psql -f` no borran ni "sobrescriben" automáticamente la base de datos existente; simplemente ejecutan las sentencias SQL. Esto significa que si las tablas o datos ya existen, la restauración fallará o causará duplicados. Debes restaurar sobre una base de datos limpia o vacía, y ejecutar primero en un entorno local o de desarrollo (Staging) para validar.
+
+Orden estricto de restauración:
 ```bash
-psql -h [host] -U [user] -d [db_name] -p [port] -f trikaweb-production-YYYY-MM-DD.sql
+# 1. Restaurar roles
+psql -h [host] -U [user] -d [db_name] -p [port] -f roles.sql
+
+# 2. Restaurar esquema
+psql -h [host] -U [user] -d [db_name] -p [port] -f schema.sql
+
+# 3. Restaurar datos
+psql -h [host] -U [user] -d [db_name] -p [port] -f data.sql
 ```
+
+**Verificación posterior:**
+Revisar mediante DBeaver/pgAdmin o Supabase Studio que las tablas clave (`courses`, `sheets`, `profiles`) contengan la información esperada y que las policies (RLS) sigan vigentes.
 
 ---
 
@@ -306,15 +322,36 @@ psql -h [host] -U [user] -d [db_name] -p [port] -f trikaweb-production-YYYY-MM-D
 
 Los backups de PostgreSQL no incluyen automáticamente los archivos físicos almacenados en Supabase Storage (exámenes, solucionarios, miniaturas, avatares, etc.).
 
-### Generar un backup de Storage
+### Generar un backup de Storage (Descarga)
 
-Para resguardar los archivos, se puede descargar el contenido de los buckets mediante el Dashboard de Supabase, o emplear un script utilizando AWS CLI (dado que Supabase Storage expone compatibilidad con S3).
+Para resguardar los archivos de todos los buckets (`exams`, `solutions`, `thumbnails`, `avatars` y `contributions`), emplear AWS CLI (ya que Supabase Storage expone compatibilidad con S3).
 
-Ejemplo con AWS CLI:
+**Configuración segura:**
+Ejecuta `aws configure` en tu terminal e introduce la Access Key y Secret Key (obtenidas en Supabase: Settings > Storage) únicamente cuando te lo solicite interactivamente. **Nunca escribas estos valores directamente en scripts versionados ni los pases por argumentos de línea de comandos**.
+El Endpoint y la Región se deben enviar en el comando.
+
+**Comandos de descarga:**
 ```bash
 aws s3 sync s3://exams ./backup-exams --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync s3://solutions ./backup-solutions --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync s3://thumbnails ./backup-thumbnails --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync s3://avatars ./backup-avatars --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync s3://contributions ./backup-contributions --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
 ```
-*(Requiere configurar las credenciales S3 desde Supabase Settings > Storage).*
+
+### Restaurar Storage (Subida)
+
+Para restaurar los archivos al servidor destino, invertir el orden en el comando `sync`:
+```bash
+aws s3 sync ./backup-exams s3://exams --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync ./backup-solutions s3://solutions --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync ./backup-thumbnails s3://thumbnails --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync ./backup-avatars s3://avatars --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+aws s3 sync ./backup-contributions s3://contributions --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
+```
+
+**Verificación posterior:**
+Ingresar a Supabase Studio > Storage y validar de forma aleatoria que los archivos de todos los buckets (`exams`, `solutions`, `thumbnails`, `avatars`, `contributions`) existan y puedan ser visualizados o descargados mediante la interfaz.
 
 Cualquier estrategia de recuperación completa debe contemplar ambos componentes (Base de datos y Storage).
 
@@ -344,7 +381,6 @@ Antes del merge productivo:
 
 - [ ] El Pull Request fue revisado.
 - [ ] El issue relacionado está identificado, si existe.
-- [ ] `npm run check` pasa.
 - [ ] `npm run build` pasa.
 - [ ] Las pruebas aplicables pasan.
 - [ ] Las funcionalidades afectadas fueron verificadas.
