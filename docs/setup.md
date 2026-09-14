@@ -111,7 +111,7 @@ Las migraciones de mallas requieren que la tabla `courses` y `specialties` exist
 
 ### Instalación nueva
 
-Para una base de datos vacía, ejecutar primero:
+Para una base de datos vacía, ejecutar primero el esquema inicial (que contiene únicamente la línea base antes de las migraciones):
 
 ```text
 supabase/schema.sql
@@ -195,7 +195,7 @@ Para actualizar una base que ya contiene datos:
 2. No volver a ejecutar `supabase/schema.sql`.
 3. No volver a ejecutar migraciones ya aplicadas.
 4. Ejecutar únicamente las migraciones pendientes, respetando el orden numérico.
-5. Tener en cuenta que `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. En producción, considerar un enfoque manual de conversión de `user_id` en lugar del truncado.
+5. **ATENCIÓN:** La migración `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. **ESTA MIGRACIÓN NO DEBE APLICARSE EN PRODUCCIÓN.** Para comprobar si ya fue aplicada, ejecuta `SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version = '23b'`. Si el resultado es 1, omite este archivo. Si la base no ha sido migrada, se requiere un enfoque manual de conversión de `user_id` sin usar el script automatizado.
 6. Verificar el backfill de `system_id`, evaluaciones y demás relaciones antes de aplicar restricciones `NOT NULL`.
 7. Ejecutar las migraciones de seguridad y permisos (`24` – `28`) al final.
 8. Validar el funcionamiento de los endpoints administrativos y públicos.
