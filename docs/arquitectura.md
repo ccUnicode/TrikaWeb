@@ -707,7 +707,6 @@ en las migraciones o configuración de Supabase Storage.
 | `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` | Cliente público de Supabase (navegador) |
 | `FIREBASE_PROJECT_ID` / `FIREBASE_CLIENT_EMAIL` / `FIREBASE_PRIVATE_KEY` | Admin SDK de Firebase (verificación de sesión de estudiantes) |
 | `PUBLIC_FIREBASE_*` | Inicialización de Firebase Auth en el cliente |
-| `ADMIN_PASS` | Contraseña administrativa heredada (según versión) |
 | `DRIVE_EXAMS_FOLDER_ID` / `DRIVE_SOLUTIONS_FOLDER_ID` / `GOOGLE_APPLICATION_CREDENTIALS` | Sincronización con Google Drive |
 
 ### Reglas

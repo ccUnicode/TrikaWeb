@@ -34,7 +34,6 @@ Aplicación local: `http://localhost:4321`
 
 La documentación completa está en `docs/`:
 
-- `docs/README.md`: índice general
 - `docs/funcionalidades.md`: alcance funcional
 - `docs/arquitectura.md`: arquitectura técnica y base de datos
 - `docs/flujos.md`: diagramas visuales de flujos del sistema

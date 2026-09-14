@@ -68,12 +68,10 @@ Las siguientes variables deben utilizarse exclusivamente desde código ejecutado
 - `SUPABASE_URL`: URL del proyecto de Supabase.
 - `SUPABASE_SERVICE_KEY`: `service_role` o secret key utilizada por operaciones administrativas.
 - `IP_SALT`: cadena aleatoria utilizada para generar hashes asociados a direcciones IP.
-- `ADMIN_PASS`: contraseña utilizada para el acceso administrstivo (`/admin/login`).
 - `GOOGLE_APPLICATION_CREDENTIALS`: ruta a las credenciales utilizadas por la sincronización con Google Drive, si aplica.
 - `DRIVE_EXAMS_FOLDER_ID`: identificador de la carpeta de evaluaciones de Google Drive, si aplica.
 - `DRIVE_SOLUTIONS_FOLDER_ID`: identificador de la carpeta de solucionarios de Google Drive, si aplica.
-
-`SUPABASE_SERVICE_KEY`, `IP_SALT`, `ADMIN_PASS` y otras credenciales privadas nunca deben exponerse mediante variables `PUBLIC_*` ni utilizarse directamente desde componentes ejecutados en el navegador.
+`SUPABASE_SERVICE_KEY`, `IP_SALT` y otras credenciales privadas nunca deben exponerse mediante variables `PUBLIC_*` ni utilizarse directamente desde componentes ejecutados en el navegador.
 
 ### Variables públicas del cliente
 

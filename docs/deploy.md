@@ -1,4 +1,4 @@
-﻿# Deploy
+# Deploy
 
 ## Entorno objetivo
 
@@ -21,7 +21,6 @@ npm run preview
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_KEY`
 - `IP_SALT`
-- `ADMIN_PASS`
 
 ### Cliente
 
