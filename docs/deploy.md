@@ -22,6 +22,7 @@ npm run preview
 - `SUPABASE_SERVICE_KEY`
 - `IP_SALT`
 
+
 ### Cliente
 
 - `PUBLIC_SUPABASE_URL`
