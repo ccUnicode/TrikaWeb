@@ -13,8 +13,12 @@ if (user) {
 ---
 
 <Layout title="Acceder - TrikaWeb">
-  <div class="flex min-h-[calc(100vh-100px)] w-full items-center justify-center px-4 py-12">
-    <div class="w-full max-w-md overflow-hidden rounded-2xl border-2 border-global-border bg-global-surface shadow-2xl">
+  <div
+    class="flex min-h-[calc(100vh-100px)] w-full items-center justify-center px-4 py-12"
+  >
+    <div
+      class="w-full max-w-md overflow-hidden rounded-2xl border-2 border-global-border bg-global-surface shadow-2xl"
+    >
       <div class="p-8">
         <div class="text-center mb-8">
           <img
@@ -33,33 +37,51 @@ if (user) {
           role="alert"
           aria-live="polite"
           class="hidden mb-4 rounded-lg bg-red-500/10 p-4 text-sm text-red-500 border border-red-500/20"
-        ></div>
+        >
+        </div>
 
-        <form action="/api/auth/signin" method="post" id="login-form">
-          <input type="hidden" name="next" id="next-input" value="/profile" />
-          <button
-            id="google-login-btn"
-            type="submit"
-            disabled
-            class="w-full rounded-xl bg-global-primary py-3 px-4 text-sm font-bold text-black transition-all hover:bg-global-primary-hover focus:outline-none focus:ring-2 focus:ring-global-primary focus:ring-offset-2 focus:ring-offset-global-surface disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-global-primary shadow-[0_0_15px_rgba(34,197,94,0.2)] flex items-center justify-center gap-2"
+        <!-- Contenedor modificado para Google Identity -->
+        <div
+          id="google-btn-wrapper"
+          class="relative w-full opacity-50 transition-opacity"
+        >
+          <!-- Capa bloqueadora que desaparece al aceptar términos -->
+          <div
+            id="google-btn-overlay"
+            class="absolute inset-0 z-10 cursor-not-allowed"
+            title="Acepta los términos para continuar"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="w-5 h-5">
-              <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
-              <path fill="#FF3D00" d="m6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/>
-              <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.222 0-9.654-3.343-11.303-8l-6.571 4.819C9.656 39.663 16.318 44 24 44z"/>
-              <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
-            </svg>
-            Continuar con Google
-          </button>
-        </form>
+          </div>
+          <!-- Aquí se renderiza el botón oficial de Google -->
+          <div
+            id="google-button-container"
+            class="flex justify-center w-full min-h-[44px]"
+          >
+          </div>
+        </div>
 
         <p class="mt-4 text-center text-xs text-global-text-muted">
           Solo se permiten correos institucionales de la UNI.
         </p>
         <div class="mt-5 flex items-start gap-2 px-4">
-          <input type="checkbox" id="terms-checkbox" class="mt-0.5 rounded border-global-border bg-global-bg text-global-primary focus:ring-global-primary focus:ring-offset-global-surface cursor-pointer" />
-          <label for="terms-checkbox" class="text-xs leading-relaxed text-global-text-muted text-left cursor-pointer select-none">
-            He leído y acepto los <a href="/terminos" class="font-medium underline hover:text-global-primary transition-colors">Términos de Servicio</a> y la <a href="/privacidad" class="font-medium underline hover:text-global-primary transition-colors">Política de Privacidad</a>.
+          <input
+            type="checkbox"
+            id="terms-checkbox"
+            class="mt-0.5 rounded border-global-border bg-global-bg text-global-primary focus:ring-global-primary focus:ring-offset-global-surface cursor-pointer"
+          />
+          <label
+            for="terms-checkbox"
+            class="text-xs leading-relaxed text-global-text-muted text-left cursor-pointer select-none"
+          >
+            He leído y acepto los <a
+              href="/terminos"
+              class="font-medium underline hover:text-global-primary transition-colors"
+              >Términos de Servicio</a
+            > y la <a
+              href="/privacidad"
+              class="font-medium underline hover:text-global-primary transition-colors"
+              >Política de Privacidad</a
+            >.
           </label>
         </div>
       </div>
@@ -67,46 +89,109 @@ if (user) {
   </div>
 </Layout>
 
+<!-- Script oficial de Google Identity -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
+  // Asegúrate de importar la configuración correcta de tu cliente Supabase para frontend
+  import { createBrowserClient } from "@supabase/ssr";
+
   document.addEventListener("DOMContentLoaded", () => {
     const errorBox = document.getElementById("error-message");
-    const nextInput = document.getElementById("next-input") as HTMLInputElement;
-    const loginForm = document.getElementById("login-form") as HTMLFormElement;
-    const googleBtn = document.getElementById("google-login-btn") as HTMLButtonElement;
-    const termsCheckbox = document.getElementById("terms-checkbox") as HTMLInputElement;
+    const termsCheckbox = document.getElementById(
+      "terms-checkbox",
+    ) as HTMLInputElement;
+    const googleWrapper = document.getElementById("google-btn-wrapper");
+    const googleOverlay = document.getElementById("google-btn-overlay");
 
-    // Lógica del Checkbox de Términos
-    if (termsCheckbox && googleBtn) {
-      // Sincronizar estado inicial (por si el navegador recuerda el check)
-      googleBtn.disabled = !termsCheckbox.checked;
-      
-      termsCheckbox.addEventListener("change", (e) => {
-        googleBtn.disabled = !(e.target as HTMLInputElement).checked;
-      });
+    // Manejo de UI: Activar/Desactivar el botón de Google
+    function updateButtonState() {
+      if (termsCheckbox.checked) {
+        googleWrapper?.classList.remove("opacity-50");
+        googleOverlay?.classList.add("hidden");
+      } else {
+        googleWrapper?.classList.add("opacity-50");
+        googleOverlay?.classList.remove("hidden");
+      }
     }
 
-    // Obtener parámetros de la URL actual
+    if (termsCheckbox) {
+      updateButtonState();
+      termsCheckbox.addEventListener("change", updateButtonState);
+    }
+
+    // Manejo de parámetros URL
     const urlParams = new URLSearchParams(window.location.search);
-    const errorParam = urlParams.get('error');
-    const redirectParam = urlParams.get('redirect');
+    const errorParam = urlParams.get("error");
+    const redirectParam = urlParams.get("redirect") || "/profile";
 
-    // Mostrar mensaje de error si existe
     if (errorParam && errorBox) {
-      errorBox.textContent = errorParam.replace(/\+/g, ' ');
-      errorBox.classList.remove('hidden');
+      errorBox.textContent = errorParam.replace(/\+/g, " ");
+      errorBox.classList.remove("hidden");
     }
 
-    // Pasar el redirect al input oculto
-    if (redirectParam && nextInput) {
-      nextInput.value = redirectParam;
-    }
+    // Renderizado del botón de Google al cargar la ventana
+    window.onload = () => {
+      const GOOGLE_CLIENT_ID =
+        "815175741640-tjkrdqmd25b72bh7uodbei6u9vjh8r7i.apps.googleusercontent.com";
 
-    // Desactivar botón al enviar para evitar múltiples clicks
-    if (loginForm && googleBtn) {
-      loginForm.addEventListener("submit", () => {
-        googleBtn.disabled = true;
-        googleBtn.textContent = "Conectando con Google...";
-      });
-    }
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleCredentialResponse,
+          hd: "uni.pe",
+        });
+
+        const buttonContainer = document.getElementById(
+          "google-button-container",
+        );
+
+        if (buttonContainer) {
+          window.google.accounts.id.renderButton(buttonContainer, {
+            type: "standard",
+            theme: "filled_black", // Opciones: "outline" (blanco), "filled_blue", "filled_black"
+            size: "large", // Opciones: "small", "medium", "large"
+            shape: "pill", // Opciones: "rectangular" (por defecto), "pill" (bordes muy redondeados), "circle", "square"
+            text: "signin_with", // Opciones de frase predefinida
+            width: 384,
+            logo_alignment: "left", // Opciones: "left", "center"
+          });
+        }
+      }
+
+      // Función que procesa el login exitoso en el popup de Google
+      async function handleCredentialResponse(response: any) {
+        try {
+          // Inicializa Supabase usando las variables de entorno de Astro
+          const supabase = createBrowserClient(
+            import.meta.env.PUBLIC_SUPABASE_URL,
+            import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+          );
+
+          // Pasamos el token directamente a Supabase sin salir de la página
+          const { error } = await supabase.auth.signInWithIdToken({
+            provider: "google",
+            token: response.credential,
+          });
+
+          if (error) throw error;
+
+          // Asegura que la redirección empiece con '/' (ruta local) y no sea '//' (dominio externo)
+          const safeClientRedirect =
+            redirectParam.startsWith("/") && !redirectParam.startsWith("//")
+              ? redirectParam
+              : "/profile";
+
+          window.location.href = safeClientRedirect;
+        } catch (error) {
+          console.error("Error en autenticación:", error);
+          if (errorBox) {
+            errorBox.textContent =
+              "Error al conectar con el servidor. Inténtalo de nuevo.";
+            errorBox.classList.remove("hidden");
+          }
+        }
+      }
+    };
   });
 </script>
