@@ -16,6 +16,7 @@ La aplicación utiliza:
 - GitHub como repositorio de código (`ccUnicode/TrikaWeb`).
 
 **Ramas:**
+
 - Rama de producción (enlazada a Vercel): `main`
 - Rama de pruebas e integración: `dev`
 
@@ -291,7 +292,8 @@ npx supabase db dump --db-url "postgres://[user]:[password]@[host]:[port]/[db_na
 # 3. Exportar roles (ignorar errores de roles administrados por Supabase)
 npx supabase db dump --db-url "postgres://[user]:[password]@[host]:[port]/[db_name]" --role-only -f roles.sql
 ```
-*(Los datos de conexión se encuentran en Settings > Database en el panel de Supabase).*
+
+_(Los datos de conexión se encuentran en Settings > Database en el panel de Supabase)._
 
 Los archivos de backup no deben subirse al repositorio ni exponerse.
 
@@ -302,15 +304,9 @@ Para restaurar una base de datos desde los archivos generados, es crucial especi
 **Precaución:** Los comandos `psql -f` no borran ni "sobrescriben" automáticamente la base de datos existente; simplemente ejecutan las sentencias SQL. Esto significa que si las tablas o datos ya existen, la restauración fallará o causará duplicados. Debes restaurar sobre una base de datos limpia o vacía, y ejecutar primero en un entorno local o de desarrollo (Staging) para validar.
 
 Orden estricto de restauración:
+
 ```bash
-# 1. Restaurar roles
-psql -h [host] -U [user] -d [db_name] -p [port] -f roles.sql
-
-# 2. Restaurar esquema
-psql -h [host] -U [user] -d [db_name] -p [port] -f schema.sql
-
-# 3. Restaurar datos
-psql -h [host] -U [user] -d [db_name] -p [port] -f data.sql
+psql -v ON_ERROR_STOP=1 --single-transaction -h [host] -U [user] -d [db_name] -p [port] -f roles.sql -f schema.sql -f data.sql
 ```
 
 **Verificación posterior:**
@@ -331,6 +327,7 @@ Ejecuta `aws configure` en tu terminal e introduce la Access Key y Secret Key (o
 El Endpoint y la Región se deben enviar en el comando.
 
 **Comandos de descarga:**
+
 ```bash
 aws s3 sync s3://exams ./backup-exams --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
 aws s3 sync s3://solutions ./backup-solutions --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
@@ -342,6 +339,7 @@ aws s3 sync s3://contributions ./backup-contributions --endpoint-url https://[pr
 ### Restaurar Storage (Subida)
 
 Para restaurar los archivos al servidor destino, invertir el orden en el comando `sync`:
+
 ```bash
 aws s3 sync ./backup-exams s3://exams --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
 aws s3 sync ./backup-solutions s3://solutions --endpoint-url https://[project-ref].supabase.co/storage/v1/s3 --region eu-west-1
