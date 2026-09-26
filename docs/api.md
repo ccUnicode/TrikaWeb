@@ -6,7 +6,7 @@ Base local: `http://localhost:4321`
 
 - La mayoría de endpoints responde JSON.
 - Los endpoints administrativos usan la cookie de sesión `admin_session`, salvo `login`.
-- Las calificaciones de planchas y profesores se asocian al usuario autenticado mediante Firebase.
+- Las calificaciones de planchas y profesores se asocian al usuario autenticado mediante Supabase Auth.
 - Los endpoints de vistas e interés pueden requerir `device_id`, un UUID generado en el cliente.
 - Los errores usan un código HTTP apropiado y normalmente incluyen `{ "error": "mensaje" }` o `{ "ok": false, "error": "mensaje" }`.
 
@@ -1612,48 +1612,39 @@ Content-Type: application/json
 
 ## Endpoints de autenticación
 
-> Los endpoints de autenticación de estudiantes usan Firebase Auth y emiten/consumen la cookie `firebase_session` (HTTP-only). El correo debe terminar en `@uni.pe`.
+> Los endpoints de autenticación de estudiantes usan Supabase Auth y se manejan con cookies administradas por `@supabase/ssr`. El correo debe terminar en `@uni.pe`.
 
-### POST `/api/auth/login`
+### POST `/api/auth/signin`
 
-Inicia sesión con la cuenta institucional de Firebase (Google).
+Inicia sesión delegando la autenticación OAuth a Supabase (Google).
 
 **Request:**
 
 ```http
-POST /api/auth/login
-Content-Type: application/json
+POST /api/auth/signin
+Content-Type: multipart/form-data o application/x-www-form-urlencoded
 
-{
-  "idToken": "<idToken de Firebase>"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "success": true,
-  "user": {
-    "uid": "firebase-uid",
-    "email": "estudiante@uni.pe",
-    "name": "Nombre Apellido"
-  }
-}
+next=/profile
 ```
 
 **Efecto:**
+- Redirige al proveedor de OAuth de Google vía Supabase.
 
-- Verifica el `idToken` con el Admin SDK de Firebase.
+---
+
+### GET `/api/auth/callback`
+
+Maneja la respuesta del flujo OAuth de Supabase.
+
+**Efecto:**
+- Intercambia el código por una sesión de Supabase Auth.
 - Exige correo `@uni.pe`.
 - Crea/actualiza la fila en `student_details` (`user_id`, `email`, `full_name`).
-- Establece la cookie `firebase_session`.
+- Establece las cookies de sesión correspondientes y redirige.
 
 **Errores:**
+- Redirige a `/login?error=...` en caso de error (e.g., correo incorrecto).
 
-- `400`: Falta el token.
-- `403`: El correo no es `@uni.pe`.
-- `503`: Variables de entorno de Firebase ausentes.
 
 ---
 
@@ -1736,7 +1727,7 @@ Reemplaza el avatar del estudiante.
 
 ## Endpoints de contribuciones
 
-> Requieren una sesión de estudiante (`firebase_session`).
+> Requieren una sesión de estudiante de Supabase Auth.
 
 ### POST `/api/contributions/create`
 
