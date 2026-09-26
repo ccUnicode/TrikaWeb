@@ -2,4 +2,3 @@
 -- Ejecutar en el SQL Editor de Supabase
 
 GRANT SELECT (id, teacher_id, overall, difficulty, didactic, resources, responsability, grading, comment, created_at, is_hidden, is_anonymous, needs_review) ON public.teacher_ratings TO anon, authenticated;
-GRANT SELECT (user_id, full_name, avatar_url, specialty) ON public.student_details TO anon, authenticated;
