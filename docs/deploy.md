@@ -375,8 +375,6 @@ No ejecutar por primera vez una migración destructiva directamente en producci�
 
 ## 13. Checklist previo al release
 
-Antes del merge productivo:
-
 - [ ] El Pull Request fue revisado.
 - [ ] El issue relacionado está identificado, si existe.
 - [ ] `npm run build` pasa.

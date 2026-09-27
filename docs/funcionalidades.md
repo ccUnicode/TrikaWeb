@@ -138,7 +138,7 @@
 
 ## Autenticación y sesiones
 
-- Inicio de sesión de estudiantes mediante Google institucional (Firebase Auth).
+- Inicio de sesión de estudiantes mediante Google institucional (Supabase Auth).
 - Restricción a correos `@uni.pe`.
 - Sesión administrativa independiente mediante Supabase Auth y cookie `admin_session`.
 - Registro directo deshabilitado (410 Gone).
