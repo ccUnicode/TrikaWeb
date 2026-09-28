@@ -33,19 +33,18 @@ const showTeacherBadge = teacherLabel
 let thumbUrl: string | null = null;
 if (sheet?.thumb_storage_path) {
   try {
-    // Fix: Remove "thumbnails/" prefix if present in the database path
-    // The createSignedUrl method expects a path relative to the bucket, not including the bucket name.
+    // El bucket `thumbnails` es público. La ruta almacenada en la BD puede
+    // incluir el prefijo del bucket, pero getPublicUrl espera una ruta relativa.
     const storagePath = sheet.thumb_storage_path.startsWith("thumbnails/")
       ? sheet.thumb_storage_path.replace("thumbnails/", "")
       : sheet.thumb_storage_path;
 
-    const supa = supabaseAdmin;
-    const { data } = await supa.storage
+    const { data } = supabaseAdmin.storage
       .from("thumbnails")
-      .createSignedUrl(storagePath, 3600);
-    thumbUrl = data?.signedUrl ?? null;
+      .getPublicUrl(storagePath);
+    thumbUrl = data.publicUrl || null;
   } catch (error) {
-    console.error("Error signing thumb url:", error);
+    console.error("Error generating public thumbnail URL:", error);
   }
 } else if (sheet?.exam_storage_path) {
   // Si no hay miniatura pero el archivo de examen original es una imagen, la usamos como miniatura

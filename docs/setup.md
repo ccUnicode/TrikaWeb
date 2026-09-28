@@ -1,3 +1,4 @@
+
 # Setup y configuración
 
 Este documento describe cómo preparar, configurar y validar un entorno local de TrikaWeb.
@@ -8,9 +9,10 @@ Para una guía de incorporación al proyecto, accesos necesarios y primera contr
 
 Antes de comenzar, instalar:
 
-- Node.js >= 22.12.0.
-- npm.
-- Git.
+- Node.js >= 22.12.0
+- npm
+- Git
+- Proyecto de Supabase (DB, Storage y Auth)
 
 Para ejecutar las pruebas E2E también se requieren los navegadores administrados por Playwright.
 
@@ -19,14 +21,16 @@ Para ejecutar las pruebas E2E también se requieren los navegadores administrado
 Clonar el repositorio:
 
 ```bash
-git clone <URL_DEL_REPOSITORIO>
+git clone 
 cd TrikaWeb
+
 ```
 
 Instalar las dependencias utilizando las versiones registradas en `package-lock.json`:
 
 ```bash
 npm ci
+
 ```
 
 Crear el archivo de variables de entorno tomando `.env.example` como referencia.
@@ -35,24 +39,28 @@ En Git Bash, Linux o WSL:
 
 ```bash
 cp .env.example .env
+
 ```
 
 En PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
+
 ```
 
 Completar las variables necesarias y levantar el servidor:
 
 ```bash
 npm run dev
+
 ```
 
 Por defecto, la aplicación estará disponible en:
 
 ```text
 http://localhost:4321
+
 ```
 
 ## Variables de entorno
@@ -65,18 +73,19 @@ No incluir credenciales reales en la documentación ni versionar el archivo `.en
 
 Las siguientes variables deben utilizarse exclusivamente desde código ejecutado en el servidor:
 
-- `SUPABASE_URL`: URL del proyecto de Supabase.
-- `SUPABASE_SERVICE_KEY`: `service_role` o secret key utilizada por operaciones administrativas.
-- `IP_SALT`: cadena aleatoria utilizada para generar hashes asociados a direcciones IP.
-- `GOOGLE_APPLICATION_CREDENTIALS`: ruta a las credenciales utilizadas por la sincronización con Google Drive, si aplica.
-- `DRIVE_EXAMS_FOLDER_ID`: identificador de la carpeta de evaluaciones de Google Drive, si aplica.
-- `DRIVE_SOLUTIONS_FOLDER_ID`: identificador de la carpeta de solucionarios de Google Drive, si aplica.
+* `SUPABASE_URL`: URL del proyecto de Supabase.
+* `SUPABASE_SERVICE_KEY`: `service_role` o secret key utilizada por operaciones administrativas.
+* `IP_SALT`: cadena aleatoria utilizada para generar hashes asociados a direcciones IP.
+* `GOOGLE_APPLICATION_CREDENTIALS`: ruta a las credenciales utilizadas por la sincronización con Google Drive, si aplica.
+* `DRIVE_EXAMS_FOLDER_ID`: identificador de la carpeta de evaluaciones de Google Drive, si aplica.
+* `DRIVE_SOLUTIONS_FOLDER_ID`: identificador de la carpeta de solucionarios de Google Drive, si aplica.
+
 `SUPABASE_SERVICE_KEY`, `IP_SALT` y otras credenciales privadas nunca deben exponerse mediante variables `PUBLIC_*` ni utilizarse directamente desde componentes ejecutados en el navegador.
 
 ### Variables públicas del cliente
 
-- `PUBLIC_SUPABASE_URL`: URL pública del proyecto de Supabase.
-- `PUBLIC_SUPABASE_ANON_KEY`: clave `anon` o `publishable` utilizada por el cliente.
+* `PUBLIC_SUPABASE_URL`: URL pública del proyecto de Supabase.
+* `PUBLIC_SUPABASE_ANON_KEY`: clave `anon` o `publishable` utilizada por el cliente.
 
 Las variables con prefijo `PUBLIC_` pueden formar parte del código enviado al navegador y, por lo tanto, no deben contener secretos.
 
@@ -90,11 +99,56 @@ El flujo de autenticación de estudiantes utiliza OAuth con Google mediante Supa
 /api/auth/signin
 /api/auth/callback
 /api/auth/logout
+
 ```
 
 La autenticación administrativa utiliza su propio flujo de sesión y debe ejecutarse exclusivamente mediante endpoints y utilidades del servidor.
 
 Para conocer el flujo completo, consultar la documentación de arquitectura y API.
+
+## Storage buckets
+
+TrikaWeb utiliza cinco buckets de Supabase Storage. La configuración documentada a continuación fue contrastada con la configuración vigente de Supabase y con la forma de acceso utilizada por el código.
+
+La visibilidad de cada bucket debe corresponder con las políticas y el mecanismo de acceso implementado actualmente. No asumas que todos los buckets son públicos ni que todos son privados.
+
+| Bucket | Finalidad | Visibilidad | Forma de acceso | Límite de bucket | MIME types |
+| --- | --- | --- | --- | --- | --- |
+| `exams` | Planchas y evaluaciones | Privado | URLs firmadas generadas por el servidor | Sin límite configurado | Sin restricción configurada |
+| `solutions` | Solucionarios | Privado | URLs firmadas generadas por el servidor | Sin límite configurado | Sin restricción configurada |
+| `thumbnails` | Miniaturas de planchas | Público | URL pública | Sin límite configurado | `image/jpeg`, `image/png` |
+| `avatars` | Fotos de perfil | Público | URL pública; escritura mediante endpoints del servidor | Sin límite configurado | `image/jpeg`, `image/png`, `image/webp` |
+| `contributions` | Archivos enviados para moderación | Privado | URLs firmadas para revisión; gestión mediante endpoints del servidor | 10 MB | Sin restricción configurada |
+
+### Buckets públicos
+
+`avatars` y `thumbnails` son públicos. Sus recursos pueden consultarse mediante las URLs públicas de Supabase Storage. El código no debe generar URLs firmadas para miniaturas salvo que en el futuro el bucket cambie a privado.
+
+La escritura y eliminación siguen realizándose desde endpoints controlados del servidor cuando corresponda.
+
+### Buckets privados
+
+`exams`, `solutions` y `contributions` son privados. Los archivos de estos buckets no deben exponerse mediante rutas públicas de Storage.
+
+El acceso se realiza desde el servidor mediante `supabaseAdmin` y, para entregar temporalmente un recurso al cliente, se generan URLs firmadas cuando corresponde.
+
+### Policies de Storage
+
+Actualmente no existen policies explícitas vigentes sobre `storage.objects` para estos buckets.
+
+Las operaciones privilegiadas se realizan desde el servidor mediante `supabaseAdmin`/`service_role`. `service_role` no depende de policies RLS de cliente para estas operaciones y nunca debe exponerse al navegador.
+
+Los buckets públicos permiten la lectura de objetos mediante su URL pública por la propia configuración del bucket.
+
+### Límites relevantes
+
+* `contributions` tiene un límite de 10 MB configurado a nivel de bucket.
+* `avatars` no tiene límite de bucket, pero los endpoints de perfil aplican validaciones de tipo y tamaño antes de subir una imagen.
+* `thumbnails` acepta únicamente JPEG y PNG a nivel de bucket.
+* `avatars` acepta JPEG, PNG y WebP a nivel de bucket.
+* `exams` y `solutions` no tienen actualmente un límite de tamaño ni una restricción MIME configurados a nivel de bucket.
+
+Antes de cambiar la visibilidad, límites o MIME types de un bucket, revisar también el código que genera URLs y realiza las operaciones de Storage.
 
 ## Validación del proyecto
 
@@ -104,16 +158,16 @@ Después de instalar y configurar el proyecto, ejecutar las validaciones antes d
 
 ```bash
 npm run check
+
 ```
 
-Este comando ejecuta las comprobaciones de Astro y TypeScript.
-
-Debe finalizar sin errores.
+Este comando ejecuta las comprobaciones de Astro y TypeScript. Debe finalizar sin errores.
 
 ### Build de producción
 
 ```bash
 npm run build
+
 ```
 
 El build debe completarse correctamente antes de considerar válido el entorno.
@@ -126,18 +180,21 @@ En una máquina nueva, instalar primero los navegadores requeridos:
 
 ```bash
 npx playwright install
+
 ```
 
 En Linux o entornos CI puede utilizarse:
 
 ```bash
 npx playwright install --with-deps
+
 ```
 
 Ejecutar las pruebas:
 
 ```bash
 npm run test:e2e
+
 ```
 
 Playwright utiliza la configuración definida en `playwright.config.ts` y puede iniciar automáticamente el servidor requerido para las pruebas.
@@ -153,6 +210,7 @@ supabase/
 ├── migrations/
 ├── schema.sql
 └── seed.sql
+
 ```
 
 `supabase/schema.sql` representa el esquema inicial del proyecto.
@@ -161,6 +219,7 @@ Los cambios posteriores al esquema deben aplicarse mediante las migraciones alma
 
 ```text
 supabase/migrations/
+
 ```
 
 `supabase/function_triggers.sql` no debe utilizarse como una etapa adicional del flujo actual de instalación si sus funciones y triggers ya se encuentran incorporados en las migraciones correspondientes.
@@ -197,15 +256,16 @@ Cuando se necesiten datos iniciales o de desarrollo, revisar:
 
 ```text
 supabase/seed.sql
+
 ```
 
 Antes de ejecutarlo, verificar que:
 
-- Las estructuras requeridas ya existan.
-- Las claves foráneas referenciadas sean válidas.
-- Los identificadores utilizados existan en sus tablas correspondientes.
-- No duplique información creada previamente por las migraciones.
-- El contenido sea apropiado para el ambiente donde se ejecutará.
+* Las estructuras requeridas ya existan.
+* Las claves foráneas referenciadas sean válidas.
+* Los identificadores utilizados existan en sus tablas correspondientes.
+* No duplique información creada previamente por las migraciones.
+* El contenido sea apropiado para el ambiente donde se ejecutará.
 
 ### Base de datos existente
 
@@ -226,39 +286,17 @@ Nunca asumir que una migración pendiente puede ejecutarse directamente en produ
 
 Después de aplicar cambios de base de datos, verificar según el alcance de las migraciones:
 
-- Integridad de las relaciones afectadas.
-- Restricciones y claves foráneas.
-- Índices relevantes.
-- Funciones y triggers.
-- Políticas RLS.
-- Permisos de `anon`, `authenticated` y `service_role`.
-- Endpoints que dependen de las tablas modificadas.
-- Acceso a recursos ocultos o moderados.
-- Contadores o estadísticas mantenidos mediante funciones o triggers.
+* Integridad de las relaciones afectadas.
+* Restricciones y claves foráneas.
+* Índices relevantes.
+* Funciones y triggers.
+* Políticas RLS.
+* Permisos de `anon`, `authenticated` y `service_role`.
+* Endpoints que dependen de las tablas modificadas.
+* Acceso a recursos ocultos o moderados.
+* Contadores o estadísticas mantenidos mediante funciones o triggers.
 
 Las verificaciones específicas de una migración deben documentarse junto con el cambio correspondiente cuando no sean evidentes.
-
-## Storage
-
-TrikaWeb utiliza Supabase Storage para almacenar distintos tipos de archivos.
-
-Los buckets utilizados por el proyecto incluyen:
-
-- `exams`
-- `solutions`
-- `thumbnails`
-- `avatars`
-- `contributions`
-
-La visibilidad de cada bucket debe corresponder con las políticas y el mecanismo de acceso implementado actualmente.
-
-No asumir que todos los buckets son públicos ni que todos son privados.
-
-Los archivos privados deben entregarse mediante mecanismos controlados por el servidor, como URLs firmadas, cuando corresponda.
-
-Las operaciones privilegiadas de Storage deben realizarse exclusivamente desde el servidor mediante las credenciales apropiadas.
-
-> Antes de cambiar la visibilidad de un bucket, revisar las políticas de Storage y el código que construye o genera las URLs utilizadas por la aplicación.
 
 ## Sincronización con Google Drive
 
@@ -270,6 +308,7 @@ Cuando se utilicen, configurar:
 GOOGLE_APPLICATION_CREDENTIALS
 DRIVE_EXAMS_FOLDER_ID
 DRIVE_SOLUTIONS_FOLDER_ID
+
 ```
 
 La cuenta de servicio correspondiente debe tener acceso a las carpetas requeridas.
@@ -280,6 +319,7 @@ Los scripts disponibles son:
 npm run drive:sync
 npm run drive:sync-exams
 npm run drive:sync-solutions
+
 ```
 
 No versionar el archivo JSON de credenciales de la cuenta de servicio.
@@ -290,6 +330,7 @@ No versionar el archivo JSON de credenciales de la cuenta de servicio.
 
 ```bash
 npm run dev
+
 ```
 
 Inicia el servidor de desarrollo de Astro.
@@ -298,6 +339,7 @@ Inicia el servidor de desarrollo de Astro.
 
 ```bash
 npm run check
+
 ```
 
 Ejecuta las comprobaciones estáticas del proyecto.
@@ -306,6 +348,7 @@ Ejecuta las comprobaciones estáticas del proyecto.
 
 ```bash
 npm run build
+
 ```
 
 Genera el build de producción.
@@ -314,6 +357,7 @@ Genera el build de producción.
 
 ```bash
 npm run preview
+
 ```
 
 Permite ejecutar localmente el resultado del build cuando la configuración del proyecto lo permita.
@@ -322,6 +366,7 @@ Permite ejecutar localmente el resultado del build cuando la configuración del 
 
 ```bash
 npm run test:e2e
+
 ```
 
 Ejecuta las pruebas end-to-end mediante Playwright.
@@ -332,20 +377,21 @@ Ejecuta las pruebas end-to-end mediante Playwright.
 npm run drive:sync
 npm run drive:sync-exams
 npm run drive:sync-solutions
+
 ```
 
 Ejecutan los procesos de sincronización configurados para Google Drive.
 
 ## Notas de seguridad
 
-- `SUPABASE_SERVICE_KEY` nunca debe exponerse al cliente.
-- Las operaciones con `supabaseAdmin` deben ejecutarse exclusivamente en el servidor.
-- Las credenciales reales no deben almacenarse en `.env.example`.
-- `.env` no debe versionarse.
-- Las credenciales de Google Drive no deben incluirse en el repositorio.
-- Los endpoints administrativos deben validar la sesión correspondiente.
-- Los errores internos de Supabase o PostgreSQL deben registrarse en el servidor y no exponerse directamente al cliente.
-- Las operaciones que requieren `service_role` no deben ejecutarse desde el navegador.
+* `SUPABASE_SERVICE_KEY` nunca debe exponerse al cliente.
+* Las operaciones con `supabaseAdmin` deben ejecutarse exclusivamente en el servidor.
+* Las credenciales reales no deben almacenarse en `.env.example`.
+* `.env` no debe versionarse.
+* Las credenciales de Google Drive no deben incluirse en el repositorio.
+* Los endpoints administrativos deben validar la sesión correspondiente.
+* Los errores internos de Supabase o PostgreSQL deben registrarse en el servidor y no exponerse directamente al cliente.
+* Las operaciones que requieren `service_role` no deben ejecutarse desde el navegador.
 
 ## Resolución de problemas
 
@@ -353,9 +399,9 @@ Ejecutan los procesos de sincronización configurados para Google Drive.
 
 Verificar que:
 
-- `package-lock.json` existe.
-- `package.json` y `package-lock.json` están sincronizados.
-- Se está utilizando una versión compatible de Node.js.
+* `package-lock.json` existe.
+* `package.json` y `package-lock.json` están sincronizados.
+* Se está utilizando una versión compatible de Node.js.
 
 Si las dependencias fueron modificadas intencionalmente, el integrante que realizó el cambio debe actualizar correctamente `package.json` y `package-lock.json`.
 
@@ -365,6 +411,7 @@ Ejecutar:
 
 ```bash
 npx playwright install
+
 ```
 
 ### Las variables de entorno no son reconocidas
@@ -380,10 +427,10 @@ Verificar:
 
 Comprobar primero:
 
-- `SUPABASE_URL`.
-- `PUBLIC_SUPABASE_URL`.
-- Las claves correspondientes al ambiente.
-- Que el proyecto de Supabase esté disponible.
+* `SUPABASE_URL`.
+* `PUBLIC_SUPABASE_URL`.
+* Las claves correspondientes al ambiente.
+* Que el proyecto de Supabase esté disponible.
 
 No modificar el código de conexión antes de descartar un problema de configuración.
 
