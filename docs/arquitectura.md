@@ -722,7 +722,6 @@ Astro
 Antes de desplegar se recomienda ejecutar:
 
 ```bash
-npm run check
 npm run build
 ```
 
