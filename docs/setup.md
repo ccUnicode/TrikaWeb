@@ -1,4 +1,3 @@
-
 # Setup y configuración
 
 Este documento describe cómo preparar, configurar y validar un entorno local de TrikaWeb.
@@ -21,7 +20,7 @@ Para ejecutar las pruebas E2E también se requieren los navegadores administrado
 Clonar el repositorio:
 
 ```bash
-git clone 
+git clone https://github.com/ccUnicode/TrikaWeb.git
 cd TrikaWeb
 
 ```
@@ -73,19 +72,19 @@ No incluir credenciales reales en la documentación ni versionar el archivo `.en
 
 Las siguientes variables deben utilizarse exclusivamente desde código ejecutado en el servidor:
 
-* `SUPABASE_URL`: URL del proyecto de Supabase.
-* `SUPABASE_SERVICE_KEY`: `service_role` o secret key utilizada por operaciones administrativas.
-* `IP_SALT`: cadena aleatoria utilizada para generar hashes asociados a direcciones IP.
-* `GOOGLE_APPLICATION_CREDENTIALS`: ruta a las credenciales utilizadas por la sincronización con Google Drive, si aplica.
-* `DRIVE_EXAMS_FOLDER_ID`: identificador de la carpeta de evaluaciones de Google Drive, si aplica.
-* `DRIVE_SOLUTIONS_FOLDER_ID`: identificador de la carpeta de solucionarios de Google Drive, si aplica.
+- `SUPABASE_URL`: URL del proyecto de Supabase.
+- `SUPABASE_SERVICE_KEY`: `service_role` o secret key utilizada por operaciones administrativas.
+- `IP_SALT`: cadena aleatoria utilizada para generar hashes asociados a direcciones IP.
+- `GOOGLE_APPLICATION_CREDENTIALS`: ruta a las credenciales utilizadas por la sincronización con Google Drive, si aplica.
+- `DRIVE_EXAMS_FOLDER_ID`: identificador de la carpeta de evaluaciones de Google Drive, si aplica.
+- `DRIVE_SOLUTIONS_FOLDER_ID`: identificador de la carpeta de solucionarios de Google Drive, si aplica.
 
 `SUPABASE_SERVICE_KEY`, `IP_SALT` y otras credenciales privadas nunca deben exponerse mediante variables `PUBLIC_*` ni utilizarse directamente desde componentes ejecutados en el navegador.
 
 ### Variables públicas del cliente
 
-* `PUBLIC_SUPABASE_URL`: URL pública del proyecto de Supabase.
-* `PUBLIC_SUPABASE_ANON_KEY`: clave `anon` o `publishable` utilizada por el cliente.
+- `PUBLIC_SUPABASE_URL`: URL pública del proyecto de Supabase.
+- `PUBLIC_SUPABASE_ANON_KEY`: clave `anon` o `publishable` utilizada por el cliente.
 
 Las variables con prefijo `PUBLIC_` pueden formar parte del código enviado al navegador y, por lo tanto, no deben contener secretos.
 
@@ -112,13 +111,13 @@ TrikaWeb utiliza cinco buckets de Supabase Storage. La configuración documentad
 
 La visibilidad de cada bucket debe corresponder con las políticas y el mecanismo de acceso implementado actualmente. No asumas que todos los buckets son públicos ni que todos son privados.
 
-| Bucket | Finalidad | Visibilidad | Forma de acceso | Límite de bucket | MIME types |
-| --- | --- | --- | --- | --- | --- |
-| `exams` | Planchas y evaluaciones | Privado | URLs firmadas generadas por el servidor | Sin límite configurado | Sin restricción configurada |
-| `solutions` | Solucionarios | Privado | URLs firmadas generadas por el servidor | Sin límite configurado | Sin restricción configurada |
-| `thumbnails` | Miniaturas de planchas | Público | URL pública | Sin límite configurado | `image/jpeg`, `image/png` |
-| `avatars` | Fotos de perfil | Público | URL pública; escritura mediante endpoints del servidor | Sin límite configurado | `image/jpeg`, `image/png`, `image/webp` |
-| `contributions` | Archivos enviados para moderación | Privado | URLs firmadas para revisión; gestión mediante endpoints del servidor | 10 MB | Sin restricción configurada |
+| Bucket          | Finalidad                         | Visibilidad | Forma de acceso                                                      | Límite de bucket       | MIME types                              |
+| --------------- | --------------------------------- | ----------- | -------------------------------------------------------------------- | ---------------------- | --------------------------------------- |
+| `exams`         | Planchas y evaluaciones           | Privado     | URLs firmadas generadas por el servidor                              | Sin límite configurado | Sin restricción configurada             |
+| `solutions`     | Solucionarios                     | Privado     | URLs firmadas generadas por el servidor                              | Sin límite configurado | Sin restricción configurada             |
+| `thumbnails`    | Miniaturas de planchas            | Público     | URL pública                                                          | Sin límite configurado | `image/jpeg`, `image/png`               |
+| `avatars`       | Fotos de perfil                   | Público     | URL pública; escritura mediante endpoints del servidor               | Sin límite configurado | `image/jpeg`, `image/png`, `image/webp` |
+| `contributions` | Archivos enviados para moderación | Privado     | URLs firmadas para revisión; gestión mediante endpoints del servidor | 10 MB                  | Sin restricción configurada             |
 
 ### Buckets públicos
 
@@ -142,11 +141,11 @@ Los buckets públicos permiten la lectura de objetos mediante su URL pública po
 
 ### Límites relevantes
 
-* `contributions` tiene un límite de 10 MB configurado a nivel de bucket.
-* `avatars` no tiene límite de bucket, pero los endpoints de perfil aplican validaciones de tipo y tamaño antes de subir una imagen.
-* `thumbnails` acepta únicamente JPEG y PNG a nivel de bucket.
-* `avatars` acepta JPEG, PNG y WebP a nivel de bucket.
-* `exams` y `solutions` no tienen actualmente un límite de tamaño ni una restricción MIME configurados a nivel de bucket.
+- `contributions` tiene un límite de 10 MB configurado a nivel de bucket.
+- `avatars` no tiene límite de bucket, pero los endpoints de perfil aplican validaciones de tipo y tamaño antes de subir una imagen.
+- `thumbnails` acepta únicamente JPEG y PNG a nivel de bucket.
+- `avatars` acepta JPEG, PNG y WebP a nivel de bucket.
+- `exams` y `solutions` no tienen actualmente un límite de tamaño ni una restricción MIME configurados a nivel de bucket.
 
 Antes de cambiar la visibilidad, límites o MIME types de un bucket, revisar también el código que genera URLs y realiza las operaciones de Storage.
 
@@ -261,11 +260,11 @@ supabase/seed.sql
 
 Antes de ejecutarlo, verificar que:
 
-* Las estructuras requeridas ya existan.
-* Las claves foráneas referenciadas sean válidas.
-* Los identificadores utilizados existan en sus tablas correspondientes.
-* No duplique información creada previamente por las migraciones.
-* El contenido sea apropiado para el ambiente donde se ejecutará.
+- Las estructuras requeridas ya existan.
+- Las claves foráneas referenciadas sean válidas.
+- Los identificadores utilizados existan en sus tablas correspondientes.
+- No duplique información creada previamente por las migraciones.
+- El contenido sea apropiado para el ambiente donde se ejecutará.
 
 ### Base de datos existente
 
@@ -286,15 +285,15 @@ Nunca asumir que una migración pendiente puede ejecutarse directamente en produ
 
 Después de aplicar cambios de base de datos, verificar según el alcance de las migraciones:
 
-* Integridad de las relaciones afectadas.
-* Restricciones y claves foráneas.
-* Índices relevantes.
-* Funciones y triggers.
-* Políticas RLS.
-* Permisos de `anon`, `authenticated` y `service_role`.
-* Endpoints que dependen de las tablas modificadas.
-* Acceso a recursos ocultos o moderados.
-* Contadores o estadísticas mantenidos mediante funciones o triggers.
+- Integridad de las relaciones afectadas.
+- Restricciones y claves foráneas.
+- Índices relevantes.
+- Funciones y triggers.
+- Políticas RLS.
+- Permisos de `anon`, `authenticated` y `service_role`.
+- Endpoints que dependen de las tablas modificadas.
+- Acceso a recursos ocultos o moderados.
+- Contadores o estadísticas mantenidos mediante funciones o triggers.
 
 Las verificaciones específicas de una migración deben documentarse junto con el cambio correspondiente cuando no sean evidentes.
 
@@ -384,14 +383,14 @@ Ejecutan los procesos de sincronización configurados para Google Drive.
 
 ## Notas de seguridad
 
-* `SUPABASE_SERVICE_KEY` nunca debe exponerse al cliente.
-* Las operaciones con `supabaseAdmin` deben ejecutarse exclusivamente en el servidor.
-* Las credenciales reales no deben almacenarse en `.env.example`.
-* `.env` no debe versionarse.
-* Las credenciales de Google Drive no deben incluirse en el repositorio.
-* Los endpoints administrativos deben validar la sesión correspondiente.
-* Los errores internos de Supabase o PostgreSQL deben registrarse en el servidor y no exponerse directamente al cliente.
-* Las operaciones que requieren `service_role` no deben ejecutarse desde el navegador.
+- `SUPABASE_SERVICE_KEY` nunca debe exponerse al cliente.
+- Las operaciones con `supabaseAdmin` deben ejecutarse exclusivamente en el servidor.
+- Las credenciales reales no deben almacenarse en `.env.example`.
+- `.env` no debe versionarse.
+- Las credenciales de Google Drive no deben incluirse en el repositorio.
+- Los endpoints administrativos deben validar la sesión correspondiente.
+- Los errores internos de Supabase o PostgreSQL deben registrarse en el servidor y no exponerse directamente al cliente.
+- Las operaciones que requieren `service_role` no deben ejecutarse desde el navegador.
 
 ## Resolución de problemas
 
@@ -399,9 +398,9 @@ Ejecutan los procesos de sincronización configurados para Google Drive.
 
 Verificar que:
 
-* `package-lock.json` existe.
-* `package.json` y `package-lock.json` están sincronizados.
-* Se está utilizando una versión compatible de Node.js.
+- `package-lock.json` existe.
+- `package.json` y `package-lock.json` están sincronizados.
+- Se está utilizando una versión compatible de Node.js.
 
 Si las dependencias fueron modificadas intencionalmente, el integrante que realizó el cambio debe actualizar correctamente `package.json` y `package-lock.json`.
 
@@ -427,10 +426,10 @@ Verificar:
 
 Comprobar primero:
 
-* `SUPABASE_URL`.
-* `PUBLIC_SUPABASE_URL`.
-* Las claves correspondientes al ambiente.
-* Que el proyecto de Supabase esté disponible.
+- `SUPABASE_URL`.
+- `PUBLIC_SUPABASE_URL`.
+- Las claves correspondientes al ambiente.
+- Que el proyecto de Supabase esté disponible.
 
 No modificar el código de conexión antes de descartar un problema de configuración.
 
