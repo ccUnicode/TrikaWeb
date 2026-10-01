@@ -135,7 +135,7 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
 
       <div id="planchas-content" class="w-full flex flex-col gap-9">
         <!-- Más visitadas section -->
-        <div class="w-full">
+        <div id="section-popular" class="w-full transition-all duration-300">
           <div class="flex gap-4 items-center">
           <!-- Left arrow -->
           <button
@@ -244,7 +244,7 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
       </div>
 
       <!-- Más difíciles section -->
-      <div class="w-full">
+      <div id="section-difficult" class="w-full transition-all duration-300">
         <div class="flex gap-4 items-center">
           <!-- Left arrow -->
           <button
@@ -711,6 +711,18 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
     document.addEventListener("autocomplete:filtered", (e) => {
       const { visibleCount } = (e as CustomEvent).detail;
       
+      const sectionPopular = document.getElementById("section-popular");
+      const sectionDifficult = document.getElementById("section-difficult");
+      const popularVisible = document.querySelectorAll(".carousel-item-popular:not(.hidden)").length;
+      const difficultVisible = document.querySelectorAll(".carousel-item-difficult:not(.hidden)").length;
+
+      if (sectionPopular) {
+        sectionPopular.style.display = popularVisible === 0 ? "none" : "";
+      }
+      if (sectionDifficult) {
+        sectionDifficult.style.display = difficultVisible === 0 ? "none" : "";
+      }
+
       if (planchasContent && planchasEmpty) {
         if (visibleCount === 0) {
           planchasContent.classList.add("hidden");
