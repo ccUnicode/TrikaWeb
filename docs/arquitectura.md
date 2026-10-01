@@ -21,17 +21,17 @@ validaciones explícitas y el cliente administrativo de Supabase.
 
 ## Stack técnico
 
-| Capa | Tecnología |
-|---|---|
-| **Frontend** | Astro + TypeScript + Tailwind CSS |
-| **Islas React** | `@astrojs/react` + React 19 + `@xyflow/react` (mallas) |
-| **Backend** | Astro API Routes (`src/pages/api`) |
-| **Base de datos** | Supabase PostgreSQL |
-| **Storage** | Supabase Storage |
-| **Autenticación de estudiantes** | Supabase Auth (cookies de sesión, correos `@uni.pe`) |
-| **Sesión administrativa** | Supabase Auth con cookie `admin_session` validada en el servidor |
-| **Deploy** | Vercel mediante `@astrojs/vercel` (output `server`) |
-| **Documentación** | Markdown + diagramas Mermaid |
+| Capa                             | Tecnología                                                       |
+| -------------------------------- | ---------------------------------------------------------------- |
+| **Frontend**                     | Astro + TypeScript + Tailwind CSS                                |
+| **Islas React**                  | `@astrojs/react` + React 19 + `@xyflow/react` (mallas)           |
+| **Backend**                      | Astro API Routes (`src/pages/api`)                               |
+| **Base de datos**                | Supabase PostgreSQL                                              |
+| **Storage**                      | Supabase Storage                                                 |
+| **Autenticación de estudiantes** | Supabase Auth (cookies de sesión, correos `@uni.pe`)             |
+| **Sesión administrativa**        | Supabase Auth con cookie `admin_session` validada en el servidor |
+| **Deploy**                       | Vercel mediante `@astrojs/vercel` (output `server`)              |
+| **Documentación**                | Markdown + diagramas Mermaid                                     |
 
 ---
 
@@ -215,11 +215,11 @@ src/
 
 ### Tipado Central (`curriculumTypes.ts`)
 
-| Interface | Propósito |
-|-----------|-----------|
-| `CurriculumCourse` | Curso con ciclo, créditos, sumilla, dificultad y docentes |
-| `CoursePrerequisite` | Relación `course_id → prerequisite_id` |
-| `CurriculumData` | Payload completo que el servidor inyecta al componente React |
+| Interface            | Propósito                                                    |
+| -------------------- | ------------------------------------------------------------ |
+| `CurriculumCourse`   | Curso con ciclo, créditos, sumilla, dificultad y docentes    |
+| `CoursePrerequisite` | Relación `course_id → prerequisite_id`                       |
+| `CurriculumData`     | Payload completo que el servidor inyecta al componente React |
 
 ### Constructor administrativo
 
@@ -310,20 +310,20 @@ flowchart LR
 Las tablas de alto nivel del sistema se resumen en la siguiente tabla; los detalles
 y columnas completas están en [`db_schema.md`](../db_schema.md).
 
-| Tabla | Descripción |
-|-------|-------------|
-| `courses` | Cursos (`code`, `name`, `summary`, `credits`, `subsystem_id`, `status`) |
-| `teachers` | Docentes (`full_name`, `bio`, `avg_overall`, `is_hidden`) |
-| `courses_teachers` | Relación N:M cursos ↔ docentes |
-| `sheets` | Planchas y solucionarios (metadata + paths) |
-| `sheet_ratings` | Votos de dificultad por plancha |
-| `sheet_views` | Eventos de vista/descarga |
-| `teacher_ratings` | Calificaciones de profesores |
-| `write_limits` | Control de rate-limit por IP |
-| `specialties` | Carreras/especialidades (`name`) |
-| `study_plans` | Planes de estudio por especialidad (`year`, `is_current`, `is_published`, `specialty_id`) |
-| `plan_courses` | Cursos asignados a un plan con posición en la malla (`plan_id`, `course_id`, `cycle`, `row_index`) |
-| `course_prerequisites` | Prerrequisitos entre cursos dentro de un plan (`plan_id`, `course_id`, `prerequisite_id`) |
+| Tabla                  | Descripción                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| `courses`              | Cursos (`code`, `name`, `summary`, `credits`, `subsystem_id`, `status`)                            |
+| `teachers`             | Docentes (`full_name`, `bio`, `avg_overall`, `is_hidden`)                                          |
+| `courses_teachers`     | Relación N:M cursos ↔ docentes                                                                     |
+| `sheets`               | Planchas y solucionarios (metadata + paths)                                                        |
+| `sheet_ratings`        | Votos de dificultad por plancha                                                                    |
+| `sheet_views`          | Eventos de vista/descarga                                                                          |
+| `teacher_ratings`      | Calificaciones de profesores                                                                       |
+| `write_limits`         | Control de rate-limit por IP                                                                       |
+| `specialties`          | Carreras/especialidades (`name`)                                                                   |
+| `study_plans`          | Planes de estudio por especialidad (`year`, `is_current`, `is_published`, `specialty_id`)          |
+| `plan_courses`         | Cursos asignados a un plan con posición en la malla (`plan_id`, `course_id`, `cycle`, `row_index`) |
+| `course_prerequisites` | Prerrequisitos entre cursos dentro de un plan (`plan_id`, `course_id`, `prerequisite_id`)          |
 
 > Las columnas `study_plans.id`, `plan_id` y `specialty_id` son «source of truth» de
 > `supabase/migrations/32_create_mallas_tables.sql`. A diferencia de `specialties` (serial),
@@ -395,40 +395,40 @@ ejecutar consultas o modificaciones.
 
 ### Tablas principales
 
-| Tabla | Descripción |
-|---|---|
-| `courses` | Cursos: `code`, `name`, `summary`, `credits`, sistema/subsistema, `status` e `is_hidden` |
-| `teachers` | Profesores: nombre, biografía, estadísticas e `is_hidden` |
-| `courses_teachers` | Relación N:M entre cursos y profesores |
-| `sheets` | Planchas y solucionarios, evaluación, ciclo, profesor, rutas de Storage y métricas |
-| `sheet_ratings` | Calificaciones de dificultad por usuario y plancha |
-| `sheet_views` | Registro de vistas o descargas |
-| `sheet_interests` | Interés en solucionarios, único por `sheet_id` y `device_id` |
-| `sheet_feedback` | Comentarios o feedback asociado a planchas |
-| `teacher_ratings` | Calificaciones multidimensionales de profesores |
-| `contributions` | Solicitudes de contribución realizadas por usuarios |
+| Tabla              | Descripción                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| `courses`          | Cursos: `code`, `name`, `summary`, `credits`, sistema/subsistema, `status` e `is_hidden` |
+| `teachers`         | Profesores: nombre, biografía, estadísticas e `is_hidden`                                |
+| `courses_teachers` | Relación N:M entre cursos y profesores                                                   |
+| `sheets`           | Planchas y solucionarios, evaluación, ciclo, profesor, rutas de Storage y métricas       |
+| `sheet_ratings`    | Calificaciones de dificultad por usuario y plancha                                       |
+| `sheet_views`      | Registro de vistas o descargas                                                           |
+| `sheet_interests`  | Interés en solucionarios, único por `sheet_id` y `device_id`                             |
+| `sheet_feedback`   | Comentarios o feedback asociado a planchas                                               |
+| `teacher_ratings`  | Calificaciones multidimensionales de profesores                                          |
+| `contributions`    | Solicitudes de contribución realizadas por usuarios                                      |
 
 ### Configuración de evaluaciones
 
-| Tabla | Descripción |
-|---|---|
-| `evaluation_systems` | Sistemas o fórmulas de evaluación |
-| `evaluation_subsystems` | Subsistemas asociados a prácticas, laboratorios o trabajos |
-| `evaluation_type` | Tipos de evaluación: prácticas, parcial, final, trabajo, etc. |
-| `course_evaluations` | Evaluaciones habilitadas para cada curso |
-| `eval_system_grades` | Componentes o rangos del sistema |
-| `system_grades_consider` | Pesos utilizados por cada sistema |
-| `grade_evaluation_type` | Relación entre componentes y tipos de evaluación |
-| `cycles` | Ciclos académicos con código, año y término |
+| Tabla                    | Descripción                                                   |
+| ------------------------ | ------------------------------------------------------------- |
+| `evaluation_systems`     | Sistemas o fórmulas de evaluación                             |
+| `evaluation_subsystems`  | Subsistemas asociados a prácticas, laboratorios o trabajos    |
+| `evaluation_type`        | Tipos de evaluación: prácticas, parcial, final, trabajo, etc. |
+| `course_evaluations`     | Evaluaciones habilitadas para cada curso                      |
+| `eval_system_grades`     | Componentes o rangos del sistema                              |
+| `system_grades_consider` | Pesos utilizados por cada sistema                             |
+| `grade_evaluation_type`  | Relación entre componentes y tipos de evaluación              |
+| `cycles`                 | Ciclos académicos con código, año y término                   |
 
 ### Planes de estudio
 
-| Tabla | Descripción |
-|---|---|
-| `specialties` | Especialidades o carreras (`id` serial, `name`, `code`) |
-| `study_plans` | Planes de estudio (`id` uuid, `specialty_id`, `year`, `is_current`, `is_published`) |
-| `plan_courses` | Cursos incluidos en un plan con posición (`plan_id`, `course_id`, `cycle`, `row_index`) |
-| `course_prerequisites` | Prerrequisitos entre cursos del plan (`plan_id`, `course_id`, `prerequisite_id`) |
+| Tabla                  | Descripción                                                                             |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| `specialties`          | Especialidades o carreras (`id` serial, `name`, `code`)                                 |
+| `study_plans`          | Planes de estudio (`id` uuid, `specialty_id`, `year`, `is_current`, `is_published`)     |
+| `plan_courses`         | Cursos incluidos en un plan con posición (`plan_id`, `course_id`, `cycle`, `row_index`) |
+| `course_prerequisites` | Prerrequisitos entre cursos del plan (`plan_id`, `course_id`, `prerequisite_id`)        |
 
 Las escrituras sobre `study_plans`, `plan_courses` y `course_prerequisites` se realizan
 mediante las funciones RPC `add_malla_transaction`, `edit_malla_transaction` y
@@ -439,12 +439,12 @@ planes publicados desde la aplicación).
 
 ### Seguridad y control
 
-| Tabla | Descripción |
-|---|---|
-| `write_limits` | Ventanas de rate limiting por IP hasheada |
-| `profiles` | Metadatos de perfil y rol de aplicación, cuando corresponda |
+| Tabla             | Descripción                                                                       |
+| ----------------- | --------------------------------------------------------------------------------- |
+| `write_limits`    | Ventanas de rate limiting por IP hasheada                                         |
+| `profiles`        | Metadatos de perfil y rol de aplicación, cuando corresponda                       |
 | `student_details` | Datos de estudiantes (`user_id`, `email`, `full_name`, `specialty`, `avatar_url`) |
-| `contributions` | Contribuciones de usuarios y su estado de revisión |
+| `contributions`   | Contribuciones de usuarios y su estado de revisión                                |
 
 ---
 
@@ -573,13 +573,13 @@ redirigir, el backend valida que la URL sea HTTP o HTTPS.
 Los triggers se definen en las migraciones y en
 `supabase/function_triggers.sql`.
 
-| Trigger | Tabla origen | Función | Resultado |
-|---|---|---|---|
-| `t_sheet_ratings_stats` | `sheet_ratings` | `refresh_sheet_stats` | Recalcula `avg_difficulty` y `rating_count` |
-| `t_sheet_views_count` | `sheet_views` | `refresh_view_count` | Recalcula `view_count` |
-| `t_sheet_interests_stats` | `sheet_interests` | Función de estadísticas de interés | Mantiene `interest_count` |
-| `t_teacher_ratings_stats` | `teacher_ratings` | `refresh_teacher_stats` | Recalcula estadísticas del profesor |
-| `set_updated_at` | Tablas con `updated_at` | `set_updated_at` | Actualiza la fecha de modificación |
+| Trigger                   | Tabla origen            | Función                            | Resultado                                   |
+| ------------------------- | ----------------------- | ---------------------------------- | ------------------------------------------- |
+| `t_sheet_ratings_stats`   | `sheet_ratings`         | `refresh_sheet_stats`              | Recalcula `avg_difficulty` y `rating_count` |
+| `t_sheet_views_count`     | `sheet_views`           | `refresh_view_count`               | Recalcula `view_count`                      |
+| `t_sheet_interests_stats` | `sheet_interests`       | Función de estadísticas de interés | Mantiene `interest_count`                   |
+| `t_teacher_ratings_stats` | `teacher_ratings`       | `refresh_teacher_stats`            | Recalcula estadísticas del profesor         |
+| `set_updated_at`          | Tablas con `updated_at` | `set_updated_at`                   | Actualiza la fecha de modificación          |
 
 Los nombres exactos deben mantenerse sincronizados con las migraciones aplicadas
 en Supabase.
@@ -588,20 +588,20 @@ en Supabase.
 
 ## Funciones RPC
 
-| Función | Propósito |
-|---|---|
-| `create_course_with_evaluations` | Crea un curso, calcula `status` y registra evaluaciones |
-| `update_course_with_evaluations` | Actualiza un curso y reconstruye sus evaluaciones |
-| `get_evaluation_systems` | Lista sistemas de evaluación |
-| `get_evaluation_subsystems` | Lista subsistemas |
-| `get_variable_evaluations_by_system` | Obtiene evaluaciones variables de un sistema |
-| `toggle_sheet_interest` | Inserta o elimina interés de forma atómica y devuelve el contador |
-| `reset_sheet_interest` | Elimina intereses y restablece el contador de forma atómica |
-| `get_average_stars` | Calcula el promedio visible de feedback de plancha |
-| `handle_new_user` | Crea metadatos de perfil cuando el flujo de autenticación correspondiente lo utiliza |
-| `add_malla_transaction` | Crea un plan de estudios y, si `is_current`, desmarca atómicamente el vigente de la especialidad |
-| `edit_malla_transaction` | Actualiza un plan y desmarca atómicamente otros vigentes de la especialidad cuando corresponde |
-| `save_malla_transaction` | Persiste cursos y prerrequisitos de un plan mediante *delete-then-insert* transaccional |
+| Función                              | Propósito                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `create_course_with_evaluations`     | Crea un curso, calcula `status` y registra evaluaciones                                          |
+| `update_course_with_evaluations`     | Actualiza un curso y reconstruye sus evaluaciones                                                |
+| `get_evaluation_systems`             | Lista sistemas de evaluación                                                                     |
+| `get_evaluation_subsystems`          | Lista subsistemas                                                                                |
+| `get_variable_evaluations_by_system` | Obtiene evaluaciones variables de un sistema                                                     |
+| `toggle_sheet_interest`              | Inserta o elimina interés de forma atómica y devuelve el contador                                |
+| `reset_sheet_interest`               | Elimina intereses y restablece el contador de forma atómica                                      |
+| `get_average_stars`                  | Calcula el promedio visible de feedback de plancha                                               |
+| `handle_new_user`                    | Crea metadatos de perfil cuando el flujo de autenticación correspondiente lo utiliza             |
+| `add_malla_transaction`              | Crea un plan de estudios y, si `is_current`, desmarca atómicamente el vigente de la especialidad |
+| `edit_malla_transaction`             | Actualiza un plan y desmarca atómicamente otros vigentes de la especialidad cuando corresponde   |
+| `save_malla_transaction`             | Persiste cursos y prerrequisitos de un plan mediante _delete-then-insert_ transaccional          |
 
 ### Atomicidad del interés
 
@@ -652,15 +652,15 @@ que lo utiliza debe realizar validaciones explícitas de:
 
 Las políticas exactas se versionan en migraciones. A nivel arquitectónico:
 
-| Recurso | Acceso esperado |
-|---|---|
-| Cursos, profesores y planchas visibles | Lectura pública controlada |
-| Sistemas, subsistemas y ciclos | Lectura pública o autenticada según política |
-| Ratings, vistas y rate limits | Escritura mediante backend |
-| `sheet_interests` | Sin escritura directa para `anon` o `authenticated`; se modifica mediante RPC/backend |
+| Recurso                                               | Acceso esperado                                                                               |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Cursos, profesores y planchas visibles                | Lectura pública controlada                                                                    |
+| Sistemas, subsistemas y ciclos                        | Lectura pública o autenticada según política                                                  |
+| Ratings, vistas y rate limits                         | Escritura mediante backend                                                                    |
+| `sheet_interests`                                     | Sin escritura directa para `anon` o `authenticated`; se modifica mediante RPC/backend         |
 | `study_plans`, `plan_courses`, `course_prerequisites` | Lectura pública (`FOR SELECT`); escritura solo vía funciones RPC nombradas por `service_role` |
-| Operaciones administrativas | Exclusivamente mediante endpoints con sesión administrativa |
-| Storage privado | Acceso mediante URL firmada o backend |
+| Operaciones administrativas                           | Exclusivamente mediante endpoints con sesión administrativa                                   |
+| Storage privado                                       | Acceso mediante URL firmada o backend                                                         |
 
 ### Regla importante
 
@@ -674,13 +674,13 @@ la autorización debe validarse en el endpoint o función RPC.
 
 La configuración vigente de Supabase Storage distingue recursos públicos de archivos que deben permanecer protegidos. Las operaciones privilegiadas de subida, eliminación y generación de URLs se realizan desde el servidor con `supabaseAdmin`.
 
-| Bucket | Finalidad | Visibilidad | Acceso utilizado por la aplicación | Límites / MIME relevantes |
-|---|---|---|---|---|
-| `exams` | Planchas y evaluaciones | Privado | URLs firmadas generadas por el servidor; operaciones administrativas con `service_role` | Sin límite de bucket ni MIME types configurados |
-| `solutions` | Solucionarios | Privado | URLs firmadas generadas por el servidor; operaciones administrativas con `service_role` | Sin límite de bucket ni MIME types configurados |
-| `thumbnails` | Miniaturas de planchas | Público | URL pública (`getPublicUrl` o ruta pública de Storage) | Sin límite de bucket; `image/jpeg`, `image/png` |
-| `avatars` | Avatares de usuarios | Público | URL pública; subidas y eliminaciones mediante endpoints del servidor | Sin límite de bucket; `image/jpeg`, `image/png`, `image/webp` |
-| `contributions` | Archivos enviados por usuarios para moderación | Privado | Acceso administrativo mediante URL firmada; subida y gestión desde endpoints del servidor | 10 MB; sin MIME types configurados en el bucket |
+| Bucket          | Finalidad                                      | Visibilidad | Acceso utilizado por la aplicación                                                        | Límites / MIME relevantes                                     |
+| --------------- | ---------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `exams`         | Planchas y evaluaciones                        | Privado     | URLs firmadas generadas por el servidor; operaciones administrativas con `service_role`   | Sin límite de bucket ni MIME types configurados               |
+| `solutions`     | Solucionarios                                  | Privado     | URLs firmadas generadas por el servidor; operaciones administrativas con `service_role`   | Sin límite de bucket ni MIME types configurados               |
+| `thumbnails`    | Miniaturas de planchas                         | Público     | URL pública (`getPublicUrl` o ruta pública de Storage)                                    | Sin límite de bucket; `image/jpeg`, `image/png`               |
+| `avatars`       | Avatares de usuarios                           | Público     | URL pública; subidas y eliminaciones mediante endpoints del servidor                      | Sin límite de bucket; `image/jpeg`, `image/png`, `image/webp` |
+| `contributions` | Archivos enviados por usuarios para moderación | Privado     | Acceso administrativo mediante URL firmada; subida y gestión desde endpoints del servidor | 10 MB; sin MIME types configurados en el bucket               |
 
 Actualmente no existen policies explícitas sobre `storage.objects` para estos buckets. Los buckets públicos (`avatars` y `thumbnails`) permiten lectura mediante su URL pública. Las operaciones privilegiadas y el acceso a los buckets privados se realizan desde el servidor mediante `service_role`, que no depende de policies RLS de cliente.
 
@@ -690,13 +690,13 @@ No debe exponerse `SUPABASE_SERVICE_KEY` al navegador ni utilizarse acceso direc
 
 ## Variables de entorno críticas
 
-| Variable | Uso |
-|---|---|
-| `SUPABASE_URL` | URL del proyecto Supabase |
-| `SUPABASE_SERVICE_KEY` | Operaciones administrativas del servidor |
-| `IP_SALT` | Hasheo de direcciones IP |
-| `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` | Cliente público de Supabase (navegador) |
-| `DRIVE_EXAMS_FOLDER_ID` / `DRIVE_SOLUTIONS_FOLDER_ID` / `GOOGLE_APPLICATION_CREDENTIALS` | Sincronización con Google Drive |
+| Variable                                                                                 | Uso                                      |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `SUPABASE_URL`                                                                           | URL del proyecto Supabase                |
+| `SUPABASE_SERVICE_KEY`                                                                   | Operaciones administrativas del servidor |
+| `IP_SALT`                                                                                | Hasheo de direcciones IP                 |
+| `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY`                                       | Cliente público de Supabase (navegador)  |
+| `DRIVE_EXAMS_FOLDER_ID` / `DRIVE_SOLUTIONS_FOLDER_ID` / `GOOGLE_APPLICATION_CREDENTIALS` | Sincronización con Google Drive          |
 
 ### Reglas
 
