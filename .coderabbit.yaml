@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
 language: es
-tone_instructions: 'Escribe en español, de forma breve y concreta. Explica el fallo, cuándo ocurre y su impacto. Evita elogios, comentarios cosméticos y observaciones sin evidencia.'
+tone_instructions: 'Escribe en español, breve y concreto. En cada hallazgo explica el fallo, su causa, cuándo ocurre y su impacto. Evita elogios, comentarios cosméticos y observaciones sin evidencia.'
 early_access: false
 enable_free_tier: true
 reviews:
