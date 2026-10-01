@@ -392,27 +392,120 @@ const sortedTypes = Object.keys(sheetsByType).sort((a, b) => {
   /** Pestañas de navegación por tipo de examen (PC1, PC2, EP, EF...) con scroll suave */
   function setupTabs() {
     const tabs = document.querySelectorAll(".exam-tab");
+    const sections = document.querySelectorAll("[data-exam-type]");
 
-    if (!tabs.length) return;
+    if (!tabs.length || !sections.length) return;
 
-    // Activa la primera pestaña por defecto (PC1)
-    tabs[0].classList.add("bg-global-primary", "text-black");
+    function activateTab(type) {
+      tabs.forEach((tab) => {
+        const isActive = tab.getAttribute("data-tab") === type;
 
+        tab.classList.toggle("bg-global-primary", isActive);
+        tab.classList.toggle("text-black", isActive);
+      });
+
+      // Hace visible la pestaña activa si la barra tiene scroll horizontal
+      const activeTab = Array.from(tabs).find(
+        (tab) => tab.getAttribute("data-tab") === type,
+      );
+
+      activeTab?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "center",
+      });
+    }
+
+    // Lee la sección indicada en la URL.
+    const hash = window.location.hash;
+    const initialType = hash.startsWith("#section-")
+      ? hash.replace("#section-", "")
+      : null;
+
+    const validInitialTab = initialType
+      ? Array.from(tabs).some(
+          (tab) => tab.getAttribute("data-tab") === initialType,
+        )
+      : false;
+
+    // Activa la pestaña indicada en la URL o la primera disponible
+    if (validInitialTab && initialType) {
+      activateTab(initialType);
+    } else {
+      const firstType = tabs[0].getAttribute("data-tab");
+
+      if (firstType) {
+        activateTab(firstType);
+      }
+    }
+
+    // Navegación al hacer clic en una pestaña
     tabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         const type = tab.getAttribute("data-tab");
 
-        tabs.forEach((t) => {
-          t.classList.remove("bg-global-primary", "text-black");
-        });
+        if (!type) return;
 
-        tab.classList.add("bg-global-primary", "text-black");
+        activateTab(type);
 
         const section = document.getElementById(`section-${type}`);
+
         if (section) {
-          section.scrollIntoView({ behavior: "smooth", block: "start" });
+          section.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+
+          history.replaceState(null, "", `#section-${type}`);
         }
       });
+    });
+
+    // Detecta qué sección está visible mientras el usuario hace scroll
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleSections = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+        if (!visibleSections.length) return;
+
+        const currentSection = visibleSections[0].target;
+        const type = currentSection.getAttribute("data-exam-type");
+
+        if (!type) return;
+
+        activateTab(type);
+
+        // Actualiza la URL sin agregar entradas al historial
+        history.replaceState(null, "", `#section-${type}`);
+      },
+      {
+        root: null,
+
+        // Considera activa la sección que ocupa principalmente
+        // la zona superior/central de la pantalla
+        rootMargin: "-25% 0px -55% 0px",
+
+        threshold: [0, 0.1, 0.25, 0.5, 0.75],
+      },
+    );
+
+    sections.forEach((section) => {
+      observer.observe(section);
+    });
+
+    // Mantiene sincronización si el hash cambia externamente
+    window.addEventListener("hashchange", () => {
+      const type = window.location.hash.replace("#section-", "");
+
+      const validTab = Array.from(tabs).some(
+        (tab) => tab.getAttribute("data-tab") === type,
+      );
+
+      if (validTab) {
+        activateTab(type);
+      }
     });
   }
 

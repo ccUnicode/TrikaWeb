@@ -3,6 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import AdminHeader from "../../components/AdminHeader.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 import AdminLayout from "../../components/AdminLayout.astro";
+import ModalConfirm from "../../components/ModalConfirm.astro";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
 if (!isAdmin) {
@@ -19,12 +20,12 @@ if (!isAdmin) {
     description="Oculta o muestra planchas sin borrarlas"
   >
     <section
-      class="rounded-2xl bg-global-surface border border-global-border p-6"
+      class="rounded-2xl bg-global-surface border border-global-border p-4 sm:p-6"
     >
-      <div class="flex items-start justify-between gap-4 flex-wrap mb-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4">
         <div>
-          <h2 class="text-lg font-semibold text-global-text">Planchas</h2>
-          <p class="text-sm text-global-text-muted">
+          <h2 class="text-base sm:text-lg font-semibold text-global-text">Planchas</h2>
+          <p class="text-xs sm:text-sm text-global-text-muted">
             <span id="visible-count" class="font-semibold text-global-text"
               >0</span
             > visibles ·
@@ -33,26 +34,32 @@ if (!isAdmin) {
             > ocultas
           </p>
         </div>
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
           <input
             id="sheets-course"
             type="text"
-            class="w-full sm:w-[260px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-            placeholder="Buscar por Curso (Nombre o Código)"
+            class="w-full sm:w-[220px] rounded-xl border border-global-border bg-global-bg px-3.5 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+            placeholder="Curso (Nombre / Código)"
           />
-          <input
-            id="sheets-q"
-            type="text"
-            class="w-full sm:w-[260px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
-            placeholder="Ciclo, Evaluación, Docente..."
-          />
-          <button
-            id="sheets-refresh"
-            type="button"
-            class="rounded-xl bg-global-card border border-global-border px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
-          >
-            Recargar
-          </button>
+          <div class="flex items-center gap-2 flex-1 sm:w-auto">
+            <input
+              id="sheets-q"
+              type="text"
+              class="flex-1 sm:w-[220px] rounded-xl border border-global-border bg-global-bg px-3.5 py-2 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+              placeholder="Ciclo, Eval, Docente..."
+            />
+            <button
+              id="sheets-refresh"
+              type="button"
+              class="h-[38px] px-3.5 rounded-xl bg-global-card border border-global-border text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer flex items-center justify-center shrink-0"
+              title="Recargar planchas"
+              aria-label="Recargar planchas"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -64,36 +71,13 @@ if (!isAdmin) {
       </div>
     </section>
 
-    <div
+    <ModalConfirm
       id="delete-modal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"
-    >
-      <div
-        class="bg-global-surface border border-global-border rounded-xl p-6 max-w-md w-full mx-4 shadow-xl transform scale-95 transition-transform duration-300"
-      >
-        <h3 class="text-lg font-bold text-global-text mb-2">
-          ¿Eliminar plancha?
-        </h3>
-
-        <p id="delete-modal-text" class="text-global-text-muted text-sm mb-6">
-          Esta acción es permanente y no se puede deshacer.
-        </p>
-        <div class="flex justify-end gap-3">
-          <button
-            id="cancel-delete-btn"
-            class="px-4 py-2 rounded-lg border border-global-border text-global-text bg-global-card hover:bg-global-bg transition cursor-pointer text-sm font-medium"
-          >
-            Cancelar
-          </button>
-          <button
-            id="confirm-delete-btn"
-            class="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/30 text-red-400 hover:bg-red-600/30 transition cursor-pointer text-sm font-medium"
-          >
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
+      title="¿Eliminar plancha?"
+      message="Esta acción es permanente y no se puede deshacer."
+      confirmId="confirm-delete-btn"
+      cancelId="cancel-delete-btn"
+    />
   </AdminLayout>
 </Layout>
 
@@ -139,32 +123,34 @@ if (!isAdmin) {
     "cancel-delete-btn",
   ) as HTMLButtonElement;
 
-  let sheetIdToDelete: number | null = null;
+  let sheetIdPendingDelete: number | null = null;
   let deleteBtnRef: HTMLButtonElement | null = null;
 
   function showDeleteModal(sheetId: number, btn: HTMLButtonElement) {
-    sheetIdToDelete = sheetId;
+    sheetIdPendingDelete = sheetId;
     deleteBtnRef = btn;
-    deleteModal.classList.remove("opacity-0", "pointer-events-none");
-    deleteModal.firstElementChild?.classList.remove("scale-95");
-    deleteModal.firstElementChild?.classList.add("scale-100");
+    if (deleteModal) {
+      deleteModal.classList.remove("hidden");
+      deleteModal.classList.add("flex");
+    }
   }
 
   function hideDeleteModal() {
-    deleteModal.classList.add("opacity-0", "pointer-events-none");
-    deleteModal.firstElementChild?.classList.remove("scale-100");
-    deleteModal.firstElementChild?.classList.add("scale-95");
-    sheetIdToDelete = null;
+    if (deleteModal) {
+      deleteModal.classList.add("hidden");
+      deleteModal.classList.remove("flex");
+    }
+    sheetIdPendingDelete = null;
     deleteBtnRef = null;
   }
 
   cancelDeleteBtn?.addEventListener("click", hideDeleteModal);
 
   confirmDeleteBtn?.addEventListener("click", async () => {
-    if (!sheetIdToDelete || !deleteBtnRef) return;
+    if (!sheetIdPendingDelete || !deleteBtnRef) return;
 
     const b = deleteBtnRef;
-    const sheetId = sheetIdToDelete;
+    const sheetId = sheetIdPendingDelete;
     hideDeleteModal();
 
     b.disabled = true;
@@ -254,9 +240,7 @@ if (!isAdmin) {
         btn.setAttribute("data-next-hidden", nextHidden ? "false" : "true");
         btn.textContent = nextHidden ? "Mostrar" : "Ocultar";
 
-        const sheetDiv = btn.closest(
-          `[data-sheet-id="${sheetId}"]`,
-        ) as HTMLElement;
+        const sheetDiv = btn.closest("[data-sheet-card]") as HTMLElement | null;
         if (sheetDiv) {
           if (nextHidden) {
             sheetDiv.classList.add("opacity-70");
@@ -265,14 +249,15 @@ if (!isAdmin) {
           }
 
           const badge = sheetDiv.querySelector(
-            "span.inline-flex.rounded-full.border",
-          ) as HTMLElement;
+            ".sheet-status-badge",
+          ) as HTMLElement | null;
           if (badge) {
-            badge.textContent = nextHidden ? "Oculta" : "Visible";
-            badge.className = `inline-flex items-center justify-center w-[70px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${nextHidden ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" : "bg-green-500/10 border-green-500/30 text-green-400"}`;
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full shrink-0 ${nextHidden ? "bg-amber-500" : "bg-emerald-500"}"></span> ${nextHidden ? "OCULTA" : "VISIBLE"}`;
+            badge.className = `sheet-status-badge inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors shrink-0 ${nextHidden ? "bg-amber-600/20 text-amber-400 border-amber-600/30" : "bg-emerald-600/20 text-emerald-400 border-emerald-600/30"}`;
           }
 
-          btn.className = `toggle-sheet-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${nextHidden ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30" : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"}`;
+          btn.className = `toggle-sheet-btn inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs rounded-lg gap-1.5 ${nextHidden ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600/30" : "bg-amber-600/20 text-amber-400 border border-amber-600/30 hover:bg-amber-600/30"}`;
+          btn.innerHTML = nextHidden ? "Mostrar" : "Ocultar";
         }
 
         if (visibleCountEl && hiddenCountEl) {
@@ -313,12 +298,10 @@ if (!isAdmin) {
   });
 
   courseInput?.addEventListener("input", () => {
-    if (qInput) qInput.value = "";
     scheduleSearch();
   });
 
   qInput?.addEventListener("input", () => {
-    if (courseInput) courseInput.value = "";
     scheduleSearch();
   });
 
@@ -383,46 +366,60 @@ if (!isAdmin) {
             `${escapeHtml(s.exam_type || "")}${s.cycle ? ` · ${escapeHtml(s.cycle)}` : ""}`.trim();
           const hint = s.teacher_hint ? escapeHtml(s.teacher_hint) : "";
           const badgeClass = s.is_hidden
-            ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-400"
-            : "bg-green-500/10 border-green-500/30 text-green-400";
+            ? "bg-amber-600/20 text-amber-400 border-amber-600/30"
+            : "bg-emerald-600/20 text-emerald-400 border-emerald-600/30";
           const toggleClass = s.is_hidden
-            ? "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
-            : "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30";
+            ? "bg-emerald-600/20 text-emerald-400 border border-emerald-600/30 hover:bg-emerald-600/30"
+            : "bg-amber-600/20 text-amber-400 border border-amber-600/30 hover:bg-amber-600/30";
           const toggleLabel = s.is_hidden ? "Mostrar" : "Ocultar";
 
           return `
-                        <div class="rounded-xl bg-global-bg border border-global-border p-4 ${s.is_hidden ? "opacity-70" : ""}" data-sheet-id="${s.id}">
-                            <div class="flex items-center justify-between gap-4">
-                                <div class="min-w-0 flex-1">
-                                    <div class="text-sm text-global-text-muted truncate">${courseLabel}</div>
-                                    <div class="text-base font-semibold text-global-text truncate">${meta}</div>
-                                    ${hint ? `<div class="text-xs text-global-text-muted truncate mt-1">${hint}</div>` : ""}
+                        <div class="rounded-xl bg-global-bg border border-global-border p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 ${s.is_hidden ? "opacity-70" : ""}" data-sheet-card="${s.id}">
+                            <!-- Info de la plancha (Diseño original limpio) -->
+                            <div class="min-w-0 flex-1">
+                                <div class="text-sm text-global-text-muted truncate" title="${courseLabel}">
+                                    ${courseLabel}
                                 </div>
-                                <div class="flex items-center gap-3 shrink-0">
-                                    <span class="inline-flex items-center justify-center w-[70px] px-2 py-0.5 text-[10px] font-bold uppercase rounded-full border tracking-wide ${badgeClass}">
-                                        ${s.is_hidden ? "Oculta" : "Visible"}
-                                    </span>
+                                <div class="text-base font-semibold text-global-text truncate" title="${meta}">
+                                    ${meta}
+                                </div>
+                                ${hint ? `<div class="text-xs text-global-text-muted truncate mt-0.5">Docente: ${hint}</div>` : ""}
+                            </div>
+
+                            <!-- Estado y Botones de acción -->
+                            <div class="flex items-center justify-between md:justify-end gap-2.5 shrink-0 pt-2 md:pt-0">
+                                <span class="sheet-status-badge inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold rounded-full border transition-colors shrink-0 ${badgeClass}">
+                                    <span class="w-1.5 h-1.5 rounded-full shrink-0 ${s.is_hidden ? "bg-amber-500" : "bg-emerald-500"}"></span>
+                                    ${s.is_hidden ? "OCULTA" : "VISIBLE"}
+                                </span>
+
+                                <div class="flex items-center gap-1.5">
                                     <button
                                         type="button"
-                                        class="toggle-sheet-btn w-[72px] rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${toggleClass}"
+                                        class="toggle-sheet-btn inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs rounded-lg gap-1.5 ${toggleClass}"
                                         data-sheet-id="${s.id}"
                                         data-next-hidden="${s.is_hidden ? "false" : "true"}"
+                                        title="${toggleLabel}"
+                                        aria-label="${toggleLabel}"
                                     >
                                         ${toggleLabel}
                                     </button>
                                     <a
                                         href="/exams/${s.id}"
-                                        class="rounded-lg bg-global-card border border-global-border px-3 py-1.5 text-xs font-medium text-global-text transition hover:bg-global-border"
+                                        class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs rounded-lg gap-1.5 bg-gray-800 text-global-text hover:bg-gray-700 border border-gray-600 focus:ring-gray-500"
                                         target="_blank"
                                         rel="noreferrer"
+                                        title="Ver detalles"
+                                        aria-label="Ver detalles"
                                     >
                                         Ver
                                     </a>
                                     <button
                                         type="button"
-                                        class="delete-sheet-btn rounded-lg bg-red-600/20 border border-red-600/30 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-600/30 cursor-pointer"
+                                        class="delete-sheet-btn inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 text-xs rounded-lg gap-1.5 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30"
                                         data-sheet-id="${s.id}"
                                         title="Eliminar permanentemente"
+                                        aria-label="Eliminar permanentemente"
                                     >
                                         Eliminar
                                     </button>

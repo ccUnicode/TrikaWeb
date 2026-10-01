@@ -1,0 +1,59 @@
+---
+export interface Props {
+  variant?: "solid" | "outline" | "ghost" | "danger" | "danger-outline" | "info" | "warning";
+  size?: "sm" | "md" | "lg" | "icon";
+  isIconOnly?: boolean;
+  type?: "button" | "submit" | "reset";
+  class?: string;
+  id?: string;
+  disabled?: boolean;
+  "aria-label"?: string;
+  title?: string;
+}
+
+const {
+  variant = "solid",
+  size = "md",
+  isIconOnly = false,
+  type = "button",
+  class: extraClass = "",
+  id,
+  disabled = false,
+  "aria-label": ariaLabel,
+  title,
+  ...rest
+} = Astro.props as Props;
+
+const baseClass = "inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+
+const sizeClasses = {
+  sm: "px-3 py-1.5 text-xs rounded-lg gap-1.5",
+  md: "px-4 py-2 text-sm rounded-xl gap-2",
+  lg: "px-5 py-2.5 text-base rounded-xl gap-2.5",
+  icon: "w-8 h-8 rounded-lg gap-0", // Cuadrado exacto para móviles
+};
+
+const variantClasses = {
+  solid: "bg-global-primary text-black hover:bg-global-primary-hover focus:ring-global-primary border border-transparent shadow-md shadow-global-primary/10",
+  outline: "bg-gray-800 text-global-text hover:bg-gray-700 border border-gray-600 focus:ring-gray-500",
+  ghost: "bg-global-surface text-global-text-muted hover:text-global-text hover:bg-global-card border border-transparent shadow-none",
+  danger: "bg-global-danger text-white hover:bg-global-danger-hover focus:ring-global-danger border border-transparent",
+  "danger-outline": "bg-global-danger-soft text-global-danger-text border border-global-danger/30 hover:bg-global-danger/20 focus:ring-global-danger",
+  info: "bg-global-info-soft text-global-info-text border border-global-info/30 hover:bg-global-info/20 hover:border-global-info/50 focus:ring-global-info",
+  warning: "bg-global-warning-soft text-global-warning-text border border-global-warning/30 hover:bg-global-warning/20 focus:ring-global-warning",
+};
+
+const finalSize = isIconOnly ? "icon" : size;
+---
+
+<button
+  type={type}
+  class:list={[baseClass, sizeClasses[finalSize], variantClasses[variant], extraClass]}
+  id={id}
+  disabled={disabled}
+  aria-label={ariaLabel || title}
+  title={title}
+  {...rest}
+>
+  <slot />
+</button>

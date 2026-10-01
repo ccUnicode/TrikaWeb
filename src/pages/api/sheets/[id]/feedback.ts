@@ -1,7 +1,8 @@
 export const prerender = false;
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../../lib/supabaseAdmin';
-import { sha256Hash, getDeviceId, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { sha256Hash, getClientIP, enforceIpRateLimit } from '../../../../lib/utils';
+import { getUserSession } from '../../../../lib/auth';
 // @ts-ignore
 import moderationConfig from "../../../../../config/moderation.json";
 
@@ -16,10 +17,18 @@ function parseSheetId(raw: string | undefined): number | null {
   return n;
 }
 
-export const POST: APIRoute = async ({ params, request }) => {
+export const POST: APIRoute = async ({ params, request, cookies }) => {
   const sheetId = parseSheetId(params.id);
   if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user, profile } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
   }
 
   let body;
@@ -29,15 +38,13 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const stars = body.stars;
   const content = typeof body.content === 'string' ? body.content.trim() : body.content;
-
-  if (!stars || !Number.isInteger(stars) || stars < 1 || stars > 5) {
-    return new Response(
-      JSON.stringify({ error: 'stars debe ser un número entero entre 1 y 5' }),
-      { status: 400 }
-    );
-  }
+  const isAnonymous = body.is_anonymous === true;
+  
+  const userName = profile?.full_name || 'Estudiante';
+  const userEmail = user.email || '';
+  const userAvatar = profile?.avatar_url || '';
+  const userId = user.id;
 
   if (!content || typeof content !== 'string' || content.length === 0) {
     return new Response(
@@ -67,7 +74,7 @@ export const POST: APIRoute = async ({ params, request }) => {
     }
   }
 
-  const deviceId = getDeviceId(body);
+  const deviceId = user.id;
   if (!deviceId || !UUID_REGEX.test(deviceId)) {
     return new Response(JSON.stringify({ error: 'Falta device_id o formato inválido' }), { status: 400 });
   }
@@ -105,77 +112,67 @@ export const POST: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'Rate limit interno' }), { status: 500 });
   }
 
-  // Verificar si ya existe feedback de este device_id para esta plancha
-  const { data: existing } = await supa
+  // Límite de comentarios por IP para esta plancha (anti-spam general)
+  const { count: ipCount, error: ipCountError } = await supa
     .from('sheet_feedback')
-    .select('id, stars, content')
+    .select('id', { count: 'exact', head: true })
     .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
-    .maybeSingle();
+    .eq('ip_hash', ipHash);
 
-  let error;
-
-  if (existing) {
-    // Evitar spam: si no cambió ni el contenido ni las estrellas, ignoramos el guardado
-    if (existing.stars === stars && (existing.content || "") === (content || "")) {
-      return new Response(
-        JSON.stringify({ success: true, updated: false, message: "Sin cambios" }),
-        { status: 200 }
-      );
-    }
-
-    // Actualizar feedback existente
-    const result = await supa
-      .from('sheet_feedback')
-      .update({
-        stars,
-        content: content || null,
-        ip_hash: ipHash,
-        is_hidden: false,
-        needs_review: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('sheet_id', sheetId)
-      .eq('device_id', deviceId);
-
-    error = result.error;
-  } else {
-    // Anti-spam: límite de comentarios por IP para esta plancha
-    const { count, error: countError } = await supa
-      .from('sheet_feedback')
-      .select('id', { count: 'exact', head: true })
-      .eq('sheet_id', sheetId)
-      .eq('ip_hash', ipHash);
-
-    if (countError) {
-      console.error('Error verificando count IP:', countError);
-      return new Response(JSON.stringify({ error: 'Error interno verificando seguridad' }), { status: 500 });
-    }
-
-    if (count !== null && count >= 3) {
-      return new Response(
-        JSON.stringify({ error: 'Se ha alcanzado el límite de comentarios desde esta red para esta plancha.' }),
-        { status: 429 }
-      );
-    }
-
-    // Insertar nuevo feedback
-    const result = await supa
-      .from('sheet_feedback')
-      .insert({
-        sheet_id: sheetId,
-        device_id: deviceId,
-        stars,
-        content: content || null,
-        ip_hash: ipHash,
-        is_hidden: false,
-        needs_review: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-
-    error = result.error;
+  if (ipCountError) {
+    console.error('Error verificando count IP:', ipCountError);
+    return new Response(JSON.stringify({ error: 'Error interno verificando seguridad' }), { status: 500 });
   }
+
+  if (ipCount !== null && ipCount >= 10) {
+    return new Response(
+      JSON.stringify({ error: 'Se ha alcanzado el límite de comentarios desde esta red para esta plancha.' }),
+      { status: 429 }
+    );
+  }
+
+  // Verificar si el usuario ya tiene 3 comentarios para esta plancha
+  const { count: userCount, error: userCountError } = await supa
+    .from('sheet_feedback')
+    .select('id', { count: 'exact', head: true })
+    .eq('sheet_id', sheetId)
+    .eq('user_id', userId);
+
+  if (userCountError) {
+    console.error('Error verificando count de usuario:', userCountError);
+    return new Response(JSON.stringify({ error: 'Error interno verificando comentarios del usuario' }), { status: 500 });
+  }
+
+  if (userCount !== null && userCount >= 3) {
+    return new Response(
+      JSON.stringify({ error: 'Has alcanzado el límite máximo de 3 comentarios por plancha.' }),
+      { status: 429 }
+    );
+  }
+
+  // Insertar nuevo feedback
+  const result = await supa
+    .from('sheet_feedback')
+    .insert({
+      sheet_id: sheetId,
+      device_id: deviceId,
+      content: content || null,
+      ip_hash: ipHash,
+      user_id: userId,
+      user_name: userName,
+      user_email: userEmail,
+      user_avatar: userAvatar,
+      is_anonymous: isAnonymous,
+      is_hidden: false,
+      needs_review: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    })
+    .select('id')
+    .single();
+
+  let error = result.error;
+  let insertedId = result.data?.id;
 
   if (error) {
     console.error('Error al guardar feedback:', error);
@@ -186,23 +183,22 @@ export const POST: APIRoute = async ({ params, request }) => {
   }
 
   return new Response(
-    JSON.stringify({ success: true, updated: !!existing }),
+    JSON.stringify({ success: true, insertedId }),
     { status: 200 }
   );
 };
 
 // GET: verificar si el usuario ya dejó feedback y obtener lista de feedback
-export const GET: APIRoute = async ({ params, request }) => {
+export const GET: APIRoute = async ({ params, request, cookies }) => {
   const sheetId = parseSheetId(params.id);
   if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
   }
 
+  const { user } = await getUserSession(cookies);
+  const deviceId = user?.id || null;
+  
   const url = new URL(request.url);
-  const deviceId = url.searchParams.get('device_id');
-  if (deviceId && !UUID_REGEX.test(deviceId)) {
-    return new Response(JSON.stringify({ error: 'Formato de device_id inválido' }), { status: 400 });
-  }
   let page = Number(url.searchParams.get('page') ?? 1);
   let pageSize = Number(url.searchParams.get('pageSize') ?? 10);
 
@@ -240,71 +236,97 @@ export const GET: APIRoute = async ({ params, request }) => {
 
   const feedbackPromise = supa
     .from('sheet_feedback')
-    .select('id, stars, content, created_at', { count: 'exact', head: false })
+    .select('id, content, created_at, updated_at, user_name, is_anonymous, user_id, device_id, user_avatar', { count: 'exact', head: false })
     .eq('sheet_id', sheetId)
     .eq('is_hidden', false)
     .neq('content', '')
     .order('created_at', { ascending: false })
     .range(from, to);
 
-  const userFeedbackPromise = deviceId
-    ? supa
-        .from('sheet_feedback')
-        .select('id, stars, content, created_at')
-        .eq('sheet_id', sheetId)
-        .eq('device_id', deviceId)
-        .maybeSingle()
-    : Promise.resolve({ data: null, error: null });
+  const { data: feedbackList, count, error: listError } = await feedbackPromise;
 
-  const avgStarsPromise = supa.rpc('get_average_stars', { p_sheet_id: sheetId });
-
-  const [
-    { data: feedbackList, count, error: listError },
-    { data: existing, error: userError },
-    { data: avgStars, error: avgError }
-  ] = await Promise.all([
-    feedbackPromise,
-    userFeedbackPromise,
-    avgStarsPromise
-  ]);
-
-  if (listError || (userError && deviceId) || avgError) {
-    const combinedError = listError || (userError && deviceId ? userError : null) || avgError;
-    console.error('Error fetching sheet feedback:', combinedError);
+  if (listError) {
+    console.error('Error fetching sheet feedback:', listError);
     return new Response(
       JSON.stringify({
-        error: 'Error al cargar comentarios: ' + combinedError?.message,
+        error: 'Error al cargar comentarios: ' + listError.message,
         feedback: [],
         total: 0,
         page,
         pageSize,
-        userFeedback: null,
       }),
       { status: 500 }
     );
   }
 
-  const userFeedback = existing || null;
-  const avgRating = avgStars ?? 0;
+  // Fetch reactions for the current page of feedback
+  const feedbackIds = feedbackList?.map(f => f.id) || [];
+  
+  if (feedbackIds.length > 0) {
+    const { data: reactionsData } = await supa
+      .from('sheet_feedback_reactions')
+      .select('feedback_id, reaction, user_id')
+      .in('feedback_id', feedbackIds);
+
+    feedbackList?.forEach((f: any) => {
+      const fReactions = (reactionsData || []).filter(r => r.feedback_id === f.id);
+      
+      const counts: Record<string, number> = { like: 0, love: 0, haha: 0, wow: 0, sad: 0 };
+      let userReaction = null;
+      
+      fReactions.forEach(r => {
+        if (counts[r.reaction] !== undefined) {
+          counts[r.reaction]++;
+        }
+        if (user?.id && r.user_id === user.id) {
+          userReaction = r.reaction;
+        }
+      });
+      
+      f.reactions = counts;
+      f.total_reactions = fReactions.length;
+      f.user_reaction = userReaction;
+
+      if (f.user_avatar && !f.user_avatar.startsWith('http')) {
+        const cleanSrc = f.user_avatar.replace(/^\/+/, '');
+        f.user_avatar = `${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${cleanSrc}`;
+      }
+
+      // Aplicar máscara de privacidad para comentarios anónimos
+      // Solo el autor original podrá ver su propio user_id (para permitirle editar/borrar)
+      if (f.is_anonymous && (!user || f.user_id !== user.id)) {
+        f.user_name = 'Estudiante Anónimo';
+        f.user_avatar = null;
+        f.user_id = null;
+        f.device_id = null;
+      }
+    });
+  }
 
   return new Response(
     JSON.stringify({
       feedback: feedbackList ?? [],
       total: count ?? 0,
-      avgRating,
       page,
       pageSize,
-      userFeedback,
     }),
     { status: 200 }
   );
 };
 
-// DELETE: eliminar feedback propio
-export const DELETE: APIRoute = async ({ params, request }) => {
+// PUT: editar feedback propio (inline)
+export const PUT: APIRoute = async ({ params, request, cookies }) => {
   const sheetId = parseSheetId(params.id);
   if (sheetId === null) {
     return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user, profile } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para editar tu comentario.' }),
+      { status: 401 }
+    );
   }
 
   let body;
@@ -314,9 +336,71 @@ export const DELETE: APIRoute = async ({ params, request }) => {
     return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
   }
 
-  const deviceId = getDeviceId(body);
-  if (!deviceId || !UUID_REGEX.test(deviceId)) {
-    return new Response(JSON.stringify({ error: 'Falta device_id o formato inválido' }), { status: 400 });
+  const commentId = body.comment_id;
+  const content = typeof body.content === 'string' ? body.content.trim() : body.content;
+  const isAnonymous = body.is_anonymous === true;
+
+  if (!commentId) {
+    return new Response(JSON.stringify({ error: 'ID de comentario requerido' }), { status: 400 });
+  }
+
+  if (!content || typeof content !== 'string' || content.length === 0) {
+    return new Response(JSON.stringify({ error: 'El comentario no puede estar vacío' }), { status: 400 });
+  }
+
+  if (content.length > 500) {
+    return new Response(JSON.stringify({ error: 'El comentario no puede superar los 500 caracteres' }), { status: 400 });
+  }
+
+  const supa = supabaseAdmin;
+
+  const { data, error } = await supa
+    .from('sheet_feedback')
+    .update({
+      content,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', commentId)
+    .eq('user_id', user.id) // Solo puede editar si le pertenece
+    .select();
+
+  if (error) {
+    console.error('Error al actualizar feedback:', error);
+    return new Response(JSON.stringify({ error: 'Error al actualizar', details: error.message }), { status: 500 });
+  }
+
+  if (!data || data.length === 0) {
+    return new Response(JSON.stringify({ error: 'No se pudo actualizar o el comentario no te pertenece' }), { status: 404 });
+  }
+
+  return new Response(JSON.stringify({ success: true, comment: data[0] }), { status: 200 });
+};
+
+// DELETE: eliminar feedback propio
+export const DELETE: APIRoute = async ({ params, request, cookies }) => {
+  const sheetId = parseSheetId(params.id);
+  if (sheetId === null) {
+    return new Response(JSON.stringify({ error: 'ID inválido' }), { status: 400 });
+  }
+
+  const { user } = await getUserSession(cookies);
+  if (!user) {
+    return new Response(
+      JSON.stringify({ error: 'Debes iniciar sesión para realizar esta acción.' }),
+      { status: 401 }
+    );
+  }
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 });
+  }
+
+  const commentId = body.comment_id;
+  if (!commentId) {
+    return new Response(JSON.stringify({ error: 'ID de comentario requerido' }), { status: 400 });
   }
 
   const supa = supabaseAdmin;
@@ -324,8 +408,8 @@ export const DELETE: APIRoute = async ({ params, request }) => {
   const { data, error } = await supa
     .from('sheet_feedback')
     .delete()
-    .eq('sheet_id', sheetId)
-    .eq('device_id', deviceId)
+    .eq('id', commentId)
+    .eq('user_id', user.id) // Solo borrar si le pertenece al usuario logueado
     .select();
 
   if (error) {

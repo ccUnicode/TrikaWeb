@@ -22,7 +22,7 @@ export const GET: APIRoute = async ({ cookies }) => {
 
     const { data, error } = await supabaseAdmin
       .from("courses")
-      .select("id, code, name")
+      .select("id, code, name, subsystem_id")
       .eq("is_hidden", false)
       .order("code", { ascending: true });
 

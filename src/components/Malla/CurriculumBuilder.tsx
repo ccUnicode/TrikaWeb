@@ -669,7 +669,7 @@ function PrereqsModal({ course, placedCourses, onClose, onApply }: PrereqsModalP
           <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">
             Cancelar
           </button>
-          <button onClick={() => onApply(selectedIds)} className="bg-global-primary hover:bg-global-primary-hover text-white px-6 py-2 rounded-lg text-sm font-bold shadow-lg shadow-global-primary/20 transition-all active:scale-95 cursor-pointer">
+          <button onClick={() => onApply(selectedIds)} className="bg-global-primary hover:bg-global-primary-hover text-black px-6 py-2 rounded-lg text-sm font-bold shadow-lg shadow-global-primary/20 transition-all active:scale-95 cursor-pointer">
             Aplicar
           </button>
         </div>

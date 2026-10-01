@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import AdminLayout from "../../components/AdminLayout.astro";
+import ModalConfirm from "../../components/ModalConfirm.astro";
 import { validateAdminSession } from "../../lib/adminAuth";
 
 const isAdmin = await validateAdminSession(Astro.cookies);
@@ -19,9 +20,9 @@ if (!isAdmin) {
   >
     <!-- Create Course -->
     <section
-      class="rounded-2xl bg-global-surface border border-global-border p-6 mb-6"
+      class="rounded-2xl bg-global-surface border border-global-border p-4 sm:p-6 mb-6"
     >
-      <h2 class="text-lg font-semibold text-global-text mb-4">Agregar curso</h2>
+      <h2 class="text-base sm:text-lg font-semibold text-global-text mb-4">Agregar curso</h2>
 
       <form id="add-course-form" class="grid gap-4 sm:grid-cols-3">
         <div>
@@ -236,7 +237,7 @@ if (!isAdmin) {
           <button
             type="submit"
             id="add-course-btn"
-            class="rounded-xl bg-global-primary px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            class="w-full sm:w-auto justify-center rounded-xl bg-global-primary px-6 py-2.5 text-sm font-semibold text-black transition hover:bg-global-primary-hover cursor-pointer"
           >
             Agregar
           </button>
@@ -247,14 +248,14 @@ if (!isAdmin) {
 
     <!-- Courses List -->
     <section
-      class="rounded-2xl bg-global-surface border border-global-border p-6"
+      class="rounded-2xl bg-global-surface border border-global-border p-4 sm:p-6"
     >
       <div
-        class="flex flex-row items-start justify-between gap-4 flex-wrap mb-4"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4"
       >
         <div>
-          <h2 class="text-lg font-semibold text-global-text">Cursos</h2>
-          <p class="text-sm text-global-text-muted">
+          <h2 class="text-base sm:text-lg font-semibold text-global-text">Cursos</h2>
+          <p class="text-xs sm:text-sm text-global-text-muted">
             <span id="visible-count" class="font-semibold text-global-text"
               >0</span
             > visibles ·
@@ -263,19 +264,23 @@ if (!isAdmin) {
             > ocultos
           </p>
         </div>
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
           <input
             id="courses-search"
             type="text"
-            class="w-full sm:w-[280px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors"
+            class="flex-1 sm:w-[280px] rounded-xl border border-global-border bg-global-bg px-4 py-2.5 text-sm text-global-text outline-none focus:border-global-primary focus:ring-1 focus:ring-global-primary transition-colors placeholder-gray-500"
             placeholder="Buscar por código o nombre..."
           />
           <button
             id="courses-refresh"
             type="button"
-            class="rounded-xl bg-global-card border border-global-border px-4 py-2.5 text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer"
+            class="h-[42px] px-3.5 rounded-xl bg-global-card border border-global-border text-sm font-medium text-global-text transition hover:bg-global-border cursor-pointer flex items-center justify-center shrink-0"
+            title="Recargar cursos"
+            aria-label="Recargar cursos"
           >
-            Recargar
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
           </button>
         </div>
       </div>
@@ -331,6 +336,15 @@ if (!isAdmin) {
       >
       </div>
     </section>
+
+    <ModalConfirm
+      id="delete-course-modal"
+      title="¿Eliminar curso?"
+      message="Solo podrá eliminarse si no tiene planchas asociadas. Si contiene material, debes ocultarlo en su lugar. Esta acción no se puede deshacer."
+      confirmId="confirm-delete-course-btn"
+      cancelId="cancel-delete-course-btn"
+      feedbackId="delete-course-feedback"
+    />
   </AdminLayout>
 </Layout>
 
@@ -448,6 +462,54 @@ if (!isAdmin) {
   let page = 1;
   let pageSize = 30;
   let selectedStatus: CourseStatusFilter = "";
+
+  let courseToDelete: number | null = null;
+  let deleteCourseBtnRef: HTMLButtonElement | null = null;
+  const deleteCourseModal = document.getElementById("delete-course-modal");
+  const cancelDeleteCourseBtn = document.getElementById("cancel-delete-course-btn");
+  const confirmDeleteCourseBtn = document.getElementById("confirm-delete-course-btn");
+
+  function closeDeleteCourseModal() {
+    if (deleteCourseModal) {
+      deleteCourseModal.classList.add("hidden");
+      deleteCourseModal.classList.remove("flex");
+    }
+    courseToDelete = null;
+    deleteCourseBtnRef = null;
+  }
+
+  cancelDeleteCourseBtn?.addEventListener("click", closeDeleteCourseModal);
+
+  confirmDeleteCourseBtn?.addEventListener("click", async () => {
+    if (!courseToDelete || !deleteCourseBtnRef) return;
+    
+    const b = deleteCourseBtnRef;
+    b.disabled = true;
+    closeDeleteCourseModal();
+
+    try {
+      const res = await fetch("/api/admin/delete-course", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          course_id: courseToDelete,
+        }),
+      });
+
+      const out = await res.json().catch(() => null);
+
+      if (!res.ok || !out?.ok) {
+        throw new Error(out?.error || "No se pudo eliminar el curso");
+      }
+
+      await loadCourses(page);
+    } catch (e) {
+      console.error(e);
+      b.disabled = false;
+      alert(e instanceof Error ? e.message : "Error desconocido al eliminar");
+    }
+  });
 
   const setFeedback = (message: string, kind: "ok" | "error" = "ok") => {
     addFeedback.textContent = message;
@@ -695,15 +757,13 @@ if (!isAdmin) {
   }
 
   function renderCourseStatus(status: CourseStatus) {
-    const baseClasses =
-      "inline-flex h-8 w-[120px] items-center justify-center rounded-lg border px-3 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap";
-
     if (status === "COMPLETO") {
       return `
       <span
-        class="${baseClasses} border-blue-500/30 bg-blue-500/10 text-blue-400"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-emerald-600/20 text-emerald-400 border-emerald-600/30"
         title="La configuración académica del curso está completa"
       >
+        <span class="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-500"></span>
         Completo
       </span>
     `;
@@ -712,9 +772,10 @@ if (!isAdmin) {
     if (status === "ARCHIVADO") {
       return `
       <span
-        class="${baseClasses} border-gray-500/30 bg-gray-500/10 text-gray-400"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-gray-500/20 text-gray-400 border-gray-500/30"
         title="El curso se encuentra archivado"
       >
+        <span class="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-400"></span>
         Archivado
       </span>
     `;
@@ -722,9 +783,10 @@ if (!isAdmin) {
 
     return `
     <span
-      class="${baseClasses} border-orange-500/30 bg-orange-500/10 text-orange-400"
+      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-amber-600/20 text-amber-400 border-amber-600/30"
       title="El curso todavía tiene información académica pendiente"
     >
+      <span class="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-500"></span>
       Pendiente
     </span>
   `;
@@ -732,40 +794,23 @@ if (!isAdmin) {
 
   function renderVisibilityIcon(isHidden: boolean) {
     if (isHidden) {
+      // Estado actual: Oculto -> Icono de ojo tachado
       return `
-      <svg
-        class="h-4 w-4"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
         <path d="M3 3l18 18" />
-        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-        <path d="M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 10 8 10 8a15.2 15.2 0 0 1-2.2 3.7" />
-        <path d="M6.6 6.6C3.7 8.5 2 12 2 12s3 8 10 8a9.7 9.7 0 0 0 5.4-1.6" />
       </svg>
     `;
     }
 
+    // Estado actual: Visible -> Icono de ojo abierto
     return `
-    <svg
-      class="h-4 w-4"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z" />
-      <circle cx="12" cy="12" r="3" />
+    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
     </svg>
-  `;
+    `;
   }
 
   async function loadCourses(nextPage: number = 1) {
@@ -848,35 +893,47 @@ if (!isAdmin) {
         .map(
           (c) => `
         <div
-          class="rounded-xl bg-global-bg border border-global-border p-4 ${
-            c.is_hidden ? "opacity-70" : ""
+          class="rounded-xl bg-global-bg border border-global-border p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 transition-all ${
+            c.is_hidden ? "opacity-45 border-dashed border-gray-800 bg-[#0c0c0c]" : ""
           }"
           data-course-id="${c.id}"
         >
-          <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="min-w-0 flex-1">
-              <div class="text-sm text-global-text-muted truncate">
+          <!-- Info del curso -->
+          <div class="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-mono text-xs font-semibold text-gray-300 bg-[#1E2633] border border-[#2B374A] px-2.5 py-1 rounded-md">
                 ${escapeHtml(c.code)}
-              </div>
+              </span>
+              <span class="text-xs text-global-text-muted sm:hidden">
+                • ${c.credits} ${c.credits === 1 ? "crédito" : "créditos"}
+              </span>
+            </div>
 
-              <div class="text-base font-semibold text-global-text truncate">
+            <div class="min-w-0 flex-1">
+              <div class="text-sm sm:text-base font-semibold text-global-text leading-snug truncate" title="${escapeHtml(c.name)}">
                 ${escapeHtml(c.name)}
-              </div>
-
-              <div class="text-xs text-global-text-muted">
-                Créditos: ${c.credits}
               </div>
             </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-3 shrink-0">
+            <span class="text-xs text-global-text-muted hidden sm:inline-block shrink-0">
+              ${c.credits} ${c.credits === 1 ? "crédito" : "créditos"}
+            </span>
+          </div>
+
+          <!-- Estado y Acciones -->
+          <div class="flex items-center justify-between md:justify-end gap-3 shrink-0 pt-2 md:pt-0">
+            <div>
               ${renderCourseStatus(c.status)}
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                class="toggle-course-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition cursor-pointer ${
+                class="toggle-course-btn inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-full gap-0 border ${
                   c.is_hidden
-                    ? "bg-yellow-600/20 border-yellow-600/30 text-yellow-400 hover:bg-yellow-600/30"
-                    : "bg-green-600/20 border-green-600/30 text-green-400 hover:bg-green-600/30"
-                }"
+                    ? "border-gray-800 bg-gray-900/80 text-gray-500 hover:border-gray-600 hover:bg-gray-800 hover:text-gray-200"
+                    : "border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-500 hover:bg-gray-700 hover:text-white"
+                } focus:ring-gray-500"
                 data-course-id="${c.id}"
                 data-next-hidden="${c.is_hidden ? "false" : "true"}"
                 title="${c.is_hidden ? "Mostrar curso" : "Ocultar curso"}"
@@ -884,33 +941,9 @@ if (!isAdmin) {
               >
                 ${renderVisibilityIcon(c.is_hidden)}
               </button>
-              <button
-                type="button"
-                class="delete-course-btn inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-red-600/30 bg-red-600/20 text-red-500 transition hover:bg-red-600/30 cursor-pointer"
-                data-course-id="${c.id}"
-                title="Eliminar curso"
-                aria-label="Eliminar curso"
-              >
-                <svg
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M3 6h18" />
-                  <path d="M8 6V4h8v2" />
-                  <path d="M19 6l-1 14H6L5 6" />
-                  <path d="M10 11v5" />
-                  <path d="M14 11v5" />
-                </svg>
-              </button>
               <a
                 href="/admin/courses/${c.id}/edit"
-                class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 transition hover:border-blue-400/50 hover:bg-blue-500/20 hover:text-blue-300"
+                class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-full gap-0 bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:bg-blue-600/30 focus:ring-blue-500"
                 title="${
                   c.status === "INCOMPLETO"
                     ? "Completar configuración"
@@ -922,20 +955,25 @@ if (!isAdmin) {
                     : "Editar curso"
                 }"
               >
-                <svg
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               </a>
+              <button
+                type="button"
+                class="delete-course-btn inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-global-bg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-full gap-0 bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30 focus:ring-red-500"
+                data-course-id="${c.id}"
+                title="Eliminar curso"
+                aria-label="Eliminar curso"
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4h8v2" />
+                  <path d="M19 6l-1 14H6L5 6" />
+                  <path d="M10 11v5" />
+                  <path d="M14 11v5" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -943,46 +981,18 @@ if (!isAdmin) {
         )
         .join("");
       document.querySelectorAll(".delete-course-btn").forEach((btn) => {
-        btn.addEventListener("click", async () => {
+        btn.addEventListener("click", () => {
           const b = btn as HTMLButtonElement;
           const courseId = Number(b.getAttribute("data-course-id"));
 
           if (!Number.isFinite(courseId) || courseId <= 0) return;
 
-          if (
-            !confirm(
-              "¿Estás seguro de que deseas eliminar este curso? Solo podrá eliminarse si no tiene planchas asociadas. Si contiene material, debes ocultarlo en su lugar. Esta acción no se puede deshacer.",
-            )
-          ) {
-            return;
-          }
-
-          b.disabled = true;
-
-          try {
-            const res = await fetch("/api/admin/delete-course", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({
-                course_id: courseId,
-              }),
-            });
-
-            const out = await res.json().catch(() => null);
-
-            if (!res.ok || !out?.ok) {
-              throw new Error(out?.error || "No se pudo eliminar el curso");
-            }
-
-            await loadCourses(page);
-          } catch (e) {
-            console.error(e);
-            b.disabled = false;
-
-            alert(
-              e instanceof Error ? e.message : "Error desconocido al eliminar",
-            );
+          courseToDelete = courseId;
+          deleteCourseBtnRef = b;
+          
+          if (deleteCourseModal) {
+            deleteCourseModal.classList.remove("hidden");
+            deleteCourseModal.classList.add("flex");
           }
         });
       });

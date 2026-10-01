@@ -1778,7 +1778,9 @@ Lista las contribuciones del estudiante autenticado (más recientes primero).
 
 ### POST `/api/contributions/clear-history`
 
-Limpia el historial de contribuciones del estudiante: elimina las de estado `pending` o `rejected` (y sus archivos en `contributions`). Las aprobadas se conservan.
+Limpia el historial de contribuciones del estudiante. Utiliza una lógica mixta de borrado:
+- **Hard Delete:** Elimina de la base de datos y del bucket de almacenamiento (Storage) las contribuciones en estado `pending` o `rejected`.
+- **Soft Delete:** Para las contribuciones `approved`, establece el campo `hidden_by_user = true` para ocultarlas del historial del usuario, pero las conserva en la base de datos para mantener la consistencia de los datos aportados.
 
 **Response (200):**
 
@@ -1786,6 +1788,25 @@ Limpia el historial de contribuciones del estudiante: elimina las de estado `pen
 {
   "success": true,
   "message": "Historial de contribuciones vaciado correctamente"
+}
+```
+
+### POST `/api/contributions/delete`
+
+Elimina una contribución individual del historial del estudiante. Utiliza la misma lógica mixta de borrado (Hard Delete para pendientes/rechazadas, Soft Delete para aprobadas).
+
+**Request (FormData):**
+
+| Campo | Requerido | Descripción |
+|---|---|---|
+| `contribution_id` | ✅ | ID de la contribución a eliminar |
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Aporte eliminado correctamente del historial"
 }
 ```
 

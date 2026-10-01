@@ -1,12 +1,12 @@
 CREATE OR REPLACE FUNCTION add_malla_transaction(payload JSONB)
 RETURNS JSONB AS $$
 DECLARE
-  v_specialty_id INT;
+  v_specialty_id UUID;
   v_year TEXT;
   v_is_current BOOLEAN;
   new_plan RECORD;
 BEGIN
-  v_specialty_id := (payload->>'specialty_id')::INT;
+  v_specialty_id := (payload->>'specialty_id')::UUID;
   v_year := payload->>'year';
   v_is_current := (payload->>'is_current')::BOOLEAN;
 

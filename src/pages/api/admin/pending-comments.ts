@@ -46,12 +46,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             .from("sheet_feedback")
             .select(`
                 id,
-                stars,
                 content,
                 created_at,
+                updated_at,
                 is_hidden,
                 needs_review,
-                sheet_id
+                sheet_id,
+                user_name,
+                user_email,
+                is_anonymous,
+                user_id,
+                user_avatar
             `, { count: "exact" })
             .order("created_at", { ascending: false });
 
@@ -128,10 +133,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
             stars: item.stars,
             content: item.content,
             created_at: item.created_at,
+            updated_at: item.updated_at,
             is_hidden: item.is_hidden,
             needs_review: item.needs_review,
             sheet_id: item.sheet_id,
             sheet_label: sheetsMap[item.sheet_id] ?? "Plancha desconocida",
+            is_anonymous: item.is_anonymous,
+            user_name: item.user_name,
+            user_id: item.user_id,
+            user_avatar: item.user_avatar,
         }));
 
         // Filtro de búsqueda removido (ahora se hace en la base de datos)

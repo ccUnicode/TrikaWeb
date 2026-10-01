@@ -257,10 +257,10 @@ if (specError) {
     <!-- Edit Modal -->
     <div
       id="edit-modal"
-      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-modal-backdrop"
     >
       <div
-        class="w-full max-w-md rounded-2xl bg-[#1e2430] border border-gray-800 p-6 shadow-2xl"
+        class="w-full max-w-md rounded-2xl bg-[#1e2430] border border-gray-800 p-6 shadow-2xl animate-modal-content"
       >
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-xl font-bold text-white">Editar Malla</h3>
@@ -433,12 +433,12 @@ if (specError) {
     mallasList.innerHTML = plans
       .map((p) => {
         const isCurrentBadge = p.is_current
-          ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20">Vigente</span>'
-          : '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20">Histórica</span>';
+          ? '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]">Vigente</span>'
+          : '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors shrink-0 bg-gray-500/10 text-gray-400 border-gray-500/20">Histórica</span>';
 
         const isPublishedBadge = p.is_published
-          ? `<button onclick="toggleMallaState('${p.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 cursor-pointer hover:bg-blue-500/20 transition-all active:scale-95" title="Clic para ocultar del público"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>Público</button>`
-          : `<button onclick="toggleMallaState('${p.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-500/10 text-gray-400 border border-gray-500/20 cursor-pointer hover:bg-gray-500/20 transition-all active:scale-95" title="Clic para publicar al público"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"></path></svg>Oculto</button>`;
+          ? `<button onclick="toggleMallaState('${p.id}')" class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed px-2.5 py-1 text-[11px] rounded-full gap-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20" title="Clic para ocultar del público"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>Público</button>`
+          : `<button onclick="toggleMallaState('${p.id}')" class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed px-2.5 py-1 text-[11px] rounded-full gap-1.5 bg-gray-500/10 text-gray-400 border border-gray-500/30 hover:bg-gray-500/20" title="Clic para publicar al público"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /><path d="M3 3l18 18" /></svg>Oculto</button>`;
 
         const coursesCount = p.plan_courses?.[0]?.count || 0;
         const coursesBadge =
@@ -462,14 +462,14 @@ if (specError) {
                         <td class="px-6 py-4 text-center">${isPublishedBadge}</td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <a href="/admin/mallas/builder/${p.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-global-primary text-black hover:bg-global-primary-hover transition-all text-xs font-semibold shadow-md shadow-global-primary/10 cursor-pointer active:scale-95" title="Armar Malla">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                <a href="/admin/mallas/builder/${p.id}" class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-full gap-0 bg-[#22c55e] text-black hover:bg-[#1eb355] border border-transparent shadow-md shadow-[#22c55e]/20" title="Armar Malla">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </a>
-                                <button onclick="openEditModal(${escapedPlan})" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-all text-xs font-semibold cursor-pointer active:scale-95" title="Editar Configuración">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                <button onclick="openEditModal(${escapedPlan})" class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-full gap-0 bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20" title="Editar Configuración">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                                 </button>
-                                <button onclick="openDeleteModal('${p.id}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all text-xs font-semibold cursor-pointer active:scale-95" title="Eliminar Malla">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <button onclick="openDeleteModal('${p.id}')" class="inline-flex items-center justify-center shrink-0 transition-all cursor-pointer font-semibold shadow-sm focus:outline-none active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-full gap-0 bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20" title="Eliminar Malla">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v5" /><path d="M14 11v5" /></svg>
                                 </button>
                             </div>
                         </td>

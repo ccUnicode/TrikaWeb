@@ -309,7 +309,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
      */
     const { data: course, error: courseError } = await supabaseAdmin
       .from("courses")
-      .select("id, code, status")
+      .select("id, code, subsystem_id")
       .eq("id", courseId)
       .maybeSingle();
 
@@ -339,16 +339,17 @@ export const POST: APIRoute = async ({ request, cookies }) => {
       );
     }
 
-    const courseStatus = String(course.status ?? "")
-      .trim()
-      .toUpperCase();
-
-    if (courseStatus !== "COMPLETO") {
+    /*
+     * Un curso puede existir sin subsistema de evaluaciones,
+     * pero no puede recibir planchas ni solucionarios hasta
+     * que dicho subsistema haya sido configurado.
+     */
+    if (course.subsystem_id === null) {
       return Response.json(
         {
           ok: false,
           error:
-            "Solo se puede registrar material para cursos con estado COMPLETO",
+            "Este curso no tiene un subsistema de evaluaciones configurado. Configúralo antes de subir material.",
         },
         {
           status: 409,
