@@ -10,7 +10,7 @@ reviews:
   high_level_summary_in_walkthrough: true
   review_status: true
   collapse_walkthrough: true
-  sequence_diagrams: false
+  sequence_diagrams: true
   suggested_labels: false
   suggested_reviewers: false
   in_progress_fortune: false
@@ -27,6 +27,12 @@ reviews:
     - '!**/.next/**'
     - '!**/coverage/**'
     - '!**/package-lock.json'
+    - '!**/.astro/**'
+    - '!**/.turbo/**'
+    - '!**/playwright-report/**'
+    - '!**/test-results/**'
+    - '!**/*.tsbuildinfo'
+    - '!**/.cache/**'
   path_instructions:
     - path: '**/*'
       instructions: >-
