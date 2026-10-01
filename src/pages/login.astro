@@ -108,6 +108,7 @@ if (user) {
     const googleOverlay = document.getElementById("google-btn-overlay");
     const termsMessage = document.getElementById("terms-message");
 
+    let highlightTimer: ReturnType<typeof setTimeout> | undefined;
     if (googleOverlay && termsMessage) {
       googleOverlay.addEventListener("click", (e) => {
         e.preventDefault();
@@ -115,7 +116,8 @@ if (user) {
         termsMessage.classList.remove("text-global-text-muted");
         termsMessage.classList.add("text-red-500");
 
-        setTimeout(() => {
+        clearTimeout(highlightTimer);
+        highlightTimer = setTimeout(() => {
           termsMessage.classList.remove("text-red-500");
           termsMessage.classList.add("text-global-text-muted");
         }, 400);
