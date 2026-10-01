@@ -4,8 +4,7 @@
 
 - Node.js >=22.12.0
 - npm
-- Proyecto de Supabase (DB + Storage)
-- Proyecto de Firebase (Auth para estudiantes)
+- Proyecto de Supabase (DB, Storage y Auth)
 
 ## Instalación local
 
@@ -30,10 +29,7 @@ Usar `.env.example` como referencia.
 * `SUPABASE_URL`
 * `SUPABASE_SERVICE_KEY`
 * `IP_SALT`
-* `ADMIN_PASS`
-- `FIREBASE_PROJECT_ID`
-- `FIREBASE_CLIENT_EMAIL`
-- `FIREBASE_PRIVATE_KEY`
+
 * `GOOGLE_APPLICATION_CREDENTIALS`, si se utiliza la sincronización con Drive
 * `DRIVE_EXAMS_FOLDER_ID`, si se utiliza la sincronización con Drive
 * `DRIVE_SOLUTIONS_FOLDER_ID`, si se utiliza la sincronización con Drive
@@ -45,7 +41,7 @@ Estas variables no deben exponerse mediante el prefijo `PUBLIC_` ni utilizarse d
 - `PUBLIC_SUPABASE_URL`
 - `PUBLIC_SUPABASE_ANON_KEY`
 
-Nota: Supabase sigue siendo la base de datos y storage; Firebase queda como proveedor de autenticación para estudiantes.
+
 
 ## Base de datos
 

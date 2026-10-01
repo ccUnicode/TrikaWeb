@@ -38,7 +38,7 @@
 > Las escrituras sobre estas tablas se realizan mediante las funciones RPC
 > `add_malla_transaction`, `edit_malla_transaction` y `save_malla_transaction`
 > (`SECURITY DEFINER`, ejecutables solo por `service_role`). La lectura es pública
-> (`FOR SELECT`). Fuente: `supabase/migrations/create_mallas_tables.sql`.
+> (`FOR SELECT`). Fuente: `supabase/migrations/32_create_mallas_tables.sql`.
 
 ### courses_teachers
 | Columna | Tipo | Nulo |
