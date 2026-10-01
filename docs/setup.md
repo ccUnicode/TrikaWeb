@@ -195,7 +195,7 @@ Para actualizar una base que ya contiene datos:
 2. No volver a ejecutar `supabase/schema.sql`.
 3. No volver a ejecutar migraciones ya aplicadas.
 4. Ejecutar únicamente las migraciones pendientes, respetando el orden numérico.
-5. **ATENCIÓN:** La migración `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. **ESTA MIGRACIÓN NO DEBE APLICARSE EN PRODUCCIÓN.** Para comprobar si ya fue aplicada, ejecuta `SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version = '23b'`. Si el resultado es 1, omite este archivo. Si la base no ha sido migrada, se requiere un enfoque manual de conversión de `user_id` sin usar el script automatizado.
+5. **ATENCIÓN:** La migración `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. **ESTA MIGRACIÓN NO DEBE APLICARSE EN PRODUCCIÓN.** Para comprobar de forma fiable si ya fue aplicada, verifica si la columna `user_id` de la tabla `student_details` es de tipo `uuid` (ejecutando `SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'student_details' AND column_name = 'user_id';`). Si el tipo es `uuid`, omite este archivo. Si el tipo es `text`, la base no ha sido migrada y se requiere un enfoque manual de conversión de `user_id` sin usar el script automatizado.
 6. Verificar el backfill de `system_id`, evaluaciones y demás relaciones antes de aplicar restricciones `NOT NULL`.
 7. Ejecutar las migraciones de seguridad y permisos (`24` – `28`) al final.
 8. Validar el funcionamiento de los endpoints administrativos y públicos.
