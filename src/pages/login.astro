@@ -60,7 +60,8 @@ if (user) {
           </div>
         </div>
         <p
-          class="mt-4 text-center font-semibold text-xs text-global-text-muted"
+          id="terms-message"
+          class="mt-4 text-center font-semibold text-xs text-global-text-muted transition-all duration-300 ease-in-out"
         >
           Debe aceptar los Términos de Servicio y la Política de Privacidad para
           poder iniciar sesión.
@@ -105,6 +106,21 @@ if (user) {
     ) as HTMLInputElement;
     const googleWrapper = document.getElementById("google-btn-wrapper");
     const googleOverlay = document.getElementById("google-btn-overlay");
+    const termsMessage = document.getElementById("terms-message");
+
+    if (googleOverlay && termsMessage) {
+      googleOverlay.addEventListener("click", (e) => {
+        e.preventDefault();
+
+        termsMessage.classList.remove("text-global-text-muted");
+        termsMessage.classList.add("text-red-500", "scale-105");
+
+        setTimeout(() => {
+          termsMessage.classList.remove("text-red-500", "scale-105");
+          termsMessage.classList.add("text-global-text-muted");
+        }, 400);
+      });
+    }
 
     // Manejo de UI: Activar/Desactivar el botón de Google
     function updateButtonState() {
