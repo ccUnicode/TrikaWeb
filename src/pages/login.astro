@@ -113,10 +113,10 @@ if (user) {
         e.preventDefault();
 
         termsMessage.classList.remove("text-global-text-muted");
-        termsMessage.classList.add("text-red-500", "scale-105");
+        termsMessage.classList.add("text-red-500");
 
         setTimeout(() => {
-          termsMessage.classList.remove("text-red-500", "scale-105");
+          termsMessage.classList.remove("text-red-500");
           termsMessage.classList.add("text-global-text-muted");
         }, 400);
       });
