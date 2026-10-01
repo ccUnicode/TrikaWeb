@@ -1,12 +1,7 @@
 -- DDL para el módulo de mallas curriculares: study_plans, plan_courses y course_prerequisites
 
--- 0. Tabla specialties (Especialidades o Carreras)
-CREATE TABLE IF NOT EXISTS specialties (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(100) NOT NULL,
-  code VARCHAR(20) UNIQUE NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- 0. Tabla specialties (Especialidades o Carreras) - Modificar tabla existente de la migración 05
+ALTER TABLE specialties ADD COLUMN IF NOT EXISTS code VARCHAR(20) UNIQUE;
 
 -- 1. Tabla study_plans
 CREATE TABLE IF NOT EXISTS study_plans (
