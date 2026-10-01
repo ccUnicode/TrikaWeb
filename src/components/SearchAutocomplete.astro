@@ -211,6 +211,15 @@ const listId = `${id}-suggestions`;
 
         card.classList.toggle("hidden", score === 0);
       });
+
+      const visibleCards = cards.filter(c => !c.classList.contains("hidden"));
+      root.dispatchEvent(new CustomEvent("autocomplete:filtered", {
+        detail: {
+          visibleCount: visibleCards.length,
+          query: q
+        },
+        bubbles: true
+      }));
     }
 
     /** Utilitario de debounce para evitar consultas excesivas mientras el usuario escribe */

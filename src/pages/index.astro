@@ -133,9 +133,10 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
         </div>
       </div>
 
-      <!-- Más visitadas section -->
-      <div class="w-full">
-        <div class="flex gap-4 items-center">
+      <div id="planchas-content" class="w-full flex flex-col gap-9">
+        <!-- Más visitadas section -->
+        <div class="w-full">
+          <div class="flex gap-4 items-center">
           <!-- Left arrow -->
           <button
             id="prev-popular"
@@ -348,6 +349,23 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
               Basado en<br />votos
             </p>
           </div>
+        </div>
+      </div>
+      </div>
+
+      <!-- Empty state para búsquedas sin resultados -->
+      <div id="planchas-empty" class="hidden w-full flex-col items-center justify-center py-12 gap-4" aria-live="polite">
+        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-global-primary/10 text-global-primary transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+        </div>
+        <div class="space-y-2 text-center">
+          <h3 class="text-[24px] font-semibold text-global-text">Próximamente...</h3>
+          <p class="text-global-text-muted text-center max-w-md">
+            Aún no tenemos planchas que coincidan con tu búsqueda.
+          </p>
         </div>
       </div>
     </section>
@@ -686,6 +704,28 @@ const homePlans = Array.from(uniqueHomeSpecialties.values());
 
   /** Inicializa los tres carruseles al cargar la página */
   document.addEventListener("DOMContentLoaded", () => {
+    // Manejar estado vacío de la búsqueda
+    const planchasContent = document.getElementById("planchas-content");
+    const planchasEmpty = document.getElementById("planchas-empty");
+
+    document.addEventListener("autocomplete:filtered", (e) => {
+      const { visibleCount } = (e as CustomEvent).detail;
+      
+      if (planchasContent && planchasEmpty) {
+        if (visibleCount === 0) {
+          planchasContent.classList.add("hidden");
+          planchasContent.classList.remove("flex");
+          planchasEmpty.classList.remove("hidden");
+          planchasEmpty.classList.add("flex");
+        } else {
+          planchasContent.classList.remove("hidden");
+          planchasContent.classList.add("flex");
+          planchasEmpty.classList.add("hidden");
+          planchasEmpty.classList.remove("flex");
+        }
+      }
+    });
+
     const popularItems = document.querySelectorAll(".carousel-item-popular");
     const difficultItems = document.querySelectorAll(
       ".carousel-item-difficult",
