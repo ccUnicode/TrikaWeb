@@ -1,0 +1,49 @@
+# yaml-language-server: $schema=https://www.coderabbit.ai/integrations/schema.v2.json
+language: es
+tone_instructions: 'Escribe en español, breve y concreto. En cada hallazgo explica el fallo, su causa, cuándo ocurre y su impacto. Evita elogios, comentarios cosméticos y observaciones sin evidencia.'
+early_access: false
+enable_free_tier: true
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  collapse_walkthrough: true
+  sequence_diagrams: true
+  suggested_labels: false
+  suggested_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    drafts: false
+    base_branches:
+      - '^dev$'
+  path_filters:
+    - '!**/node_modules/**'
+    - '!**/dist/**'
+    - '!**/.next/**'
+    - '!**/coverage/**'
+    - '!**/package-lock.json'
+    - '!**/.astro/**'
+    - '!**/.turbo/**'
+    - '!**/playwright-report/**'
+    - '!**/test-results/**'
+    - '!**/*.tsbuildinfo'
+    - '!**/.cache/**'
+  path_instructions:
+    - path: '**/*'
+      instructions: >-
+        Prioriza errores demostrables de lógica, reglas de negocio, autorización,
+        exposición de datos, integridad de persistencia, concurrencia, manejo de
+        errores y contratos entre frontend y backend. Sigue el flujo completo del
+        cambio y las convenciones documentadas del repositorio. Cita el escenario
+        concreto que causa el fallo; no inventes requisitos. No repitas hallazgos
+        de formato, lint o tipos ya cubiertos por CI, salvo que tengan un impacto
+        funcional que debas explicar. Señala pruebas ausentes solo para regresiones
+        concretas. En documentación, verifica coherencia con código y contratos.
+chat:
+  auto_reply: true
