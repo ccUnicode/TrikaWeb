@@ -597,7 +597,6 @@ en Supabase.
 | `get_variable_evaluations_by_system` | Obtiene evaluaciones variables de un sistema |
 | `toggle_sheet_interest` | Inserta o elimina interés de forma atómica y devuelve el contador |
 | `reset_sheet_interest` | Elimina intereses y restablece el contador de forma atómica |
-| `get_average_stars` | Calcula el promedio visible de feedback de plancha |
 | `handle_new_user` | Crea metadatos de perfil cuando el flujo de autenticación correspondiente lo utiliza |
 | `add_malla_transaction` | Crea un plan de estudios y, si `is_current`, desmarca atómicamente el vigente de la especialidad |
 | `edit_malla_transaction` | Actualiza un plan y desmarca atómicamente otros vigentes de la especialidad cuando corresponde |

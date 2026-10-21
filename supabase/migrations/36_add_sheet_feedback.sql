@@ -26,6 +26,14 @@ CREATE INDEX IF NOT EXISTS idx_sheet_feedback_is_hidden ON sheet_feedback (is_hi
 -- Habilitar RLS
 ALTER TABLE sheet_feedback ENABLE ROW LEVEL SECURITY;
 
+-- Mantener updated_at sincronizado (set_updated_at se define en la migración 15)
+DROP TRIGGER IF EXISTS set_sheet_feedback_updated_at ON public.sheet_feedback;
+CREATE TRIGGER set_sheet_feedback_updated_at
+  BEFORE UPDATE
+  ON public.sheet_feedback
+  FOR EACH ROW
+  EXECUTE FUNCTION public.set_updated_at();
+
 -- Se elimina la policy de lectura pública directa porque filtra filas pero no columnas (device_id, ip_hash).
 -- La lectura de los comentarios ahora se realiza exclusivamente a través de un endpoint API usando supabaseAdmin.
 

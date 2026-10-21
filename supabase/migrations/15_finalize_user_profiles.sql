@@ -92,6 +92,13 @@ begin
 end
 $$;
 
+-- La política specialties_insert_admin (migración 05) depende de
+-- profiles.role. PostgreSQL no permite cambiar el tipo de una columna
+-- usada en una política, por lo que se elimina aquí y se recrea después
+-- de la conversión.
+drop policy if exists "specialties_insert_admin"
+  on public.specialties;
+
 -- La migración 03 creó role como text. Convertirlo al enum solo cuando
 -- la columna todavía no usa public.user_role.
 do $$
@@ -138,6 +145,19 @@ $$;
 alter table public.profiles
   alter column role set default 'student'::public.user_role,
   alter column role set not null;
+
+-- Recrear la política de la migración 05 sobre la columna ya convertida.
+create policy "specialties_insert_admin"
+  on public.specialties
+  for insert
+  with check (
+    exists (
+      select 1
+      from public.profiles
+      where profiles.id = auth.uid()
+        and profiles.role = 'admin'::public.user_role
+    )
+  );
 
 create unique index if not exists uq_profiles_username_lower
   on public.profiles (lower(username))

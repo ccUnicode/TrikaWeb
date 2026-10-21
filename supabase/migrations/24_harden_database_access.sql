@@ -39,17 +39,9 @@ grant execute on function public.is_current_user_admin() to authenticated, servi
 -- --------------------------------------------------------------------------
 -- 2. Funciones públicas de lectura: search_path fijo y referencias calificadas
 -- --------------------------------------------------------------------------
-create or replace function public.get_average_stars(p_sheet_id bigint)
-returns numeric
-language sql
-stable
-set search_path to ''
-as $function$
-  select coalesce(avg(sf.stars), 0)
-  from public.sheet_feedback as sf
-  where sf.sheet_id = p_sheet_id
-    and sf.is_hidden = false;
-$function$;
+-- NOTA: get_average_stars() no se define aquí porque depende de
+-- sheet_feedback, que se crea en la migración 36. Su tratamiento final
+-- se aplica en la migración 37.
 
 create or replace function public.get_evaluation_subsystems()
 returns table (
@@ -201,11 +193,6 @@ grant execute on function public.update_course_with_evaluations(
 ) to service_role;
 
 -- Funciones de lectura permitidas para el cliente.
-revoke execute on function public.get_average_stars(bigint)
-  from public;
-grant execute on function public.get_average_stars(bigint)
-  to anon, authenticated, service_role;
-
 revoke execute on function public.get_evaluation_subsystems()
   from public;
 grant execute on function public.get_evaluation_subsystems()
@@ -244,13 +231,9 @@ drop policy if exists
   "Los usuarios pueden leer su propio perfil"
   on public.profiles;
 
-drop policy if exists
-  "Permitir todo a usuarios en study_plans"
-  on public.study_plans;
-
-drop policy if exists
-  "Permitir anon temporalmente"
-  on public.plan_courses;
+-- NOTA: Las políticas sobre study_plans y plan_courses no se eliminan aquí
+-- porque esas tablas son creadas por migraciones posteriores (32 y 36).
+-- El endurecimiento de esas tablas se aplica en la migración 37.
 
 -- --------------------------------------------------------------------------
 -- 4. Perfiles: impedir autoasignación del rol admin
@@ -282,59 +265,11 @@ grant update (
 ) on table public.profiles to authenticated;
 
 -- --------------------------------------------------------------------------
--- 5. Mallas: lectura pública y administración solo para profiles.role = admin
--- --------------------------------------------------------------------------
-drop policy if exists
-  "Permitir todo a usuarios logueados en plan_courses"
-  on public.plan_courses;
-
-drop policy if exists
-  "Permitir todo a usuarios logueados en course_prerequisites"
-  on public.course_prerequisites;
-
-drop policy if exists
-  "Permitir todo a usuarios logueados"
-  on public.study_plans;
-
-create policy "admin_manage_plan_courses"
-  on public.plan_courses
-  for all
-  to authenticated
-  using (public.is_current_user_admin())
-  with check (public.is_current_user_admin());
-
-create policy "admin_manage_course_prerequisites"
-  on public.course_prerequisites
-  for all
-  to authenticated
-  using (public.is_current_user_admin())
-  with check (public.is_current_user_admin());
-
-create policy "admin_manage_study_plans"
-  on public.study_plans
-  for all
-  to authenticated
-  using (public.is_current_user_admin())
-  with check (public.is_current_user_admin());
-
-revoke all privileges on table public.plan_courses from anon, authenticated;
-grant select on table public.plan_courses to anon, authenticated;
-grant insert, update, delete on table public.plan_courses to authenticated;
-
-revoke all privileges on table public.course_prerequisites
-  from anon, authenticated;
-grant select on table public.course_prerequisites to anon, authenticated;
-grant insert, update, delete on table public.course_prerequisites
-  to authenticated;
-
-revoke all privileges on table public.study_plans from anon, authenticated;
-grant select on table public.study_plans to anon, authenticated;
-grant insert, update, delete on table public.study_plans to authenticated;
-
--- --------------------------------------------------------------------------
--- 6. Ocultar filas administrativas en consultas públicas
+-- 5. Ocultar filas administrativas en consultas públicas
+--    (solo tablas que existen antes de esta migración)
 -- --------------------------------------------------------------------------
 drop policy if exists "public read courses" on public.courses;
+drop policy if exists "public read visible courses" on public.courses;
 create policy "public read visible courses"
   on public.courses
   for select
@@ -342,6 +277,7 @@ create policy "public read visible courses"
   using (coalesce(is_hidden, false) = false);
 
 drop policy if exists "public read sheets" on public.sheets;
+drop policy if exists "public read visible sheets" on public.sheets;
 create policy "public read visible sheets"
   on public.sheets
   for select
@@ -358,6 +294,9 @@ create policy "public read visible sheets"
 
 drop policy if exists
   "public read courses_teachers"
+  on public.courses_teachers;
+drop policy if exists
+  "public read visible courses_teachers"
   on public.courses_teachers;
 create policy "public read visible courses_teachers"
   on public.courses_teachers
@@ -378,95 +317,19 @@ create policy "public read visible courses_teachers"
     )
   );
 
-drop policy if exists
-  "Planes de estudio visibles para todos"
-  on public.study_plans;
-create policy "public read published study_plans"
-  on public.study_plans
-  for select
-  to anon, authenticated
-  using (coalesce(is_published, false) = true);
-
-drop policy if exists
-  "Cursos de plan visibles para todos"
-  on public.plan_courses;
-create policy "public read published plan_courses"
-  on public.plan_courses
-  for select
-  to anon, authenticated
-  using (
-    exists (
-      select 1
-      from public.study_plans as sp
-      where sp.id = plan_courses.plan_id
-        and coalesce(sp.is_published, false) = true
-    )
-  );
-
-drop policy if exists
-  "Prerequisitos visibles para todos"
-  on public.course_prerequisites;
-create policy "public read published course_prerequisites"
-  on public.course_prerequisites
-  for select
-  to anon, authenticated
-  using (
-    exists (
-      select 1
-      from public.study_plans as sp
-      where sp.id = course_prerequisites.plan_id
-        and coalesce(sp.is_published, false) = true
-    )
-  );
-
 -- Las tablas anteriores no deben aceptar escrituras del cliente fuera de RLS.
 revoke all privileges on table public.sheets from anon, authenticated;
 grant select on table public.sheets to anon, authenticated;
 
 -- --------------------------------------------------------------------------
--- 7. Comentarios públicos: filtrar moderación y ocultar columnas sensibles
+-- 6. Comentarios públicos: filtrar moderación y ocultar columnas sensibles
+--    (solo teacher_ratings, que existe antes de esta migración)
 -- --------------------------------------------------------------------------
 drop policy if exists
-  "Public can read visible sheet feedback"
-  on public.sheet_feedback;
-create policy "public read approved sheet feedback"
-  on public.sheet_feedback
-  for select
-  to anon, authenticated
-  using (
-    coalesce(is_hidden, false) = false
-    and coalesce(needs_review, true) = false
-  );
-
-drop policy if exists
-  "Public can insert sheet feedback"
-  on public.sheet_feedback;
-create policy "public insert pending sheet feedback"
-  on public.sheet_feedback
-  for insert
-  to anon, authenticated
-  with check (
-    coalesce(is_hidden, false) = false
-    and coalesce(needs_review, true) = true
-  );
-
-revoke all privileges on table public.sheet_feedback from anon, authenticated;
-grant select (
-  id,
-  sheet_id,
-  stars,
-  content,
-  created_at
-) on table public.sheet_feedback to anon, authenticated;
-grant insert (
-  sheet_id,
-  stars,
-  content,
-  device_id
-) on table public.sheet_feedback to anon, authenticated;
-
-drop policy if exists
   "public read teacher_ratings"
+  on public.teacher_ratings;
+drop policy if exists
+  "public read approved teacher ratings"
   on public.teacher_ratings;
 create policy "public read approved teacher ratings"
   on public.teacher_ratings
@@ -493,8 +356,11 @@ grant select (
   created_at
 ) on table public.teacher_ratings to anon, authenticated;
 
+-- NOTA: Las políticas y permisos sobre sheet_feedback se aplican en la
+-- migración 37, después de que la tabla es creada por la migración 36.
+
 -- --------------------------------------------------------------------------
--- 8. Telemetría y rate limiting: acceso exclusivo desde backend
+-- 7. Telemetría y rate limiting: acceso exclusivo desde backend
 -- --------------------------------------------------------------------------
 drop policy if exists "public read sheet_ratings" on public.sheet_ratings;
 drop policy if exists "public read sheet_views" on public.sheet_views;
@@ -531,13 +397,13 @@ alter default privileges in schema public
   grant usage, select on sequences to service_role;
 
 -- --------------------------------------------------------------------------
--- 9. Secuencias: solo las necesarias para inserciones públicas vigentes
+-- 8. Secuencias: solo las necesarias para inserciones públicas vigentes
+--    (contributions_id_seq existe antes de esta migración;
+--     sheet_feedback_id_seq se concede en la migración 37)
 -- --------------------------------------------------------------------------
 revoke all privileges on all sequences in schema public
   from anon, authenticated;
 
-grant usage on sequence public.sheet_feedback_id_seq
-  to anon, authenticated;
 grant usage on sequence public.contributions_id_seq
   to authenticated;
 
