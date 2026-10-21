@@ -205,12 +205,8 @@ create trigger set_contributions_updated_at
   for each row
   execute function public.set_updated_at();
 
-drop trigger if exists set_sheet_feedback_updated_at on public.sheet_feedback;
-create trigger set_sheet_feedback_updated_at
-  before update
-  on public.sheet_feedback
-  for each row
-  execute function public.set_updated_at();
+-- El trigger set_sheet_feedback_updated_at se crea en la migración 36,
+-- junto con la tabla sheet_feedback.
 
 drop trigger if exists set_teacher_ratings_updated_at on public.teacher_ratings;
 create trigger set_teacher_ratings_updated_at

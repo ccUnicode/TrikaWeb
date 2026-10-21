@@ -39,17 +39,9 @@ grant execute on function public.is_current_user_admin() to authenticated, servi
 -- --------------------------------------------------------------------------
 -- 2. Funciones públicas de lectura: search_path fijo y referencias calificadas
 -- --------------------------------------------------------------------------
-create or replace function public.get_average_stars(p_sheet_id bigint)
-returns numeric
-language sql
-stable
-set search_path to ''
-as $function$
-  select coalesce(avg(sf.stars), 0)
-  from public.sheet_feedback as sf
-  where sf.sheet_id = p_sheet_id
-    and sf.is_hidden = false;
-$function$;
+-- NOTA: get_average_stars() no se define aquí porque depende de
+-- sheet_feedback, que se crea en la migración 36. Su tratamiento final
+-- se aplica en la migración 37.
 
 create or replace function public.get_evaluation_subsystems()
 returns table (
@@ -201,11 +193,6 @@ grant execute on function public.update_course_with_evaluations(
 ) to service_role;
 
 -- Funciones de lectura permitidas para el cliente.
-revoke execute on function public.get_average_stars(bigint)
-  from public;
-grant execute on function public.get_average_stars(bigint)
-  to anon, authenticated, service_role;
-
 revoke execute on function public.get_evaluation_subsystems()
   from public;
 grant execute on function public.get_evaluation_subsystems()
@@ -282,6 +269,7 @@ grant update (
 --    (solo tablas que existen antes de esta migración)
 -- --------------------------------------------------------------------------
 drop policy if exists "public read courses" on public.courses;
+drop policy if exists "public read visible courses" on public.courses;
 create policy "public read visible courses"
   on public.courses
   for select
@@ -289,6 +277,7 @@ create policy "public read visible courses"
   using (coalesce(is_hidden, false) = false);
 
 drop policy if exists "public read sheets" on public.sheets;
+drop policy if exists "public read visible sheets" on public.sheets;
 create policy "public read visible sheets"
   on public.sheets
   for select
@@ -305,6 +294,9 @@ create policy "public read visible sheets"
 
 drop policy if exists
   "public read courses_teachers"
+  on public.courses_teachers;
+drop policy if exists
+  "public read visible courses_teachers"
   on public.courses_teachers;
 create policy "public read visible courses_teachers"
   on public.courses_teachers
@@ -335,6 +327,9 @@ grant select on table public.sheets to anon, authenticated;
 -- --------------------------------------------------------------------------
 drop policy if exists
   "public read teacher_ratings"
+  on public.teacher_ratings;
+drop policy if exists
+  "public read approved teacher ratings"
   on public.teacher_ratings;
 create policy "public read approved teacher ratings"
   on public.teacher_ratings

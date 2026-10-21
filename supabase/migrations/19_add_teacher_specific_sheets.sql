@@ -47,6 +47,12 @@ alter table public.sheets
   add column if not exists teacher_id bigint,
   add column if not exists is_teacher_specific boolean;
 
+-- Visibilidad de planchas. La columna existía en producción sin una
+-- migración que la creara; la migración 24 y los endpoints administrativos
+-- dependen de ella.
+alter table public.sheets
+  add column if not exists is_hidden boolean not null default false;
+
 -- ---------------------------------------------------------------------------
 -- 3. Validar catálogo de evaluaciones antes del backfill
 -- ---------------------------------------------------------------------------

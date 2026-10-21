@@ -189,4 +189,12 @@ grant insert, delete on table public.sheet_feedback_reactions to authenticated;
 grant usage on sequence public.sheet_feedback_id_seq
   to anon, authenticated;
 
+-- --------------------------------------------------------------------------
+-- 5. get_average_stars(): eliminar función obsoleta
+-- --------------------------------------------------------------------------
+-- La migración 36 crea get_average_stars() sobre sheet_feedback.stars y la
+-- migración 29 elimina esa columna, por lo que la función ya no puede
+-- ejecutarse. La aplicación no la utiliza; se elimina en lugar de endurecerla.
+drop function if exists public.get_average_stars(bigint);
+
 commit;

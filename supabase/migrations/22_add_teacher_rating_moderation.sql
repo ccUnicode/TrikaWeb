@@ -5,6 +5,10 @@
 
 begin;
 
+-- La vista public_teacher_ratings (migración 14) depende de overall y
+-- PostgreSQL no permite cambiar el tipo de una columna usada por una vista.
+-- La vista se recrea más adelante en esta misma migración.
+drop view if exists public.public_teacher_ratings;
 
 alter table public.teacher_ratings
   alter column overall type numeric(3,2)
