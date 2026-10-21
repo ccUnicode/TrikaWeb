@@ -59,7 +59,9 @@ El directorio `supabase/migrations/` contiene 38 archivos. Todas las migraciones
 
 > **Nota sobre el prefijo `23_`:** existen dos archivos con este prefijo. `23_fix_statistics_triggers.sql` corrige los triggers de estadísticas y `23_migrate_to_supabase_auth.sql` migra la autenticación de Firebase a Supabase Auth. Se deben ejecutar en ese orden: primero `23_fix_statistics_triggers.sql`, luego `23_migrate_to_supabase_auth.sql`.
 
-> **Nota sobre la migración `24_`:** esta migración aplica el endurecimiento de seguridad únicamente sobre las tablas que ya existen en ese punto (`profiles`, `courses`, `sheets`, `courses_teachers`, `teacher_ratings`, `sheet_ratings`, `sheet_views`, `write_limits`, `sheet_interests`). El endurecimiento de `sheet_feedback` y las tablas de mallas curriculares se aplica en la migración `37`, después de que dichas tablas son creadas.
+> **Nota sobre la migración `24_`:** esta migración aplica el endurecimiento de seguridad únicamente sobre las tablas que ya existen en ese punto (`profiles`, `courses`, `sheets`, `courses_teachers`, `teacher_ratings`, `sheet_ratings`, `sheet_views`, `write_limits`, `sheet_interests`). El endurecimiento de `sheet_feedback` y las tablas de mallas curriculares se aplica en la migración `37`, después de que dichas tablas son creadas. Por la misma razón, la `24` no define `get_average_stars()`: esa función depende de `sheet_feedback` y se trata en la migración `37`.
+
+> **Nota sobre las dependencias corregidas para una base vacía:** las migraciones `15`, `19`, `22`, `23_fix_statistics_triggers` y `24` incluyen ajustes para poder ejecutarse sobre una base vacía. La `15` elimina y recrea la política `specialties_insert_admin` alrededor de la conversión de `profiles.role` a enum; la `19` crea la columna `sheets.is_hidden`, que la `24` y los endpoints administrativos utilizan; la `22` elimina la vista `public_teacher_ratings` antes de cambiar el tipo de `teacher_ratings.overall`; el trigger `set_sheet_feedback_updated_at` se crea en la `36` en lugar de la `23`; y la `24` elimina previamente las políticas que recrea. En bases existentes estos ajustes no requieren acciones adicionales.
 
 #### Migraciones numeradas
 
@@ -83,7 +85,7 @@ El directorio `supabase/migrations/` contiene 38 archivos. Todas las migraciones
 | 16 | `16_add_evaluation_catalogs.sql` | Catálogos: `cycles`, `evaluation_systems`, `evaluation_type` |
 | 17 | `17_add_course_configuration.sql` | Configuración de cursos: `summary`, `system_id`, `status`, etc. |
 | 18 | `18_add_course_evaluations.sql` | Tabla `course_evaluations` y funciones administrativas |
-| 19 | `19_add_teacher_specific_sheets.sql` | Planchas por docente: `evaluation_id`, `is_teacher_specific` |
+| 19 | `19_add_teacher_specific_sheets.sql` | Planchas por docente: `evaluation_id`, `is_teacher_specific`; visibilidad de planchas (`is_hidden`) |
 | 20 | `20_add_sheet_interests.sql` | Solicitudes de solucionario: `sheet_interests` + triggers |
 | 21 | `21_prevent_deleting_courses_with_sheets.sql` | Función `delete_empty_course` para eliminación segura |
 | 22 | `22_add_teacher_rating_moderation.sql` | Moderación de valoraciones de docentes |
@@ -99,7 +101,7 @@ El directorio `supabase/migrations/` contiene 38 archivos. Todas las migraciones
 
 | # | Archivo | Descripción |
 |---|---|---|
-| 36 | `36_add_sheet_feedback.sql` | Tabla `sheet_feedback` con RLS básico y función `get_average_stars` |
+| 36 | `36_add_sheet_feedback.sql` | Tabla `sheet_feedback` con RLS básico, trigger de `updated_at` y función `get_average_stars` (eliminada en la `37`) |
 | 29 | `29_add_user_to_sheet_feedback.sql` | Añade columnas de usuario a `sheet_feedback`; crea tabla `sheet_feedback_reactions` |
 | 30 | `30_teacher_ratings_post_moderation.sql` | Cambia `teacher_ratings` a post-moderación; actualiza vista y política RLS |
 | 31 | `31_fix_teacher_ratings_grants.sql` | Otorga `SELECT` sobre `teacher_ratings` y `student_details` a roles cliente |
@@ -107,11 +109,11 @@ El directorio `supabase/migrations/` contiene 38 archivos. Todas las migraciones
 | 33 | `33_add_malla_rpc.sql` | Función RPC `add_malla_transaction` |
 | 34 | `34_edit_malla_rpc.sql` | Función RPC `edit_malla_transaction` |
 | 35 | `35_add_save_malla_rpc.sql` | Función RPC `save_malla_transaction` |
-| 37 | `37_harden_new_module_access.sql` | Endurecimiento de acceso para `sheet_feedback`, `sheet_feedback_reactions` y tablas de mallas curriculares |
+| 37 | `37_harden_new_module_access.sql` | Endurecimiento de acceso para `sheet_feedback`, `sheet_feedback_reactions` y tablas de mallas curriculares; elimina la función obsoleta `get_average_stars` |
 
-> **Nota sobre el orden de 36 y 29:** la migración `36` crea la tabla `sheet_feedback` y debe ejecutarse **antes** que la `29`, que añade columnas sobre esa misma tabla. El orden de ejecución no es el numérico estricto en este tramo; consulta la lista completa de la sección «Instalación nueva».
+> **Nota sobre el orden de 36 y 29:** la migración `36` crea la tabla `sheet_feedback` y debe ejecutarse **antes** que la `29`, que añade columnas sobre esa misma tabla. El orden de ejecución no es el numérico estricto en este tramo; la lista completa se encuentra en la sección «Instalación nueva».
 
-> **Nota sobre la migración 37:** consolida las políticas RLS y permisos de columna que la migración `24` no podía aplicar, porque en ese punto las tablas `sheet_feedback` y las de mallas aún no existían. La `37` debe ejecutarse después de la `35`.
+> **Nota sobre la migración 37:** consolida las políticas RLS y permisos de columna que la migración `24` no podía aplicar, porque en ese punto las tablas `sheet_feedback` y las de mallas aún no existían. También elimina `get_average_stars()`: la `36` la define sobre la columna `sheet_feedback.stars`, que la `29` elimina, por lo que la función ya no puede ejecutarse y la aplicación no la utiliza. La `37` debe ejecutarse después de la `35`.
 
 Las migraciones de mallas (`32`–`35`) requieren que las tablas `courses` y `specialties` existan previamente. La migración `36` y la `29` requieren que la tabla `sheets` exista.
 
@@ -202,7 +204,7 @@ Para actualizar una base que ya contiene datos:
 2. No volver a ejecutar `supabase/schema.sql`.
 3. No volver a ejecutar migraciones ya aplicadas.
 4. Ejecutar únicamente las migraciones pendientes, respetando el orden numérico.
-5. **ATENCIÓN:** La migración `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. **ESTA MIGRACIÓN NO DEBE APLICARSE EN PRODUCCIÓN.** Para comprobar de forma fiable si ya fue aplicada, verifica si la columna `user_id` de la tabla `student_details` es de tipo `uuid` (ejecutando `SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'student_details' AND column_name = 'user_id';`). Si el tipo es `uuid`, omite este archivo. Si el tipo es `text`, la base no ha sido migrada y se requiere un enfoque manual de conversión de `user_id` sin usar el script automatizado.
+5. **ATENCIÓN:** La migración `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. **ESTA MIGRACIÓN NO DEBE APLICARSE EN PRODUCCIÓN.** Para comprobar de forma fiable si ya fue aplicada, se debe verificar si la columna `user_id` de la tabla `student_details` es de tipo `uuid` (ejecutando `SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'student_details' AND column_name = 'user_id';`). Si el tipo es `uuid`, se debe omitir este archivo. Si el tipo es `text`, la base no ha sido migrada y se requiere un enfoque manual de conversión de `user_id` sin usar el script automatizado.
 6. Verificar el backfill de `system_id`, evaluaciones y demás relaciones antes de aplicar restricciones `NOT NULL`.
 7. Ejecutar las migraciones de seguridad y permisos (`24` – `28`) primero, y a continuación las migraciones de módulos nuevos en el orden: `36` → `29` → `30` → `31` → `32` → `33` → `34` → `35` → `37`.
 8. Validar el funcionamiento de los endpoints administrativos y públicos.
