@@ -55,7 +55,7 @@ La base de datos se construye mediante:
 
 ### Inventario de migraciones
 
-El directorio `supabase/migrations/` contiene 38 archivos. Todas las migraciones tienen prefijo numérico y deben ejecutarse en el orden indicado en la sección «Instalación nueva». Las migraciones `36`, `29`–`35` y `37` incorporan los módulos de feedback, moderación y mallas curriculares.
+El directorio `supabase/migrations/` contiene 39 archivos. Todas las migraciones tienen prefijo numérico y deben ejecutarse en el orden indicado en la sección «Instalación nueva». Las migraciones `36`, `29`–`35` y `37` incorporan los módulos de feedback, moderación y mallas curriculares.
 
 > **Nota sobre el prefijo `23_`:** existen dos archivos con este prefijo. `23_fix_statistics_triggers.sql` corrige los triggers de estadísticas y `23_migrate_to_supabase_auth.sql` migra la autenticación de Firebase a Supabase Auth. Se deben ejecutar en ese orden: primero `23_fix_statistics_triggers.sql`, luego `23_migrate_to_supabase_auth.sql`.
 
@@ -110,6 +110,14 @@ El directorio `supabase/migrations/` contiene 38 archivos. Todas las migraciones
 | 34 | `34_edit_malla_rpc.sql` | Función RPC `edit_malla_transaction` |
 | 35 | `35_add_save_malla_rpc.sql` | Función RPC `save_malla_transaction` |
 | 37 | `37_harden_new_module_access.sql` | Endurecimiento de acceso para `sheet_feedback`, `sheet_feedback_reactions` y tablas de mallas curriculares; elimina la función obsoleta `get_average_stars` |
+
+#### Migraciones de datos
+
+| # | Archivo | Descripción |
+|---|---|---|
+| 38 | `38_add_malla_ia.sql` | Crea los cursos faltantes de Ingeniería de Inteligencia Artificial y carga la malla del plan 2025 de IA (60 cursos obligatorios y sus prerrequisitos) |
+
+> **Nota sobre la migración 38:** es una migración de datos para la base existente. Requiere que el plan 2025 de Ingeniería de Inteligencia Artificial y los cursos compartidos con otras carreras ya existan, por lo que no forma parte de la «Instalación nueva». Se detiene sin modificar nada si el plan ya tiene cursos cargados.
 
 > **Nota sobre el orden de 36 y 29:** la migración `36` crea la tabla `sheet_feedback` y debe ejecutarse **antes** que la `29`, que añade columnas sobre esa misma tabla. El orden de ejecución no es el numérico estricto en este tramo; la lista completa se encuentra en la sección «Instalación nueva».
 
@@ -206,7 +214,7 @@ Para actualizar una base que ya contiene datos:
 4. Ejecutar únicamente las migraciones pendientes, respetando el orden numérico.
 5. **ATENCIÓN:** La migración `23_migrate_to_supabase_auth.sql` ejecuta `TRUNCATE CASCADE` sobre `student_details`, `teacher_ratings` y `contributions`. **ESTA MIGRACIÓN NO DEBE APLICARSE EN PRODUCCIÓN.** Para comprobar de forma fiable si ya fue aplicada, se debe verificar si la columna `user_id` de la tabla `student_details` es de tipo `uuid` (ejecutando `SELECT data_type FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'student_details' AND column_name = 'user_id';`). Si el tipo es `uuid`, se debe omitir este archivo. Si el tipo es `text`, la base no ha sido migrada y se requiere un enfoque manual de conversión de `user_id` sin usar el script automatizado.
 6. Verificar el backfill de `system_id`, evaluaciones y demás relaciones antes de aplicar restricciones `NOT NULL`.
-7. Ejecutar las migraciones de seguridad y permisos (`24` – `28`) primero, y a continuación las migraciones de módulos nuevos en el orden: `36` → `29` → `30` → `31` → `32` → `33` → `34` → `35` → `37`.
+7. Ejecutar las migraciones de seguridad y permisos (`24` – `28`) primero, y a continuación las migraciones de módulos nuevos en el orden: `36` → `29` → `30` → `31` → `32` → `33` → `34` → `35` → `37`. Después, la migración de datos `38`.
 8. Validar el funcionamiento de los endpoints administrativos y públicos.
 
 No deben ejecutarse simultáneamente cambios duplicados presentes en `schema.sql` y en las migraciones. El archivo `schema.sql` representa únicamente el esquema inicial; las modificaciones posteriores pertenecen al directorio `supabase/migrations`.
